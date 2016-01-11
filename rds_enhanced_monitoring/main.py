@@ -8,7 +8,7 @@ Follow these steps to encrypt your Datadog api keys for use in this function:
   2. Encrypt the token using the AWS CLI.
      $ aws kms encrypt --key-id alias/<KMS key name> --plaintext '{"api_key":"<dd_api_key>", "app_key":"<dd_app_key>"}'
 
-  3. Copy the base-64 encoded, encrypted key (CiphertextBlob) to the kmsEncyptedToken variable.
+  3. Copy the base-64 encoded, encrypted key (CiphertextBlob) to the KMS_ENCRYPTED_KEYS variable.
 
   4. Give your function's role permission for the kms:Decrypt action.
      Example:
