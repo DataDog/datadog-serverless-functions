@@ -29,18 +29,56 @@ Each lambda function will retrieve datadog api keys from KMS.
    `base.zip` contains datadogpy and it's dependencies.
 
 
-# Create a new function
+
+
+# How to use an existing function (ie rds_enhanced_monitoring)
+
+1. Pick a bucket on which to store the packaged lambda function
+
+1. Initialize the function in the AWS console (see below)
+
+1. Update the KMS secret in `main.py`
+
+1. Package and push the function
+   ```
+   rake push[functionname,bucket]
+   ```
+
+
+# How to create a new function
+
+1. Initialize the function locally
+   ```
+   rake init[functionname]
+   ```
+   This creates locally a `hello lambda` function
+
+1. Use this function (see above)
+
+
+# How to update an existing function
+
+1. Update the function's code
+
+1. Double check that the KMS secret in `main.py` is up to date
+
+1. Package and Push the function
+   ```
+   rake push[functionname,bucket]
+   ```
+
+
+# How to initialize a lambda function in the AWS console
 
 1. Create a KMS key for the datadog api key and app key
-  - Create a KMS key - http://docs.aws.amazon.com/kms/latest/developerguide/create-keys.html
-  - Encrypt the token using the AWS CLI.`aws kms encrypt --key-id alias/<KMS key name> --plaintext '{"api_key":"<dd_api_key>", "app_key":"<dd_app_key>"}'`
-  - Copy the base-64 encoded, encrypted key (CiphertextBlob) to the KMS_ENCRYPTED_KEYS variable.
-
+   - Create a KMS key - http://docs.aws.amazon.com/kms/latest/developerguide/create-keys.html
+   - Encrypt the token using the AWS CLI.`aws kms encrypt --key-id alias/<KMS key name> --plaintext '{"api_key":"<dd_api_key>", "app_key":"<dd_app_key>"}'`
+   - Copy the base-64 encoded, encrypted key (CiphertextBlob) to the KMS_ENCRYPTED_KEYS variable.
 
 1. Create and configure a lambda function
-  - In the AWS Console, create a `lambda_execution` policy, with the following policy:
-    ```
-    {
+   - In the AWS Console, create a `lambda_execution` policy, with the following policy:
+     ```
+     {
         "Version": "2012-10-17",
         "Statement": [
             {
@@ -62,26 +100,11 @@ Each lambda function will retrieve datadog api keys from KMS.
                  ]
                }
         ]
-    }
-    ```
+     }
+     ```
 
-  - Create a `lambda_execution` role and attach this policy
+   - Create a `lambda_execution` role and attach this policy
 
-  - Create a lambda function named `functionname`, with `main.send_metric` as the handler, and the `lambda_execution` role.
+   - Create a lambda function: Skip the blueprint, name it `functionname`, set the Runtime to `Python 2.7`, the handle to `main.send_metric`, and the role to `lambda_execution`. The actual function code could be anything at this step (like `print 'hello lambda'`) as it will use a zip file from s3 as the code entry type.
 
-  - Subscribe to the appropriate log stream
-
-1. Initialize the function folder
-   ```
-   rake init[functionname]
-   ```
-
-# Update an existing function
-
-- Double check that the KMS secret in `main.py` is up to date
-
-- Update the function
-  ```
-  rake push[functionname,bucket]
-  ```
-
+   - Subscribe to the appropriate log stream
