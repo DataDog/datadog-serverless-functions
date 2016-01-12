@@ -30,6 +30,7 @@ Follow these steps to encrypt your Datadog api keys for use in this function:
 
 import gzip
 import json
+import re
 from StringIO import StringIO
 from base64 import b64decode
 
@@ -62,7 +63,7 @@ def _process_rds_enhanced_monitoring_message(base_tags, ts, message):
 
     # uptime: "54 days, 1:53:04" to be converted into seconds
     uptime = 0
-    uptime_msg = message["uptime"].split(' days, ')
+    uptime_msg = re.split(' days?, ', message["uptime"])  # edge case "1 day 1:53:04"
     if len(uptime_msg) == 2:
         uptime += 24 * 3600 * int(uptime_msg[0])
     uptime_day = uptime_msg[-1].split(':')
@@ -70,30 +71,30 @@ def _process_rds_enhanced_monitoring_message(base_tags, ts, message):
     uptime += 60 * int(uptime_day[1])
     uptime += int(uptime_day[2])
     stats.gauge(
-        'dd.aws.rds.uptime', uptime, timestamp=ts, tags=tags
+        'aws.rds.uptime', uptime, timestamp=ts, tags=tags
     )
 
     stats.gauge(
-        'dd.aws.rds.virtual_cpus', message["numVCPUs"], timestamp=ts, tags=tags
+        'aws.rds.virtual_cpus', message["numVCPUs"], timestamp=ts, tags=tags
     )
 
     stats.gauge(
-        'dd.aws.rds.load.1', message["loadAverageMinute"]["one"],
+        'aws.rds.load.1', message["loadAverageMinute"]["one"],
         timestamp=ts, tags=tags
     )
     stats.gauge(
-        'dd.aws.rds.load.5', message["loadAverageMinute"]["five"],
+        'aws.rds.load.5', message["loadAverageMinute"]["five"],
         timestamp=ts, tags=tags
     )
     stats.gauge(
-        'dd.aws.rds.load.15', message["loadAverageMinute"]["fifteen"],
+        'aws.rds.load.15', message["loadAverageMinute"]["fifteen"],
         timestamp=ts, tags=tags
     )
 
     for namespace in ["cpuUtilization", "memory", "tasks", "swap"]:
         for key, value in message[namespace].iteritems():
             stats.gauge(
-                'dd.aws.rds.%s.%s' % (namespace.lower(), key), value,
+                'aws.rds.%s.%s' % (namespace.lower(), key), value,
                 timestamp=ts, tags=tags
             )
 
@@ -101,14 +102,14 @@ def _process_rds_enhanced_monitoring_message(base_tags, ts, message):
         network_tag = ["interface:%s" % network_stats.pop("interface")]
         for key, value in network_stats.iteritems():
             stats.gauge(
-                'dd.aws.rds.network.%s' % key, value,
+                'aws.rds.network.%s' % key, value,
                 timestamp=ts, tags=tags + network_tag
             )
 
     disk_stats = message["diskIO"][0]  # we never expect to have more than one disk
     for key, value in disk_stats.iteritems():
         stats.gauge(
-            'dd.aws.rds.diskio.%s' % key, value,
+            'aws.rds.diskio.%s' % key, value,
             timestamp=ts, tags=tags
         )
 
@@ -119,7 +120,7 @@ def _process_rds_enhanced_monitoring_message(base_tags, ts, message):
         ]
         for key, value in fs_stats.iteritems():
             stats.gauge(
-                'dd.aws.rds.filesystem.%s' % key, value,
+                'aws.rds.filesystem.%s' % key, value,
                 timestamp=ts, tags=tags + fs_tag
             )
 
@@ -130,7 +131,7 @@ def _process_rds_enhanced_monitoring_message(base_tags, ts, message):
         ]
         for key, value in process_stats.iteritems():
             stats.gauge(
-                'dd.aws.rds.process.%s' % key, value,
+                'aws.rds.process.%s' % key, value,
                 timestamp=ts, tags=tags + process_tag
             )
 
