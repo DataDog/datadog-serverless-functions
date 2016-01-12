@@ -30,6 +30,7 @@ Follow these steps to encrypt your Datadog api keys for use in this function:
 
 import gzip
 import json
+import re
 from StringIO import StringIO
 from base64 import b64decode
 
@@ -62,7 +63,7 @@ def _process_rds_enhanced_monitoring_message(base_tags, ts, message):
 
     # uptime: "54 days, 1:53:04" to be converted into seconds
     uptime = 0
-    uptime_msg = message["uptime"].split(' days, ')
+    uptime_msg = re.split(' days?, ', message["uptime"])  # edge case "1 day 1:53:04"
     if len(uptime_msg) == 2:
         uptime += 24 * 3600 * int(uptime_msg[0])
     uptime_day = uptime_msg[-1].split(':')
