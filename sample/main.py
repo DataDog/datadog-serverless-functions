@@ -9,9 +9,9 @@ import boto3
 from datadog import initialize, ThreadStats
 
 # retrieve datadog options from KMS
-ENCRYPTED_EXPECTED_TOKEN = "<kmsEncryptedToken>"  # Enter the base-64 encoded, encrypted Datadog token (CiphertextBlob)
+KMS_ENCRYPTED_KEYS = "<kmsEncryptedToken>"  # Enter the base-64 encoded, encrypted Datadog token (CiphertextBlob)
 kms = boto3.client('kms')
-datadog_keys = kms.decrypt(CiphertextBlob=b64decode(ENCRYPTED_EXPECTED_TOKEN))['Plaintext']
+datadog_keys = kms.decrypt(CiphertextBlob=b64decode(KMS_ENCRYPTED_KEYS))['Plaintext']
 initialize(**json.loads(datadog_keys))
 
 stats = ThreadStats()

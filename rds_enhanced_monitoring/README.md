@@ -1,7 +1,7 @@
 # rds_enhanced_monitoring
 Process a RDS enhenced monitoring DATA_MESSAGE, coming from CLOUDWATCH LOGS
 
-# RDS message example
+# Expected input example
 ```json
     {
         "engine": "Aurora",
