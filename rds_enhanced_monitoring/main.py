@@ -1,15 +1,10 @@
 '''
 This function processes a RDS enhanced monitoring DATA_MESSAGE, coming from CloudWatch Logs
-
 Follow these steps to encrypt your Datadog api keys for use in this function:
-
   1. Create a KMS key - http://docs.aws.amazon.com/kms/latest/developerguide/create-keys.html.
-
   2. Encrypt the token using the AWS CLI.
      $ aws kms encrypt --key-id alias/<KMS key name> --plaintext '{"api_key":"<dd_api_key>", "app_key":"<dd_app_key>"}'
-
   3. Copy the base-64 encoded, encrypted key (CiphertextBlob) to the KMS_ENCRYPTED_KEYS variable.
-
   4. Give your function's role permission for the kms:Decrypt action.
      Example:
        {
@@ -33,31 +28,27 @@ import json
 import re
 from StringIO import StringIO
 from base64 import b64decode
-
 import boto3
-
-from datadog import initialize, ThreadStats
+import urllib
+import urllib2
+import time
 
 # retrieve datadog options from KMS
 KMS_ENCRYPTED_KEYS = "<KMS_ENCRYPTED_KEYS>"  # Enter the base-64 encoded, encrypted Datadog token (CiphertextBlob)
 kms = boto3.client('kms')
 datadog_keys = kms.decrypt(CiphertextBlob=b64decode(KMS_ENCRYPTED_KEYS))['Plaintext']
-initialize(**json.loads(datadog_keys))
 
-stats = ThreadStats()
-stats.start(flush_in_thread=False)
-
-print 'Lambda function initialized, ready to send metrics'
+print 'INFO Lambda function initialized, ready to send metrics'
 
 
-def _process_rds_enhanced_monitoring_message(base_tags, ts, message):
-    engine = message["engine"]
+def _process_rds_enhanced_monitoring_message(ts, message, account, region):
     instance_id = message["instanceID"]
-
+    host_id = message["instanceResourceID"]
     tags = [
-        'engine:%s' % engine,
         'dbinstanceidentifier:%s' % instance_id,
-    ] + base_tags
+        'aws_account:%s' % account,
+        'engine:%s' % message["engine"],
+    ]
 
     # metrics generation
 
@@ -71,31 +62,31 @@ def _process_rds_enhanced_monitoring_message(base_tags, ts, message):
     uptime += 60 * int(uptime_day[1])
     uptime += int(uptime_day[2])
     stats.gauge(
-        'aws.rds.uptime', uptime, timestamp=ts, tags=tags
+        'aws.rds.uptime', uptime, timestamp=ts, tags=tags, host=host_id
     )
 
     stats.gauge(
-        'aws.rds.virtual_cpus', message["numVCPUs"], timestamp=ts, tags=tags
+        'aws.rds.virtual_cpus', message["numVCPUs"], timestamp=ts, tags=tags, host=host_id
     )
 
     stats.gauge(
         'aws.rds.load.1', message["loadAverageMinute"]["one"],
-        timestamp=ts, tags=tags
+        timestamp=ts, tags=tags, host=host_id
     )
     stats.gauge(
         'aws.rds.load.5', message["loadAverageMinute"]["five"],
-        timestamp=ts, tags=tags
+        timestamp=ts, tags=tags, host=host_id
     )
     stats.gauge(
         'aws.rds.load.15', message["loadAverageMinute"]["fifteen"],
-        timestamp=ts, tags=tags
+        timestamp=ts, tags=tags, host=host_id
     )
 
     for namespace in ["cpuUtilization", "memory", "tasks", "swap"]:
         for key, value in message[namespace].iteritems():
             stats.gauge(
                 'aws.rds.%s.%s' % (namespace.lower(), key), value,
-                timestamp=ts, tags=tags
+                timestamp=ts, tags=tags, host=host_id
             )
 
     for network_stats in message["network"]:
@@ -103,14 +94,14 @@ def _process_rds_enhanced_monitoring_message(base_tags, ts, message):
         for key, value in network_stats.iteritems():
             stats.gauge(
                 'aws.rds.network.%s' % key, value,
-                timestamp=ts, tags=tags + network_tag
+                timestamp=ts, tags=tags + network_tag, host=host_id
             )
 
     disk_stats = message["diskIO"][0]  # we never expect to have more than one disk
     for key, value in disk_stats.iteritems():
         stats.gauge(
             'aws.rds.diskio.%s' % key, value,
-            timestamp=ts, tags=tags
+            timestamp=ts, tags=tags, host=host_id
         )
 
     for fs_stats in message["fileSys"]:
@@ -121,7 +112,7 @@ def _process_rds_enhanced_monitoring_message(base_tags, ts, message):
         for key, value in fs_stats.iteritems():
             stats.gauge(
                 'aws.rds.filesystem.%s' % key, value,
-                timestamp=ts, tags=tags + fs_tag
+                timestamp=ts, tags=tags + fs_tag, host=host_id
             )
 
     for process_stats in message["processList"]:
@@ -132,31 +123,63 @@ def _process_rds_enhanced_monitoring_message(base_tags, ts, message):
         for key, value in process_stats.iteritems():
             stats.gauge(
                 'aws.rds.process.%s' % key, value,
-                timestamp=ts, tags=tags + process_tag
+                timestamp=ts, tags=tags + process_tag, host=host_id
             )
 
 
-def send_metric(event, context):
-    """ Process a RDS enhenced monitoring DATA_MESSAGE,
+def lambda_handler(event, context):
+    ''' Process a RDS enhenced monitoring DATA_MESSAGE,
         coming from CLOUDWATCH LOGS
-    """
-
+    '''
     # event is a dict containing a base64 string gzipped
     event = event['awslogs']['data']
     event = json.loads(
         gzip.GzipFile(fileobj=StringIO(event.decode('base64'))).read()
     )
 
-    base_tags = [
-        'account:%s' % event['owner'],
-        'function_name:%s' % context.function_name,
-        'function_version:%s' % context.function_version,
-    ]
+    account = event['owner']
+    region = context.invoked_function_arn.split(':', 4)[3]
 
-    for log_event in event['logEvents']:
+    log_events = event['logEvents']
+
+    for log_event in log_events:
         message = json.loads(log_event['message'])
         ts = log_event['timestamp'] / 1000
-        _process_rds_enhanced_monitoring_message(base_tags, ts, message)
+        _process_rds_enhanced_monitoring_message(ts, message, account, region)
 
     stats.flush()
     return {'Status': 'OK'}
+
+
+# Helpers to send data to Datadog, inspired from https://github.com/DataDog/datadogpy
+
+class Stats(object):
+
+    def __init__(self):
+        self.series = []
+
+    def gauge(self, metric, value, timestamp=None, tags=None, host=None):
+        base_dict = {
+            'metric': metric,
+            'points': [(int(timestamp or time.time()), value)],
+            'type': 'gauge',
+            'tags': tags,
+        }
+        if host:
+            base_dict.update({'host': host})
+        self.series.append(base_dict)
+
+    def flush(self):
+        metrics_dict = {
+            'series': self.series,
+        }
+        self.series = []
+
+        creds = urllib.urlencode(datadog_keys)
+        data = json.dumps(metrics_dict)
+        url = '%s?%s' % (datadog_keys.get('api_host', 'https://app.datadoghq.com/api/v1/series'), creds)
+        req = urllib2.Request(url, data, {'Content-Type': 'application/json'})
+        response = urllib2.urlopen(req)
+        print 'INFO Submitted data with status', response.getcode()
+
+stats = Stats()
