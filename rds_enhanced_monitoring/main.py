@@ -36,7 +36,7 @@ import time
 # retrieve datadog options from KMS
 KMS_ENCRYPTED_KEYS = "<KMS_ENCRYPTED_KEYS>"  # Enter the base-64 encoded, encrypted Datadog token (CiphertextBlob)
 kms = boto3.client('kms')
-datadog_keys = kms.decrypt(CiphertextBlob=b64decode(KMS_ENCRYPTED_KEYS))['Plaintext']
+datadog_keys = json.loads(kms.decrypt(CiphertextBlob=b64decode(KMS_ENCRYPTED_KEYS))['Plaintext'])
 
 print 'INFO Lambda function initialized, ready to send metrics'
 
