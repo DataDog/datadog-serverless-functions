@@ -105,6 +105,6 @@ Each lambda function will retrieve datadog api keys from KMS.
 
    - Create a `lambda_execution` role and attach this policy
 
-   - Create a lambda function: Skip the blueprint, name it `functionname`, set the Runtime to `Python 2.7`, the handle to `main.send_metric`, and the role to `lambda_execution`. The actual function code could be anything at this step (like `print 'hello lambda'`) as it will use a zip file from s3 as the code entry type.
+   - Create a lambda function: Skip the blueprint, name it `functionname`, set the Runtime to `Python 2.7`, the handle to `main.lambda_handler`, and the role to `lambda_execution`. The actual function code could be anything at this step (like `print 'hello lambda'`) as it will use a zip file from s3 as the code entry type.
 
    - Subscribe to the appropriate log stream
