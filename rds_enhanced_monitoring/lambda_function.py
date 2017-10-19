@@ -1,40 +1,17 @@
-'''
-This function processes a RDS enhanced monitoring DATA_MESSAGE, coming from CloudWatch Logs
-Follow these steps to encrypt your Datadog api keys for use in this function:
-  1. Create a KMS key - http://docs.aws.amazon.com/kms/latest/developerguide/create-keys.html.
-  2. Encrypt the token using the AWS CLI.
-     $ aws kms encrypt --key-id alias/<KMS key name> --plaintext '{"api_key":"<dd_api_key>", "app_key":"<dd_app_key>"}'
-  3. Copy the base-64 encoded, encrypted key (CiphertextBlob) to the KMS_ENCRYPTED_KEYS variable.
-  4. Give your function's role permission for the kms:Decrypt action.
-     Example:
-       {
-         "Version": "2012-10-17",
-         "Statement": [
-           {
-             "Effect": "Allow",
-             "Action": [
-               "kms:Decrypt"
-             ],
-             "Resource": [
-               "<your KMS key ARN>"
-             ]
-           }
-         ]
-       }
-'''
-
 import gzip
 import json
+import os
 import re
-from StringIO import StringIO
-from base64 import b64decode
-import boto3
+import time
 import urllib
 import urllib2
-import time
+from base64 import b64decode
+from StringIO import StringIO
+
+import boto3
 
 # retrieve datadog options from KMS
-KMS_ENCRYPTED_KEYS = "<KMS_ENCRYPTED_KEYS>"  # Enter the base-64 encoded, encrypted Datadog token (CiphertextBlob)
+KMS_ENCRYPTED_KEYS = os.environ['kmsEncryptedKeys']
 kms = boto3.client('kms')
 datadog_keys = json.loads(kms.decrypt(CiphertextBlob=b64decode(KMS_ENCRYPTED_KEYS))['Plaintext'])
 
