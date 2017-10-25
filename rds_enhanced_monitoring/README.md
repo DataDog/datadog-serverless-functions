@@ -1,5 +1,5 @@
 # rds_enhanced_monitoring
-Process a RDS enhenced monitoring DATA_MESSAGE, coming from CLOUDWATCH LOGS
+Process a RDS enhanced monitoring DATA_MESSAGE, coming from CLOUDWATCH LOGS
 
 # RDS message example
 ```json

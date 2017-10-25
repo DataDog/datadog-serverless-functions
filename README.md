@@ -46,8 +46,16 @@ Each lambda function will retrieve datadog api keys from KMS.
 
    - Create a `lambda_execution` role and attach this policy
 
-   - Create a lambda function: Skip the blueprint, name it `functionname`, set the Runtime to `Python 2.7`, the handle to `main.lambda_handler`, and the role to `lambda_execution`.
+   - Create a lambda function: Skip the blueprint, name it `functionname`, set the Runtime to `Python 2.7`, the handle to `lambda_function.lambda_handler`, and the role to `lambda_execution`.
 
-   - Copy the content of `functionname/main.py` in the code section, make sure to update the `KMS_ENCRYPTED_KEYS` variable with the encrypted key generated in step 1
+   - Copy the content of `functionname/lambda_function.py` in the code section, make sure to update the `KMS_ENCRYPTED_KEYS` environment variable with the encrypted key generated in step 1
 
 1. Subscribe to the appropriate log stream
+
+
+# How to update the zip file for the AWS Serverless Apps
+
+1. After modifying the files that you want inside the respective lambda app directory, run
+```
+zip <app_directory_name>.zip <app_directory_name>/lambda_functon.py <app_directory_name>/dd_function.yaml
+```
