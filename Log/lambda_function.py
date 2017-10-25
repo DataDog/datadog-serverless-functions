@@ -140,7 +140,7 @@ def awslogs_handler(s, event):
 
     structured_logs = []
 
-    # Send lines to Logmatic.io
+    # Send lines to Datadog
     for log in logs["logEvents"]:
         # Create structured object and send it
         structured_line = merge_dicts(log, {
