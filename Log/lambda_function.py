@@ -13,7 +13,7 @@ import zlib
 
 # Parameters
 # ddApiKey: Datadog API Key
-ddApiKey = ""
+ddApiKey = "<YOUR_API_KEY>"
 try:
     ddApiKey = os.environ['DD_API_KEY']
 except Exception:
