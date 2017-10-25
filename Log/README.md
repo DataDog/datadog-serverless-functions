@@ -34,13 +34,13 @@ At the top of the script you'll find a section called `#Parameters`, that's wher
 
 ```
 #Parameters
-ddApiKey = ""
+ddApiKey = "<your_api_key>"
 metadata = {"context":{"foo": "bar"}}
 ```
 
 - **API key**:
 
-Set the value for `ddApiKey`: Your Datadog's API key is available in your platform.
+Replace `<your_api_key>`: Your Datadog's API key is available in your platform.
 You can also set it thanks to the `DD_API_KEY` environment variable.
 
 - **metadata**:
