@@ -110,11 +110,15 @@ def s3_handler(s, event):
     bucket = event['Records'][0]['s3']['bucket']['name']
     key = urllib.unquote_plus(event['Records'][0]['s3']['object']['key']).decode('utf8')
 
+    #Get the event source
+    event_source = parse_event_source(event,key)
+    metadata["ddsource"] = event_source
+        
     # Extract the S3 object
     response = s3.get_object(Bucket=bucket, Key=key)
     body = response['Body']
     data = body.read()
-
+    
     structured_logs = []
 
     # If the name has a .gz extension, then decompress the data
@@ -143,6 +147,9 @@ def awslogs_handler(s, event):
     data = zlib.decompress(base64.b64decode(event["awslogs"]["data"]), 16 + zlib.MAX_WBITS)
     logs = json.loads(str(data))
 
+    #Set source
+    metadata["ddsource"] = "cloudwatch"
+    
     structured_logs = []
 
     # Send lines to Datadog
@@ -202,3 +209,20 @@ def merge_dicts(a, b, path=None):
 def is_cloudtrail(key):
     match = cloudtrail_regex.search(key)
     return bool(match)
+    
+def parse_event_source(event, key):
+    if "lambda" in event:
+        return "lambda"    
+    elif re.search(r'.*cloudtrail.*', key, re.I):
+        return "cloudtrail"
+    elif "elasticloadbalancing" in key:
+        return "elb"
+    elif "redshift" in key:
+        return "redshift"
+    elif "accesslog" in key:
+        return "s3"
+    elif "cloudfront" in key:
+        return "cloudfront"
+    else:
+        return "aws"
+    
