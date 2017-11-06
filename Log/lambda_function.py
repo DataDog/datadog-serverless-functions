@@ -39,6 +39,8 @@ ssl_port = 10516
 cloudtrail_regex = re.compile('\d+_CloudTrail_\w{2}-\w{4,9}-\d_\d{8}T\d{4}Z.+.json.gz$', re.I)
 
 
+DD_SOURCE = "ddsource"
+
 def lambda_handler(event, context):
     # Check prerequisites
     if ddApiKey == "<your_api_key>" or ddApiKey == "":
@@ -61,12 +63,8 @@ def lambda_handler(event, context):
     aws_meta["function_version"] = context.function_version
     aws_meta["invoked_function_arn"] = context.invoked_function_arn
     aws_meta["memory_limit_in_mb"] = context.memory_limit_in_mb
-    try:
-      metadata["ddsource"] = os.environ['Source']
-    except Exception:
-      pass
-       
-      
+
+
     try:
         # Route to the corresponding parser
         event_type = parse_event_type(event)
@@ -110,6 +108,8 @@ def s3_handler(s, event):
     bucket = event['Records'][0]['s3']['bucket']['name']
     key = urllib.unquote_plus(event['Records'][0]['s3']['object']['key']).decode('utf8')
 
+    metadata[DD_SOURCE] = parse_event_source(event, key)
+
     # Extract the S3 object
     response = s3.get_object(Bucket=bucket, Key=key)
     body = response['Body']
@@ -142,6 +142,8 @@ def awslogs_handler(s, event):
     # Get logs
     data = zlib.decompress(base64.b64decode(event["awslogs"]["data"]), 16 + zlib.MAX_WBITS)
     logs = json.loads(str(data))
+    metadata[DD_SOURCE] = "cloudwatch"
+
 
     structured_logs = []
 
@@ -202,3 +204,18 @@ def merge_dicts(a, b, path=None):
 def is_cloudtrail(key):
     match = cloudtrail_regex.search(key)
     return bool(match)
+
+def parse_event_source(event, key):
+    if "lambda" in event:
+        return "lambda"
+    if re.search(r'.*cloudtrail.*', key, re.I):
+        return "cloudtrail"
+    if "elasticloadbalancing" in key:
+        return "elb"
+    if "redshift" in key:
+        return "redshift"
+    if "accesslog" in key:
+        return "s3"
+    if "cloudfront" in key:
+        return "cloudfront"
+    return "aws"
