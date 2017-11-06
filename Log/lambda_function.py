@@ -61,12 +61,8 @@ def lambda_handler(event, context):
     aws_meta["function_version"] = context.function_version
     aws_meta["invoked_function_arn"] = context.invoked_function_arn
     aws_meta["memory_limit_in_mb"] = context.memory_limit_in_mb
-    try:
-      metadata["ddsource"] = os.environ['Source']
-    except Exception:
-      pass
-       
-      
+
+
     try:
         # Route to the corresponding parser
         event_type = parse_event_type(event)
@@ -113,12 +109,12 @@ def s3_handler(s, event):
     #Get the event source
     event_source = parse_event_source(event,key)
     metadata["ddsource"] = event_source
-        
+
     # Extract the S3 object
     response = s3.get_object(Bucket=bucket, Key=key)
     body = response['Body']
     data = body.read()
-    
+
     structured_logs = []
 
     # If the name has a .gz extension, then decompress the data
@@ -149,7 +145,7 @@ def awslogs_handler(s, event):
 
     #Set source
     metadata["ddsource"] = "cloudwatch"
-    
+
     structured_logs = []
 
     # Send lines to Datadog
@@ -209,10 +205,10 @@ def merge_dicts(a, b, path=None):
 def is_cloudtrail(key):
     match = cloudtrail_regex.search(key)
     return bool(match)
-    
+
 def parse_event_source(event, key):
     if "lambda" in event:
-        return "lambda"    
+        return "lambda"
     elif re.search(r'.*cloudtrail.*', key, re.I):
         return "cloudtrail"
     elif "elasticloadbalancing" in key:
@@ -225,4 +221,4 @@ def parse_event_source(event, key):
         return "cloudfront"
     else:
         return "aws"
-    
+
