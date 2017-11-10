@@ -214,8 +214,8 @@ def parse_event_source(event, key):
         return "elb"
     if "redshift" in key:
         return "redshift"
-    if "accesslog" in key:
-        return "s3"
     if "cloudfront" in key:
         return "cloudfront"
+    if "s3" in event:
+        return "s3"
     return "aws"
