@@ -142,8 +142,8 @@ def awslogs_handler(s, event):
     # Get logs
     data = zlib.decompress(base64.b64decode(event["awslogs"]["data"]), 16 + zlib.MAX_WBITS)
     logs = json.loads(str(data))
-    metadata[DD_SOURCE] = "cloudwatch"
-
+    source = logs["logGroup"]
+    metadata[DD_SOURCE] = parse_event_source(event, source)
 
     structured_logs = []
 
@@ -206,7 +206,7 @@ def is_cloudtrail(key):
     return bool(match)
 
 def parse_event_source(event, key):
-    if "lambda" in event:
+    if "lambda" in key:
         return "lambda"
     if re.search(r'.*cloudtrail.*', key, re.I):
         return "cloudtrail"
@@ -216,6 +216,8 @@ def parse_event_source(event, key):
         return "redshift"
     if "cloudfront" in key:
         return "cloudfront"
+    if "awslog" in event:
+        return "cloudwatch"
     if "s3" in event:
         return "s3"
     return "aws"
