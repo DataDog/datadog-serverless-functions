@@ -208,7 +208,7 @@ def is_cloudtrail(key):
 def parse_event_source(event, key):
     if "lambda" in event:
         return "lambda"
-    if re.search(r'.*cloudtrail.*', key, re.I):
+    if is_cloudtrail(str(key)):
         return "cloudtrail"
     if "elasticloadbalancing" in key:
         return "elb"
