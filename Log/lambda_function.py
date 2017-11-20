@@ -142,7 +142,8 @@ def awslogs_handler(s, event):
     # Get logs
     data = zlib.decompress(base64.b64decode(event["awslogs"]["data"]), 16 + zlib.MAX_WBITS)
     logs = json.loads(str(data))
-    source = logs["logGroup"]
+    #Set the source on the logs
+    source = logs.get("logGroup", "cloudwatch")
     metadata[DD_SOURCE] = parse_event_source(event, source)
 
     structured_logs = []
@@ -216,6 +217,8 @@ def parse_event_source(event, key):
         return "redshift"
     if "cloudfront" in key:
         return "cloudfront"
+    if "kinesis" in key:
+        return "kinesis"
     if "awslog" in event:
         return "cloudwatch"
     if "s3" in event:
