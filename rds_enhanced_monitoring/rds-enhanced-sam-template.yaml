@@ -1,0 +1,19 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Pushes RDS Enhanced metrics to Datadog.
+Resources:
+  rdslambdaddfunction:
+    Properties:
+      CodeUri: .
+      Description: Pushes RDS Enhanced metrics to Datadog.
+      Environment:
+        Variables:
+          kmsEncryptedKeys: YOUR_KEY
+      Handler: lambda_function.lambda_handler
+      MemorySize: 128
+      Policies:
+        KMSDecryptPolicy:
+          KeyId: YOUR_KEY
+      Runtime: python2.7
+      Timeout: 10
+    Type: AWS::Serverless::Function
+Transform: AWS::Serverless-2016-10-31
