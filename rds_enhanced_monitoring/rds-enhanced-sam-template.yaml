@@ -3,7 +3,6 @@ Description: Pushes RDS Enhanced metrics to Datadog.
 Resources:
   rdslambdaddfunction:
     Properties:
-      CodeUri: .
       Description: Pushes RDS Enhanced metrics to Datadog.
       Environment:
         Variables:
