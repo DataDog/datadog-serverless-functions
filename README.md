@@ -57,5 +57,5 @@ Each lambda function will retrieve datadog api keys from KMS.
 
 1. After modifying the files that you want inside the respective lambda app directory, run
 ```
-zip <app_directory_name>.zip <app_directory_name>/lambda_functon.py <app_directory_name>/dd_function.yaml
+aws cloudformation package --template-file rds-enhanced-sam-template.yaml --output-template-file rds-enhanced-serverless-output.yaml --s3-bucket BUCKET_NAME
 ```
