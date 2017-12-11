@@ -27,9 +27,6 @@ except Exception:
 
 # metadata: Additional metadata to send with the logs
 metadata = {
-    "aws": {
-        "type": "s3_logs"
-    },
     "ddsourcecategory": "aws",
 }
 
@@ -40,6 +37,7 @@ cloudtrail_regex = re.compile('\d+_CloudTrail_\w{2}-\w{4,9}-\d_\d{8}T\d{4}Z.+.js
 
 
 DD_SOURCE = "ddsource"
+DD_CUSTOM_TAGS = "ddtags"
 
 def lambda_handler(event, context):
     # Check prerequisites
@@ -59,10 +57,10 @@ def lambda_handler(event, context):
     if "aws" not in metadata:
         metadata["aws"] = {}
     aws_meta = metadata["aws"]
-    aws_meta["function_name"] = context.function_name
     aws_meta["function_version"] = context.function_version
     aws_meta["invoked_function_arn"] = context.invoked_function_arn
-    aws_meta["memory_limit_in_mb"] = context.memory_limit_in_mb
+    #Add custom tags here by adding new value with the following format "key1:value1, key2:value2"  - might be subject to modifications
+    metadata[DD_CUSTOM_TAGS] = "functionname:" + context.function_name+ ",memorysize:"+ context.memory_limit_in_mb
 
 
     try:
