@@ -219,6 +219,7 @@ def parse_event_source(event, key):
         return "kinesis"
     if "awslog" in event:
         return "cloudwatch"
-    if "s3" in event:
-        return "s3"
+    if "Records" in event and len(event["Records"]) > 0:
+        if "s3" in event["Records"][0]:
+            return "s3"
     return "aws"
