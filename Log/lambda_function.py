@@ -47,11 +47,7 @@ def lambda_handler(event, context):
         )
 
     # Attach Datadog's Socket
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-    port = ssl_port
-    s = ssl.wrap_socket(s)
-    s.connect((host, port))
+    s = connect_to_datadog(host, ssl_port)
 
     # Add the context to meta
     if "aws" not in metadata:
@@ -62,28 +58,44 @@ def lambda_handler(event, context):
     #Add custom tags here by adding new value with the following format "key1:value1, key2:value2"  - might be subject to modifications
     metadata[DD_CUSTOM_TAGS] = "functionname:" + context.function_name+ ",memorysize:"+ context.memory_limit_in_mb
 
-
     try:
-        # Route to the corresponding parser
-        event_type = parse_event_type(event)
-
-        if event_type == "s3":
-            logs = s3_handler(s, event)
-
-        elif event_type == "awslogs":
-            logs = awslogs_handler(s, event)
-
+        logs = generate_logs(event)
         for log in logs:
-            send_entry(s, log)
-
+            s = safe_submit_log(s, log)
     except Exception as e:
-        # Logs through the socket the error
-        err_message = 'Error parsing the object. Exception: {}'.format(str(e))
-        send_entry(s, err_message)
-        raise e
+        print('Uncaught exception: {}'.format(str(e)))
     finally:
         s.close()
 
+def connect_to_datadog(host, port):
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s = ssl.wrap_socket(s)
+    s.connect((host, port))
+    return s
+
+def generate_logs(event):
+    try:
+        # Route to the corresponding parser
+        event_type = parse_event_type(event)
+        if event_type == "s3":
+            logs = s3_handler(event)
+        elif event_type == "awslogs":
+            logs = awslogs_handler(event)
+    except Exception as e:
+        # Logs through the socket the error
+        err_message = 'Error parsing the object. Exception: {}'.format(str(e))
+        logs = [err_message]
+    return logs
+
+def safe_submit_log(s, log):
+    try:
+        send_entry(s, log)
+    except Exception as e:
+        err_message = 'Error sending the log line. Exception: {}'.format(str(e))
+        s = connect_to_datadog(host, ssl_port)
+        send_entry(s, err_message)
+        send_entry(s, log)
+    return s
 
 # Utility functions
 
@@ -99,7 +111,7 @@ def parse_event_type(event):
 
 
 # Handle S3 events
-def s3_handler(s, event):
+def s3_handler(event):
     s3 = boto3.client('s3')
 
     # Get the object from the event and show its content type
@@ -136,7 +148,7 @@ def s3_handler(s, event):
 
 
 # Handle CloudWatch events and logs
-def awslogs_handler(s, event):
+def awslogs_handler(event):
     # Get logs
     data = zlib.decompress(base64.b64decode(event["awslogs"]["data"]), 16 + zlib.MAX_WBITS)
     logs = json.loads(str(data))
