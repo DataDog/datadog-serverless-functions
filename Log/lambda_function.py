@@ -63,7 +63,7 @@ def lambda_handler(event, context):
         for log in logs:
             s = safe_submit_log(s, log)
     except Exception as e:
-        print('Uncaught exception: {}'.format(str(e)))
+        print('Unexpected exception: {} for event {}'.format(str(e), event))
     finally:
         s.close()
 
@@ -83,7 +83,7 @@ def generate_logs(event):
             logs = awslogs_handler(event)
     except Exception as e:
         # Logs through the socket the error
-        err_message = 'Error parsing the object. Exception: {}'.format(str(e))
+        err_message = 'Error parsing the object. Exception: {} for event {}'.format(str(e), event)
         logs = [err_message]
     return logs
 
