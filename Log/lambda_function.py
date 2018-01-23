@@ -91,9 +91,8 @@ def safe_submit_log(s, log):
     try:
         send_entry(s, log)
     except Exception as e:
-        err_message = 'Error sending the log line. Exception: {}'.format(str(e))
+        # retry once
         s = connect_to_datadog(host, ssl_port)
-        send_entry(s, err_message)
         send_entry(s, log)
     return s
 
