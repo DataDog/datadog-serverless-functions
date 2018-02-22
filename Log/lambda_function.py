@@ -228,6 +228,12 @@ def parse_event_source(event, key):
         return "cloudfront"
     if "kinesis" in key:
         return "kinesis"
+    if "mysql" in key:
+        return "mysql"
+    if "mariadb" in key:
+        return "mariadb"
+    if "rds" in key:
+        return "rds"
     if "awslogs" in event:
         return "cloudwatch"
     if "Records" in event and len(event["Records"]) > 0:
