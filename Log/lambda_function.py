@@ -216,7 +216,7 @@ def is_cloudtrail(key):
     return bool(match)
 
 def parse_event_source(event, key):
-    for source in ["lambda","elasticloadbalancing","redshift","cloudfront","kinesis", "mariadb","mysql","route53", "vpc", "rds"]:
+    for source in ["lambda","elasticloadbalancing","redshift","cloudfront","kinesis", "mariadb","mysql","apigateway", "route53", "vpc", "rds"]:
         if source in key:
             return source
     if is_cloudtrail(str(key)):
