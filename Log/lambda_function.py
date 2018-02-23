@@ -216,24 +216,11 @@ def is_cloudtrail(key):
     return bool(match)
 
 def parse_event_source(event, key):
-    if "lambda" in key:
-        return "lambda"
+    for source in ["lambda","elasticloadbalancing","redshift","cloudfront","kinesis", "mariadb","mysql","route53", "vpc", "rds"]:
+        if source in key:
+            return source
     if is_cloudtrail(str(key)):
         return "cloudtrail"
-    if "elasticloadbalancing" in key:
-        return "elb"
-    if "redshift" in key:
-        return "redshift"
-    if "cloudfront" in key:
-        return "cloudfront"
-    if "kinesis" in key:
-        return "kinesis"
-    if "mysql" in key:
-        return "mysql"
-    if "mariadb" in key:
-        return "mariadb"
-    if "rds" in key:
-        return "rds"
     if "awslogs" in event:
         return "cloudwatch"
     if "Records" in event and len(event["Records"]) > 0:
