@@ -14,7 +14,8 @@ import os
 import socket
 import ssl
 import re
-import zlib
+import StringIO
+import gzip
 
 # Parameters
 # ddApiKey: Datadog API Key
@@ -128,7 +129,8 @@ def s3_handler(event):
 
     # If the name has a .gz extension, then decompress the data
     if key[-3:] == '.gz':
-        data = zlib.decompress(data, 16 + zlib.MAX_WBITS)
+        with gzip.GzipFile(fileobj=StringIO.StringIO(data)) as decompress_stream:
+            data = decompress_stream.read()
 
     if is_cloudtrail(str(key)):
         cloud_trail = json.loads(data)
@@ -149,7 +151,8 @@ def s3_handler(event):
 # Handle CloudWatch events and logs
 def awslogs_handler(event):
     # Get logs
-    data = zlib.decompress(base64.b64decode(event["awslogs"]["data"]), 16 + zlib.MAX_WBITS)
+    with gzip.GzipFile(fileobj=StringIO.StringIO(base64.b64decode(event["awslogs"]["data"]))) as decompress_stream:
+        data = decompress_stream.read()
     logs = json.loads(str(data))
     #Set the source on the logs
     source = logs.get("logGroup", "cloudwatch")
