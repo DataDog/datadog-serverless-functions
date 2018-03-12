@@ -4,7 +4,7 @@ Description: Pushes VPC Flow Log metrics to Datadog.
 Parameters:
   KMSKeyId:
     Type: String
-    Description: The id (final part of the key's ARN) of a KMS key used to encrypt and decrypt your Datadog API amd APP keys. 
+    Description: The id (final part of the key's ARN) of a KMS key used to encrypt and decrypt your Datadog API and App keys. 
 Resources:
   vpcflowlambdaddfunction:
     Type: 'AWS::Serverless::Function'
