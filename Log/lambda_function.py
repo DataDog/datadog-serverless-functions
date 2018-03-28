@@ -57,7 +57,7 @@ def lambda_handler(event, context):
     aws_meta["function_version"] = context.function_version
     aws_meta["invoked_function_arn"] = context.invoked_function_arn
     #Add custom tags here by adding new value with the following format "key1:value1, key2:value2"  - might be subject to modifications
-    metadata[DD_CUSTOM_TAGS] = "forwardername:" + context.function_name+ ",memorysize:"+ context.memory_limit_in_mb
+    metadata[DD_CUSTOM_TAGS] = "forwardername:" + context.function_name.lower()+ ",memorysize:"+ context.memory_limit_in_mb
 
     try:
         logs = generate_logs(event)
