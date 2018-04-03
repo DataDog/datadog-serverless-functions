@@ -82,6 +82,8 @@ def generate_logs(event):
             logs = s3_handler(event)
         elif event_type == "awslogs":
             logs = awslogs_handler(event)
+        elif event_type == "events":
+            logs = cwevent_handler(event)
     except Exception as e:
         # Logs through the socket the error
         err_message = 'Error parsing the object. Exception: {} for event {}'.format(str(e), event)
@@ -106,7 +108,9 @@ def parse_event_type(event):
 
     elif "awslogs" in event:
         return "awslogs"
-
+    
+    elif "detail" in event:
+        return "events"
     raise Exception("Event type not supported (see #Event supported section)")
 
 
@@ -148,7 +152,7 @@ def s3_handler(event):
     return structured_logs
 
 
-# Handle CloudWatch events and logs
+# Handle CloudWatch logs
 def awslogs_handler(event):
     # Get logs
     with gzip.GzipFile(fileobj=StringIO.StringIO(base64.b64decode(event["awslogs"]["data"]))) as decompress_stream:
@@ -176,6 +180,23 @@ def awslogs_handler(event):
 
     return structured_logs
 
+#Handle Cloudwatch Events
+def cwevent_handler(event):
+    
+    data = event
+    
+    #Set the source on the log
+    source = data.get("source", "cloudwatch")
+    service = source.split(".")
+    if len(service)>1:
+        metadata[DD_SOURCE] = service[1]
+    else:
+        metadata[DD_SOURCE] = "cloudwatch"
+
+    structured_logs = []
+    structured_logs.append(data)
+
+    return structured_logs
 
 def send_entry(s, log_entry):
     # The log_entry can only be a string or a dict
