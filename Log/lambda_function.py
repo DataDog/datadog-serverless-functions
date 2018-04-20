@@ -32,7 +32,7 @@ metadata = {
 }
 
 
-host = "intake.logs.datadoghq.com"
+host = "lambda-intake.logs.datadoghq.com"
 ssl_port = 10516
 cloudtrail_regex = re.compile('\d+_CloudTrail_\w{2}-\w{4,9}-\d_\d{8}T\d{4}Z.+.json.gz$', re.I)
 
@@ -108,7 +108,7 @@ def parse_event_type(event):
 
     elif "awslogs" in event:
         return "awslogs"
-    
+
     elif "detail" in event:
         return "events"
     raise Exception("Event type not supported (see #Event supported section)")
@@ -182,9 +182,9 @@ def awslogs_handler(event):
 
 #Handle Cloudwatch Events
 def cwevent_handler(event):
-    
+
     data = event
-    
+
     #Set the source on the log
     source = data.get("source", "cloudwatch")
     service = source.split(".")
