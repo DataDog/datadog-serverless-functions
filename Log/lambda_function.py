@@ -212,7 +212,8 @@ def send_entry(s, log_entry):
 
     # Send to Datadog
     str_entry = json.dumps(log_entry)
-    print(str_entry)
+    #For debugging purpose uncomment the following line
+    #print(str_entry)
     prefix = "%s " % ddApiKey
     return s.send((prefix + str_entry + "\n").encode("UTF-8"))
 
