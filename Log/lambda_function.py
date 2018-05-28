@@ -84,6 +84,8 @@ def generate_logs(event):
             logs = awslogs_handler(event)
         elif event_type == "events":
             logs = cwevent_handler(event)
+        elif event_type == "sns":
+            logs = sns_handler(event)
     except Exception as e:
         # Logs through the socket the error
         err_message = 'Error parsing the object. Exception: {} for event {}'.format(str(e), event)
@@ -105,6 +107,8 @@ def parse_event_type(event):
     if "Records" in event and len(event["Records"]) > 0:
         if "s3" in event["Records"][0]:
             return "s3"
+        elif "Sns" in event["Records"][0]:
+            return "sns"
 
     elif "awslogs" in event:
         return "awslogs"
@@ -195,6 +199,22 @@ def cwevent_handler(event):
 
     structured_logs = []
     structured_logs.append(data)
+
+    return structured_logs
+
+# Handle Sns events
+def sns_handler(event):
+
+    data = event
+    # Set the source on the log
+    metadata[DD_SOURCE] = parse_event_source(event, "sns")
+    structured_logs = []
+
+    sns_events = json.loads(data)
+    for ev in sns_events['Records']:
+        # Create structured object and send it
+        structured_line = ev
+        structured_logs.append(structured_line)
 
     return structured_logs
 
