@@ -210,8 +210,7 @@ def sns_handler(event):
     metadata[DD_SOURCE] = parse_event_source(event, "sns")
     structured_logs = []
 
-    sns_events = json.loads(data)
-    for ev in sns_events['Records']:
+    for ev in data['Records']:
         # Create structured object and send it
         structured_line = ev
         structured_logs.append(structured_line)
@@ -261,7 +260,7 @@ def is_cloudtrail(key):
     return bool(match)
 
 def parse_event_source(event, key):
-    for source in ["lambda", "redshift", "cloudfront", "kinesis", "mariadb", "mysql", "apigateway", "route53", "vpc", "rds"]:
+    for source in ["lambda", "redshift", "cloudfront", "kinesis", "mariadb", "mysql", "apigateway", "route53", "vpc", "rds", "sns"]:
         if source in key:
             return source
     if "elasticloadbalancing" in key:
