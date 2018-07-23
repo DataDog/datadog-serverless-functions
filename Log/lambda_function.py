@@ -39,6 +39,7 @@ cloudtrail_regex = re.compile('\d+_CloudTrail_\w{2}-\w{4,9}-\d_\d{8}T\d{4}Z.+.js
 
 DD_SOURCE = "ddsource"
 DD_CUSTOM_TAGS = "ddtags"
+DD_SERVICE = "service"
 
 def lambda_handler(event, context):
     # Check prerequisites
@@ -127,7 +128,9 @@ def s3_handler(event):
     key = urllib.unquote_plus(event['Records'][0]['s3']['object']['key']).decode('utf8')
 
     metadata[DD_SOURCE] = parse_event_source(event, key)
-
+    ##default service to source value
+    metadata[DD_SERVICE] = metadata[DD_SOURCE]
+    
     # Extract the S3 object
     response = s3.get_object(Bucket=bucket, Key=key)
     body = response['Body']
@@ -165,7 +168,9 @@ def awslogs_handler(event):
     #Set the source on the logs
     source = logs.get("logGroup", "cloudwatch")
     metadata[DD_SOURCE] = parse_event_source(event, source)
-
+    ##default service to source value
+    metadata[DD_SERVICE] = metadata[DD_SOURCE]
+    
     structured_logs = []
 
     # Send lines to Datadog
@@ -196,6 +201,8 @@ def cwevent_handler(event):
         metadata[DD_SOURCE] = service[1]
     else:
         metadata[DD_SOURCE] = "cloudwatch"
+    ##default service to source value
+    metadata[DD_SERVICE] = metadata[DD_SOURCE]    
 
     structured_logs = []
     structured_logs.append(data)
@@ -208,6 +215,9 @@ def sns_handler(event):
     data = event
     # Set the source on the log
     metadata[DD_SOURCE] = parse_event_source(event, "sns")
+    ##default service to source value
+    metadata[DD_SERVICE] = metadata[DD_SOURCE]
+    
     structured_logs = []
 
     for ev in data['Records']:
