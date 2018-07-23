@@ -41,6 +41,7 @@ DD_SOURCE = "ddsource"
 DD_CUSTOM_TAGS = "ddtags"
 DD_SERVICE = "service"
 
+
 def lambda_handler(event, context):
     # Check prerequisites
     if ddApiKey == "<your_api_key>" or ddApiKey == "":
@@ -61,7 +62,7 @@ def lambda_handler(event, context):
     metadata[DD_CUSTOM_TAGS] = "forwardername:" + context.function_name.lower()+ ",memorysize:"+ context.memory_limit_in_mb
 
     try:
-        logs = generate_logs(event)
+        logs = generate_logs(event,context)
         for log in logs:
             s = safe_submit_log(s, log)
     except Exception as e:
@@ -75,14 +76,14 @@ def connect_to_datadog(host, port):
     s.connect((host, port))
     return s
 
-def generate_logs(event):
+def generate_logs(event,context):
     try:
         # Route to the corresponding parser
         event_type = parse_event_type(event)
         if event_type == "s3":
             logs = s3_handler(event)
         elif event_type == "awslogs":
-            logs = awslogs_handler(event)
+            logs = awslogs_handler(event,context)
         elif event_type == "events":
             logs = cwevent_handler(event)
         elif event_type == "sns":
@@ -160,7 +161,7 @@ def s3_handler(event):
 
 
 # Handle CloudWatch logs
-def awslogs_handler(event):
+def awslogs_handler(event,context):
     # Get logs
     with gzip.GzipFile(fileobj=StringIO.StringIO(base64.b64decode(event["awslogs"]["data"]))) as decompress_stream:
         data = decompress_stream.read()
@@ -185,6 +186,25 @@ def awslogs_handler(event):
                 }
             }
         })
+        ## For Lambda logs, we want to extract the function name
+        ## and we reconstruct the the arn of the monitored lambda
+        # 1. we split the log group to get the function name
+        if metadata[DD_SOURCE]=="lambda":
+            loggroupsplit = logs["logGroup"].split("/lambda/")
+            if len(loggroupsplit) > 0:
+                functioname = loggroupsplit[1]
+                # 2. We split the arn of the forwarder to extract the prefix
+                arnsplit = context.invoked_function_arn.split("function:")
+                if len(arnsplit) > 0:
+                    arn_prefix = arnsplit[0]
+                    # 3. We replace the function name in the arn
+                    arn = arn_prefix + "function:"+functioname
+                    # 4. We add the arn as a log attribute
+                    structured_line = merge_dicts(log, {
+                     "lambda": {"arn": arn }
+                    })
+                    # 5. We add the function name as tag
+                    metadata[DD_CUSTOM_TAGS] = metadata[DD_CUSTOM_TAGS] +",functionname:"+functioname
         structured_logs.append(structured_line)
 
     return structured_logs
@@ -202,8 +222,8 @@ def cwevent_handler(event):
     else:
         metadata[DD_SOURCE] = "cloudwatch"
     ##default service to source value
-    metadata[DD_SERVICE] = metadata[DD_SOURCE]    
-
+    metadata[DD_SERVICE] = metadata[DD_SOURCE]
+    
     structured_logs = []
     structured_logs.append(data)
 
@@ -215,9 +235,6 @@ def sns_handler(event):
     data = event
     # Set the source on the log
     metadata[DD_SOURCE] = parse_event_source(event, "sns")
-    ##default service to source value
-    metadata[DD_SERVICE] = metadata[DD_SOURCE]
-    
     structured_logs = []
 
     for ev in data['Records']:
