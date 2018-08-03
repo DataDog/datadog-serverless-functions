@@ -44,11 +44,11 @@ metadata = {
 
 - **API key**:
 
-There are 3 possibilities to set the API_KEY:
+There are 3 possibilities to set your Datadog's API key (available in your Datadog platform):
 
-1. **Manuel**: Replace `<your_api_key>`: Your Datadog's API key is available in your platform.
+1. **KMS Encrypted key**: Use the `DD_KMS_API_KEY` environment variable to use a KMS encrypted key. Make sure that the Lambda excution role is listed in the KMS Key user in https://console.aws.amazon.com/iam/home#encryptionKeys.
 2. **Environment Variable**: Use the `DD_API_KEY` environment variable of the Lambda function
-3. **KMS Encrypted key**: Use the `DD_KMS_API_KEY` environment variable to use a KMS encrypted key. Make sure that the Lambda excution role is listed in the KMS Key user in https://console.aws.amazon.com/iam/home#encryptionKeys.
+3. **Manual**: Replace `<your_api_key>` in the code: 
 
 - **metadata**:
 
