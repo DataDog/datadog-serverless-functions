@@ -16,14 +16,19 @@ import ssl
 import re
 import StringIO
 import gzip
+from base64 import b64decode
 
 # Parameters
 # ddApiKey: Datadog API Key
 ddApiKey = "<your_api_key>"
 try:
-    ddApiKey = os.environ['DD_API_KEY']
+    ENCRYPTED = os.environ['DD_KMS_API_KEY']
+    ddApiKey = boto3.client('kms').decrypt(CiphertextBlob=b64decode(ENCRYPTED))['Plaintext']
 except Exception:
-    pass
+    try:
+        ddApiKey = os.environ['DD_API_KEY']
+    except Exception:
+        pass
 
 
 # metadata: Additional metadata to send with the logs
