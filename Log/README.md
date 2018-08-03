@@ -36,17 +36,31 @@ At the top of the script you'll find a section called `#Parameters`, that's wher
 ```
 #Parameters
 ddApiKey = "<your_api_key>"
-metadata = {"context":{"foo": "bar"}}
+# metadata: Additional metadata to send with the logs
+metadata = {
+    "ddsourcecategory": "aws"
+}
 ```
 
 - **API key**:
 
-Replace `<your_api_key>`: Your Datadog's API key is available in your platform.
-You can also set it thanks to the `DD_API_KEY` environment variable.
+There are 3 possibilities to set the API_KEY:
+
+1. **Manuel**: Replace `<your_api_key>`: Your Datadog's API key is available in your platform.
+2. **Environment Variable**: Use the `DD_API_KEY` environment variable of the Lambda function
+3. **KMS Encrypted key**: Use the `DD_KMS_API_KEY` environment variable to use a KMS encrypted key. Make sure that the Lambda excution role is listed in the KMS Key user in https://console.aws.amazon.com/iam/home#encryptionKeys.
 
 - **metadata**:
 
 You can optionally change the structured metadata. The metadata is merged to all the log events sent by the Lambda script.
+Example: to add the environment value to your logs:
+
+```
+metadata = {
+    "ddsourcecategory": "aws",
+    "env": "prod",
+}
+```
 
 ## 3. Configuration
 
@@ -56,6 +70,6 @@ You can optionally change the structured metadata. The metadata is merged to all
 
 ## 4. Testing it
 
-You are all set!
+If the test "succeeded", you are all set! The test log will not show up in the platform.
 
-The test should be quite natural if the pointed bucket(s) are filling up. There may be some latency between the time a S3 log file is posted and the Lambda function wakes up.
+For S3 logs, there may be some latency between the time a first S3 log file is posted and the Lambda function wakes up.
