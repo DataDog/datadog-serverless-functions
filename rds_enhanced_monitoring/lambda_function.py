@@ -65,13 +65,13 @@ def _process_rds_enhanced_monitoring_message(ts, message, account, region):
     )
 
     for namespace in ["cpuUtilization", "memory", "tasks", "swap"]:
-        for key, value in message[namespace].iteritems():
+        for key, value in message.get(namespace, {}).iteritems():
             stats.gauge(
                 'aws.rds.%s.%s' % (namespace.lower(), key), value,
                 timestamp=ts, tags=tags, host=host_id
             )
 
-    for network_stats in message["network"]:
+    for network_stats in message.get("network", []):
         network_tag = ["interface:%s" % network_stats.pop("interface")]
         for key, value in network_stats.iteritems():
             stats.gauge(
@@ -79,14 +79,14 @@ def _process_rds_enhanced_monitoring_message(ts, message, account, region):
                 timestamp=ts, tags=tags + network_tag, host=host_id
             )
 
-    disk_stats = message["diskIO"][0]  # we never expect to have more than one disk
+    disk_stats = message.get("diskIO", [{}])[0]  # we never expect to have more than one disk
     for key, value in disk_stats.iteritems():
         stats.gauge(
             'aws.rds.diskio.%s' % key, value,
             timestamp=ts, tags=tags, host=host_id
         )
 
-    for fs_stats in message["fileSys"]:
+    for fs_stats in message.get("fileSys", []):
         fs_tag = [
             "name:%s" % fs_stats.pop("name"),
             "mountPoint:%s" % fs_stats.pop("mountPoint")
@@ -97,7 +97,7 @@ def _process_rds_enhanced_monitoring_message(ts, message, account, region):
                 timestamp=ts, tags=tags + fs_tag, host=host_id
             )
 
-    for process_stats in message["processList"]:
+    for process_stats in message.get("processList", []):
         process_tag = [
             "name:%s" % process_stats.pop("name"),
             "id:%s" % process_stats.pop("id")
