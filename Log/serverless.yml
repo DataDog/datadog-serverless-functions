@@ -1,0 +1,43 @@
+service:
+  name: datadog-aws-log-forwarder
+  ## Needed for KMS encrypted DatadDog API Key
+  # awsKmsKeyArn: <Your KMS Key ARN>
+
+plugins:
+- serverless-python-requirements
+
+custom:
+  pythonRequirements:
+    dockerizePip: true
+
+provider:
+  name: aws
+  runtime: python2.7
+
+  iamRoleStatements:
+  - Effect: Allow
+    Action:
+    - s3:Get*
+    - s3:List*
+    Resource: '*'
+## Needed for KMS encrypted DatadDog API Key
+#  - Effect: Allow
+#    Action:
+#    - kms:Decrypt
+#    Resource: ${self:service.awsKmsKeyArn}
+
+functions:
+  lambda-handler:
+    memorySize: 1024
+    timeout: 120
+    handler: lambda_function.lambda_handler
+    package:
+      exclude:
+      - ./**
+      - '!requirements.txt'
+      include:
+      - lambda_function.py
+    environment:
+      DD_API_KEY:  <Your DatadDog API Key>
+      ## Needed for KMS encrypted DatadDog API Key
+      #DD_KMS_API_KEY: <Your <KMS encrypted DatadDog API Key>
