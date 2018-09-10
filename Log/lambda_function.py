@@ -36,10 +36,7 @@ metadata = {
     "ddsourcecategory": "aws",
 }
 
-try:
-    host = os.environ['DD_URL']
-except Exception:
-    host = "lambda-intake.logs.datadoghq.com"
+host = os.getenv("DD_URL", default="lambda-intake.logs.datadoghq.com")
 
 try:
     ssl_port = os.environ['DD_PORT']
