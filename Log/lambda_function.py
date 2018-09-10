@@ -36,9 +36,13 @@ metadata = {
     "ddsourcecategory": "aws",
 }
 
+host = os.getenv("DD_URL", default="lambda-intake.logs.datadoghq.com")
 
-host = "lambda-intake.logs.datadoghq.com"
-ssl_port = 10516
+try:
+    ssl_port = os.environ['DD_PORT']
+except Exception:
+    ssl_port = 10516
+    
 cloudtrail_regex = re.compile('\d+_CloudTrail_\w{2}-\w{4,9}-\d_\d{8}T\d{4}Z.+.json.gz$', re.I)
 
 
