@@ -51,6 +51,14 @@ DD_CUSTOM_TAGS = "ddtags"
 DD_SERVICE = "service"
 
 
+# Pass custom tags as environment variable, ensure comma separated, no trailing comma in envvar!
+DD_TAGS = ""
+try:
+    DD_TAGS = os.environ['DD_TAGS'] + ","
+except Exception:
+    pass
+
+
 def lambda_handler(event, context):
     # Check prerequisites
     if ddApiKey == "<your_api_key>" or ddApiKey == "":
@@ -68,7 +76,7 @@ def lambda_handler(event, context):
     aws_meta["function_version"] = context.function_version
     aws_meta["invoked_function_arn"] = context.invoked_function_arn
     #Add custom tags here by adding new value with the following format "key1:value1, key2:value2"  - might be subject to modifications
-    metadata[DD_CUSTOM_TAGS] = "forwardername:" + context.function_name.lower()+ ",memorysize:"+ context.memory_limit_in_mb
+    metadata[DD_CUSTOM_TAGS] = DD_TAGS + "forwardername:" + context.function_name.lower() + ",memorysize:" + context.memory_limit_in_mb
 
     try:
         logs = generate_logs(event,context)
