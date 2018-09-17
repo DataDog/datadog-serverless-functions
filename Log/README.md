@@ -50,7 +50,7 @@ There are 3 possibilities to set your Datadog's API key (available in your Datad
 2. **Environment Variable**: Use the `DD_API_KEY` environment variable of the Lambda function
 3. **Manual**: Replace `<your_api_key>` in the code: 
 
-- **metadata**:
+- **(Optional) Metadata**:
 
 You can optionally change the structured metadata. The metadata is merged to all the log events sent by the Lambda script.
 Example: to add the environment value to your logs:
@@ -62,12 +62,12 @@ metadata = {
 }
 ```
 
-- **Custom Tags** 
+- **(Optional) Custom Tags** 
 
-You have two options to optionnally add custom tags to the logs:
+You have two options to add custom tags to your logs:
 
-- Manually by editing the lambda code [there](https://github.com/DataDog/dd-aws-lambda-functions/blob/master/Log/lambda_function.py#L79)
-- With the `DD_TAGS` environment variable (tag must be comma separated).
+- Manually by editing the lambda code [there](https://github.com/DataDog/dd-aws-lambda-functions/blob/master/Log/lambda_function.py#L79).
+- Automatically with the `DD_TAGS` environment variable (tags must be a comma-separated list of strings).
 
 ## 3. Configuration
 
