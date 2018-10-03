@@ -6,7 +6,7 @@ AWS lambda function to ship ELB, S3, CloudTrail, VPC, CloudFront and CloudWatch 
 # Features
 
 - Use AWS Lambda to re-route triggered S3 events to Datadog
-- ELB, S3, CloudTrail, VPC and CloudFont logs can be forwarded
+- Cloudwatch, ELB, S3, CloudTrail, VPC and CloudFont logs can be forwarded
 - SSL Security
 - JSON events providing details about S3 documents forwarded
 - Structured meta-information can be attached to the events
@@ -50,7 +50,7 @@ There are 3 possibilities to set your Datadog's API key (available in your Datad
 2. **Environment Variable**: Use the `DD_API_KEY` environment variable of the Lambda function
 3. **Manual**: Replace `<your_api_key>` in the code: 
 
-- **metadata**:
+- **(Optional) Metadata**:
 
 You can optionally change the structured metadata. The metadata is merged to all the log events sent by the Lambda script.
 Example: to add the environment value to your logs:
@@ -61,6 +61,13 @@ metadata = {
     "env": "prod",
 }
 ```
+
+- **(Optional) Custom Tags** 
+
+You have two options to add custom tags to your logs:
+
+- Manually by editing the lambda code [there](https://github.com/DataDog/dd-aws-lambda-functions/blob/master/Log/lambda_function.py#L79).
+- Automatically with the `DD_TAGS` environment variable (tags must be a comma-separated list of strings).
 
 ## 3. Configuration
 
