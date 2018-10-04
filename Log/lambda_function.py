@@ -30,26 +30,27 @@ except Exception:
     except Exception:
         pass
 
-
 # metadata: Additional metadata to send with the logs
 metadata = {
     "ddsourcecategory": "aws",
 }
 
+#Proxy
+#Define the proxy endpoint to forward the logs to
 host = os.getenv("DD_URL", default="lambda-intake.logs.datadoghq.com")
 
+#Define the proxy port to forward the logs to 
 try:
     ssl_port = os.environ['DD_PORT']
 except Exception:
     ssl_port = 10516
-    
-cloudtrail_regex = re.compile('\d+_CloudTrail_\w{2}-\w{4,9}-\d_\d{8}T\d{4}Z.+.json.gz$', re.I)
 
-
-DD_SOURCE = "ddsource"
-DD_CUSTOM_TAGS = "ddtags"
-DD_SERVICE = "service"
-
+#Scrubbing sensitive data
+#Option to redact all pattern that looks like an ip address    
+try:
+    is_ipscrubbing = os.environ['REDACT_IP']
+except Exception:
+    is_ipscrubbing = False
 
 # Pass custom tags as environment variable, ensure comma separated, no trailing comma in envvar!
 DD_TAGS = ""
@@ -58,6 +59,10 @@ try:
 except Exception:
     pass
 
+cloudtrail_regex = re.compile('\d+_CloudTrail_\w{2}-\w{4,9}-\d_\d{8}T\d{4}Z.+.json.gz$', re.I)
+DD_SOURCE = "ddsource"
+DD_CUSTOM_TAGS = "ddtags"
+DD_SERVICE = "service"
 
 def lambda_handler(event, context):
     # Check prerequisites
@@ -275,6 +280,14 @@ def send_entry(s, log_entry):
 
     # Send to Datadog
     str_entry = json.dumps(log_entry)
+    
+    #Scrub ip addresses if activated
+    if is_ipscrubbing:
+        try:
+            str_entry = re.sub('\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}',"xxx.xxx.xxx.xx",str_entry)
+        except Exception as e:
+            print('Unexpected exception while scrubbing logs: {} for event {}'.format(str(e), str_entry))
+            
     #For debugging purpose uncomment the following line
     #print(str_entry)
     prefix = "%s " % ddApiKey
