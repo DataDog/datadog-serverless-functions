@@ -8,7 +8,6 @@ from __future__ import print_function
 import base64
 import json
 import urllib
-import boto3
 import os
 import socket
 import ssl
@@ -16,6 +15,8 @@ import re
 import StringIO
 import gzip
 from base64 import b64decode
+
+import boto3
 
 # Parameters
 # ddApiKey: Datadog API Key
