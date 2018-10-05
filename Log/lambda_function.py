@@ -9,7 +9,6 @@ import base64
 import json
 import urllib
 import boto3
-import time
 import os
 import socket
 import ssl
