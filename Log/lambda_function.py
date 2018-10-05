@@ -18,18 +18,6 @@ import gzip
 import boto3
 
 # Parameters
-# ddApiKey: Datadog API Key
-ddApiKey = "<your_api_key>"
-try:
-    ENCRYPTED = os.environ['DD_KMS_API_KEY']
-    ddApiKey = boto3.client('kms').decrypt(CiphertextBlob=base64.b64decode(ENCRYPTED))['Plaintext']
-except Exception:
-    try:
-        ddApiKey = os.environ['DD_API_KEY']
-    except Exception:
-        pass
-
-
 # metadata: Additional metadata to send with the logs
 metadata = {
     "ddsourcecategory": "aws",
@@ -43,6 +31,16 @@ DD_SERVICE = "service"
 DD_URL = os.getenv("DD_URL", default="lambda-intake.logs.datadoghq.com")
 DD_PORT = os.environ.get('DD_PORT', 10516)
 
+# DD_API_KEY: Datadog API Key
+DD_API_KEY = "<your_api_key>"
+try:
+    if 'DD_KMS_API_KEY' in os.environ:
+        ENCRYPTED = os.environ['DD_KMS_API_KEY']
+        DD_API_KEY = boto3.client('kms').decrypt(CiphertextBlob=base64.b64decode(ENCRYPTED))['Plaintext']
+    elif 'DD_API_KEY' in os.environ:
+        DD_API_KEY = os.environ['DD_API_KEY']
+except Exception:
+    pass
 
 # Pass custom tags as environment variable, ensure comma separated, no trailing comma in envvar!
 DD_TAGS = os.environ.get('DD_TAGS', "")
@@ -102,14 +100,13 @@ class DatadogConnection(object):
 
 def lambda_handler(event, context):
     # Check prerequisites
-    if ddApiKey == "<your_api_key>" or ddApiKey == "":
+    if DD_API_KEY == "<your_api_key>" or DD_API_KEY == "":
         raise Exception(
             "You must configure your API key before starting this lambda function (see #Parameters section)"
         )
 
     # crete socket
-    with DatadogConnection(DD_URL, DD_PORT, ddApiKey) as con:
-
+    with DatadogConnection(DD_URL, DD_PORT, DD_API_KEY) as con:
         # Add the context to meta
         if "aws" not in metadata:
             metadata["aws"] = {}
