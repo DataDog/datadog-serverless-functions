@@ -45,11 +45,7 @@ DD_PORT = os.environ.get('DD_PORT', 10516)
 
 
 # Pass custom tags as environment variable, ensure comma separated, no trailing comma in envvar!
-DD_TAGS = ""
-try:
-    DD_TAGS = os.environ['DD_TAGS'] + ","
-except Exception:
-    pass
+DD_TAGS = os.environ.get('DD_TAGS', "")
 
 
 class DatadogConnection(object):
@@ -121,7 +117,16 @@ def lambda_handler(event, context):
         aws_meta["function_version"] = context.function_version
         aws_meta["invoked_function_arn"] = context.invoked_function_arn
         #Add custom tags here by adding new value with the following format "key1:value1, key2:value2"  - might be subject to modifications
-        metadata[DD_CUSTOM_TAGS] = DD_TAGS + "forwardername:" + context.function_name.lower() + ",memorysize:" + context.memory_limit_in_mb
+        dd_custom_tags_data = {
+            "forwardername": context.function_name.lower(),
+            "memorysize": context.memory_limit_in_mb
+            }
+        metadata[DD_CUSTOM_TAGS] = ",".join(
+            [
+                DD_TAGS,
+                ",".join(["{}:{}".format(k,v) for k,v in dd_custom_tags_data.iteritems()])
+            ]
+        )
 
         try:
             logs = generate_logs(event, context)
