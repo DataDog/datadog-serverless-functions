@@ -36,7 +36,6 @@ metadata = {
     "ddsourcecategory": "aws",
 }
 
-host = os.getenv("DD_URL", default="lambda-intake.logs.datadoghq.com")
 
 try:
     ssl_port = os.environ['DD_PORT']
@@ -49,6 +48,7 @@ cloudtrail_regex = re.compile('\d+_CloudTrail_\w{2}-\w{4,9}-\d_\d{8}T\d{4}Z.+.js
 DD_SOURCE = "ddsource"
 DD_CUSTOM_TAGS = "ddtags"
 DD_SERVICE = "service"
+DD_URL = os.getenv("DD_URL", default="lambda-intake.logs.datadoghq.com")
 
 
 # Pass custom tags as environment variable, ensure comma separated, no trailing comma in envvar!
@@ -67,7 +67,7 @@ def lambda_handler(event, context):
         )
 
     # Attach Datadog's Socket
-    s = connect_to_datadog(host, ssl_port)
+    s = connect_to_datadog(DD_URL, ssl_port)
 
     # Add the context to meta
     if "aws" not in metadata:
@@ -116,7 +116,7 @@ def safe_submit_log(s, log):
         send_entry(s, log)
     except Exception as e:
         # retry once
-        s = connect_to_datadog(host, ssl_port)
+        s = connect_to_datadog(DD_URL, ssl_port)
         send_entry(s, log)
     return s
 
