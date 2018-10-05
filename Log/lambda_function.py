@@ -41,10 +41,7 @@ DD_SOURCE = "ddsource"
 DD_CUSTOM_TAGS = "ddtags"
 DD_SERVICE = "service"
 DD_URL = os.getenv("DD_URL", default="lambda-intake.logs.datadoghq.com")
-try:
-    DD_PORT = os.environ['DD_PORT']
-except Exception:
-    DD_PORT = 10516
+DD_PORT = os.environ.get('DD_PORT', 10516)
 
 
 # Pass custom tags as environment variable, ensure comma separated, no trailing comma in envvar!
