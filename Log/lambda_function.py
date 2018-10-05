@@ -14,7 +14,6 @@ import ssl
 import re
 import StringIO
 import gzip
-from base64 import b64decode
 
 import boto3
 
@@ -23,7 +22,7 @@ import boto3
 ddApiKey = "<your_api_key>"
 try:
     ENCRYPTED = os.environ['DD_KMS_API_KEY']
-    ddApiKey = boto3.client('kms').decrypt(CiphertextBlob=b64decode(ENCRYPTED))['Plaintext']
+    ddApiKey = boto3.client('kms').decrypt(CiphertextBlob=base64.b64decode(ENCRYPTED))['Plaintext']
 except Exception:
     try:
         ddApiKey = os.environ['DD_API_KEY']
