@@ -59,6 +59,7 @@ try:
 except Exception:
     pass
 
+ip_regex = re.compile('\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}', re.I)
 cloudtrail_regex = re.compile('\d+_CloudTrail_\w{2}-\w{4,9}-\d_\d{8}T\d{4}Z.+.json.gz$', re.I)
 DD_SOURCE = "ddsource"
 DD_CUSTOM_TAGS = "ddtags"
@@ -284,7 +285,7 @@ def send_entry(s, log_entry):
     #Scrub ip addresses if activated
     if is_ipscrubbing:
         try:
-            str_entry = re.sub('\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}',"xxx.xxx.xxx.xx",str_entry)
+            str_entry = ip_regex.sub("xxx.xxx.xxx.xx",str_entry)
         except Exception as e:
             print('Unexpected exception while scrubbing logs: {} for event {}'.format(str(e), str_entry))
             
