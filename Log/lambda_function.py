@@ -38,7 +38,6 @@ metadata = {
 
 cloudtrail_regex = re.compile('\d+_CloudTrail_\w{2}-\w{4,9}-\d_\d{8}T\d{4}Z.+.json.gz$', re.I)
 
-
 DD_SOURCE = "ddsource"
 DD_CUSTOM_TAGS = "ddtags"
 DD_SERVICE = "service"
@@ -57,6 +56,58 @@ except Exception:
     pass
 
 
+class DatadogConnection(object):
+    def __init__(self, host, port, ddApiKey):
+        self.host = host
+        self.port = port
+        self.api_key = ddApiKey
+        self._sock = None
+
+    def _connect(self):
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s = ssl.wrap_socket(s)
+        s.connect((self.host, self.port))
+        return s
+
+    def safe_submit_log(self, log):
+        try:
+            self.send_entry(log)
+        except Exception as e:
+            # retry once
+            self._sock = self._connect()
+            self.send_entry(log)
+        return self
+
+    def send_entry(self, log_entry):
+        # The log_entry can only be a string or a dict
+        if isinstance(log_entry, str):
+            log_entry = {"message": log_entry}
+        elif not isinstance(log_entry, dict):
+            raise Exception(
+                "Cannot send the entry as it must be either a string or a dict. Provided entry: " + str(log_entry)
+            )
+
+        # Merge with metadata
+        log_entry = merge_dicts(log_entry, metadata)
+
+        # Send to Datadog
+        str_entry = json.dumps(log_entry)
+        #For debugging purpose uncomment the following line
+        #print(str_entry)
+        prefix = "%s " % self.api_key
+        return self._sock.send((prefix + str_entry + "\n").encode("UTF-8"))
+
+    def __enter__(self):
+        self._sock = self._connect()
+        return self
+
+    def __exit__(self, ex_type, ex_value, traceback):
+        if self._sock:
+            self._sock.close()
+        if ex_type is not None:
+            print("DatadogConnection exit: ", ex_type, ex_value, traceback)
+
+
 def lambda_handler(event, context):
     # Check prerequisites
     if ddApiKey == "<your_api_key>" or ddApiKey == "":
@@ -64,32 +115,24 @@ def lambda_handler(event, context):
             "You must configure your API key before starting this lambda function (see #Parameters section)"
         )
 
-    # Attach Datadog's Socket
-    s = connect_to_datadog(DD_URL, DD_PORT)
+    # crete socket
+    with DatadogConnection(DD_URL, DD_PORT, ddApiKey) as con:
 
-    # Add the context to meta
-    if "aws" not in metadata:
-        metadata["aws"] = {}
-    aws_meta = metadata["aws"]
-    aws_meta["function_version"] = context.function_version
-    aws_meta["invoked_function_arn"] = context.invoked_function_arn
-    #Add custom tags here by adding new value with the following format "key1:value1, key2:value2"  - might be subject to modifications
-    metadata[DD_CUSTOM_TAGS] = DD_TAGS + "forwardername:" + context.function_name.lower() + ",memorysize:" + context.memory_limit_in_mb
+        # Add the context to meta
+        if "aws" not in metadata:
+            metadata["aws"] = {}
+        aws_meta = metadata["aws"]
+        aws_meta["function_version"] = context.function_version
+        aws_meta["invoked_function_arn"] = context.invoked_function_arn
+        #Add custom tags here by adding new value with the following format "key1:value1, key2:value2"  - might be subject to modifications
+        metadata[DD_CUSTOM_TAGS] = DD_TAGS + "forwardername:" + context.function_name.lower() + ",memorysize:" + context.memory_limit_in_mb
 
-    try:
-        logs = generate_logs(event,context)
-        for log in logs:
-            s = safe_submit_log(s, log)
-    except Exception as e:
-        print('Unexpected exception: {} for event {}'.format(str(e), event))
-    finally:
-        s.close()
-
-def connect_to_datadog(host, port):
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s = ssl.wrap_socket(s)
-    s.connect((host, port))
-    return s
+        try:
+            logs = generate_logs(event, context)
+            for log in logs:
+                con = con.safe_submit_log(log)
+        except Exception as e:
+            print('Unexpected exception: {} for event {}'.format(str(e), event))
 
 def generate_logs(event,context):
     try:
@@ -108,15 +151,6 @@ def generate_logs(event,context):
         err_message = 'Error parsing the object. Exception: {} for event {}'.format(str(e), event)
         logs = [err_message]
     return logs
-
-def safe_submit_log(s, log):
-    try:
-        send_entry(s, log)
-    except Exception as e:
-        # retry once
-        s = connect_to_datadog(DD_URL, DD_PORT)
-        send_entry(s, log)
-    return s
 
 # Utility functions
 
@@ -258,26 +292,6 @@ def sns_handler(event):
         structured_logs.append(structured_line)
 
     return structured_logs
-
-def send_entry(s, log_entry):
-    # The log_entry can only be a string or a dict
-    if isinstance(log_entry, str):
-        log_entry = {"message": log_entry}
-    elif not isinstance(log_entry, dict):
-        raise Exception(
-            "Cannot send the entry as it must be either a string or a dict. Provided entry: " + str(log_entry)
-        )
-
-    # Merge with metadata
-    log_entry = merge_dicts(log_entry, metadata)
-
-    # Send to Datadog
-    str_entry = json.dumps(log_entry)
-    #For debugging purpose uncomment the following line
-    #print(str_entry)
-    prefix = "%s " % ddApiKey
-    return s.send((prefix + str_entry + "\n").encode("UTF-8"))
-
 
 def merge_dicts(a, b, path=None):
     if path is None:
