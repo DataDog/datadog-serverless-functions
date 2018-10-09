@@ -23,13 +23,20 @@ metadata = {
     "ddsourcecategory": "aws",
 }
 
-cloudtrail_regex = re.compile('\d+_CloudTrail_\w{2}-\w{4,9}-\d_\d{8}T\d{4}Z.+.json.gz$', re.I)
 
-DD_SOURCE = "ddsource"
-DD_CUSTOM_TAGS = "ddtags"
-DD_SERVICE = "service"
+#Proxy
+#Define the proxy endpoint to forward the logs to
 DD_URL = os.getenv("DD_URL", default="lambda-intake.logs.datadoghq.com")
+
+#Define the proxy port to forward the logs to
 DD_PORT = os.environ.get('DD_PORT', 10516)
+
+#Scrubbing sensitive data
+#Option to redact all pattern that looks like an ip address
+try:
+    is_ipscrubbing = os.environ['REDACT_IP']
+except Exception:
+    is_ipscrubbing = False
 
 # DD_API_KEY: Datadog API Key
 DD_API_KEY = "<your_api_key>"
@@ -41,6 +48,12 @@ try:
         DD_API_KEY = os.environ['DD_API_KEY']
 except Exception:
     pass
+
+cloudtrail_regex = re.compile('\d+_CloudTrail_\w{2}-\w{4,9}-\d_\d{8}T\d{4}Z.+.json.gz$', re.I)
+ip_regex = re.compile('\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}', re.I)
+DD_SOURCE = "ddsource"
+DD_CUSTOM_TAGS = "ddtags"
+DD_SERVICE = "service"
 
 # Pass custom tags as environment variable, ensure comma separated, no trailing comma in envvar!
 DD_TAGS = os.environ.get('DD_TAGS', "")
@@ -82,6 +95,14 @@ class DatadogConnection(object):
 
         # Send to Datadog
         str_entry = json.dumps(log_entry)
+
+        #Scrub ip addresses if activated
+        if is_ipscrubbing:
+            try:
+                str_entry = ip_regex.sub("xxx.xxx.xxx.xx",str_entry)
+            except Exception as e:
+                print('Unexpected exception while scrubbing logs: {} for event {}'.format(str(e), str_entry))
+            
         #For debugging purpose uncomment the following line
         #print(str_entry)
         prefix = "%s " % self.api_key
