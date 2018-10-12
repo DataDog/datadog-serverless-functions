@@ -191,8 +191,6 @@ def awslogs_handler(event,context):
     ##default service to source value
     metadata[DD_SERVICE] = metadata[DD_SOURCE]
 
-    structured_logs = []
-
     # Send lines to Datadog
     for log in logs["logEvents"]:
         # Create structured object and send it
@@ -224,9 +222,7 @@ def awslogs_handler(event,context):
                     })
                     # 5. We add the function name as tag
                     metadata[DD_CUSTOM_TAGS] = metadata[DD_CUSTOM_TAGS] +",functionname:"+functioname
-        structured_logs.append(structured_line)
-
-    return structured_logs
+        yield structured_line
 
 #Handle Cloudwatch Events
 def cwevent_handler(event):
@@ -243,10 +239,7 @@ def cwevent_handler(event):
     ##default service to source value
     metadata[DD_SERVICE] = metadata[DD_SOURCE]
 
-    structured_logs = []
-    structured_logs.append(data)
-
-    return structured_logs
+    yield data
 
 # Handle Sns events
 def sns_handler(event):
@@ -254,14 +247,13 @@ def sns_handler(event):
     data = event
     # Set the source on the log
     metadata[DD_SOURCE] = parse_event_source(event, "sns")
-    structured_logs = []
 
     for ev in data['Records']:
         # Create structured object and send it
         structured_line = ev
-        structured_logs.append(structured_line)
+        yield structured_line
 
-    return structured_logs
+
 
 def send_entry(s, log_entry):
     # The log_entry can only be a string or a dict
