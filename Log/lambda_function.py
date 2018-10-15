@@ -14,7 +14,7 @@ import os
 import socket
 import ssl
 import re
-import StringIO
+from io import BytesIO, BufferedReader
 import gzip
 from base64 import b64decode
 
@@ -162,8 +162,10 @@ def s3_handler(event):
 
     # If the name has a .gz extension, then decompress the data
     if key[-3:] == '.gz':
-        with gzip.GzipFile(fileobj=StringIO.StringIO(data)) as decompress_stream:
-            data = decompress_stream.read()
+        with gzip.GzipFile(fileobj=BytesIO(data)) as decompress_stream:
+            # Reading line by line avoid a bug where gzip would take a very long time (>5min) for
+            # file around 60MB gzipped
+            data = ''.join(BufferedReader(decompress_stream))
 
     if is_cloudtrail(str(key)):
         cloud_trail = json.loads(data)
@@ -182,8 +184,10 @@ def s3_handler(event):
 # Handle CloudWatch logs
 def awslogs_handler(event,context):
     # Get logs
-    with gzip.GzipFile(fileobj=StringIO.StringIO(base64.b64decode(event["awslogs"]["data"]))) as decompress_stream:
-        data = decompress_stream.read()
+    with gzip.GzipFile(fileobj=BytesIO(base64.b64decode(event["awslogs"]["data"]))) as decompress_stream:
+        # Reading line by line avoid a bug where gzip would take a very long time (>5min) for
+        # file around 60MB gzipped
+        data = ''.join(BufferedReader(decompress_stream))
     logs = json.loads(str(data))
     #Set the source on the logs
     source = logs.get("logGroup", "cloudwatch")
