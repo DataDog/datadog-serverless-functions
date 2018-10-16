@@ -102,7 +102,7 @@ class DatadogConnection(object):
                 str_entry = ip_regex.sub("xxx.xxx.xxx.xx",str_entry)
             except Exception as e:
                 print('Unexpected exception while scrubbing logs: {} for event {}'.format(str(e), str_entry))
-            
+
         #For debugging purpose uncomment the following line
         #print(str_entry)
         prefix = "%s " % self.api_key
@@ -139,12 +139,13 @@ def lambda_handler(event, context):
             "forwardername": context.function_name.lower(),
             "memorysize": context.memory_limit_in_mb
             }
-        metadata[DD_CUSTOM_TAGS] = ",".join(
+        metadata[DD_CUSTOM_TAGS] = ",".join(filter(
+            None,
             [
                 DD_TAGS,
                 ",".join(["{}:{}".format(k,v) for k,v in dd_custom_tags_data.iteritems()])
             ]
-        )
+        ))
 
         try:
             logs = generate_logs(event, context)
