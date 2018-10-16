@@ -199,13 +199,11 @@ def s3_handler(event):
     metadata[DD_SOURCE] = parse_event_source(event, key)
     ##default service to source value
     metadata[DD_SERVICE] = metadata[DD_SOURCE]
-    
+
     # Extract the S3 object
     response = s3.get_object(Bucket=bucket, Key=key)
     body = response['Body']
     data = body.read()
-
-    structured_logs = []
 
     # If the name has a .gz extension, then decompress the data
     if key[-3:] == '.gz':
@@ -217,15 +215,13 @@ def s3_handler(event):
         for event in cloud_trail['Records']:
             # Create structured object and send it
             structured_line = merge_dicts(event, {"aws": {"s3": {"bucket": bucket, "key": key}}})
-            structured_logs.append(structured_line)
+            yield structured_line
     else:
         # Send lines to Datadog
         for line in data.splitlines():
             # Create structured object and send it
             structured_line = {"aws": {"s3": {"bucket": bucket, "key": key}}, "message": line}
-            structured_logs.append(structured_line)
-
-    return structured_logs
+            yield structured_line
 
 
 # Handle CloudWatch logs
@@ -239,8 +235,6 @@ def awslogs_handler(event,context):
     metadata[DD_SOURCE] = parse_event_source(event, source)
     ##default service to source value
     metadata[DD_SERVICE] = metadata[DD_SOURCE]
-    
-    structured_logs = []
 
     # Send lines to Datadog
     for log in logs["logEvents"]:
@@ -273,9 +267,7 @@ def awslogs_handler(event,context):
                     })
                     # 5. We add the function name as tag
                     metadata[DD_CUSTOM_TAGS] = metadata[DD_CUSTOM_TAGS] +",functionname:"+functioname
-        structured_logs.append(structured_line)
-
-    return structured_logs
+        yield structured_line
 
 #Handle Cloudwatch Events
 def cwevent_handler(event):
@@ -291,11 +283,8 @@ def cwevent_handler(event):
         metadata[DD_SOURCE] = "cloudwatch"
     ##default service to source value
     metadata[DD_SERVICE] = metadata[DD_SOURCE]
-    
-    structured_logs = []
-    structured_logs.append(data)
 
-    return structured_logs
+    yield data
 
 # Handle Sns events
 def sns_handler(event):
@@ -303,14 +292,12 @@ def sns_handler(event):
     data = event
     # Set the source on the log
     metadata[DD_SOURCE] = parse_event_source(event, "sns")
-    structured_logs = []
 
     for ev in data['Records']:
         # Create structured object and send it
         structured_line = ev
-        structured_logs.append(structured_line)
+        yield structured_line
 
-    return structured_logs
 
 def merge_dicts(a, b, path=None):
     if path is None:
