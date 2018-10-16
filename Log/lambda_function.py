@@ -8,42 +8,28 @@ from __future__ import print_function
 import base64
 import json
 import urllib
-import boto3
-import time
 import os
 import socket
 import ssl
 import re
 import StringIO
 import gzip
-from base64 import b64decode
+
+import boto3
 
 # Parameters
-# ddApiKey: Datadog API Key
-ddApiKey = "<your_api_key>"
-try:
-    ENCRYPTED = os.environ['DD_KMS_API_KEY']
-    ddApiKey = boto3.client('kms').decrypt(CiphertextBlob=b64decode(ENCRYPTED))['Plaintext']
-except Exception:
-    try:
-        ddApiKey = os.environ['DD_API_KEY']
-    except Exception:
-        pass
-
 # metadata: Additional metadata to send with the logs
 metadata = {
     "ddsourcecategory": "aws",
 }
 
+
 #Proxy
 #Define the proxy endpoint to forward the logs to
-host = os.getenv("DD_URL", default="lambda-intake.logs.datadoghq.com")
+DD_URL = os.getenv("DD_URL", default="lambda-intake.logs.datadoghq.com")
 
 #Define the proxy port to forward the logs to
-try:
-    ssl_port = os.environ['DD_PORT']
-except Exception:
-    ssl_port = 10516
+DD_PORT = os.environ.get('DD_PORT', 10516)
 
 #Scrubbing sensitive data
 #Option to redact all pattern that looks like an ip address
@@ -52,52 +38,121 @@ try:
 except Exception:
     is_ipscrubbing = False
 
-# Pass custom tags as environment variable, ensure comma separated, no trailing comma in envvar!
-DD_TAGS = ""
+# DD_API_KEY: Datadog API Key
+DD_API_KEY = "<your_api_key>"
 try:
-    DD_TAGS = os.environ['DD_TAGS'] + ","
+    if 'DD_KMS_API_KEY' in os.environ:
+        ENCRYPTED = os.environ['DD_KMS_API_KEY']
+        DD_API_KEY = boto3.client('kms').decrypt(CiphertextBlob=base64.b64decode(ENCRYPTED))['Plaintext']
+    elif 'DD_API_KEY' in os.environ:
+        DD_API_KEY = os.environ['DD_API_KEY']
 except Exception:
     pass
 
-ip_regex = re.compile('\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}', re.I)
 cloudtrail_regex = re.compile('\d+_CloudTrail_\w{2}-\w{4,9}-\d_\d{8}T\d{4}Z.+.json.gz$', re.I)
+ip_regex = re.compile('\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}', re.I)
 DD_SOURCE = "ddsource"
 DD_CUSTOM_TAGS = "ddtags"
 DD_SERVICE = "service"
 
+# Pass custom tags as environment variable, ensure comma separated, no trailing comma in envvar!
+DD_TAGS = os.environ.get('DD_TAGS', "")
+
+
+class DatadogConnection(object):
+    def __init__(self, host, port, ddApiKey):
+        self.host = host
+        self.port = port
+        self.api_key = ddApiKey
+        self._sock = None
+
+    def _connect(self):
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s = ssl.wrap_socket(s)
+        s.connect((self.host, self.port))
+        return s
+
+    def safe_submit_log(self, log):
+        try:
+            self.send_entry(log)
+        except Exception as e:
+            # retry once
+            self._sock = self._connect()
+            self.send_entry(log)
+        return self
+
+    def send_entry(self, log_entry):
+        # The log_entry can only be a string or a dict
+        if isinstance(log_entry, str):
+            log_entry = {"message": log_entry}
+        elif not isinstance(log_entry, dict):
+            raise Exception(
+                "Cannot send the entry as it must be either a string or a dict. Provided entry: " + str(log_entry)
+            )
+
+        # Merge with metadata
+        log_entry = merge_dicts(log_entry, metadata)
+
+        # Send to Datadog
+        str_entry = json.dumps(log_entry)
+
+        #Scrub ip addresses if activated
+        if is_ipscrubbing:
+            try:
+                str_entry = ip_regex.sub("xxx.xxx.xxx.xx",str_entry)
+            except Exception as e:
+                print('Unexpected exception while scrubbing logs: {} for event {}'.format(str(e), str_entry))
+
+        #For debugging purpose uncomment the following line
+        #print(str_entry)
+        prefix = "%s " % self.api_key
+        return self._sock.send((prefix + str_entry + "\n").encode("UTF-8"))
+
+    def __enter__(self):
+        self._sock = self._connect()
+        return self
+
+    def __exit__(self, ex_type, ex_value, traceback):
+        if self._sock:
+            self._sock.close()
+        if ex_type is not None:
+            print("DatadogConnection exit: ", ex_type, ex_value, traceback)
+
+
 def lambda_handler(event, context):
     # Check prerequisites
-    if ddApiKey == "<your_api_key>" or ddApiKey == "":
+    if DD_API_KEY == "<your_api_key>" or DD_API_KEY == "":
         raise Exception(
             "You must configure your API key before starting this lambda function (see #Parameters section)"
         )
 
-    # Attach Datadog's Socket
-    s = connect_to_datadog(host, ssl_port)
+    # crete socket
+    with DatadogConnection(DD_URL, DD_PORT, DD_API_KEY) as con:
+        # Add the context to meta
+        if "aws" not in metadata:
+            metadata["aws"] = {}
+        aws_meta = metadata["aws"]
+        aws_meta["function_version"] = context.function_version
+        aws_meta["invoked_function_arn"] = context.invoked_function_arn
+        #Add custom tags here by adding new value with the following format "key1:value1, key2:value2"  - might be subject to modifications
+        dd_custom_tags_data = {
+            "forwardername": context.function_name.lower(),
+            "memorysize": context.memory_limit_in_mb
+            }
+        metadata[DD_CUSTOM_TAGS] = ",".join(filter(
+            None,
+            [
+                DD_TAGS,
+                ",".join(["{}:{}".format(k,v) for k,v in dd_custom_tags_data.iteritems()])
+            ]
+        ))
 
-    # Add the context to meta
-    if "aws" not in metadata:
-        metadata["aws"] = {}
-    aws_meta = metadata["aws"]
-    aws_meta["function_version"] = context.function_version
-    aws_meta["invoked_function_arn"] = context.invoked_function_arn
-    #Add custom tags here by adding new value with the following format "key1:value1, key2:value2"  - might be subject to modifications
-    metadata[DD_CUSTOM_TAGS] = DD_TAGS + "forwardername:" + context.function_name.lower() + ",memorysize:" + context.memory_limit_in_mb
-
-    try:
-        logs = generate_logs(event,context)
-        for log in logs:
-            s = safe_submit_log(s, log)
-    except Exception as e:
-        print('Unexpected exception: {} for event {}'.format(str(e), event))
-    finally:
-        s.close()
-
-def connect_to_datadog(host, port):
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s = ssl.wrap_socket(s)
-    s.connect((host, port))
-    return s
+        try:
+            logs = generate_logs(event, context)
+            for log in logs:
+                con = con.safe_submit_log(log)
+        except Exception as e:
+            print('Unexpected exception: {} for event {}'.format(str(e), event))
 
 def generate_logs(event,context):
     try:
@@ -116,15 +171,6 @@ def generate_logs(event,context):
         err_message = 'Error parsing the object. Exception: {} for event {}'.format(str(e), event)
         logs = [err_message]
     return logs
-
-def safe_submit_log(s, log):
-    try:
-        send_entry(s, log)
-    except Exception as e:
-        # retry once
-        s = connect_to_datadog(host, ssl_port)
-        send_entry(s, log)
-    return s
 
 # Utility functions
 
@@ -252,35 +298,6 @@ def sns_handler(event):
         # Create structured object and send it
         structured_line = ev
         yield structured_line
-
-
-
-def send_entry(s, log_entry):
-    # The log_entry can only be a string or a dict
-    if isinstance(log_entry, str):
-        log_entry = {"message": log_entry}
-    elif not isinstance(log_entry, dict):
-        raise Exception(
-            "Cannot send the entry as it must be either a string or a dict. Provided entry: " + str(log_entry)
-        )
-
-    # Merge with metadata
-    log_entry = merge_dicts(log_entry, metadata)
-
-    # Send to Datadog
-    str_entry = json.dumps(log_entry)
-
-    #Scrub ip addresses if activated
-    if is_ipscrubbing:
-        try:
-            str_entry = ip_regex.sub("xxx.xxx.xxx.xx",str_entry)
-        except Exception as e:
-            print('Unexpected exception while scrubbing logs: {} for event {}'.format(str(e), str_entry))
-
-    #For debugging purpose uncomment the following line
-    #print(str_entry)
-    prefix = "%s " % ddApiKey
-    return s.send((prefix + str_entry + "\n").encode("UTF-8"))
 
 
 def merge_dicts(a, b, path=None):
