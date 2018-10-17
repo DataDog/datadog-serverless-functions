@@ -19,44 +19,46 @@ import boto3
 
 # Parameters
 # metadata: Additional metadata to send with the logs
-metadata = {
-    "ddsourcecategory": "aws",
-}
+metadata = {"ddsourcecategory": "aws"}
 
 
-#Proxy
-#Define the proxy endpoint to forward the logs to
+# Proxy
+# Define the proxy endpoint to forward the logs to
 DD_URL = os.getenv("DD_URL", default="lambda-intake.logs.datadoghq.com")
 
-#Define the proxy port to forward the logs to
-DD_PORT = os.environ.get('DD_PORT', 10516)
+# Define the proxy port to forward the logs to
+DD_PORT = os.environ.get("DD_PORT", 10516)
 
-#Scrubbing sensitive data
-#Option to redact all pattern that looks like an ip address
+# Scrubbing sensitive data
+# Option to redact all pattern that looks like an ip address
 try:
-    is_ipscrubbing = os.environ['REDACT_IP']
+    is_ipscrubbing = os.environ["REDACT_IP"]
 except Exception:
     is_ipscrubbing = False
 
 # DD_API_KEY: Datadog API Key
 DD_API_KEY = "<your_api_key>"
 try:
-    if 'DD_KMS_API_KEY' in os.environ:
-        ENCRYPTED = os.environ['DD_KMS_API_KEY']
-        DD_API_KEY = boto3.client('kms').decrypt(CiphertextBlob=base64.b64decode(ENCRYPTED))['Plaintext']
-    elif 'DD_API_KEY' in os.environ:
-        DD_API_KEY = os.environ['DD_API_KEY']
+    if "DD_KMS_API_KEY" in os.environ:
+        ENCRYPTED = os.environ["DD_KMS_API_KEY"]
+        DD_API_KEY = boto3.client("kms").decrypt(
+            CiphertextBlob=base64.b64decode(ENCRYPTED)
+        )["Plaintext"]
+    elif "DD_API_KEY" in os.environ:
+        DD_API_KEY = os.environ["DD_API_KEY"]
 except Exception:
     pass
 
-cloudtrail_regex = re.compile('\d+_CloudTrail_\w{2}-\w{4,9}-\d_\d{8}T\d{4}Z.+.json.gz$', re.I)
-ip_regex = re.compile('\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}', re.I)
+cloudtrail_regex = re.compile(
+    "\d+_CloudTrail_\w{2}-\w{4,9}-\d_\d{8}T\d{4}Z.+.json.gz$", re.I
+)
+ip_regex = re.compile("\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", re.I)
 DD_SOURCE = "ddsource"
 DD_CUSTOM_TAGS = "ddtags"
 DD_SERVICE = "service"
 
 # Pass custom tags as environment variable, ensure comma separated, no trailing comma in envvar!
-DD_TAGS = os.environ.get('DD_TAGS', "")
+DD_TAGS = os.environ.get("DD_TAGS", "")
 
 
 class DatadogConnection(object):
@@ -87,7 +89,8 @@ class DatadogConnection(object):
             log_entry = {"message": log_entry}
         elif not isinstance(log_entry, dict):
             raise Exception(
-                "Cannot send the entry as it must be either a string or a dict. Provided entry: " + str(log_entry)
+                "Cannot send the entry as it must be either a string or a dict. Provided entry: "
+                + str(log_entry)
             )
 
         # Merge with metadata
@@ -96,15 +99,19 @@ class DatadogConnection(object):
         # Send to Datadog
         str_entry = json.dumps(log_entry)
 
-        #Scrub ip addresses if activated
+        # Scrub ip addresses if activated
         if is_ipscrubbing:
             try:
-                str_entry = ip_regex.sub("xxx.xxx.xxx.xx",str_entry)
+                str_entry = ip_regex.sub("xxx.xxx.xxx.xx", str_entry)
             except Exception as e:
-                print('Unexpected exception while scrubbing logs: {} for event {}'.format(str(e), str_entry))
+                print(
+                    "Unexpected exception while scrubbing logs: {} for event {}".format(
+                        str(e), str_entry
+                    )
+                )
 
-        #For debugging purpose uncomment the following line
-        #print(str_entry)
+        # For debugging purpose uncomment the following line
+        # print(str_entry)
         prefix = "%s " % self.api_key
         return self._sock.send((prefix + str_entry + "\n").encode("UTF-8"))
 
@@ -134,45 +141,57 @@ def lambda_handler(event, context):
         aws_meta = metadata["aws"]
         aws_meta["function_version"] = context.function_version
         aws_meta["invoked_function_arn"] = context.invoked_function_arn
-        #Add custom tags here by adding new value with the following format "key1:value1, key2:value2"  - might be subject to modifications
+        # Add custom tags here by adding new value with the following format "key1:value1, key2:value2"  - might be subject to modifications
         dd_custom_tags_data = {
             "forwardername": context.function_name.lower(),
-            "memorysize": context.memory_limit_in_mb
-            }
-        metadata[DD_CUSTOM_TAGS] = ",".join(filter(
-            None,
-            [
-                DD_TAGS,
-                ",".join(["{}:{}".format(k,v) for k,v in dd_custom_tags_data.iteritems()])
-            ]
-        ))
+            "memorysize": context.memory_limit_in_mb,
+        }
+        metadata[DD_CUSTOM_TAGS] = ",".join(
+            filter(
+                None,
+                [
+                    DD_TAGS,
+                    ",".join(
+                        [
+                            "{}:{}".format(k, v)
+                            for k, v in dd_custom_tags_data.iteritems()
+                        ]
+                    ),
+                ],
+            )
+        )
 
         try:
             logs = generate_logs(event, context)
             for log in logs:
                 con = con.safe_submit_log(log)
         except Exception as e:
-            print('Unexpected exception: {} for event {}'.format(str(e), event))
+            print("Unexpected exception: {} for event {}".format(str(e), event))
 
-def generate_logs(event,context):
+
+def generate_logs(event, context):
     try:
         # Route to the corresponding parser
         event_type = parse_event_type(event)
         if event_type == "s3":
             logs = s3_handler(event)
         elif event_type == "awslogs":
-            logs = awslogs_handler(event,context)
+            logs = awslogs_handler(event, context)
         elif event_type == "events":
             logs = cwevent_handler(event)
         elif event_type == "sns":
             logs = sns_handler(event)
     except Exception as e:
         # Logs through the socket the error
-        err_message = 'Error parsing the object. Exception: {} for event {}'.format(str(e), event)
+        err_message = "Error parsing the object. Exception: {} for event {}".format(
+            str(e), event
+        )
         logs = [err_message]
     return logs
 
+
 # Utility functions
+
 
 def parse_event_type(event):
     if "Records" in event and len(event["Records"]) > 0:
@@ -191,11 +210,11 @@ def parse_event_type(event):
 
 # Handle S3 events
 def s3_handler(event):
-    s3 = boto3.client('s3')
+    s3 = boto3.client("s3")
 
     # Get the object from the event and show its content type
-    bucket = event['Records'][0]['s3']['bucket']['name']
-    key = urllib.unquote_plus(event['Records'][0]['s3']['object']['key']).decode('utf8')
+    bucket = event["Records"][0]["s3"]["bucket"]["name"]
+    key = urllib.unquote_plus(event["Records"][0]["s3"]["object"]["key"]).decode("utf8")
 
     metadata[DD_SOURCE] = parse_event_source(event, key)
     ##default service to source value
@@ -203,39 +222,46 @@ def s3_handler(event):
 
     # Extract the S3 object
     response = s3.get_object(Bucket=bucket, Key=key)
-    body = response['Body']
+    body = response["Body"]
     data = body.read()
 
     # If the name has a .gz extension, then decompress the data
-    if key[-3:] == '.gz':
+    if key[-3:] == ".gz":
         with gzip.GzipFile(fileobj=BytesIO(data)) as decompress_stream:
             # Reading line by line avoid a bug where gzip would take a very long time (>5min) for
             # file around 60MB gzipped
-            data = ''.join(BufferedReader(decompress_stream))
+            data = "".join(BufferedReader(decompress_stream))
 
     if is_cloudtrail(str(key)):
         cloud_trail = json.loads(data)
-        for event in cloud_trail['Records']:
+        for event in cloud_trail["Records"]:
             # Create structured object and send it
-            structured_line = merge_dicts(event, {"aws": {"s3": {"bucket": bucket, "key": key}}})
+            structured_line = merge_dicts(
+                event, {"aws": {"s3": {"bucket": bucket, "key": key}}}
+            )
             yield structured_line
     else:
         # Send lines to Datadog
         for line in data.splitlines():
             # Create structured object and send it
-            structured_line = {"aws": {"s3": {"bucket": bucket, "key": key}}, "message": line}
+            structured_line = {
+                "aws": {"s3": {"bucket": bucket, "key": key}},
+                "message": line,
+            }
             yield structured_line
 
 
 # Handle CloudWatch logs
-def awslogs_handler(event,context):
+def awslogs_handler(event, context):
     # Get logs
-    with gzip.GzipFile(fileobj=BytesIO(base64.b64decode(event["awslogs"]["data"]))) as decompress_stream:
+    with gzip.GzipFile(
+        fileobj=BytesIO(base64.b64decode(event["awslogs"]["data"]))
+    ) as decompress_stream:
         # Reading line by line avoid a bug where gzip would take a very long time (>5min) for
         # file around 60MB gzipped
-        data = ''.join(BufferedReader(decompress_stream))
+        data = "".join(BufferedReader(decompress_stream))
     logs = json.loads(str(data))
-    #Set the source on the logs
+    # Set the source on the logs
     source = logs.get("logGroup", "cloudwatch")
     metadata[DD_SOURCE] = parse_event_source(event, source)
     ##default service to source value
@@ -244,19 +270,22 @@ def awslogs_handler(event,context):
     # Send lines to Datadog
     for log in logs["logEvents"]:
         # Create structured object and send it
-        structured_line = merge_dicts(log, {
-            "aws": {
-                "awslogs": {
-                    "logGroup": logs["logGroup"],
-                    "logStream": logs["logStream"],
-                    "owner": logs["owner"]
+        structured_line = merge_dicts(
+            log,
+            {
+                "aws": {
+                    "awslogs": {
+                        "logGroup": logs["logGroup"],
+                        "logStream": logs["logStream"],
+                        "owner": logs["owner"],
+                    }
                 }
-            }
-        })
+            },
+        )
         ## For Lambda logs, we want to extract the function name
         ## and we reconstruct the the arn of the monitored lambda
         # 1. we split the log group to get the function name
-        if metadata[DD_SOURCE]=="lambda":
+        if metadata[DD_SOURCE] == "lambda":
             loggroupsplit = logs["logGroup"].split("/lambda/")
             if len(loggroupsplit) > 0:
                 functioname = loggroupsplit[1]
@@ -265,24 +294,25 @@ def awslogs_handler(event,context):
                 if len(arnsplit) > 0:
                     arn_prefix = arnsplit[0]
                     # 3. We replace the function name in the arn
-                    arn = arn_prefix + "function:"+functioname
+                    arn = arn_prefix + "function:" + functioname
                     # 4. We add the arn as a log attribute
-                    structured_line = merge_dicts(log, {
-                     "lambda": {"arn": arn }
-                    })
+                    structured_line = merge_dicts(log, {"lambda": {"arn": arn}})
                     # 5. We add the function name as tag
-                    metadata[DD_CUSTOM_TAGS] = metadata[DD_CUSTOM_TAGS] +",functionname:"+functioname
+                    metadata[DD_CUSTOM_TAGS] = (
+                        metadata[DD_CUSTOM_TAGS] + ",functionname:" + functioname
+                    )
         yield structured_line
 
-#Handle Cloudwatch Events
+
+# Handle Cloudwatch Events
 def cwevent_handler(event):
 
     data = event
 
-    #Set the source on the log
+    # Set the source on the log
     source = data.get("source", "cloudwatch")
     service = source.split(".")
-    if len(service)>1:
+    if len(service) > 1:
         metadata[DD_SOURCE] = service[1]
     else:
         metadata[DD_SOURCE] = "cloudwatch"
@@ -291,6 +321,7 @@ def cwevent_handler(event):
 
     yield data
 
+
 # Handle Sns events
 def sns_handler(event):
 
@@ -298,7 +329,7 @@ def sns_handler(event):
     # Set the source on the log
     metadata[DD_SOURCE] = parse_event_source(event, "sns")
 
-    for ev in data['Records']:
+    for ev in data["Records"]:
         # Create structured object and send it
         structured_line = ev
         yield structured_line
@@ -315,7 +346,8 @@ def merge_dicts(a, b, path=None):
                 pass  # same leaf value
             else:
                 raise Exception(
-                    'Conflict while merging metadatas and the log entry at %s' % '.'.join(path + [str(key)])
+                    "Conflict while merging metadatas and the log entry at %s"
+                    % ".".join(path + [str(key)])
                 )
         else:
             a[key] = b[key]
@@ -326,8 +358,21 @@ def is_cloudtrail(key):
     match = cloudtrail_regex.search(key)
     return bool(match)
 
+
 def parse_event_source(event, key):
-    for source in ["lambda", "redshift", "cloudfront", "kinesis", "mariadb", "mysql", "apigateway", "route53", "vpc", "rds", "sns"]:
+    for source in [
+        "lambda",
+        "redshift",
+        "cloudfront",
+        "kinesis",
+        "mariadb",
+        "mysql",
+        "apigateway",
+        "route53",
+        "vpc",
+        "rds",
+        "sns",
+    ]:
         if source in key:
             return source
     if "elasticloadbalancing" in key:
