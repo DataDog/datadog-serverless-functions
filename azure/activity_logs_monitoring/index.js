@@ -8,6 +8,9 @@ var DD_API_KEY = process.env.DD_API_KEY || '<your-api-key>';
 var DD_URL = process.env.DD_URL || 'lambda-intake.logs.datadoghq.com';
 var DD_TAGS = process.env.DD_TAGS || '';
 var DD_PORT = process.env.DD_PORT || 10516;
+var DD_SERVICE = process.env.DD_SERVICE || 'azure';
+var DD_SOURCE = process.env.DD_SOURCE || 'azure';
+var DD_SOURCE_CATEGORY = process.env.DD_SOURCE_CATEGORY || 'azure';
 
 module.exports = function (context, eventHubMessages) {
     if (DD_API_KEY === '<your-api-key>' || DD_API_KEY === '' || DD_API_KEY === undefined) {
@@ -31,9 +34,9 @@ module.exports = function (context, eventHubMessages) {
 };
 
 function addTags(record, context) {
-    record['ddsource'] = 'azure';
-    record['ddsourcecategory'] = 'azure';
-    record['service'] = record['service'] || 'azure';
+    record['ddsource'] = DD_SOURCE;
+    record['ddsourcecategory'] = DD_SOURCE_CATEGORY;
+    record['service'] = DD_SERVICE;
     record['ddtags'] = [DD_TAGS, 'forwardername:' + context.executionContext.functionName].filter(Boolean).join(',');
 }
 
