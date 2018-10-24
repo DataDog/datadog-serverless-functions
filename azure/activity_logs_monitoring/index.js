@@ -5,7 +5,7 @@
 
 var tls = require('tls');
 var DD_API_KEY = process.env.DD_API_KEY || '<your-api-key>';
-var DD_URL = process.env.DD_URL || 'intake.logs.datadoghq.com';
+var DD_URL = process.env.DD_URL || 'lambda-intake.logs.datadoghq.com';
 var DD_TAGS = process.env.DD_TAGS || '';
 var DD_PORT = process.env.DD_PORT || 10516;
 
@@ -31,8 +31,8 @@ module.exports = function (context, eventHubMessages) {
 };
 
 function addTags(record, context) {
-    record['ddsource'] = 'activity-log';
+    record['ddsource'] = 'azure';
     record['ddsourcecategory'] = 'azure';
-    record['service'] = record['service'] || 'activity-log';
+    record['service'] = record['service'] || 'azure';
     record['ddtags'] = [DD_TAGS, 'forwardername:' + context.executionContext.functionName].filter(Boolean).join(',')
 }
