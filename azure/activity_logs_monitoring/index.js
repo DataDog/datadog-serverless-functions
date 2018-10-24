@@ -11,19 +11,19 @@ var DD_PORT = process.env.DD_PORT || 10516;
 
 module.exports = function (context, eventHubMessages) {
     if (DD_API_KEY === '<your-api-key>' || DD_API_KEY === '' || DD_API_KEY === undefined) {
-        context.log('You must configure your API key before starting this function (see #Parameters section)')
+        context.log('You must configure your API key before starting this function (see #Parameters section)');
     }
 
-    var socket = tls.connect({port: DD_PORT, host: DD_URL});
-    socket.on('error', (err) => {
-        context.log.error(err.toString())
-        socket.end()
-    });
+    var socket = connectToDDSocket(context);
 
     eventHubMessages.forEach( message => {
         message.records.forEach( record => {
-            addTags(record, context)
-            socket.write(DD_API_KEY + ' ' + JSON.stringify(record) +'\n');
+            addTags(record, context);
+            if (!send(socket, record)) {
+                // Retry once
+                socket = connectToDDSocket(context);
+                send(socket, record);
+            }
         })
     })
     socket.end()
@@ -34,5 +34,19 @@ function addTags(record, context) {
     record['ddsource'] = 'azure';
     record['ddsourcecategory'] = 'azure';
     record['service'] = record['service'] || 'azure';
-    record['ddtags'] = [DD_TAGS, 'forwardername:' + context.executionContext.functionName].filter(Boolean).join(',')
+    record['ddtags'] = [DD_TAGS, 'forwardername:' + context.executionContext.functionName].filter(Boolean).join(',');
+}
+
+function connectToDDSocket(context) {
+    var socket = tls.connect({port: DD_PORT, host: DD_URL});
+    socket.on('error', err => {
+        context.log.error(err.toString());
+        socket.end();
+    });
+
+    return socket;
+}
+
+function send(socket, record) {
+    return socket.write(DD_API_KEY + ' ' + JSON.stringify(record) + '\n');
 }
