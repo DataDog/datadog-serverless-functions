@@ -17,14 +17,14 @@ module.exports = function (context, eventHubMessages) {
         context.log('You must configure your API key before starting this function (see #Parameters section)');
     }
 
-    var socket = connectToDDSocket(context);
+    var socket = connectToDD(context);
 
     eventHubMessages.forEach( message => {
         message.records.forEach( record => {
             addTags(record, context);
             if (!send(socket, record)) {
                 // Retry once
-                socket = connectToDDSocket(context);
+                socket = connectToDD(context);
                 send(socket, record);
             }
         })
@@ -40,7 +40,7 @@ function addTags(record, context) {
     record['ddtags'] = [DD_TAGS, 'forwardername:' + context.executionContext.functionName].filter(Boolean).join(',');
 }
 
-function connectToDDSocket(context) {
+function connectToDD(context) {
     var socket = tls.connect({port: DD_PORT, host: DD_URL});
     socket.on('error', err => {
         context.log.error(err.toString());
