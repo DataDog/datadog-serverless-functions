@@ -4,7 +4,7 @@
 // Copyright 2018 Datadog, Inc.
 
 var tls = require('tls');
-var DD_API_KEY = process.env.DD_API_KEY || '<your-api-key>';
+var DD_API_KEY = process.env.DD_API_KEY || '<DATADOG_API_KEY>';
 var DD_URL = process.env.DD_URL || 'lambda-intake.logs.datadoghq.com';
 var DD_TAGS = process.env.DD_TAGS || '';
 var DD_PORT = process.env.DD_PORT || 10516;
