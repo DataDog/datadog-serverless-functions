@@ -1,6 +1,6 @@
-# Datadog - Azure functions (Private Beta)
+# Datadog-Azure function (Private Beta)
 
-Datadog Azure Function is used to forward Azure logs to Datadog, including Activity and Diagnostic logs from EventHub.
+The Datadog-Azure function is used to forward Azure logs to Datadog, including Activity and Diagnostic logs from EventHub.
 
 **This is currently in Private beta, instructions and code are subject to modifications.**
 
