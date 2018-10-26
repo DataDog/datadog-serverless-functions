@@ -299,7 +299,7 @@ def awslogs_handler(event, context):
                     structured_line = merge_dicts(log, {"lambda": {"arn": arn}})
                     # 5. We add the function name as tag
                     metadata[DD_CUSTOM_TAGS] = (
-                        metadata[DD_CUSTOM_TAGS] + ",functionname:" + functioname
+                        metadata[DD_CUSTOM_TAGS] + ",functionname:" + functioname.lower()
                     )
         yield structured_line
 
