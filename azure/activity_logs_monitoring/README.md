@@ -35,7 +35,7 @@ There are 2 possibilities to set your [Datadog's API key](https://app.datadoghq.
 
 You have two options to add custom tags to your logs:
 
-- Manually by editing the function code to add the tag list to the variable `DD_TAGS`
+- Manually by editing the function code: Replace the `<TAG_KEY>:<TAG_VALUE>` placeholder for the `DD_TAGS` variable by a comma separated list of tags
 - Automatically with the `DD_TAGS` environment variable
 
 Learn more about Datadog tagging in our main [Tagging documentation](https://docs.datadoghq.com/tagging/).

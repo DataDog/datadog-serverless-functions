@@ -6,15 +6,20 @@
 var tls = require('tls');
 var DD_API_KEY = process.env.DD_API_KEY || '<DATADOG_API_KEY>';
 var DD_URL = process.env.DD_URL || 'lambda-intake.logs.datadoghq.com';
-var DD_TAGS = process.env.DD_TAGS || '';
+var DD_TAGS = process.env.DD_TAGS || '<TAG_KEY>:<TAG_VALUE>';
 var DD_PORT = process.env.DD_PORT || 10516;
 var DD_SERVICE = process.env.DD_SERVICE || 'azure';
 var DD_SOURCE = process.env.DD_SOURCE || 'azure';
 var DD_SOURCE_CATEGORY = process.env.DD_SOURCE_CATEGORY || 'azure';
 
 module.exports = function (context, eventHubMessages) {
-    if (DD_API_KEY === '<your-api-key>' || DD_API_KEY === '' || DD_API_KEY === undefined) {
-        context.log('You must configure your API key before starting this function (see #Parameters section)');
+    if (DD_API_KEY === '<DATADOG_API_KEY>' || DD_API_KEY === '' || DD_API_KEY === undefined) {
+        context.log('You must configure your API key before starting this function (see ## Parameters section)');
+        return;
+    }
+
+    if (DD_TAGS === '<TAG_KEY>:<TAG_VALUE>') {
+        context.log.warn('You must configure your tags with a comma separated list of tags or an empty string');
     }
 
     var socket = connectToDD(context);
