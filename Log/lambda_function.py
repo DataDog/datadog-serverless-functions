@@ -288,7 +288,7 @@ def awslogs_handler(event, context):
         if metadata[DD_SOURCE] == "lambda":
             loggroupsplit = logs["logGroup"].split("/lambda/")
             if len(loggroupsplit) > 0:
-                functioname = loggroupsplit[1]
+                functioname = loggroupsplit[1].lower()
                 # 2. We split the arn of the forwarder to extract the prefix
                 arnsplit = context.invoked_function_arn.split("function:")
                 if len(arnsplit) > 0:
