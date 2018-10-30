@@ -76,8 +76,8 @@ pipeline {
                     pr_build_number = item.getLastSuccessfulBuild().number.toString()
                     echo "The last successful PR-${pr_number} build was #${pr_build_number}"
 
-                    s3GetObject(deployBucket, "datadog/dd-log-helper-${pr_build_number}.zip")
-                    sh "mv ${WORKSPACE}/dd-log-helper-PR-${pr_build_number}.zip ${WORKSPACE}/dd-log-helper-latest.zip"
+                    s3GetObject(deployBucket, "datadog/dd-log-helper-${pr_number}.zip")
+                    sh "mv ${WORKSPACE}/dd-log-helper-PR-${pr_number}.zip ${WORKSPACE}/dd-log-helper-latest.zip"
                     s3CpWithGrants("${WORKSPACE}/dd-log-helper-latest.zip", deployBucket, "datadog")
                 }
             }
