@@ -11,6 +11,7 @@ import urllib
 import os
 import socket
 import ssl
+import sys
 import re
 from io import BytesIO, BufferedReader
 import gzip
@@ -77,7 +78,7 @@ class DatadogConnection(object):
     def safe_submit_log(self, log):
         try:
             self.send_entry(log)
-        except Exception as e:
+        except Exception:
             # retry once
             self._sock = self._connect()
             self.send_entry(log)
@@ -130,7 +131,8 @@ def lambda_handler(event, context):
     # Check prerequisites
     if DD_API_KEY == "<your_api_key>" or DD_API_KEY == "":
         raise Exception(
-            "You must configure your API key before starting this lambda function (see #Parameters section)"
+            "You must configure your API key before starting this lambda function \
+            (see #Parameters section)"
         )
 
     # crete socket
@@ -141,7 +143,8 @@ def lambda_handler(event, context):
         aws_meta = metadata["aws"]
         aws_meta["function_version"] = context.function_version
         aws_meta["invoked_function_arn"] = context.invoked_function_arn
-        # Add custom tags here by adding new value with the following format "key1:value1, key2:value2"  - might be subject to modifications
+        # Add custom tags here by adding new value with the following format
+        # "key1:value1, key2:value2" - might be subject to modifications
         dd_custom_tags_data = {
             "forwardername": context.function_name.lower(),
             "memorysize": context.memory_limit_in_mb,
@@ -217,7 +220,7 @@ def s3_handler(event):
     key = urllib.unquote_plus(event["Records"][0]["s3"]["object"]["key"]).decode("utf8")
 
     metadata[DD_SOURCE] = parse_event_source(event, key)
-    ##default service to source value
+    # default service to source value
     metadata[DD_SERVICE] = metadata[DD_SOURCE]
 
     # Extract the S3 object
@@ -264,7 +267,7 @@ def awslogs_handler(event, context):
     # Set the source on the logs
     source = logs.get("logGroup", "cloudwatch")
     metadata[DD_SOURCE] = parse_event_source(event, source)
-    ##default service to source value
+    # default service to source value
     metadata[DD_SERVICE] = metadata[DD_SOURCE]
 
     # Send lines to Datadog
@@ -282,8 +285,18 @@ def awslogs_handler(event, context):
                 }
             },
         )
-        ## For Lambda logs, we want to extract the function name
-        ## and we reconstruct the the arn of the monitored lambda
+        # For API Gateway/ Fargate Access logs, we want to extract the environment name
+        # and add it as a tag
+        # 1. we split the log group to get the environment name
+        if metadata[DD_SOURCE] in ["apiAccessLogs", "fargate"]:
+            loggroupsplit = logs["logGroup"].split("-")
+            if len(loggroupsplit) > 0:
+                accessLogs_env_name = loggroupsplit[1]
+                # 2. We add the environment name as a tag
+                metadata[DD_CUSTOM_TAGS] = (
+                    metadata[DD_CUSTOM_TAGS] + ",env_name:" + accessLogs_env_name)
+        # For Lambda logs, we want to extract the function name
+        # and we reconstruct the the arn of the monitored lambda
         # 1. we split the log group to get the function name
         if metadata[DD_SOURCE] == "lambda":
             loggroupsplit = logs["logGroup"].split("/lambda/")
@@ -298,6 +311,15 @@ def awslogs_handler(event, context):
                     # 4. We add the arn as a log attribute
                     structured_line = merge_dicts(log, {"lambda": {"arn": arn}})
                     # 5. We add the function name as tag
+                    # if lamda looks like it's part of an environment then create env_name tag
+                    # env lambdas should look like: env_name-stackname-functionname-cfnRandomString
+                    matchName = re.match(r'^([a-zA-Z0-9]+)-\w*-\w*-\w*', functioname)
+                    if matchName.group(1):
+                        metadata[DD_CUSTOM_TAGS] = metadata[DD_CUSTOM_TAGS] + \
+                            ",env_name:" + matchName.group(1)
+                        # hacky way to filter out perftest logs, just quit lambda
+                        if matchName.group(1)[0:7] == 'perftest':
+                            sys.exit(0)
                     metadata[DD_CUSTOM_TAGS] = (
                         metadata[DD_CUSTOM_TAGS] + ",functionname:" + functioname
                     )
@@ -316,7 +338,7 @@ def cwevent_handler(event):
         metadata[DD_SOURCE] = service[1]
     else:
         metadata[DD_SOURCE] = "cloudwatch"
-    ##default service to source value
+    # default service to source value
     metadata[DD_SERVICE] = metadata[DD_SOURCE]
 
     yield data
@@ -372,6 +394,10 @@ def parse_event_source(event, key):
         "vpc",
         "rds",
         "sns",
+        "fargate",
+        "apiAccessLogs",
+        "API-Gateway-Execution-Logs",
+        "AWSIotLogsV2"
     ]:
         if source in key:
             return source
