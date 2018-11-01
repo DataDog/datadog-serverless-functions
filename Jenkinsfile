@@ -1,6 +1,6 @@
 #!groovy
 
-@Library('ccp-jenkins-pipelines@master')
+@Library('ccp-jenkins-pipelines@feature/getLatestSuccessfulPR')
 import ccp.jenkins.JqExpressionBuilder
 import ccp.jenkins.Security
 
@@ -53,6 +53,10 @@ pipeline {
 
                 // output the url -- has to be done outside the credentials block otherwise the accesskeyid is masked
                 sh "cat package-presigned-url.txt"
+
+                job = getLastSuccessfulPR()
+                echo job.pr_number
+                echo job.pr_build_number
             }
         }
 
@@ -62,7 +66,7 @@ pipeline {
                 gitCreateTag(newVersion)
             }
         }
-        
+
         stage('Promote to production'){
             when {
                 branch 'master'
