@@ -18,6 +18,8 @@ pipeline {
         aws_credential_env = 'aws-jenkins-poweruser'
         deployBucket = "spok-mgmt-deploy"
         region = "us-east-1"
+        newVersion = versionGetNextTag()
+        staticAssetVersion = newVersion.replace(".", "-")
     }
 
     stages {
@@ -54,7 +56,13 @@ pipeline {
             }
         }
 
-
+        stage('Update Git tag') {
+            when { branch 'master' }
+            steps {
+                gitCreateTag(newVersion)
+            }
+        }
+        
         stage('Promote to production'){
             when {
                 branch 'master'
@@ -77,8 +85,8 @@ pipeline {
                     echo "The last successful PR-${pr_number} build was #${pr_build_number}"
 
                     s3GetObject(deployBucket, "datadog/dd-log-helper-${pr_number}.zip", "dd-log-helper-${pr_number}.zip")
-                    sh "mv ${WORKSPACE}/dd-log-helper-${pr_number}.zip ${WORKSPACE}/dd-log-helper-latest.zip"
-                    s3CpWithGrants("${WORKSPACE}/dd-log-helper-latest.zip", deployBucket, "datadog")
+                    sh "mv ${WORKSPACE}/dd-log-helper-${pr_number}.zip ${WORKSPACE}/dd-log-helper-${staticAssetVersion}.zip"
+                    s3CpWithGrants("${WORKSPACE}/dd-log-helper-${staticAssetVersion}.zip", deployBucket, "datadog")
                 }
             }
         }
