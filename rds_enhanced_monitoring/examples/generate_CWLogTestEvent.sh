@@ -2,7 +2,7 @@
 
 SCRIPTPATH=$(cd `dirname $0` && pwd)
 
-ts=$(date +%s)000
+ts=$(($(date +%s%N)/100000))
 tmp_CWLogEvent='''
 {
   "awslogs": {
