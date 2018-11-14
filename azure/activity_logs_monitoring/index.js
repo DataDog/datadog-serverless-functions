@@ -22,27 +22,59 @@ module.exports = function (context, eventHubMessages) {
         context.log.warn('You must configure your tags with a comma separated list of tags or an empty string');
     }
 
-    var socket = connectToDD(context);
+    if (eventHubMessages.length == 0) {
+        return;
+    }
 
-    eventHubMessages.forEach( message => {
-        message.records.forEach( record => {
-            addTags(record, context);
-            if (!send(socket, record)) {
-                // Retry once
-                socket = connectToDD(context);
-                send(socket, record);
-            }
+    var socket = connectToDD(context);
+    var handleLogs = tagger => record => {
+        record = tagger(record, context);
+        if (!send(socket, record)) {
+            // Retry once
+            socket = connectToDD(context);
+            send(socket, record);
+        }
+    }
+
+    // This shouldn't happen when eventHub cardinality is set to "many"
+    if (typeof eventHubMessages === 'string') {
+        handleLogs(addTagsStringLog)(eventHubMessages);
+        socket.end();
+        context.done();
+        return;
+    }
+
+    // eventHubMessages default format is [{"records": [{}, {}, ...]}, {"records": [{}, {}, ...]}, ...]
+    if (typeof eventHubMessages[0] === 'object' && eventHubMessages[0].records !== undefined) {
+        eventHubMessages.forEach( message => {
+            message.records.forEach( handleLogs(addTagsJsonLog) );
         })
-    })
-    socket.end()
+    }
+
+    // eventHubMessages can also be ["log1", "log2", ...]
+    if (typeof eventHubMessages[0] === 'string') {
+        eventHubMessages.forEach( handleLogs(addTagsStringLog) );
+    }
+
+    socket.end();
     context.done();
 };
 
-function addTags(record, context) {
+function addTagsJsonLog(record, context) {
     record['ddsource'] = DD_SOURCE;
     record['ddsourcecategory'] = DD_SOURCE_CATEGORY;
     record['service'] = DD_SERVICE;
     record['ddtags'] = [DD_TAGS, 'forwardername:' + context.executionContext.functionName].filter(Boolean).join(',');
+    return record;
+}
+
+function addTagsStringLog(stringLog, context) {
+    jsonLog = {'message': stringLog};
+    jsonLog['ddsource'] = DD_SOURCE;
+    jsonLog['ddsourcecategory'] = DD_SOURCE_CATEGORY;
+    jsonLog['service'] = DD_SERVICE;
+    jsonLog['ddtags'] = [DD_TAGS, 'forwardername:' + context.executionContext.functionName].filter(Boolean).join(',');
+    return jsonLog;
 }
 
 function connectToDD(context) {
