@@ -21,6 +21,7 @@ The provided Node.js script must be deployed into your Azure Functions service. 
 
 - Copy paste the code of the [Datadog-Azure function](./index.js)
 - In the `Integrate` part, `Event Hub Cardinality` must be set to `Many`.
+- In the `Integrate` part,  set the `Event Parameter Name` to `eventHubMessages`
 
 ## Parameters
 
