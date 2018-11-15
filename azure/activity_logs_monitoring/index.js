@@ -61,10 +61,11 @@ module.exports = function (context, eventHubMessages) {
 };
 
 function addTagsJsonLog(record, context) {
-    record['ddsource'] = DD_SOURCE;
+    metadata = extractResourceId(record)
+    record['ddsource'] = metadata.source || DD_SOURCE;
     record['ddsourcecategory'] = DD_SOURCE_CATEGORY;
     record['service'] = DD_SERVICE;
-    record['ddtags'] = [DD_TAGS, 'forwardername:' + context.executionContext.functionName].filter(Boolean).join(',');
+    record['ddtags'] = metadata.tags.concat([DD_TAGS, 'forwardername:' + context.executionContext.functionName]).filter(Boolean).join(',');
     return record;
 }
 
@@ -75,6 +76,26 @@ function addTagsStringLog(stringLog, context) {
     jsonLog['service'] = DD_SERVICE;
     jsonLog['ddtags'] = [DD_TAGS, 'forwardername:' + context.executionContext.functionName].filter(Boolean).join(',');
     return jsonLog;
+}
+
+function extractResourceId(record) {
+    metadata = {'tags': [], 'source': ''};
+    if (record.resourceId === undefined ||
+        typeof record.resourceId !== 'string' ||
+        !record.resourceId.toLowerCase().startsWith('/subscriptions/')) {
+        return metadata;
+    }
+    var resourceId = record.resourceId.toLowerCase().split('/');
+    if (resourceId.length > 2) {
+        metadata.tags.push('subscription_id:' + resourceId[2]);
+    }
+    if (resourceId.length > 4) {
+        metadata.tags.push('resource_group:' + resourceId[4]);
+    }
+    if (resourceId.length > 6) {
+        metadata.source = resourceId[6].replace('microsoft.', 'azure.');
+    }
+    return metadata;
 }
 
 function connectToDD(context) {
