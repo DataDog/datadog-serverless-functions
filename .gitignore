@@ -3,3 +3,4 @@ base.zip
 */gen
 */env
 .vscode
+**/node_modules
