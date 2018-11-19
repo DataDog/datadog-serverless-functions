@@ -44,21 +44,21 @@ module.exports = function (context, eventHubMessages) {
 
     switch (eventHubType) {
         case STRING:
-            handleLogs(addTagsStringLog)(eventHubMessages);
+            handleLogs(addTagsToStringLog)(eventHubMessages);
             break;
         case JSON_OBJECT:
-            handleLogs(addTagsJsonLog)(eventHubMessages);
+            handleLogs(addTagsToJsonLog)(eventHubMessages);
             break;
         case STRING_ARRAY:
-            eventHubMessages.forEach( handleLogs(addTagsStringLog) );
+            eventHubMessages.forEach( handleLogs(addTagsToStringLog) );
             break;
         case JSON_RECORDS:
             eventHubMessages.forEach( message => {
-                message.records.forEach( handleLogs(addTagsJsonLog) );
+                message.records.forEach( handleLogs(addTagsToJsonLog) );
             })
             break;
         case JSON_ARRAY:
-            eventHubMessages.forEach( handleLogs(addTagsJsonLog) );
+            eventHubMessages.forEach( handleLogs(addTagsToJsonLog) );
             break;
         case INVALID:
         default:
@@ -93,7 +93,7 @@ function getEventHubMessagesFormat(eventHubMessages) {
     return INVALID;
 }
 
-function addTagsJsonLog(record, context) {
+function addTagsToJsonLog(record, context) {
     metadata = extractResourceId(record)
     record['ddsource'] = metadata.source || DD_SOURCE;
     record['ddsourcecategory'] = DD_SOURCE_CATEGORY;
@@ -102,9 +102,9 @@ function addTagsJsonLog(record, context) {
     return record;
 }
 
-function addTagsStringLog(stringLog, context) {
+function addTagsToStringLog(stringLog, context) {
     jsonLog = {'message': stringLog};
-    return addTagsJsonLog(jsonLog, context);
+    return addTagsToJsonLog(jsonLog, context);
 }
 
 function extractResourceId(record) {
