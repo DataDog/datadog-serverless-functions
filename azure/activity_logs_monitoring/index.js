@@ -142,10 +142,13 @@ function send(socket, record) {
 }
 
 // For tests
-module.exports.getEventHubMessagesFormat = getEventHubMessagesFormat;
-module.exports.STRING = STRING;
-module.exports.STRING_ARRAY = STRING_ARRAY;
-module.exports.RAW_JSON = RAW_JSON;
-module.exports.DEFAULT_JSON = DEFAULT_JSON;
-module.exports.JSON_NO_RECORDS = JSON_NO_RECORDS;
-module.exports.INVALID = INVALID;
+module.exports.forTest = {
+    getEventHubMessagesFormat,
+    extractResourceId,
+    STRING,
+    STRING_ARRAY,
+    RAW_JSON,
+    DEFAULT_JSON,
+    JSON_NO_RECORDS,
+    INVALID,
+}

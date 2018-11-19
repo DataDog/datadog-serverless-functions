@@ -1,5 +1,5 @@
 var assert = require('assert');
-var azure = require('../activity_logs_monitoring');
+var azure = require('../activity_logs_monitoring').forTest;
 
 describe('Azure Log Monitoring', function() {
   describe('#getEventHubMessagesFormat', function() {
@@ -38,4 +38,37 @@ describe('Azure Log Monitoring', function() {
       assert.equal(azure.INVALID, azure.getEventHubMessagesFormat(eventHubMessages));
     });
   });
+
+  describe('#extractResourceId', function() {
+    it('should parse a valid record', function() {
+      record = {'resourceId': '/SUBSCRIPTIONS/12345678-1234-ABCD-1234-1234567890AB/RESOURCEGROUPS/SOME-RESOURCE-GROUP/PROVIDERS/MICROSOFT.COMPUTE/VIRTUALMACHINES/SOME-VM'}
+      expectedMetadata = {'tags': ["subscription_id:12345678-1234-abcd-1234-1234567890ab","resource_group:some-resource-group"], 'source': 'azure.compute'}
+      assert.deepEqual(expectedMetadata, azure.extractResourceId(record))
+    });
+    it('should parse a valid record without provider', function() {
+      record = {'resourceId': '/SUBSCRIPTIONS/12345678-1234-ABCD-1234-1234567890AB/RESOURCEGROUPS/SOME-RESOURCE-GROUP'}
+      expectedMetadata = {'tags': ["subscription_id:12345678-1234-abcd-1234-1234567890ab","resource_group:some-resource-group"], 'source': ''}
+      assert.deepEqual(expectedMetadata, azure.extractResourceId(record))
+    });
+    it('should parse a valid record without provider and resource group', function() {
+      record = {'resourceId': '/SUBSCRIPTIONS/12345678-1234-ABCD-1234-1234567890AB'}
+      expectedMetadata = {'tags': ["subscription_id:12345678-1234-abcd-1234-1234567890ab"], 'source': ''}
+      assert.deepEqual(expectedMetadata, azure.extractResourceId(record))
+    });
+    it('should not fail on record without resourceId', function() {
+      record = {'key':'value'}
+      expectedMetadata = {'tags': [], 'source': ''}
+      assert.deepEqual(expectedMetadata, azure.extractResourceId(record))
+    });
+    it('should not fail on string record', function() {
+      record = {'key':'value'}
+      expectedMetadata = {'tags': [], 'source': ''}
+      assert.deepEqual(expectedMetadata, azure.extractResourceId(record))
+    });
+    it('should not fail on improper resourceId', function() {
+      record = {'resourceId': 'foo/bar'}
+      expectedMetadata = {'tags': [], 'source': ''}
+      assert.deepEqual(expectedMetadata, azure.extractResourceId(record))
+    });
+  })
 });
