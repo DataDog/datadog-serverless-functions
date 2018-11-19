@@ -7,9 +7,9 @@ var tls = require('tls');
 
 const STRING = 'string';  // eventHubMessages = 'some message'
 const STRING_ARRAY = 'string-array';  // eventHubMessages = ['one message', 'two message', ...]
-const RAW_JSON = 'raw-json';  // eventHubMessages = {"key": "value"}
-const DEFAULT_JSON = 'default-json';  // eventHubMessages = [{"records": [{}, {}, ...]}, {"records": [{}, {}, ...]}, ...]
-const JSON_NO_RECORDS = 'json_no_records';  // eventHubMessages = [{"key": "value"}, {"key": "value"}, ...]
+const JSON_OBJECT = 'json-object';  // eventHubMessages = {"key": "value"}
+const JSON_RECORDS = 'json-records';  // eventHubMessages = [{"records": [{}, {}, ...]}, {"records": [{}, {}, ...]}, ...]
+const JSON_ARRAY = 'json-array';  // eventHubMessages = [{"key": "value"}, {"key": "value"}, ...]
 const INVALID = 'invalid';
 
 var DD_API_KEY = process.env.DD_API_KEY || '<DATADOG_API_KEY>';
@@ -46,18 +46,18 @@ module.exports = function (context, eventHubMessages) {
         case STRING:
             handleLogs(addTagsStringLog)(eventHubMessages);
             break;
-        case RAW_JSON:
+        case JSON_OBJECT:
             handleLogs(addTagsJsonLog)(eventHubMessages);
             break;
         case STRING_ARRAY:
             eventHubMessages.forEach( handleLogs(addTagsStringLog) );
             break;
-        case DEFAULT_JSON:
+        case JSON_RECORDS:
             eventHubMessages.forEach( message => {
                 message.records.forEach( handleLogs(addTagsJsonLog) );
             })
             break;
-        case JSON_NO_RECORDS:
+        case JSON_ARRAY:
             eventHubMessages.forEach( handleLogs(addTagsJsonLog) );
             break;
         case INVALID:
@@ -75,16 +75,16 @@ function getEventHubMessagesFormat(eventHubMessages) {
         return STRING;
     }
     if (!Array.isArray(eventHubMessages) && typeof eventHubMessages === 'object' && eventHubMessages !== null) {
-        return RAW_JSON;
+        return JSON_OBJECT;
     }
     if (!Array.isArray(eventHubMessages)) {
         return INVALID;
     }
     if (typeof eventHubMessages[0] === 'object') {
         if (eventHubMessages[0].records !== undefined) {
-            return DEFAULT_JSON;
+            return JSON_RECORDS;
         } else {
-            return JSON_NO_RECORDS;
+            return JSON_ARRAY;
         }
     }
     if (typeof eventHubMessages[0] === 'string') {
@@ -147,8 +147,8 @@ module.exports.forTest = {
     extractResourceId,
     STRING,
     STRING_ARRAY,
-    RAW_JSON,
-    DEFAULT_JSON,
-    JSON_NO_RECORDS,
+    JSON_OBJECT,
+    JSON_RECORDS,
+    JSON_ARRAY,
     INVALID,
 }
