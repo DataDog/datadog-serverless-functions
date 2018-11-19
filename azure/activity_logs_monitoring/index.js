@@ -142,7 +142,7 @@ function send(socket, record) {
 }
 
 // For tests
-module.exports.forTest = {
+module.exports.forTests = {
     getEventHubMessagesFormat,
     extractResourceId,
     STRING,
