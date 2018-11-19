@@ -13,17 +13,17 @@ describe('Azure Log Monitoring', function() {
       eventHubMessages = ['', 'foobar'];
       assert.equal(azure.STRING_ARRAY, azure.getEventHubMessagesFormat(eventHubMessages));
     });
-    it('should return default json', function() {
+    it('should return json with records', function() {
       eventHubMessages = [{'records': [{}, {}]}, {'records': [{}, {}]}];
-      assert.equal(azure.DEFAULT_JSON, azure.getEventHubMessagesFormat(eventHubMessages));
+      assert.equal(azure.JSON_RECORDS, azure.getEventHubMessagesFormat(eventHubMessages));
     });
-    it('should return raw json', function() {
+    it('should return json object', function() {
       eventHubMessages = {'key': 'value', 'otherkey':'othervalue'};
-      assert.equal(azure.RAW_JSON, azure.getEventHubMessagesFormat(eventHubMessages));
+      assert.equal(azure.JSON_OBJECT, azure.getEventHubMessagesFormat(eventHubMessages));
     });
     it('should return json no records', function() {
       eventHubMessages = [{'key': 'value', 'otherkey':'othervalue'}, {'key': 'value', 'otherkey':'othervalue'}];
-      assert.equal(azure.JSON_NO_RECORDS, azure.getEventHubMessagesFormat(eventHubMessages));
+      assert.equal(azure.JSON_ARRAY, azure.getEventHubMessagesFormat(eventHubMessages));
     });
     it('should return invalid', function() {
       eventHubMessages = 1;
