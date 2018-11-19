@@ -1,5 +1,5 @@
 var assert = require('assert');
-var azure = require('../activity_logs_monitoring').forTest;
+var azure = require('../activity_logs_monitoring').forTests;
 
 describe('Azure Log Monitoring', function() {
   describe('#getEventHubMessagesFormat', function() {
