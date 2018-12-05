@@ -15,10 +15,10 @@ from StringIO import StringIO
 
 import boto3
 
-# retrieve datadog options from KMS
-KMS_ENCRYPTED_KEYS = os.environ['kmsEncryptedKeys']
-kms = boto3.client('kms')
-datadog_keys = json.loads(kms.decrypt(CiphertextBlob=b64decode(KMS_ENCRYPTED_KEYS))['Plaintext'])
+datadog_keys = {
+    "api_key": os.environ["DATADOG_API_KEY"],
+    "app_key": os.environ["DATADOG_APP_KEY"],
+}
 
 print 'INFO Lambda function initialized, ready to send metrics'
 
