@@ -27,7 +27,7 @@ metadata = {"ddsourcecategory": "aws"}
 DD_URL = os.getenv("DD_URL", default="lambda-intake.logs.datadoghq.com")
 
 # Define the proxy port to forward the logs to
-DD_PORT = os.environ.get("DD_PORT", 10516)
+DD_PORT = int(os.environ.get("DD_PORT", 10516))
 
 # Scrubbing sensitive data
 # Option to redact all pattern that looks like an ip address
