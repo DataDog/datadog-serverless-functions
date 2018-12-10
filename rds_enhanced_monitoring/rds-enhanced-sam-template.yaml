@@ -5,6 +5,12 @@ Parameters:
   KMSKeyId:
     Type: String
     Description: The id (final part of the key's ARN) of a KMS key used to encrypt and decrypt your Datadog API and App keys. 
+  KMSEncryptedKeys:
+    Type: String
+    Default: 'YOUR_KEY'
+    Description: |
+      The encrypted value of your Datadog API and APP key in the following format: '{"api_key":"<YOUR_API_KEY>", "app_key":"<YOUR_APP_KEY>"}'
+
 Resources:
   rdslambdaddfunction:
     Type: 'AWS::Serverless::Function'
@@ -12,7 +18,7 @@ Resources:
       Description: Pushes RDS Enhanced metrics to Datadog.
       Environment:
         Variables:
-          kmsEncryptedKeys: 'YOUR_KEY'
+          kmsEncryptedKeys: !Ref KMSEncryptedKeys
       Handler: lambda_function.lambda_handler
       MemorySize: 128
       Policies:
