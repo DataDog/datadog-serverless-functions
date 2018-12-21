@@ -13,7 +13,7 @@ const JSON_ARRAY = 'json-array';  // eventHubMessages = [{"key": "value"}, {"key
 const INVALID = 'invalid';
 
 var DD_API_KEY = process.env.DD_API_KEY || '<DATADOG_API_KEY>';
-var DD_URL = process.env.DD_URL || 'lambda-intake.logs.datadoghq.com';
+var DD_URL = process.env.DD_URL || 'functions-intake.logs.datadoghq.com';
 var DD_TAGS = process.env.DD_TAGS || '<TAG_KEY>:<TAG_VALUE>';
 var DD_PORT = process.env.DD_PORT || 10516;
 var DD_SERVICE = process.env.DD_SERVICE || 'azure';
