@@ -1,0 +1,13 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Pushes logs from S3 and CloudWatch Logs to Datadog.
+Resources:
+  loglambdaddfunction:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Description: Pushes logs from S3 and CloudWatch Logs to Datadog.
+      Handler: lambda_function.lambda_handler
+      MemorySize: 128
+      Runtime: python2.7
+      Timeout: 10
+    Type: AWS::Serverless::Function
