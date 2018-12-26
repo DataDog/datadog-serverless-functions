@@ -1,0 +1,26 @@
+{
+  "name": "activity_logs_monitoring",
+  "version": "1.0.0",
+  "description": "[Activity and Diagnostic Logs](./activity_logs_monitoring/README.md)",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DataDog/datadog-serverless-functions.git"
+  },
+  "author": "Datadog, Inc.",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/DataDog/datadog-serverless-functions/issues"
+  },
+  "homepage": "https://github.com/DataDog/datadog-serverless-functions#readme",
+  "dependencies": {},
+  "devDependencies": {
+    "mocha": "^5.2.0"
+  }
+}

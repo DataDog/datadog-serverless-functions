@@ -1,2 +1,2 @@
 Component,Origin,License,Copyright
-import,boto3,Apache-2.0,"Copyright 2013-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved."
+boto3,github.com/boto/boto3,Apache-2.0,"Copyright 2013-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved."
