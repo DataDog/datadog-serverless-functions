@@ -77,7 +77,7 @@ Set the environment variable `DD_SITE` to `datadoghq.eu` and logs are automatica
 
 ### Send logs through a proxy
 
-Two environment variable can be used to forward logs through a proxy:
+Two environment variables can be used to forward logs through a proxy:
 
 - `DD_URL`: Define the proxy endpoint to forward the logs to
 - `DD_PORT`: Define the proxy port to forward the logs to
