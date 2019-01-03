@@ -69,13 +69,26 @@ You have two options to add custom tags to your logs:
 - Manually by editing the lambda code [there](https://github.com/DataDog/dd-aws-lambda-functions/blob/master/Log/lambda_function.py#L79).
 - Automatically with the `DD_TAGS` environment variable (tags must be a comma-separated list of strings).
 
-## 3. Configuration
+## 3. (optional) Send logs to EU or to a proxy
+
+### Send logs to EU
+
+Set the environment variable `DD_SITE` to `datadoghq.eu` and logs are automatically forwarded to your EU platform.
+
+### Send logs through a proxy
+
+Two environment variables can be used to forward logs through a proxy:
+
+- `DD_URL`: Define the proxy endpoint to forward the logs to
+- `DD_PORT`: Define the proxy port to forward the logs to
+
+## 4. Configuration
 
 - Set the memory to the highest possible value.
 - Set also the timeout limit. We recommends 120 seconds to deal with big files.
 - Hit the `Save and Test` button.
 
-## 4. Testing it
+## 5. Testing it
 
 If the test "succeeded", you are all set! The test log will not show up in the platform.
 
