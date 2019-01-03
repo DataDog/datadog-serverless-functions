@@ -21,14 +21,19 @@ import boto3
 # metadata: Additional metadata to send with the logs
 metadata = {"ddsourcecategory": "aws"}
 
-
 # Proxy
 # Define the proxy endpoint to forward the logs to
-DD_URL = os.getenv("DD_URL", default="lambda-intake.logs.datadoghq.com")
+DD_SITE = os.getenv("DD_SITE", default="datadoghq.com")
+DD_URL = os.getenv("DD_URL", default="lambda-intake.logs." + DD_SITE)
 
 # Define the proxy port to forward the logs to
-DD_PORT = int(os.environ.get("DD_PORT", 10516))
-
+try:
+    if "DD_SITE" in os.environ and DD_SITE == "datadoghq.eu":
+        DD_PORT = int(os.environ.get("DD_PORT", 443))
+    else:
+        DD_PORT = int(os.environ.get("DD_PORT", 10516))
+except Exception:
+    DD_PORT = 10516
 # Scrubbing sensitive data
 # Option to redact all pattern that looks like an ip address
 try:
@@ -56,6 +61,8 @@ ip_regex = re.compile("\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", re.I)
 DD_SOURCE = "ddsource"
 DD_CUSTOM_TAGS = "ddtags"
 DD_SERVICE = "service"
+DD_HOST = "host"
+DD_FORWARDER_VERSION = "1.0"
 
 # Pass custom tags as environment variable, ensure comma separated, no trailing comma in envvar!
 DD_TAGS = os.environ.get("DD_TAGS", "")
@@ -133,7 +140,7 @@ def lambda_handler(event, context):
             "You must configure your API key before starting this lambda function (see #Parameters section)"
         )
 
-    # crete socket
+    # create socket
     with DatadogConnection(DD_URL, DD_PORT, DD_API_KEY) as con:
         # Add the context to meta
         if "aws" not in metadata:
@@ -145,6 +152,7 @@ def lambda_handler(event, context):
         dd_custom_tags_data = {
             "forwardername": context.function_name.lower(),
             "memorysize": context.memory_limit_in_mb,
+            "forwarder_version": DD_FORWARDER_VERSION,
         }
         metadata[DD_CUSTOM_TAGS] = ",".join(
             filter(
@@ -216,9 +224,14 @@ def s3_handler(event):
     bucket = event["Records"][0]["s3"]["bucket"]["name"]
     key = urllib.unquote_plus(event["Records"][0]["s3"]["object"]["key"]).decode("utf8")
 
-    metadata[DD_SOURCE] = parse_event_source(event, key)
+    source = parse_event_source(event, key)
+    metadata[DD_SOURCE] = source
     ##default service to source value
-    metadata[DD_SERVICE] = metadata[DD_SOURCE]
+    metadata[DD_SERVICE] = source
+    ##Get the ARN of the service and set it as the hostname
+    hostname = parse_service_arn(source,key)
+    if hostname:
+        metadata[DD_HOST] = hostname
 
     # Extract the S3 object
     response = s3.get_object(Bucket=bucket, Key=key)
@@ -301,6 +314,8 @@ def awslogs_handler(event, context):
                     metadata[DD_CUSTOM_TAGS] = (
                         metadata[DD_CUSTOM_TAGS] + ",functionname:" + functioname
                     )
+                    #6 we set the arn as the hostname
+                    metadata[DD_HOST] = arn
         yield structured_line
 
 
@@ -360,6 +375,8 @@ def is_cloudtrail(key):
 
 
 def parse_event_source(event, key):
+    if "elasticloadbalancing" in key:
+        return "elb"
     for source in [
         "lambda",
         "redshift",
@@ -375,8 +392,6 @@ def parse_event_source(event, key):
     ]:
         if source in key:
             return source
-    if "elasticloadbalancing" in key:
-        return "elb"
     if is_cloudtrail(str(key)):
         return "cloudtrail"
     if "awslogs" in event:
@@ -385,3 +400,21 @@ def parse_event_source(event, key):
         if "s3" in event["Records"][0]:
             return "s3"
     return "aws"
+
+def parse_service_arn(source, key):
+    if source == "elb":
+        #For ELB logs we parse the filename to extract parameters in order to rebuild the ARN
+        #1. We extract the region from the filename
+        #2. We extract the loadbalancer name and replace the "." by "/" to match the ARN format
+        #3. We extract the id of the loadbalancer
+        #4. We build the arn
+        keysplit = key.split("_")
+        idsplit = key.split("/")
+        if len(keysplit) > 3:
+            region = keysplit[2].lower()
+            name = keysplit[3].lower()
+            elbname = name.replace(".", "/")
+            if len(idsplit) > 1:
+                idvalue = idsplit[1]
+                return "arn:aws:elasticloadbalancing:" + region + ":" + idvalue + ":loadbalancer/" + elbname
+    return
