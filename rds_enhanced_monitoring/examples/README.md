@@ -17,3 +17,6 @@ $ bash generate_CWLogTestEvent.sh
   }
 }
 ```
+
+Copy the output above and configure your AWS Lambda Test Event as seen below.
+![Screenshot](AWSLambda_ConfigureTestEvent.png)
