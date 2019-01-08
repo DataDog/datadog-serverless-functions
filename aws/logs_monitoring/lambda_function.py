@@ -62,7 +62,7 @@ DD_SOURCE = "ddsource"
 DD_CUSTOM_TAGS = "ddtags"
 DD_SERVICE = "service"
 DD_HOST = "host"
-DD_FORWARDER_VERSION = "1.0"
+DD_FORWARDER_VERSION = "1.0.1"
 
 # Pass custom tags as environment variable, ensure comma separated, no trailing comma in envvar!
 DD_TAGS = os.environ.get("DD_TAGS", "")
@@ -86,6 +86,9 @@ class DatadogConnection(object):
             self.send_entry(log)
         except Exception as e:
             # retry once
+            if self._sock:
+                # make sure we don't keep old connections open
+                self._sock.close()
             self._sock = self._connect()
             self.send_entry(log)
         return self
