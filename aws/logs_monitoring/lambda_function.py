@@ -43,16 +43,13 @@ except Exception:
 
 # DD_API_KEY: Datadog API Key
 DD_API_KEY = "<your_api_key>"
-try:
-    if "DD_KMS_API_KEY" in os.environ:
-        ENCRYPTED = os.environ["DD_KMS_API_KEY"]
-        DD_API_KEY = boto3.client("kms").decrypt(
-            CiphertextBlob=base64.b64decode(ENCRYPTED)
-        )["Plaintext"]
-    elif "DD_API_KEY" in os.environ:
-        DD_API_KEY = os.environ["DD_API_KEY"]
-except Exception:
-    pass
+if "DD_KMS_API_KEY" in os.environ:
+    ENCRYPTED = os.environ["DD_KMS_API_KEY"]
+    DD_API_KEY = boto3.client("kms").decrypt(
+        CiphertextBlob=base64.b64decode(ENCRYPTED)
+    )["Plaintext"]
+elif "DD_API_KEY" in os.environ:
+    DD_API_KEY = os.environ["DD_API_KEY"]
 
 cloudtrail_regex = re.compile(
     "\d+_CloudTrail_\w{2}-\w{4,9}-\d_\d{8}T\d{4}Z.+.json.gz$", re.I
