@@ -425,4 +425,3 @@ def parse_service_arn(source, key, bucket):
         if bucket:
             return "arn:aws:s3:::"+ bucket
     return
-    return
