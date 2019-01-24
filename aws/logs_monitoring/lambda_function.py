@@ -423,5 +423,5 @@ def parse_service_arn(source, key, bucket):
     if source == "s3":
         #For S3 access logs we use the bucket name to rebuild the arn
         if bucket:
-            return "arn:aws:s3:::"+ bucket
+            return "arn:aws:s3:::" + bucket
     return
