@@ -62,7 +62,7 @@ DD_SOURCE = "ddsource"
 DD_CUSTOM_TAGS = "ddtags"
 DD_SERVICE = "service"
 DD_HOST = "host"
-DD_FORWARDER_VERSION = "1.0.1"
+DD_FORWARDER_VERSION = "1.0.2"
 
 # Pass custom tags as environment variable, ensure comma separated, no trailing comma in envvar!
 DD_TAGS = os.environ.get("DD_TAGS", "")
@@ -232,7 +232,7 @@ def s3_handler(event):
     ##default service to source value
     metadata[DD_SERVICE] = source
     ##Get the ARN of the service and set it as the hostname
-    hostname = parse_service_arn(source,key)
+    hostname = parse_service_arn(source, key, bucket)
     if hostname:
         metadata[DD_HOST] = hostname
 
@@ -404,7 +404,7 @@ def parse_event_source(event, key):
             return "s3"
     return "aws"
 
-def parse_service_arn(source, key):
+def parse_service_arn(source, key, bucket):
     if source == "elb":
         #For ELB logs we parse the filename to extract parameters in order to rebuild the ARN
         #1. We extract the region from the filename
@@ -420,4 +420,8 @@ def parse_service_arn(source, key):
             if len(idsplit) > 1:
                 idvalue = idsplit[1]
                 return "arn:aws:elasticloadbalancing:" + region + ":" + idvalue + ":loadbalancer/" + elbname
+    if source == "s3":
+        #For S3 access logs we use the bucket name to rebuild the arn
+        if bucket:
+            return "arn:aws:s3:::" + bucket
     return
