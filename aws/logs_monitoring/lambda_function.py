@@ -395,6 +395,8 @@ def parse_event_source(event, key):
     ]:
         if source in key:
             return source
+    if "API-Gateway" in key:
+        return "apigateway"
     if is_cloudtrail(str(key)):
         return "cloudtrail"
     if "awslogs" in event:
