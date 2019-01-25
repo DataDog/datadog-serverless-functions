@@ -1,0 +1,19 @@
+# Testing the Lambda function
+
+To test the Lambda function, you can use the script `generate_CWLogTestEvent.sh` to generate test event with current timestamps. The script requires the following files in the same directory:
+
+* `tmp_message.json` - This contains the metrics would be parsed and sent via Datadog API. Based from the [RDS Example message](../#rds-message-example)
+
+## Running the command
+```sh
+$ bash generate_CWLogTestEvent.sh
+```
+
+* sample output
+```json
+{ 
+  "awslogs": {
+    "data":"H4sIAE/E31sAA81WTXPbNhC991dweI5VAPyUb0pku27tSrHkpG3U8UAkJGEsgQwASpE9/u8FsCRFOp720EN75O7btw+L3SWePX9brGdaMrrzzz0/X56N3n8YX1xe/XT98y83t79Oph/vZvP7T59/+/0P/53n75hSdM3mx5JZ/Hg0Hz3cXsxmo6sL6zZkF3smtDLOL96z52tuIjTdlcaAoxAHQxwGQ4TQicvyPHsLn4k1F2xhPhf+qJKFpAtDufC5MAQiY9dj8PEzRPGSZEEesmgVr/uoO6aKSp7Qf3siCG01QsTDQ2t4eADEnknFC2H9eGC1L/yqtCiIwMjL6VG98/B5FJyjEIJEtfv0YXqvLIZYQ1ZW95pv+RPVNZk99royuewHqpm5/Nr9VEel2Q4saWotB8rrgCh0AfnWCRkmgyhx2hSTAIhdgC403YL4KHacmoHBJHERgmcMvknkvVjLtqD5yJzbXNAtF5Vmjd4VX2nGBKCxE7Di+zoaO7ZCNJ8pkO3YrpDHhuEguWZLmj06kPVvqjWbmkzqUjL2vfVO7fPvrbNKlq01o9mGORDGSUjiMO1j+ZPjJQgcqzoPiYYIxz3ovCkWXIagma6Ph1Oc4MShSzsDdLllcLtRihxtzqV2x4xjF72jZQmqDCCJsWuDDmFgkqM07N9RFCcIAVRt6dLawiAZgsxltVqZZnRZE4KDGAqsqXpUTX3VlrGSi7UDkcD6n4rdkp8qKyshagCGfigaoagnhhAnbrktssfaDwnVgZZNvlPt+8GoW+k6TjB9KKS7+S8umAvN5Ipm9SgxvUEwPvKbE4CbptbwHeDhIE68F+9PKLh6vJ6c2Mwey2+oZiI7dmfIdVzHbuYgaO3zjSyq9aasdNMhAwJVMmR9Z8NnPdcTNZ11jVbLx4pVbMxKvWkL4HK04GiQBo34Fd+y2VGd1Ju5dWU09x8noEHQZsnIXNkAZQPqIc8vedOBcYS6xikzK1DUmnEAvfitheOhadAUWrSohJ4WHMAL/0eTJ1/mVNfbt73NAKUkjcI2TScFIYOkPVUpi8ws9hsOWw1OtleQ1wwnqhv+dDLaWfZ6zWFewiiCQZMmCSxzfFol91ZABpM2GAbNdm2t7S7tkclahbniJB660flvxKWkIy6Br/+NOBT1xIX/LC4OkwC9kjaZeXUnMNUXiF6rQ2+psz+Pt8R1Koc6ygiJEXolKyBhmAxJX9fd+F8KIwMYnFfCkvRtYWGI44jY4fBefJgRvzgIJu2zB5MgNOs+tQ8i+3xS1VJlkpf2fWCG1WxGeEj5eX5m5pKJjX3i5Gcr5/MdmXlyXZkdZR9Y9nCT2S3TkmfKJPvhL3xnDsPfCQAA"
+  }
+}
+```
