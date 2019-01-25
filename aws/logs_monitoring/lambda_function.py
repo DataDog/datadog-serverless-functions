@@ -17,9 +17,9 @@ import gzip
 
 import boto3
 
-# Parameters
-# metadata: Additional metadata to send with the logs
-metadata = {"ddsourcecategory": "aws"}
+# Global metadata object. This is shared accross lambda invocations but reset
+# in the handler
+metadata = {}
 
 # Proxy
 # Define the proxy endpoint to forward the logs to
@@ -142,6 +142,8 @@ def lambda_handler(event, context):
         raise Exception(
             "You must configure your API key before starting this lambda function (see #Parameters section)"
         )
+    # Reset metadata between calls
+    metadata = {"ddsourcecategory": "aws"}
 
     # create socket
     with DatadogConnection(DD_URL, DD_PORT, DD_API_KEY) as con:
