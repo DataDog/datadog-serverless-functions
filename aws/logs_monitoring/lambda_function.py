@@ -17,10 +17,6 @@ import gzip
 
 import boto3
 
-# Parameters
-# metadata: Additional metadata to send with the logs
-metadata = {"ddsourcecategory": "aws"}
-
 # Proxy
 # Define the proxy endpoint to forward the logs to
 DD_SITE = os.getenv("DD_SITE", default="datadoghq.com")
@@ -81,9 +77,9 @@ class DatadogConnection(object):
         s.connect((self.host, self.port))
         return s
 
-    def safe_submit_log(self, log):
+    def safe_submit_log(self, log, metadata):
         try:
-            self.send_entry(log)
+            self.send_entry(log, metadata)
         except Exception as e:
             # retry once
             if self._sock:
@@ -93,7 +89,7 @@ class DatadogConnection(object):
             self.send_entry(log)
         return self
 
-    def send_entry(self, log_entry):
+    def send_entry(self, log_entry, metadata):
         # The log_entry can only be a string or a dict
         if isinstance(log_entry, str):
             log_entry = {"message": log_entry}
@@ -143,6 +139,8 @@ def lambda_handler(event, context):
             "You must configure your API key before starting this lambda function (see #Parameters section)"
         )
 
+    metadata = {"ddsourcecategory": "aws"}
+
     # create socket
     with DatadogConnection(DD_URL, DD_PORT, DD_API_KEY) as con:
         # Add the context to meta
@@ -173,25 +171,25 @@ def lambda_handler(event, context):
         )
 
         try:
-            logs = generate_logs(event, context)
+            logs = generate_logs(event, context, metadata)
             for log in logs:
-                con = con.safe_submit_log(log)
+                con = con.safe_submit_log(log, metadata)
         except Exception as e:
             print("Unexpected exception: {} for event {}".format(str(e), event))
 
 
-def generate_logs(event, context):
+def generate_logs(event, context, metadata):
     try:
         # Route to the corresponding parser
         event_type = parse_event_type(event)
         if event_type == "s3":
-            logs = s3_handler(event)
+            logs = s3_handler(event, metadata)
         elif event_type == "awslogs":
-            logs = awslogs_handler(event, context)
+            logs = awslogs_handler(event, context, metadata)
         elif event_type == "events":
-            logs = cwevent_handler(event)
+            logs = cwevent_handler(event, metadata)
         elif event_type == "sns":
-            logs = sns_handler(event)
+            logs = sns_handler(event, metadata)
     except Exception as e:
         # Logs through the socket the error
         err_message = "Error parsing the object. Exception: {} for event {}".format(
@@ -220,7 +218,7 @@ def parse_event_type(event):
 
 
 # Handle S3 events
-def s3_handler(event):
+def s3_handler(event, metadata):
     s3 = boto3.client("s3")
 
     # Get the object from the event and show its content type
@@ -268,7 +266,7 @@ def s3_handler(event):
 
 
 # Handle CloudWatch logs
-def awslogs_handler(event, context):
+def awslogs_handler(event, context, metadata):
     # Get logs
     with gzip.GzipFile(
         fileobj=BytesIO(base64.b64decode(event["awslogs"]["data"]))
@@ -323,7 +321,7 @@ def awslogs_handler(event, context):
 
 
 # Handle Cloudwatch Events
-def cwevent_handler(event):
+def cwevent_handler(event, metadata):
 
     data = event
 
@@ -341,7 +339,7 @@ def cwevent_handler(event):
 
 
 # Handle Sns events
-def sns_handler(event):
+def sns_handler(event, metadata):
 
     data = event
     # Set the source on the log
