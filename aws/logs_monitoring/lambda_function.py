@@ -50,6 +50,9 @@ try:
 except Exception:
     pass
 
+# Strip any trailing and leading whitespace from the API key
+DD_API_KEY = DD_API_KEY.strip()
+
 cloudtrail_regex = re.compile(
     "\d+_CloudTrail_\w{2}-\w{4,9}-\d_\d{8}T\d{4}Z.+.json.gz$", re.I
 )
@@ -137,6 +140,11 @@ def lambda_handler(event, context):
     if DD_API_KEY == "<your_api_key>" or DD_API_KEY == "":
         raise Exception(
             "You must configure your API key before starting this lambda function (see #Parameters section)"
+        )
+    # Check if the API key is the correct number of characters
+    if len(DD_API_KEY) != 32:
+        raise Exception(
+            "The API key is not the expected length. Please confirm that your API key is correct"
         )
 
     metadata = {"ddsourcecategory": "aws"}
