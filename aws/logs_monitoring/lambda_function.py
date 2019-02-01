@@ -10,12 +10,15 @@ import json
 import urllib
 import os
 import socket
+import requests
 import ssl
 import re
 from io import BytesIO, BufferedReader
 import gzip
 
 import boto3
+
+USE_HTTP_CLI = os.getenv("USE_HTTP_CLI", default=True)
 
 # Proxy
 # Define the proxy endpoint to forward the logs to
@@ -135,6 +138,68 @@ class DatadogConnection(object):
             print("DatadogConnection exit: ", ex_type, ex_value, traceback)
 
 
+class DatadogHTTPClient(object):
+
+    _POST = "POST"
+    _HEADERS = {"Content-type": "application/json"}
+
+    def __init__(self, host, apiKey, max_retries=1, backoff=0.5):
+        self._url = "https://{}/v1/input/{}".format(host, apiKey)
+        self._max_retries = max_retries
+        self._backoff = backoff
+
+    def send(self, content, metadata=None):
+        retries = 0
+        body = json.dumps(content)
+        while retries <= self._max_retries:
+            try:
+                resp = requests.post(
+                    self._url,
+                    headers=self._HEADERS,
+                    data=body,
+                    params=metadata,
+                )
+                if resp.status_code >= 500:
+                    # server error
+                    print(
+                        "Server error, status: {}, reason {}".format(
+                            resp.status_code, resp.reason
+                        )
+                    )
+                elif resp.status_code >= 400:
+                    # client error
+                    print(
+                        "Client error, status: {}, reason {}".format(
+                            resp.status_code, resp.reason
+                        )
+                    )
+                    break
+                else:
+                    # success
+                    return
+            except Exception as e:
+                print("Unexpected exception: {}".format(str(e)))
+            retries += 1
+        print("Could not send batch, dropping it")
+
+
+class DatadogBatcher(object):
+    def __init__(self, max_size=25):
+        self._max_size = max_size
+
+    def batch(self, logs):
+        batches = []
+        if len(logs) % self._max_size != 0:
+            nb_batchs = int(len(logs) / self._max_size) + 1
+        else:
+            nb_batchs = int(len(logs) / self._max_size)
+        for i in range(0, nb_batchs):
+            l = i * self._max_size
+            r = (i + 1) * self._max_size
+            batches.append(logs[l:r])
+        return batches
+
+
 def lambda_handler(event, context):
     # Check prerequisites
     if DD_API_KEY == "<your_api_key>" or DD_API_KEY == "":
@@ -148,42 +213,45 @@ def lambda_handler(event, context):
         )
 
     metadata = {"ddsourcecategory": "aws"}
-
-    # create socket
-    with DatadogConnection(DD_URL, DD_PORT, DD_API_KEY) as con:
-        # Add the context to meta
-        if "aws" not in metadata:
-            metadata["aws"] = {}
-        aws_meta = metadata["aws"]
-        aws_meta["function_version"] = context.function_version
-        aws_meta["invoked_function_arn"] = context.invoked_function_arn
-        # Add custom tags here by adding new value with the following format "key1:value1, key2:value2"  - might be subject to modifications
-        dd_custom_tags_data = {
-            "forwardername": context.function_name.lower(),
-            "memorysize": context.memory_limit_in_mb,
-            "forwarder_version": DD_FORWARDER_VERSION,
-        }
-        metadata[DD_CUSTOM_TAGS] = ",".join(
-            filter(
-                None,
-                [
-                    DD_TAGS,
-                    ",".join(
-                        [
-                            "{}:{}".format(k, v)
-                            for k, v in dd_custom_tags_data.iteritems()
-                        ]
-                    ),
-                ],
-            )
+    # Add the context to meta
+    if "aws" not in metadata:
+        metadata["aws"] = {}
+    aws_meta = metadata["aws"]
+    aws_meta["function_version"] = context.function_version
+    aws_meta["invoked_function_arn"] = context.invoked_function_arn
+    # Add custom tags here by adding new value with the following format "key1:value1, key2:value2"  - might be subject to modifications
+    dd_custom_tags_data = {
+        "forwardername": context.function_name.lower(),
+        "memorysize": context.memory_limit_in_mb,
+        "forwarder_version": DD_FORWARDER_VERSION,
+    }
+    metadata[DD_CUSTOM_TAGS] = ",".join(
+        filter(
+            None,
+            [
+                DD_TAGS,
+                ",".join(
+                    ["{}:{}".format(k, v) for k, v in dd_custom_tags_data.iteritems()]
+                ),
+            ],
         )
+    )
 
-        try:
-            logs = generate_logs(event, context, metadata)
-            for log in logs:
-                con = con.safe_submit_log(log, metadata)
-        except Exception as e:
-            print("Unexpected exception: {} for event {}".format(str(e), event))
+    logs = generate_logs(event, context, metadata)
+
+    if USE_HTTP_CLI:
+        batcher = DatadogBatcher(10)
+        client = DatadogHTTPClient(DD_URL, DD_API_KEY)
+        for batch in batcher.batch(logs):
+            client.send(batch, metadata)
+    else:
+        # create socket
+        with DatadogConnection(DD_URL, DD_PORT, DD_API_KEY) as con:
+            try:
+                for log in logs:
+                    con = con.safe_submit_log(log, metadata)
+            except Exception as e:
+                print("Unexpected exception: {} for event {}".format(str(e), event))
 
 
 def generate_logs(event, context, metadata):
@@ -323,7 +391,7 @@ def awslogs_handler(event, context, metadata):
                     metadata[DD_CUSTOM_TAGS] = (
                         metadata[DD_CUSTOM_TAGS] + ",functionname:" + functioname
                     )
-                    #6 we set the arn as the hostname
+                    # 6 we set the arn as the hostname
                     metadata[DD_HOST] = arn
         yield structured_line
 
@@ -413,13 +481,14 @@ def parse_event_source(event, key):
             return "s3"
     return "aws"
 
+
 def parse_service_arn(source, key, bucket, context):
     if source == "elb":
-        #For ELB logs we parse the filename to extract parameters in order to rebuild the ARN
-        #1. We extract the region from the filename
-        #2. We extract the loadbalancer name and replace the "." by "/" to match the ARN format
-        #3. We extract the id of the loadbalancer
-        #4. We build the arn
+        # For ELB logs we parse the filename to extract parameters in order to rebuild the ARN
+        # 1. We extract the region from the filename
+        # 2. We extract the loadbalancer name and replace the "." by "/" to match the ARN format
+        # 3. We extract the id of the loadbalancer
+        # 4. We build the arn
         keysplit = key.split("_")
         idsplit = key.split("/")
         if len(keysplit) > 3:
@@ -428,9 +497,16 @@ def parse_service_arn(source, key, bucket, context):
             elbname = name.replace(".", "/")
             if len(idsplit) > 1:
                 idvalue = idsplit[1]
-                return "arn:aws:elasticloadbalancing:" + region + ":" + idvalue + ":loadbalancer/" + elbname
+                return (
+                    "arn:aws:elasticloadbalancing:"
+                    + region
+                    + ":"
+                    + idvalue
+                    + ":loadbalancer/"
+                    + elbname
+                )
     if source == "s3":
-        #For S3 access logs we use the bucket name to rebuild the arn
+        # For S3 access logs we use the bucket name to rebuild the arn
         if bucket:
             return "arn:aws:s3:::" + bucket
     if source == "cloudfront":
