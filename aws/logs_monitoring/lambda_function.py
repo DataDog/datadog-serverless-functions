@@ -154,10 +154,7 @@ class DatadogHTTPClient(object):
         while retries <= self._max_retries:
             try:
                 resp = requests.post(
-                    self._url,
-                    headers=self._HEADERS,
-                    data=body,
-                    params=metadata,
+                    self._url, headers=self._HEADERS, data=body, params=metadata
                 )
                 if resp.status_code >= 500:
                     # server error
@@ -212,31 +209,7 @@ def lambda_handler(event, context):
             "The API key is not the expected length. Please confirm that your API key is correct"
         )
 
-    metadata = {"ddsourcecategory": "aws"}
-    # Add the context to meta
-    if "aws" not in metadata:
-        metadata["aws"] = {}
-    aws_meta = metadata["aws"]
-    aws_meta["function_version"] = context.function_version
-    aws_meta["invoked_function_arn"] = context.invoked_function_arn
-    # Add custom tags here by adding new value with the following format "key1:value1, key2:value2"  - might be subject to modifications
-    dd_custom_tags_data = {
-        "forwardername": context.function_name.lower(),
-        "memorysize": context.memory_limit_in_mb,
-        "forwarder_version": DD_FORWARDER_VERSION,
-    }
-    metadata[DD_CUSTOM_TAGS] = ",".join(
-        filter(
-            None,
-            [
-                DD_TAGS,
-                ",".join(
-                    ["{}:{}".format(k, v) for k, v in dd_custom_tags_data.iteritems()]
-                ),
-            ],
-        )
-    )
-
+    metadata = generate_metadata(context)
     logs = generate_logs(event, context, metadata)
 
     if USE_HTTP_CLI:
@@ -273,6 +246,33 @@ def generate_logs(event, context, metadata):
         )
         logs = [err_message]
     return logs
+
+
+def generate_metadata(context):
+    metadata = {"ddsourcecategory": "aws"}
+    aws_meta = {}
+    aws_meta["function_version"] = context.function_version
+    aws_meta["invoked_function_arn"] = context.invoked_function_arn
+    metadata["aws"] = aws_meta
+    # Add custom tags here by adding new value with the following format "key1:value1, key2:value2"  - might be subject to modifications
+    dd_custom_tags_data = {
+        "forwardername": context.function_name.lower(),
+        "memorysize": context.memory_limit_in_mb,
+        "forwarder_version": DD_FORWARDER_VERSION,
+    }
+    metadata[DD_CUSTOM_TAGS] = ",".join(
+        filter(
+            None,
+            [
+                DD_TAGS,
+                ",".join(
+                    ["{}:{}".format(k, v) for k, v in dd_custom_tags_data.iteritems()]
+                ),
+            ],
+        )
+    )
+
+    return metadata
 
 
 # Utility functions
