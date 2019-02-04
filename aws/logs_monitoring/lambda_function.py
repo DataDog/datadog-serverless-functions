@@ -261,11 +261,13 @@ def generate_logs(event, context, metadata):
 
 
 def generate_metadata(context):
-    metadata = {"ddsourcecategory": "aws"}
-    aws_meta = {}
-    aws_meta["function_version"] = context.function_version
-    aws_meta["invoked_function_arn"] = context.invoked_function_arn
-    metadata["aws"] = aws_meta
+    metadata = {
+        "ddsourcecategory": "aws",
+        "aws": {
+            "function_version": context.function_version,
+            "invoked_function_arn": context.invoked_function_arn,
+        },
+    }
     # Add custom tags here by adding new value with the following format "key1:value1, key2:value2"  - might be subject to modifications
     dd_custom_tags_data = {
         "forwardername": context.function_name.lower(),
