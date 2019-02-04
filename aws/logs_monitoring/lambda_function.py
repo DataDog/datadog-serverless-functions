@@ -19,8 +19,6 @@ import gzip
 
 import boto3
 
-USE_HTTP_CLI = os.getenv("USE_HTTP_CLI", default=True)
-
 # Proxy
 # Define the proxy endpoint to forward the logs to
 DD_SITE = os.getenv("DD_SITE", default="datadoghq.com")
@@ -65,7 +63,11 @@ DD_SOURCE = "ddsource"
 DD_CUSTOM_TAGS = "ddtags"
 DD_SERVICE = "service"
 DD_HOST = "host"
-DD_FORWARDER_VERSION = "1.2.2"
+DD_FORWARDER_VERSION = "1.3.0"
+
+# http specific
+DD_USE_HTTP = True
+DD_BATCH_SIZE = 10
 
 # Pass custom tags as environment variable, ensure comma separated, no trailing comma in envvar!
 DD_TAGS = os.environ.get("DD_TAGS", "")
@@ -144,8 +146,11 @@ class DatadogHTTPClient(object):
     _POST = "POST"
     _HEADERS = {"Content-type": "application/json"}
 
-    def __init__(self, host, apiKey, max_retries=1, backoff=0.5):
+    def __init__(self, host, apiKey, timeout=1, max_retries=1, backoff=0.5):
         self._url = "https://{}/v1/input/{}".format(host, apiKey)
+        self._session = requests.Session()
+        self._session.headers.update(self._HEADERS)
+        self._timeout = timeout if timeout > 0 else 1
         self._max_retries = max_retries if max_retries >= 0 else 1
         self._backoff = backoff if backoff > 0 else 0.5
 
@@ -160,8 +165,8 @@ class DatadogHTTPClient(object):
                 print("Retrying, retry: {}, max: {}".format(retry, self._max_retries))
                 time.sleep(self._backoff)
             try:
-                resp = requests.post(
-                    self._url, headers=self._HEADERS, data=body, params=metadata
+                resp = self._session.post(
+                    self._url, data=body, params=metadata, timeout=self._timeout
                 )
             except Exception as e:
                 # most likely a network error
@@ -186,6 +191,13 @@ class DatadogHTTPClient(object):
                 # success
                 return
         raise Exception("max number of retries reached: {}".format(self._max_retries))
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, ex_type, ex_value, traceback):
+        self._session.close()
+        return self
 
 
 class DatadogBatcher(object):
@@ -224,11 +236,14 @@ def lambda_handler(event, context):
     metadata = generate_metadata(context)
     logs = generate_logs(event, context, metadata)
 
-    if USE_HTTP_CLI:
-        batcher = DatadogBatcher(10)
-        client = DatadogHTTPClient(DD_URL, DD_API_KEY)
-        for batch in batcher.batch(logs):
-            client.send(batch, metadata)
+    if DD_USE_HTTP:
+        batcher = DatadogBatcher(DD_BATCH_SIZE)
+        with DatadogHTTPClient(DD_URL, DD_API_KEY) as client:
+            for batch in batcher.batch(logs):
+                try:
+                    client.send(batch, metadata)
+                except Exception as e:
+                    print("Unexpected exception: {}, event: {}".format(str(e), event))
     else:
         # create socket
         with DatadogConnection(DD_URL, DD_PORT, DD_API_KEY) as con:
@@ -236,7 +251,7 @@ def lambda_handler(event, context):
                 for log in logs:
                     con = con.safe_submit_log(log, metadata)
             except Exception as e:
-                print("Unexpected exception: {} for event {}".format(str(e), event))
+                print("Unexpected exception: {}, event: {}".format(str(e), event))
 
 
 def generate_logs(event, context, metadata):
