@@ -11,6 +11,7 @@ import urllib
 import os
 import socket
 import requests
+import time
 import ssl
 import re
 from io import BytesIO, BufferedReader
@@ -145,39 +146,46 @@ class DatadogHTTPClient(object):
 
     def __init__(self, host, apiKey, max_retries=1, backoff=0.5):
         self._url = "https://{}/v1/input/{}".format(host, apiKey)
-        self._max_retries = max_retries
-        self._backoff = backoff
+        self._max_retries = max_retries if max_retries >= 0 else 1
+        self._backoff = backoff if backoff > 0 else 0.5
 
-    def send(self, content, metadata=None):
-        retries = 0
-        body = json.dumps(content)
-        while retries <= self._max_retries:
+    def send(self, batch, metadata=None):
+        """
+        Attemps to send a log with a linear retry strategy,
+        only retries on server and network errors.
+        """
+        body = json.dumps(batch)
+        for retry in range(1 + self._max_retries):
+            if retry > 0:
+                print("Retrying, retry: {}, max: {}".format(retry, self._max_retries))
+                time.sleep(self._backoff)
             try:
                 resp = requests.post(
                     self._url, headers=self._HEADERS, data=body, params=metadata
                 )
-                if resp.status_code >= 500:
-                    # server error
-                    print(
-                        "Server error, status: {}, reason {}".format(
-                            resp.status_code, resp.reason
-                        )
-                    )
-                elif resp.status_code >= 400:
-                    # client error
-                    print(
-                        "Client error, status: {}, reason {}".format(
-                            resp.status_code, resp.reason
-                        )
-                    )
-                    break
-                else:
-                    # success
-                    return
             except Exception as e:
+                # most likely a network error
                 print("Unexpected exception: {}".format(str(e)))
-            retries += 1
-        print("Could not send batch, dropping it")
+                continue
+            if resp.status_code >= 500:
+                # server error
+                print(
+                    "Server error, status {}, reason: {}".format(
+                        resp.status_code, resp.reason
+                    )
+                )
+                continue
+            elif resp.status_code >= 400:
+                # client error
+                raise Exception(
+                    "client error, status: {}, reason {}".format(
+                        resp.status_code, resp.reason
+                    )
+                )
+            else:
+                # success
+                return
+        raise Exception("max number of retries reached: {}".format(self._max_retries))
 
 
 class DatadogBatcher(object):
@@ -185,6 +193,10 @@ class DatadogBatcher(object):
         self._max_size = max_size
 
     def batch(self, logs):
+        """
+        Returns an array of batches,
+        each batch contains at most max_size logs.
+        """
         batches = []
         if len(logs) % self._max_size != 0:
             nb_batchs = int(len(logs) / self._max_size) + 1
