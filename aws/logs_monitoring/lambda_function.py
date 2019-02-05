@@ -198,6 +198,8 @@ def generate_logs(event, context, metadata):
             logs = cwevent_handler(event, metadata)
         elif event_type == "sns":
             logs = sns_handler(event, metadata)
+        elif event_type == "kinesis":
+            logs = kinesis_handler(event)
     except Exception as e:
         # Logs through the socket the error
         err_message = "Error parsing the object. Exception: {} for event {}".format(
@@ -212,10 +214,13 @@ def generate_logs(event, context, metadata):
 
 def parse_event_type(event):
     if "Records" in event and len(event["Records"]) > 0:
-        if "s3" in event["Records"][0]:
+        event_records = event["Records"][0]
+        if "s3" in event_records:
             return "s3"
-        elif "Sns" in event["Records"][0]:
+        elif "Sns" in event_records:
             return "sns"
+        elif "kinesis" in event_records["eventName"]:
+            return "kinesis"
 
     elif "awslogs" in event:
         return "awslogs"
@@ -358,6 +363,20 @@ def sns_handler(event, metadata):
         structured_line = ev
         yield structured_line
 
+# Handle kinesis stream events
+def kinesis_handler(event):
+    kinesis = boto3.client("kinesis")
+    event_records = event["Records"][0]
+    kinesis_record = event_records["kinesis"]
+    kinesis_data = kinesis_record["data"]
+    data = ""
+    with gzip.GzipFile(
+        fileobj=BytesIO(base64.b64decode(kinesis_data))
+    ) as decompress_stream:
+        # Reading line by line avoid a bug where gzip would take a very long time (>5min) for
+        # file around 60MB gzipped
+        data = "".join(BufferedReader(decompress_stream))
+    yield {"message": data}
 
 def merge_dicts(a, b, path=None):
     if path is None:
