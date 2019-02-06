@@ -146,13 +146,13 @@ class DatadogHTTPClient(object):
     _POST = "POST"
     _HEADERS = {"Content-type": "application/json"}
 
-    def __init__(self, host, apiKey, timeout=1, max_retries=1, backoff=0.5):
+    def __init__(self, host, apiKey, timeout=10, max_retries=3, backoff=1):
         self._url = "https://{}/v1/input/{}".format(host, apiKey)
         self._session = requests.Session()
         self._session.headers.update(self._HEADERS)
-        self._timeout = timeout if timeout > 0 else 1
-        self._max_retries = max_retries if max_retries >= 0 else 1
-        self._backoff = backoff if backoff > 0 else 0.5
+        self._timeout = timeout
+        self._max_retries = max_retries
+        self._backoff = backoff
 
     def send(self, batch, metadata=None):
         """
@@ -162,7 +162,6 @@ class DatadogHTTPClient(object):
         body = json.dumps(batch)
         for retry in range(1 + self._max_retries):
             if retry > 0:
-                print("Retrying, retry: {}, max: {}".format(retry, self._max_retries))
                 time.sleep(self._backoff)
             try:
                 resp = self._session.post(
@@ -170,15 +169,9 @@ class DatadogHTTPClient(object):
                 )
             except Exception as e:
                 # most likely a network error
-                print("Unexpected exception: {}".format(str(e)))
                 continue
             if resp.status_code >= 500:
                 # server error
-                print(
-                    "Server error, status {}, reason: {}".format(
-                        resp.status_code, resp.reason
-                    )
-                )
                 continue
             elif resp.status_code >= 400:
                 # client error
@@ -210,10 +203,7 @@ class DatadogBatcher(object):
         each batch contains at most max_size logs.
         """
         batches = []
-        if len(logs) % self._max_size != 0:
-            nb_batchs = int(len(logs) / self._max_size) + 1
-        else:
-            nb_batchs = int(len(logs) / self._max_size)
+        nb_batchs = int(len(logs) / self._max_size) + 1
         for i in range(0, nb_batchs):
             l = i * self._max_size
             r = (i + 1) * self._max_size
