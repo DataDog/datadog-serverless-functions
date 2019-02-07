@@ -529,28 +529,33 @@ def parse_service_arn(source, key, bucket, context):
         if bucket:
             return "arn:aws:s3:::" + bucket
     if source == "cloudfront":
-        #For Cloudfront logs we need to get the account and distribution id from the lambda arn and the filename
-        #1. We extract the cloudfront id  from the filename
-        #2. We extract the AWS account id from the lambda arn
-        #3. We build the arn
+        # For Cloudfront logs we need to get the account and distribution id from the lambda arn and the filename
+        # 1. We extract the cloudfront id  from the filename
+        # 2. We extract the AWS account id from the lambda arn
+        # 3. We build the arn
         namesplit = key.split("/")
         if len(namesplit) > 0:
-            filename = namesplit[len(namesplit)-1] 
-            #(distribution-ID.YYYY-MM-DD-HH.unique-ID.gz)
+            filename = namesplit[len(namesplit) - 1]
+            # (distribution-ID.YYYY-MM-DD-HH.unique-ID.gz)
             filenamesplit = filename.split(".")
             if len(filenamesplit) > 3:
-                distributionID = filenamesplit[len(filenamesplit)-4].lower()
+                distributionID = filenamesplit[len(filenamesplit) - 4].lower()
                 arn = context.invoked_function_arn
                 arnsplit = arn.split(":")
                 if len(arnsplit) == 7:
                     awsaccountID = arnsplit[4].lower()
-                    return "arn:aws:cloudfront::" + awsaccountID+":distribution/" + distributionID
+                    return (
+                        "arn:aws:cloudfront::"
+                        + awsaccountID
+                        + ":distribution/"
+                        + distributionID
+                    )
     if source == "redshift":
-        #For redshift logs we leverage the filename to extract the relevant information
-        #1. We extract the region from the filename
-        #2. We extract the account-id from the filename
-        #3. We extract the name of the cluster
-        #4. We build the arn: arn:aws:redshift:region:account-id:cluster:cluster-name
+        # For redshift logs we leverage the filename to extract the relevant information
+        # 1. We extract the region from the filename
+        # 2. We extract the account-id from the filename
+        # 3. We extract the name of the cluster
+        # 4. We build the arn: arn:aws:redshift:region:account-id:cluster:cluster-name
         namesplit = key.split("/")
         if len(namesplit) == 8:
             region = namesplit[3].lower()
@@ -559,5 +564,12 @@ def parse_service_arn(source, key, bucket, context):
             filesplit = filename.split("_")
             if len(filesplit) == 6:
                 clustername = filesplit[3]
-                return "arn:aws:redshift:" + region + ":" + accountID + ":cluster:" + clustername
+                return (
+                    "arn:aws:redshift:"
+                    + region
+                    + ":"
+                    + accountID
+                    + ":cluster:"
+                    + clustername
+                )
     return
