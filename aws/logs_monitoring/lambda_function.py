@@ -78,6 +78,10 @@ class RetriableException(Exception):
 
 
 class DatadogClient(object):
+    """
+    Client that implements a linear retrying logic to send a batch of logs.
+    """
+
     def __init__(self, client, max_retries=3, backoff=1):
         self._client = client
         self._max_retries = max_retries
@@ -106,6 +110,10 @@ class DatadogClient(object):
 
 
 class DatadogTCPClient(object):
+    """
+    Client that sends a batch of logs over TCP.
+    """
+
     def __init__(self, host, port, api_key):
         self.host = host
         self.port = port
@@ -133,7 +141,7 @@ class DatadogTCPClient(object):
             )
             self._sock.send(frame.encode("UTF-8"))
         except Exception as e:
-            # most likely a network error, reset the connection            
+            # most likely a network error, reset the connection
             if self._sock:
                 self.close()
             self.connect()
@@ -141,6 +149,9 @@ class DatadogTCPClient(object):
 
 
 class DatadogHTTPClient(object):
+    """
+    Client that sends a batch of logs over HTTP.
+    """
 
     _POST = "POST"
     _HEADERS = {"Content-type": "application/json"}
@@ -158,6 +169,9 @@ class DatadogHTTPClient(object):
         self._session.close()
 
     def send(self, logs, metadata):
+        """
+        Sends a batch of log, only retry on server and network errors.
+        """
         try:
             resp = self._session.post(
                 self._url, data=json.dumps(logs), params=metadata, timeout=self._timeout
