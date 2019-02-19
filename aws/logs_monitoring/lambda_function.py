@@ -131,13 +131,15 @@ class DatadogTCPClient(object):
 
     def send(self, logs, metadata):
         try:
-            frame = "".join(
-                [
-                    "%s %s\n".format(
-                        self._api_key, json.dumps(merge_dicts(log, metadata))
-                    )
-                    for log in logs
-                ]
+            frame = scrub(
+                "".join(
+                    [
+                        "%s %s\n".format(
+                            self._api_key, json.dumps(merge_dicts(log, metadata))
+                        )
+                        for log in logs
+                    ]
+                )
             )
             self._sock.send(frame.encode("UTF-8"))
         except Exception as e:
@@ -174,7 +176,10 @@ class DatadogHTTPClient(object):
         """
         try:
             resp = self._session.post(
-                self._url, data=json.dumps(logs), params=metadata, timeout=self._timeout
+                self._url,
+                data=scrub(json.dumps(logs)),
+                params=metadata,
+                timeout=self._timeout,
             )
         except Exception as e:
             # most likely a network error
@@ -293,6 +298,15 @@ def generate_metadata(context):
 
 
 # Utility functions
+
+
+def scrub(self, payload):
+    if is_ipscrubbing:
+        try:
+            return ip_regex.sub("xxx.xxx.xxx.xxx", payload)
+        except Exception as e:
+            raise e
+    return payload
 
 
 def normalize_logs(logs):
