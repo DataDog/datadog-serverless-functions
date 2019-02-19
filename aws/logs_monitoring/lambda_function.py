@@ -127,10 +127,10 @@ class DatadogTCPClient(object):
         self._sock = None
 
     def connect(self):
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s = ssl.wrap_socket(s)
-        s.connect((self.host, self.port))
-        return s
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock = ssl.wrap_socket(s)
+        sock.connect((self.host, self.port))
+        self._sock = sock
 
     def close(self):
         if self._sock:
