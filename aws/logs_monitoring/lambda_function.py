@@ -19,10 +19,16 @@ import gzip
 
 import boto3
 
+# Client configuration
+DD_USE_HTTP = True
+
 # Proxy
 # Define the proxy endpoint to forward the logs to
 DD_SITE = os.getenv("DD_SITE", default="datadoghq.com")
-DD_URL = os.getenv("DD_URL", default="lambda-intake.logs." + DD_SITE)
+if DD_USE_HTTP:
+    DD_URL = os.getenv("DD_URL", default="lambda-http-intake.logs." + DD_SITE)
+else:
+    DD_URL = os.getenv("DD_URL", default="lambda-intake.logs." + DD_SITE)
 
 # Define the proxy port to forward the logs to
 try:
@@ -64,9 +70,6 @@ DD_CUSTOM_TAGS = "ddtags"
 DD_SERVICE = "service"
 DD_HOST = "host"
 DD_FORWARDER_VERSION = "1.3.0"
-
-# http specific
-DD_USE_HTTP = True
 DD_BATCH_SIZE = 10
 
 # Pass custom tags as environment variable, ensure comma separated, no trailing comma in envvar!
