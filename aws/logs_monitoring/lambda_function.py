@@ -220,7 +220,9 @@ class DatadogBatcher(object):
         for i in range(0, nb_batchs):
             l = i * self._max_size
             r = (i + 1) * self._max_size
-            batches.append(logs[l:r])
+            batch = logs[l:r]
+            if len(batch) > 0:
+                batches.append(logs[l:r])
         return batches
 
 
@@ -247,7 +249,7 @@ def lambda_handler(event, context):
         batcher = DatadogBatcher(1)
 
     with DatadogClient(cli) as client:
-        for batch in batcher.batch(logs, metadata):
+        for batch in batcher.batch(logs):
             try:
                 client.send(batch)
             except Exception as e:
