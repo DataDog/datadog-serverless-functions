@@ -19,6 +19,7 @@ import gzip
 
 import boto3
 
+
 # Client configuration
 DD_USE_HTTP = True
 
@@ -38,6 +39,8 @@ try:
         DD_PORT = int(os.environ.get("DD_PORT", 10516))
 except Exception:
     DD_PORT = 10516
+
+
 # Scrubbing sensitive data
 # Option to redact all pattern that looks like an ip address
 try:
@@ -130,7 +133,8 @@ class DatadogTCPClient(object):
         return s
 
     def close(self):
-        self._sock.close()
+        if self._sock:
+            self._sock.close()
 
     def send(self, logs, metadata):
         try:
