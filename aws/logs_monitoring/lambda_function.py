@@ -83,7 +83,7 @@ class DatadogClient(object):
         self._max_retries = max_retries
         self._backoff = backoff
 
-    def send(self, logs, metadata=None):
+    def send(self, logs, metadata):
         retry = 0
         while retry <= self._max_retries:
             if retry > 0:
@@ -133,7 +133,10 @@ class DatadogTCPClient(object):
             )
             self._sock.send(frame.encode("UTF-8"))
         except Exception as e:
-            # most likely a network error
+            # most likely a network error, reset the connection            
+            if self._sock:
+                self.close()
+            self.connect()
             raise RetriableException()
 
 
@@ -218,7 +221,7 @@ def lambda_handler(event, context):
         batcher = DatadogBatcher(1)
 
     with DatadogClient(cli) as client:
-        for batch in batcher.batch(logs):
+        for batch in batcher.batch(logs, metadata):
             try:
                 client.send(batch)
             except Exception as e:
@@ -286,7 +289,8 @@ def normalize_logs(logs):
         elif isinstance(log, str):
             batches.append({"message": log})
         else:
-            batches.append({"message": str(log)})
+            # drop this log
+            pass
     return normalized
 
 
