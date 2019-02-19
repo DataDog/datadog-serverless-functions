@@ -141,7 +141,7 @@ class DatadogTCPClient(object):
             frame = scrub(
                 "".join(
                     [
-                        "%s %s\n".format(
+                        "{} {}\n".format(
                             self._api_key, json.dumps(merge_dicts(log, metadata))
                         )
                         for log in logs
