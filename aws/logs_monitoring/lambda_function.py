@@ -73,72 +73,63 @@ DD_BATCH_SIZE = 10
 DD_TAGS = os.environ.get("DD_TAGS", "")
 
 
-class DatadogConnection(object):
-    def __init__(self, host, port, ddApiKey):
+class RetriableException(Exception):
+    pass
+
+
+class DatadogClient(object):
+    def __init__(self, client, max_retries=3, backoff=1):
+        self._client = client
+        self._max_retries = max_retries
+        self._backoff = backoff
+
+    def send(self, logs, metadata=None):
+        retry = 0
+        while retry <= self._max_retries:
+            if retry > 0:
+                time.sleep(self._backoff)
+            try:
+                self._client.send(logs, metadata)
+            except RetriableException as e:
+                retry += 1
+                continue
+            return
+        raise Exception("max number of retries reached: {}".format(self._max_retries))
+
+    def __enter__(self):
+        self._client.connect()
+        return self
+
+    def __exit__(self, ex_type, ex_value, traceback):
+        self._client.close()
+        return self
+
+
+class DatadogTCPClient(object):
+    def __init__(self, host, port, api_key):
         self.host = host
         self.port = port
-        self.api_key = ddApiKey
+        self._api_key = api_key
         self._sock = None
 
-    def _connect(self):
+    def connect(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s = ssl.wrap_socket(s)
         s.connect((self.host, self.port))
         return s
 
-    def safe_submit_log(self, log, metadata):
+    def close(self):
+        self._sock.close()
+
+    def send(self, logs, metadata):
         try:
-            self.send_entry(log, metadata)
-        except Exception as e:
-            # retry once
-            if self._sock:
-                # make sure we don't keep old connections open
-                self._sock.close()
-            self._sock = self._connect()
-            self.send_entry(log)
-        return self
-
-    def send_entry(self, log_entry, metadata):
-        # The log_entry can only be a string or a dict
-        if isinstance(log_entry, str):
-            log_entry = {"message": log_entry}
-        elif not isinstance(log_entry, dict):
-            raise Exception(
-                "Cannot send the entry as it must be either a string or a dict. Provided entry: "
-                + str(log_entry)
+            frame = "".join(
+                ["%s %s\n".format(self._api_key, json.dumps(log)) for log in logs]
             )
-
-        # Merge with metadata
-        log_entry = merge_dicts(log_entry, metadata)
-
-        # Send to Datadog
-        str_entry = json.dumps(log_entry)
-
-        # Scrub ip addresses if activated
-        if is_ipscrubbing:
-            try:
-                str_entry = ip_regex.sub("xxx.xxx.xxx.xx", str_entry)
-            except Exception as e:
-                print(
-                    "Unexpected exception while scrubbing logs: {} for event {}".format(
-                        str(e), str_entry
-                    )
-                )
-
-        # For debugging purpose uncomment the following line
-        # print(str_entry)
-        prefix = "%s " % self.api_key
-        return self._sock.send((prefix + str_entry + "\n").encode("UTF-8"))
-
-    def __enter__(self):
-        self._sock = self._connect()
-        return self
-
-    def __exit__(self, ex_type, ex_value, traceback):
-        if self._sock:
-            self._sock.close()
-        if ex_type is not None:
-            print("DatadogConnection exit: ", ex_type, ex_value, traceback)
+            self._sock.send(frame.encode("UTF-8"))
+        except Exception as e:
+            # most likely a network error
+            raise RetriableException()
 
 
 class DatadogHTTPClient(object):
@@ -146,51 +137,39 @@ class DatadogHTTPClient(object):
     _POST = "POST"
     _HEADERS = {"Content-type": "application/json"}
 
-    def __init__(self, host, apiKey, timeout=10, max_retries=3, backoff=1):
-        self._url = "https://{}/v1/input/{}".format(host, apiKey)
+    def __init__(self, host, api_key, timeout=10):
+        self._url = "https://{}/v1/input/{}".format(host, api_key)
+        self._timeout = timeout
+        self._session = None
+
+    def connect(self):
         self._session = requests.Session()
         self._session.headers.update(self._HEADERS)
-        self._timeout = timeout
-        self._max_retries = max_retries
-        self._backoff = backoff
 
-    def send(self, batch, metadata=None):
-        """
-        Attemps to send a log with a linear retry strategy,
-        only retries on server and network errors.
-        """
-        body = json.dumps(batch)
-        for retry in range(1 + self._max_retries):
-            if retry > 0:
-                time.sleep(self._backoff)
-            try:
-                resp = self._session.post(
-                    self._url, data=body, params=metadata, timeout=self._timeout
-                )
-            except Exception as e:
-                # most likely a network error
-                continue
-            if resp.status_code >= 500:
-                # server error
-                continue
-            elif resp.status_code >= 400:
-                # client error
-                raise Exception(
-                    "client error, status: {}, reason {}".format(
-                        resp.status_code, resp.reason
-                    )
-                )
-            else:
-                # success
-                return
-        raise Exception("max number of retries reached: {}".format(self._max_retries))
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, ex_type, ex_value, traceback):
+    def close(self):
         self._session.close()
-        return self
+
+    def send(self, logs, metadata):
+        try:
+            resp = self._session.post(
+                self._url, data=json.dumps(logs), params=metadata, timeout=self._timeout
+            )
+        except Exception as e:
+            # most likely a network error
+            raise RetriableException()
+        if resp.status_code >= 500:
+            # server error
+            raise RetriableException()
+        elif resp.status_code >= 400:
+            # client error
+            raise Exception(
+                "client error, status: {}, reason {}".format(
+                    resp.status_code, resp.reason
+                )
+            )
+        else:
+            # success
+            return
 
 
 class DatadogBatcher(object):
@@ -227,19 +206,15 @@ def lambda_handler(event, context):
     logs = generate_logs(event, context, metadata)
 
     if DD_USE_HTTP:
-        batcher = DatadogBatcher(DD_BATCH_SIZE)
-        with DatadogHTTPClient(DD_URL, DD_API_KEY) as client:
-            for batch in batcher.batch(logs):
-                try:
-                    client.send(batch, metadata)
-                except Exception as e:
-                    print("Unexpected exception: {}, event: {}".format(str(e), event))
+        cli = DatadogHTTPClient(DD_URL, DD_API_KEY)
     else:
-        # create socket
-        with DatadogConnection(DD_URL, DD_PORT, DD_API_KEY) as con:
+        cli = DatadogTCPClient(DD_URL, DD_PORT, DD_API_KEY)
+
+    batcher = DatadogBatcher(DD_BATCH_SIZE)
+    with DatadogClient(cli) as client:
+        for batch in batcher.batch(logs):
             try:
-                for log in logs:
-                    con = con.safe_submit_log(log, metadata)
+                client.send(batch)
             except Exception as e:
                 print("Unexpected exception: {}, event: {}".format(str(e), event))
 
