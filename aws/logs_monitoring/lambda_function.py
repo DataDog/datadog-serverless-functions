@@ -124,7 +124,12 @@ class DatadogTCPClient(object):
     def send(self, logs, metadata):
         try:
             frame = "".join(
-                ["%s %s\n".format(self._api_key, json.dumps(log)) for log in logs]
+                [
+                    "%s %s\n".format(
+                        self._api_key, json.dumps(merge_dicts(log, metadata))
+                    )
+                    for log in logs
+                ]
             )
             self._sock.send(frame.encode("UTF-8"))
         except Exception as e:
@@ -207,10 +212,11 @@ def lambda_handler(event, context):
 
     if DD_USE_HTTP:
         cli = DatadogHTTPClient(DD_URL, DD_API_KEY)
+        batcher = DatadogBatcher(DD_BATCH_SIZE)
     else:
         cli = DatadogTCPClient(DD_URL, DD_PORT, DD_API_KEY)
+        batcher = DatadogBatcher(1)
 
-    batcher = DatadogBatcher(DD_BATCH_SIZE)
     with DatadogClient(cli) as client:
         for batch in batcher.batch(logs):
             try:
@@ -237,7 +243,7 @@ def generate_logs(event, context, metadata):
             str(e), event
         )
         logs = [err_message]
-    return logs
+    return normalize_logs(logs, metadata)
 
 
 def generate_metadata(context):
@@ -270,6 +276,18 @@ def generate_metadata(context):
 
 
 # Utility functions
+
+
+def normalize_logs(logs):
+    normalized = []
+    for log in logs:
+        if isinstance(log, dict):
+            batches.append(log)
+        elif isinstance(log, str):
+            batches.append({"message": log})
+        else:
+            batches.append({"message": str(log)})
+    return normalized
 
 
 def parse_event_type(event):
