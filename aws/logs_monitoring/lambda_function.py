@@ -142,6 +142,10 @@ class DatadogTCPClient(object):
         if self._sock:
             self._sock.close()
 
+    def _reset(self):
+        self.close()
+        self.connect()
+
     def send(self, logs, metadata):
         try:
             frame = self._scrubber.scrub(
@@ -159,9 +163,7 @@ class DatadogTCPClient(object):
             raise Exception("could not scrub the payload")
         except Exception as e:
             # most likely a network error, reset the connection
-            if self._sock:
-                self.close()
-            self.connect()
+            self._reset()
             raise RetriableException()
 
 
@@ -298,7 +300,7 @@ def generate_logs(event, context, metadata):
             str(e), event
         )
         logs = [err_message]
-    return normalize_logs(logs, metadata)
+    return normalize_logs(logs)
 
 
 def generate_metadata(context):
@@ -342,7 +344,7 @@ def normalize_logs(logs):
             batches.append({"message": log})
         else:
             # drop this log
-            pass
+            continue
     return normalized
 
 
