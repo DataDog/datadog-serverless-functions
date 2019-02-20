@@ -134,7 +134,7 @@ class DatadogTCPClient(object):
 
     def connect(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock = ssl.wrap_socket(s)
+        sock = ssl.wrap_socket(sock)
         sock.connect((self.host, self.port))
         self._sock = sock
 
@@ -235,7 +235,7 @@ class DatadogBatcher(object):
             r = (i + 1) * self._max_size
             batch = logs[l:r]
             if len(batch) > 0:
-                batches.append(logs[l:r])
+                batches.append(batch)
         return batches
 
 
@@ -277,7 +277,7 @@ def lambda_handler(event, context):
     with DatadogClient(cli) as client:
         for batch in batcher.batch(logs):
             try:
-                client.send(batch)
+                client.send(batch, metadata)
             except Exception as e:
                 print("Unexpected exception: {}, event: {}".format(str(e), event))
 
