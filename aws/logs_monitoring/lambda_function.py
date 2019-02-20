@@ -28,10 +28,8 @@ DD_USE_HTTP = True
 DD_SITE = os.getenv("DD_SITE", default="datadoghq.com")
 if DD_USE_HTTP:
     DD_URL = os.getenv("DD_URL", default="lambda-http-intake.logs." + DD_SITE)
-    DD_BATCH_SIZE = 10
 else:
     DD_URL = os.getenv("DD_URL", default="lambda-intake.logs." + DD_SITE)
-    DD_BATCH_SIZE = 1
 
 # Define the proxy port to forward the logs to
 try:
@@ -220,22 +218,38 @@ class DatadogHTTPClient(object):
 
 
 class DatadogBatcher(object):
-    def __init__(self, max_size=25):
-        self._max_size = max_size
+    def __init__(self, max_log_size_bytes, max_size_bytes, max_size_count):
+        self._max_log_size_bytes = max_log_size_bytes
+        self._max_size_bytes = max_size_bytes
+        self._max_size_count = max_size_count
+
+    def _sizeof_bytes(self, log):
+        return len(json.dumps(log).encode("UTF-8"))
 
     def batch(self, logs):
         """
-        Returns an array of batches,
-        each batch contains at most max_size logs.
+        Returns an array of batches.
+        Each batch contains at most max_size_count logs and
+        is not strictly greater than max_size_bytes.
+        All logs strictly greater than max_log_size_bytes are dropped.
         """
         batches = []
-        nb_batchs = int(len(logs) / self._max_size) + 1
-        for i in range(0, nb_batchs):
-            l = i * self._max_size
-            r = (i + 1) * self._max_size
-            batch = logs[l:r]
-            if len(batch) > 0:
+        batch = []
+        size_bytes = 0
+        for log in logs:
+            log_size_bytes = self._sizeof_bytes(log)
+            if (
+                len(batch) >= self._max_size_count
+                or size_bytes + log_size_bytes > self._max_size_bytes
+            ) and len(batch) > 0:
                 batches.append(batch)
+                batch = []
+                size_bytes = 0
+            if log_size_bytes <= self._max_log_size_bytes:
+                batch.append(log)
+                size_bytes += log_size_bytes
+        if len(batch) > 0:
+            batches.append(batch)
         return batches
 
 
@@ -267,11 +281,12 @@ def lambda_handler(event, context):
     metadata = generate_metadata(context)
     logs = generate_logs(event, context, metadata)
 
-    batcher = DatadogBatcher(DD_BATCH_SIZE)
     scrubber = DatadogScrubber(is_ipscrubbing)
     if DD_USE_HTTP:
+        batcher = DatadogBatcher(128 * 1000, 1 * 1000 * 1000, 25)
         cli = DatadogHTTPClient(DD_URL, DD_API_KEY, scrubber)
     else:
+        batcher = DatadogBatcher(256 * 1000, 256 * 1000, 1)
         cli = DatadogTCPClient(DD_URL, DD_PORT, DD_API_KEY, scrubber)
 
     with DatadogClient(cli) as client:
@@ -339,9 +354,9 @@ def normalize_logs(logs):
     normalized = []
     for log in logs:
         if isinstance(log, dict):
-            batches.append(log)
+            normalized.append(log)
         elif isinstance(log, str):
-            batches.append({"message": log})
+            normalized.append({"message": log})
         else:
             # drop this log
             continue
