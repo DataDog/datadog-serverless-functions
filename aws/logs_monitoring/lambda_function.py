@@ -20,7 +20,7 @@ import gzip
 import boto3
 
 
-# Client configuration
+# Client Type
 DD_USE_HTTP = True
 
 # Proxy
@@ -28,8 +28,10 @@ DD_USE_HTTP = True
 DD_SITE = os.getenv("DD_SITE", default="datadoghq.com")
 if DD_USE_HTTP:
     DD_URL = os.getenv("DD_URL", default="lambda-http-intake.logs." + DD_SITE)
+    DD_BATCH_SIZE = 10
 else:
     DD_URL = os.getenv("DD_URL", default="lambda-intake.logs." + DD_SITE)
+    DD_BATCH_SIZE = 1
 
 # Define the proxy port to forward the logs to
 try:
@@ -73,13 +75,16 @@ DD_CUSTOM_TAGS = "ddtags"
 DD_SERVICE = "service"
 DD_HOST = "host"
 DD_FORWARDER_VERSION = "1.3.0"
-DD_BATCH_SIZE = 10
 
 # Pass custom tags as environment variable, ensure comma separated, no trailing comma in envvar!
 DD_TAGS = os.environ.get("DD_TAGS", "")
 
 
 class RetriableException(Exception):
+    pass
+
+
+class ScrubbingException(Exception):
     pass
 
 
@@ -120,10 +125,11 @@ class DatadogTCPClient(object):
     Client that sends a batch of logs over TCP.
     """
 
-    def __init__(self, host, port, api_key):
+    def __init__(self, host, port, api_key, scrubber):
         self.host = host
         self.port = port
         self._api_key = api_key
+        self._scrubber = scrubber
         self._sock = None
 
     def connect(self):
@@ -138,7 +144,7 @@ class DatadogTCPClient(object):
 
     def send(self, logs, metadata):
         try:
-            frame = scrub(
+            frame = self._scrubber.scrub(
                 "".join(
                     [
                         "{} {}\n".format(
@@ -149,6 +155,8 @@ class DatadogTCPClient(object):
                 )
             )
             self._sock.send(frame.encode("UTF-8"))
+        except ScrubbingException as e:
+            raise Exception("could not scrub the payload")
         except Exception as e:
             # most likely a network error, reset the connection
             if self._sock:
@@ -165,8 +173,9 @@ class DatadogHTTPClient(object):
     _POST = "POST"
     _HEADERS = {"Content-type": "application/json"}
 
-    def __init__(self, host, api_key, timeout=10):
+    def __init__(self, host, api_key, scrubber, timeout=10):
         self._url = "https://{}/v1/input/{}".format(host, api_key)
+        self._scrubber = scrubber
         self._timeout = timeout
         self._session = None
 
@@ -184,10 +193,12 @@ class DatadogHTTPClient(object):
         try:
             resp = self._session.post(
                 self._url,
-                data=scrub(json.dumps(logs)),
+                data=self._scrubber.scrub(json.dumps(logs)),
                 params=metadata,
                 timeout=self._timeout,
             )
+        except ScrubbingException as e:
+            raise Exception("could not scrub the payload")
         except Exception as e:
             # most likely a network error
             raise RetriableException()
@@ -226,6 +237,19 @@ class DatadogBatcher(object):
         return batches
 
 
+class DatadogScrubber(object):
+    def __init__(self, shouldScrubIPs):
+        self._shouldScrubIPs = shouldScrubIPs
+
+    def scrub(self, payload):
+        if self._shouldScrubIPs:
+            try:
+                return ip_regex.sub("xxx.xxx.xxx.xxx", payload)
+            except Exception as e:
+                raise ScrubbingException()
+        return payload
+
+
 def lambda_handler(event, context):
     # Check prerequisites
     if DD_API_KEY == "<your_api_key>" or DD_API_KEY == "":
@@ -241,12 +265,12 @@ def lambda_handler(event, context):
     metadata = generate_metadata(context)
     logs = generate_logs(event, context, metadata)
 
+    batcher = DatadogBatcher(DD_BATCH_SIZE)
+    scrubber = DatadogScrubber(is_ipscrubbing)
     if DD_USE_HTTP:
-        cli = DatadogHTTPClient(DD_URL, DD_API_KEY)
-        batcher = DatadogBatcher(DD_BATCH_SIZE)
+        cli = DatadogHTTPClient(DD_URL, DD_API_KEY, scrubber)
     else:
-        cli = DatadogTCPClient(DD_URL, DD_PORT, DD_API_KEY)
-        batcher = DatadogBatcher(1)
+        cli = DatadogTCPClient(DD_URL, DD_PORT, DD_API_KEY, scrubber)
 
     with DatadogClient(cli) as client:
         for batch in batcher.batch(logs):
@@ -307,15 +331,6 @@ def generate_metadata(context):
 
 
 # Utility functions
-
-
-def scrub(self, payload):
-    if is_ipscrubbing:
-        try:
-            return ip_regex.sub("xxx.xxx.xxx.xxx", payload)
-        except Exception as e:
-            raise e
-    return payload
 
 
 def normalize_logs(logs):
