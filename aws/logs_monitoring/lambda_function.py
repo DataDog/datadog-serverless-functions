@@ -62,10 +62,6 @@ except Exception:
 # Strip any trailing and leading whitespace from the API key
 DD_API_KEY = DD_API_KEY.strip()
 
-cloudtrail_regex = re.compile(
-    "\d+_CloudTrail_\w{2}-\w{4,9}-\d_\d{8}T\d{4}Z.+.json.gz$", re.I
-)
-ip_regex = re.compile("\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", re.I)
 DD_SOURCE = "ddsource"
 DD_CUSTOM_TAGS = "ddtags"
 DD_SERVICE = "service"
@@ -257,12 +253,12 @@ class DatadogBatcher(object):
 
 class DatadogScrubber(object):
     def __init__(self, shouldScrubIPs):
-        self._shouldScrubIPs = shouldScrubIPs
+        self._ip_regex = re.compile("\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", re.I)
 
     def scrub(self, payload):
-        if self._shouldScrubIPs:
+        if self._ip_regex is not None:
             try:
-                return ip_regex.sub("xxx.xxx.xxx.xxx", payload)
+                return self._ip_regex.sub("xxx.xxx.xxx.xxx", payload)
             except Exception as e:
                 raise ScrubbingException()
         return payload
@@ -531,6 +527,11 @@ def merge_dicts(a, b, path=None):
         else:
             a[key] = b[key]
     return a
+
+
+cloudtrail_regex = re.compile(
+    "\d+_CloudTrail_\w{2}-\w{4,9}-\d_\d{8}T\d{4}Z.+.json.gz$", re.I
+)
 
 
 def is_cloudtrail(key):
