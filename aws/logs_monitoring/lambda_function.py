@@ -22,7 +22,7 @@ import boto3
 
 # Change this value to change the underlying network client (HTTP or TCP),
 # by default, use the HTTP client.
-DD_USE_HTTP = True
+DD_USE_HTTP = os.getenv("DD_USE_HTTP", default=True)
 
 # Define the destination endpoint to send logs to
 DD_SITE = os.getenv("DD_SITE", default="datadoghq.com")
