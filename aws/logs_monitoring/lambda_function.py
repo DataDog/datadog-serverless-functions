@@ -104,12 +104,10 @@ class DatadogClient(object):
         raise Exception("max number of retries reached: {}".format(self._max_retries))
 
     def __enter__(self):
-        self._client.connect()
-        return self
+        return self._client.__enter__()
 
     def __exit__(self, ex_type, ex_value, traceback):
-        self._client.close()
-        return self
+        return self._client.__exit__(ex_type, ex_value, traceback)
 
 
 class DatadogTCPClient(object):
@@ -124,19 +122,19 @@ class DatadogTCPClient(object):
         self._scrubber = scrubber
         self._sock = None
 
-    def connect(self):
+    def _connect(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock = ssl.wrap_socket(sock)
         sock.connect((self.host, self.port))
         self._sock = sock
 
-    def close(self):
+    def _close(self):
         if self._sock:
             self._sock.close()
 
     def _reset(self):
-        self.close()
-        self.connect()
+        self._close()
+        self._connect()
 
     def send(self, logs, metadata):
         try:
@@ -158,6 +156,14 @@ class DatadogTCPClient(object):
             self._reset()
             raise RetriableException()
 
+    def __enter__(self):
+        self._connect()
+        return self
+
+    def __exit__(self, ex_type, ex_value, traceback):
+        self._close()
+        return self
+
 
 class DatadogHTTPClient(object):
     """
@@ -173,11 +179,11 @@ class DatadogHTTPClient(object):
         self._timeout = timeout
         self._session = None
 
-    def connect(self):
+    def _connect(self):
         self._session = requests.Session()
         self._session.headers.update(self._HEADERS)
 
-    def close(self):
+    def _close(self):
         self._session.close()
 
     def send(self, logs, metadata):
@@ -209,6 +215,14 @@ class DatadogHTTPClient(object):
         else:
             # success
             return
+
+    def __enter__(self):
+        self._connect()
+        return self
+
+    def __exit__(self, ex_type, ex_value, traceback):
+        self._close()
+        return self
 
 
 class DatadogBatcher(object):
