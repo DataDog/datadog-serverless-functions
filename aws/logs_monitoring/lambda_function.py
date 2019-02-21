@@ -20,25 +20,23 @@ import gzip
 import boto3
 
 
-# Client Type
+# Change this value to change the underlying network client (HTTP or TCP),
+# by default, use the HTTP client.
 DD_USE_HTTP = True
 
-# Proxy
-# Define the proxy endpoint to forward the logs to
+# Define the destination endpoint to send logs to
 DD_SITE = os.getenv("DD_SITE", default="datadoghq.com")
 if DD_USE_HTTP:
     DD_URL = os.getenv("DD_URL", default="lambda-http-intake.logs." + DD_SITE)
 else:
     DD_URL = os.getenv("DD_URL", default="lambda-intake.logs." + DD_SITE)
-
-# Define the proxy port to forward the logs to
-try:
-    if "DD_SITE" in os.environ and DD_SITE == "datadoghq.eu":
-        DD_PORT = int(os.environ.get("DD_PORT", 443))
-    else:
-        DD_PORT = int(os.environ.get("DD_PORT", 10516))
-except Exception:
-    DD_PORT = 10516
+    try:
+        if "DD_SITE" in os.environ and DD_SITE == "datadoghq.eu":
+            DD_PORT = int(os.environ.get("DD_PORT", 443))
+        else:
+            DD_PORT = int(os.environ.get("DD_PORT", 10516))
+    except Exception:
+        DD_PORT = 10516
 
 
 # Scrubbing sensitive data
@@ -236,19 +234,23 @@ class DatadogBatcher(object):
         batches = []
         batch = []
         size_bytes = 0
+        size_count = 0
         for log in logs:
             log_size_bytes = self._sizeof_bytes(log)
             if (
-                len(batch) >= self._max_size_count
+                size_count >= self._max_size_count
                 or size_bytes + log_size_bytes > self._max_size_bytes
-            ) and len(batch) > 0:
+            ) and size_count > 0:
                 batches.append(batch)
                 batch = []
                 size_bytes = 0
+                size_count = 0
             if log_size_bytes <= self._max_log_size_bytes:
+                # all logs exceeding max_log_size_bytes are dropped here
                 batch.append(log)
                 size_bytes += log_size_bytes
-        if len(batch) > 0:
+                size_count += 1
+        if size_count > 0:
             batches.append(batch)
         return batches
 
@@ -469,12 +471,12 @@ def awslogs_handler(event, context, metadata):
                 if len(arnsplit) > 0:
                     arn_prefix = arnsplit[0]
                     # 3. We replace the function name in the arn
-                    arn = arn_prefix + "function:" + functioname
+                    arn = "{}function:{}".format(arn_prefix, functioname)
                     # 4. We add the arn as a log attribute
                     structured_line = merge_dicts(log, {"lambda": {"arn": arn}})
                     # 5. We add the function name as tag
-                    metadata[DD_CUSTOM_TAGS] = (
-                        metadata[DD_CUSTOM_TAGS] + ",functionname:" + functioname
+                    metadata[DD_CUSTOM_TAGS] = "{},functionname:{}".format(
+                        metadata[DD_CUSTOM_TAGS], functioname
                     )
                     # 6 we set the arn as the hostname
                     metadata[DD_HOST] = arn
@@ -582,18 +584,13 @@ def parse_service_arn(source, key, bucket, context):
             elbname = name.replace(".", "/")
             if len(idsplit) > 1:
                 idvalue = idsplit[1]
-                return (
-                    "arn:aws:elasticloadbalancing:"
-                    + region
-                    + ":"
-                    + idvalue
-                    + ":loadbalancer/"
-                    + elbname
+                return "arn:aws:elasticloadbalancing:{}:{}:loadbalancer/{}".format(
+                    region, idvalue, elbname
                 )
     if source == "s3":
         # For S3 access logs we use the bucket name to rebuild the arn
         if bucket:
-            return "arn:aws:s3:::" + bucket
+            return "arn:aws:s3:::{}".format(bucket)
     if source == "cloudfront":
         # For Cloudfront logs we need to get the account and distribution id from the lambda arn and the filename
         # 1. We extract the cloudfront id  from the filename
@@ -610,11 +607,8 @@ def parse_service_arn(source, key, bucket, context):
                 arnsplit = arn.split(":")
                 if len(arnsplit) == 7:
                     awsaccountID = arnsplit[4].lower()
-                    return (
-                        "arn:aws:cloudfront::"
-                        + awsaccountID
-                        + ":distribution/"
-                        + distributionID
+                    return "arn:aws:cloudfront::{}:distribution/{}".format(
+                        awsaccountID, distributionID
                     )
     if source == "redshift":
         # For redshift logs we leverage the filename to extract the relevant information
@@ -630,12 +624,7 @@ def parse_service_arn(source, key, bucket, context):
             filesplit = filename.split("_")
             if len(filesplit) == 6:
                 clustername = filesplit[3]
-                return (
-                    "arn:aws:redshift:"
-                    + region
-                    + ":"
-                    + accountID
-                    + ":cluster:"
-                    + clustername
+                return "arn:aws:redshift:{}:{}:cluster:{}:".format(
+                    region, accountID, clustername
                 )
     return
