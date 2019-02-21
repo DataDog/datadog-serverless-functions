@@ -247,10 +247,10 @@ class DatadogBatcher(object):
         size_count = 0
         for log in logs:
             log_size_bytes = self._sizeof_bytes(log)
-            if (
+            if size_count > 0 and (
                 size_count >= self._max_size_count
                 or size_bytes + log_size_bytes > self._max_size_bytes
-            ) and size_count > 0:
+            ):
                 batches.append(batch)
                 batch = []
                 size_bytes = 0
