@@ -10,7 +10,7 @@ import json
 import urllib
 import os
 import socket
-import requests
+from botocore.vendored import requests
 import time
 import ssl
 import re
