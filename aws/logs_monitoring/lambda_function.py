@@ -267,7 +267,8 @@ class DatadogBatcher(object):
 
 class DatadogScrubber(object):
     def __init__(self, shouldScrubIPs):
-        self._ip_regex = re.compile("\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", re.I)
+        if shouldScrubIPs:
+            self._ip_regex = re.compile("\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", re.I)
 
     def scrub(self, payload):
         if self._ip_regex is not None:
