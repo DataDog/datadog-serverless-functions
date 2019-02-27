@@ -366,7 +366,10 @@ def sns_handler(event, metadata):
 # Handle kinesis stream events
 def kinesis_handler(event):
     kinesis = boto3.client("kinesis")
+    metadata[DD_SOURCE] = "kinesis"
     event_records = event["Records"][0]
+    # Set service to kinesis stream name
+    metadata[DD_SERVICE] = event_records["eventSourceARN"].split(":stream/")[-1]
     kinesis_record = event_records["kinesis"]
     kinesis_data = kinesis_record["data"]
     data = ""
