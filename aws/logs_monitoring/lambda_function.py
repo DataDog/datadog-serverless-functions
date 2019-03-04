@@ -399,6 +399,7 @@ def parse_event_source(event, key):
         "rds",
         "sns",
         "waf",
+        "docdb",
     ]:
         if source in key:
             return source
