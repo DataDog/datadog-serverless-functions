@@ -104,10 +104,11 @@ class DatadogClient(object):
         raise Exception("max number of retries reached: {}".format(self._max_retries))
 
     def __enter__(self):
-        return self._client.__enter__()
+        self._client.__enter__()
+        return self
 
     def __exit__(self, ex_type, ex_value, traceback):
-        return self._client.__exit__(ex_type, ex_value, traceback)
+        self._client.__exit__(ex_type, ex_value, traceback)
 
 
 class DatadogTCPClient(object):
@@ -162,7 +163,6 @@ class DatadogTCPClient(object):
 
     def __exit__(self, ex_type, ex_value, traceback):
         self._close()
-        return self
 
 
 class DatadogHTTPClient(object):
@@ -222,7 +222,6 @@ class DatadogHTTPClient(object):
 
     def __exit__(self, ex_type, ex_value, traceback):
         self._close()
-        return self
 
 
 class DatadogBatcher(object):
