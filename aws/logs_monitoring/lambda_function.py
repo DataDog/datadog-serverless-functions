@@ -425,7 +425,7 @@ def parse_service_arn(source, key, bucket, context):
         idsplit = key.split("/")
         if len(keysplit) > 3:
             region = keysplit[2].lower()
-            name = keysplit[3].lower()
+            name = keysplit[3]
             elbname = name.replace(".", "/")
             if len(idsplit) > 1:
                 idvalue = idsplit[1]
