@@ -22,13 +22,12 @@ import boto3
 
 # Change this value to change the underlying network client (HTTP or TCP),
 # by default, use the HTTP client.
-DD_USE_HTTP = os.getenv("DD_USE_HTTP", default=True)
+DD_USE_TCP = os.getenv("DD_USE_TCP", default="false").lower() == "true"
+
 
 # Define the destination endpoint to send logs to
 DD_SITE = os.getenv("DD_SITE", default="datadoghq.com")
-if DD_USE_HTTP:
-    DD_URL = os.getenv("DD_URL", default="lambda-http-intake.logs." + DD_SITE)
-else:
+if DD_USE_TCP:
     DD_URL = os.getenv("DD_URL", default="lambda-intake.logs." + DD_SITE)
     try:
         if "DD_SITE" in os.environ and DD_SITE == "datadoghq.eu":
@@ -37,6 +36,8 @@ else:
             DD_PORT = int(os.environ.get("DD_PORT", 10516))
     except Exception:
         DD_PORT = 10516
+else:
+    DD_URL = os.getenv("DD_URL", default="lambda-http-intake.logs." + DD_SITE)
 
 
 # Scrubbing sensitive data
@@ -297,12 +298,12 @@ def lambda_handler(event, context):
     logs = generate_logs(event, context, metadata)
 
     scrubber = DatadogScrubber(is_ipscrubbing)
-    if DD_USE_HTTP:
-        batcher = DatadogBatcher(128 * 1000, 1 * 1000 * 1000, 25)
-        cli = DatadogHTTPClient(DD_URL, DD_API_KEY, scrubber)
-    else:
+    if DD_USE_TCP:
         batcher = DatadogBatcher(256 * 1000, 256 * 1000, 1)
         cli = DatadogTCPClient(DD_URL, DD_PORT, DD_API_KEY, scrubber)
+    else:
+        batcher = DatadogBatcher(128 * 1000, 1 * 1000 * 1000, 25)
+        cli = DatadogHTTPClient(DD_URL, DD_API_KEY, scrubber)
 
     with DatadogClient(cli) as client:
         for batch in batcher.batch(logs):
