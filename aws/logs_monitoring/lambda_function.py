@@ -91,13 +91,13 @@ class DatadogClient(object):
         self._max_retries = max_retries
         self._backoff = backoff
 
-    def send(self, logs, metadata):
+    def send(self, logs):
         retry = 0
         while retry <= self._max_retries:
             if retry > 0:
                 time.sleep(self._backoff)
             try:
-                self._client.send(logs, metadata)
+                self._client.send(logs)
             except RetriableException as e:
                 retry += 1
                 continue
@@ -138,16 +138,11 @@ class DatadogTCPClient(object):
         self._close()
         self._connect()
 
-    def send(self, logs, metadata):
+    def send(self, logs):
         try:
             frame = self._scrubber.scrub(
                 "".join(
-                    [
-                        "{} {}\n".format(
-                            self._api_key, json.dumps(merge_dicts(log, metadata))
-                        )
-                        for log in logs
-                    ]
+                    ["{} {}\n".format(self._api_key, json.dumps(log)) for log in logs]
                 )
             )
             self._sock.send(frame.encode("UTF-8"))
@@ -187,7 +182,7 @@ class DatadogHTTPClient(object):
     def _close(self):
         self._session.close()
 
-    def send(self, logs, metadata):
+    def send(self, logs):
         """
         Sends a batch of log, only retry on server and network errors.
         """
@@ -195,7 +190,6 @@ class DatadogHTTPClient(object):
             resp = self._session.post(
                 self._url,
                 data=self._scrubber.scrub(json.dumps(logs)),
-                params=metadata,
                 timeout=self._timeout,
             )
         except ScrubbingException as e:
@@ -294,8 +288,7 @@ def lambda_handler(event, context):
             "The API key is not the expected length. Please confirm that your API key is correct"
         )
 
-    metadata = generate_metadata(context)
-    logs = generate_logs(event, context, metadata)
+    logs = generate_logs(event, context)
 
     scrubber = DatadogScrubber(is_ipscrubbing)
     if DD_USE_TCP:
@@ -308,12 +301,13 @@ def lambda_handler(event, context):
     with DatadogClient(cli) as client:
         for batch in batcher.batch(logs):
             try:
-                client.send(batch, metadata)
+                client.send(batch)
             except Exception as e:
                 print("Unexpected exception: {}, event: {}".format(str(e), event))
 
 
-def generate_logs(event, context, metadata):
+def generate_logs(event, context):
+    metadata = generate_metadata(context)
     try:
         # Route to the corresponding parser
         event_type = parse_event_type(event)
@@ -331,7 +325,7 @@ def generate_logs(event, context, metadata):
             str(e), event
         )
         logs = [err_message]
-    return normalize_logs(logs)
+    return normalize_logs(logs, metadata)
 
 
 def generate_metadata(context):
@@ -366,13 +360,13 @@ def generate_metadata(context):
 # Utility functions
 
 
-def normalize_logs(logs):
+def normalize_logs(logs, metadata):
     normalized = []
     for log in logs:
         if isinstance(log, dict):
-            normalized.append(log)
+            normalized.append(merge_dicts(log, metadata))
         elif isinstance(log, str):
-            normalized.append({"message": log})
+            normalized.append(merge_dicts({"message": log}, metadata))
         else:
             # drop this log
             continue
