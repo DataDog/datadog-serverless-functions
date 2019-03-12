@@ -89,7 +89,7 @@ class DatadogConnection(object):
                 # make sure we don't keep old connections open
                 self._sock.close()
             self._sock = self._connect()
-            self.send_entry(log)
+            self.send_entry(log, metadata)
         return self
 
     def send_entry(self, log_entry, metadata):
