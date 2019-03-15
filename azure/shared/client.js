@@ -5,6 +5,8 @@
 
 var tls = require('tls');
 
+const VERSION = "0.1.0";
+
 const STRING = 'string';  // example: 'some message'
 const STRING_ARRAY = 'string-array';  // example: ['one message', 'two message', ...]
 const JSON_OBJECT = 'json-object';  // example: {"key": "value"}
@@ -124,7 +126,8 @@ module.exports = {
     send,
     handleLogs,
     DD_API_KEY,
-    DD_TAGS
+    DD_TAGS,
+    VERSION
 };
 
 module.exports.forTests = {

@@ -3,9 +3,14 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2019 Datadog, Inc.
 
+const VERSION = "0.1.0";
 var client = require('../Shared/client.js');
 
 module.exports = function (context, blobContent) {
+    if (VERSION !== client.VERSION) {
+        context.log.warn(`Function version (${VERSION}) is different from client library version (${client.VERSION}). Please upgrade your ${VERSION > client.VERSION ? "client library" : "function"}.`);
+    }
+
     if (client.DD_API_KEY === '<DATADOG_API_KEY>' || client.DD_API_KEY === '' || client.DD_API_KEY === undefined) {
         context.log('You must configure your API key before starting this function (see ## Parameters section)');
         return;
