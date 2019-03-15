@@ -3,21 +3,35 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2019 Datadog, Inc.
 
-const VERSION = "0.1.0";
+const VERSION = '0.1.0';
 var client = require('../Shared/client.js');
 
-module.exports = function (context, eventHubMessages) {
+module.exports = function(context, eventHubMessages) {
     if (VERSION !== client.VERSION) {
-        context.log.warn(`Function version (${VERSION}) is different from client library version (${client.VERSION}). Please upgrade your ${VERSION > client.VERSION ? "client library" : "function"}.`);
+        context.log.warn(
+            `Function version (${VERSION}) is different from client library version (${
+                client.VERSION
+            }). Please upgrade your ${
+                VERSION > client.VERSION ? 'client library' : 'function'
+            }.`
+        );
     }
 
-    if (client.DD_API_KEY === '<DATADOG_API_KEY>' || client.DD_API_KEY === '' || client.DD_API_KEY === undefined) {
-        context.log('You must configure your API key before starting this function (see ## Parameters section)');
+    if (
+        client.DD_API_KEY === '<DATADOG_API_KEY>' ||
+        client.DD_API_KEY === '' ||
+        client.DD_API_KEY === undefined
+    ) {
+        context.log(
+            'You must configure your API key before starting this function (see ## Parameters section)'
+        );
         return;
     }
 
     if (client.DD_TAGS === '<TAG_KEY>:<TAG_VALUE>') {
-        context.log.warn('You must configure your tags with a comma separated list of tags or an empty string');
+        context.log.warn(
+            'You must configure your tags with a comma separated list of tags or an empty string'
+        );
     }
 
     var socket = client.getSocket(context);
@@ -28,7 +42,7 @@ module.exports = function (context, eventHubMessages) {
             socket = client.getSocket(context);
             client.send(socket, record);
         }
-    }
+    };
 
     client.handleLogs(handler, eventHubMessages, context);
 

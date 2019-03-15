@@ -5,13 +5,13 @@
 
 var tls = require('tls');
 
-const VERSION = "0.1.0";
+const VERSION = '0.1.0';
 
-const STRING = 'string';  // example: 'some message'
-const STRING_ARRAY = 'string-array';  // example: ['one message', 'two message', ...]
-const JSON_OBJECT = 'json-object';  // example: {"key": "value"}
-const JSON_RECORDS = 'json-records';  // example: [{"records": [{}, {}, ...]}, {"records": [{}, {}, ...]}, ...]
-const JSON_ARRAY = 'json-array';  // example: [{"key": "value"}, {"key": "value"}, ...]
+const STRING = 'string'; // example: 'some message'
+const STRING_ARRAY = 'string-array'; // example: ['one message', 'two message', ...]
+const JSON_OBJECT = 'json-object'; // example: {"key": "value"}
+const JSON_RECORDS = 'json-records'; // example: [{"records": [{}, {}, ...]}, {"records": [{}, {}, ...]}, ...]
+const JSON_ARRAY = 'json-array'; // example: [{"key": "value"}, {"key": "value"}, ...]
 const INVALID = 'invalid';
 
 var DD_API_KEY = process.env.DD_API_KEY || '<DATADOG_API_KEY>';
@@ -35,7 +35,6 @@ function getSocket(context) {
 function send(socket, record) {
     return socket.write(DD_API_KEY + ' ' + JSON.stringify(record) + '\n');
 }
-
 
 function handleLogs(handler, logs, context) {
     var logsType = getLogFormat(logs);
@@ -88,24 +87,32 @@ function getLogFormat(logs) {
 }
 
 function addTagsToJsonLog(record, context) {
-    metadata = extractResourceId(record)
+    metadata = extractResourceId(record);
     record['ddsource'] = metadata.source || DD_SOURCE;
     record['ddsourcecategory'] = DD_SOURCE_CATEGORY;
     record['service'] = DD_SERVICE;
-    record['ddtags'] = metadata.tags.concat([DD_TAGS, 'forwardername:' + context.executionContext.functionName]).filter(Boolean).join(',');
+    record['ddtags'] = metadata.tags
+        .concat([
+            DD_TAGS,
+            'forwardername:' + context.executionContext.functionName
+        ])
+        .filter(Boolean)
+        .join(',');
     return record;
 }
 
 function addTagsToStringLog(stringLog, context) {
-    jsonLog = { 'message': stringLog };
+    jsonLog = { message: stringLog };
     return addTagsToJsonLog(jsonLog, context);
 }
 
 function extractResourceId(record) {
-    metadata = { 'tags': [], 'source': '' };
-    if (record.resourceId === undefined ||
+    metadata = { tags: [], source: '' };
+    if (
+        record.resourceId === undefined ||
         typeof record.resourceId !== 'string' ||
-        !record.resourceId.toLowerCase().startsWith('/subscriptions/')) {
+        !record.resourceId.toLowerCase().startsWith('/subscriptions/')
+    ) {
         return metadata;
     }
     var resourceId = record.resourceId.toLowerCase().split('/');
