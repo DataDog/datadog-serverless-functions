@@ -25,7 +25,7 @@ The provided Node.js script must be deployed into your Azure Functions service. 
 - Go to the `Platform features` and click on `Advanced tools (Kudu)` under the Development tools section
 - In the menu bar, click on Tools > Zip Push Deploy
 - Create a folder name `Shared` by clicking on the "+" next to `/wwwroot`
-- Click on Shared, add a file name `client.js`, and copy paste the content of [shared/client.js](../shared/client.js) then save.
+- Click on Shared, add a file name `client.js`, copy paste the contents of [shared/client.js](../shared/client.js), and then save.
 
 #### 2.2 Azure function
 
