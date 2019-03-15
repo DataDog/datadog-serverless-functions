@@ -19,9 +19,19 @@ The provided Node.js script must be deployed into your Azure Functions service. 
 
 ### 2. Provide the code
 
-- Copy paste the code of the [Datadog-Azure function](./index.js)
+#### 2.1 Shared library
+
+- Select your Function App and go to `Function app settings` and copy paste the content of [`host.json`](../host.json).
+- Go to the `Platform features` and click on `Advanced tools (Kudu)` under the Development tools section
+- In the menu bar, click on Tools > Zip Push Deploy
+- Create a folder name `Shared` by clicking on the "+" next to `/wwwroot`
+- Click on Shared, add a file name `client.js`, and copy paste the content of [shared/client.js](../shared/client.js) then save.
+
+#### 2.2 Azure function
+
+- Copy paste the code of the [Datadog-Azure function](./index.js).
 - In the `Integrate` part, `Event Hub Cardinality` must be set to `Many`.
-- In the `Integrate` part,  set the `Event Parameter Name` to `eventHubMessages`
+- In the `Integrate` part,  set the `Event Parameter Name` to `eventHubMessages`.
 
 ## Parameters
 
