@@ -22,7 +22,7 @@ module.exports = function(context, eventHubMessages) {
         client.DD_API_KEY === '' ||
         client.DD_API_KEY === undefined
     ) {
-        context.log(
+        context.log.error(
             'You must configure your API key before starting this function (see ## Parameters section)'
         );
         return;
