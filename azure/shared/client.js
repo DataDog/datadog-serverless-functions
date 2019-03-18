@@ -36,25 +36,25 @@ function send(socket, record) {
     return socket.write(DD_API_KEY + ' ' + JSON.stringify(record) + '\n');
 }
 
-function handleLogs(handler, logs, context) {
+function handleLogs(sender, logs, context) {
     var logsType = getLogFormat(logs);
     switch (logsType) {
         case STRING:
-            handler(addTagsToStringLog)(logs);
+            sender(addTagsToStringLog)(logs);
             break;
         case JSON_OBJECT:
-            handler(addTagsToJsonLog)(logs);
+            sender(addTagsToJsonLog)(logs);
             break;
         case STRING_ARRAY:
-            logs.forEach(handler(addTagsToStringLog));
+            logs.forEach(sender(addTagsToStringLog));
             break;
         case JSON_RECORDS:
             logs.forEach(message => {
-                message.records.forEach(handler(addTagsToJsonLog));
+                message.records.forEach(sender(addTagsToJsonLog));
             });
             break;
         case JSON_ARRAY:
-            logs.forEach(handler(addTagsToJsonLog));
+            logs.forEach(sender(addTagsToJsonLog));
             break;
         case INVALID:
         default:

@@ -25,7 +25,7 @@ module.exports = function(context, eventHubMessages) {
     }
 
     var socket = client.getSocket(context);
-    var handler = tagger => record => {
+    var sender = tagger => record => {
         record = tagger(record, context);
         if (!client.send(socket, record)) {
             // Retry once
@@ -34,7 +34,7 @@ module.exports = function(context, eventHubMessages) {
         }
     };
 
-    client.handleLogs(handler, eventHubMessages, context);
+    client.handleLogs(sender, eventHubMessages, context);
 
     socket.end();
     context.done();

@@ -25,7 +25,7 @@ module.exports = function(context, blobContent) {
     }
 
     var socket = client.getSocket(context);
-    var handler = tagger => record => {
+    var sender = tagger => record => {
         record = tagger(record, context);
         if (!client.send(socket, record)) {
             // Retry once
@@ -37,7 +37,7 @@ module.exports = function(context, blobContent) {
     var logs = blobContent.trim().split('\n');
 
     logs.forEach(log => {
-        client.handleLogs(handler, log, context);
+        client.handleLogs(sender, log, context);
     });
 
     socket.end();
