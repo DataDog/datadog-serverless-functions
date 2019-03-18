@@ -72,5 +72,10 @@ describe('Azure Log Monitoring', function() {
       expectedMetadata = {'tags': [], 'source': ''}
       assert.deepEqual(expectedMetadata, client.extractResourceId(record))
     });
+    it('should not fail with an invalid source', function() {
+      record = {'resourceId': '/SUBSCRIPTIONS/12345678-1234-ABCD-1234-1234567890AB/RESOURCEGROUPS/SOME-RESOURCE-GROUP/PROVIDERS/////'}
+      expectedMetadata = {'tags': ["subscription_id:12345678-1234-abcd-1234-1234567890ab","resource_group:some-resource-group"], 'source': ''}
+      assert.deepEqual(expectedMetadata, client.extractResourceId(record))
+    });
   })
 });

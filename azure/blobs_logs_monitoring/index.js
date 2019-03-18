@@ -17,21 +17,11 @@ module.exports = function(context, blobContent) {
         );
     }
 
-    if (
-        client.DD_API_KEY === '<DATADOG_API_KEY>' ||
-        client.DD_API_KEY === '' ||
-        client.DD_API_KEY === undefined
-    ) {
-        context.log(
+    if (!client.DD_API_KEY || client.DD_API_KEY === '<DATADOG_API_KEY>') {
+        context.log.error(
             'You must configure your API key before starting this function (see ## Parameters section)'
         );
         return;
-    }
-
-    if (client.DD_TAGS === '<TAG_KEY>:<TAG_VALUE>') {
-        context.log.warn(
-            'You must configure your tags with a comma separated list of tags or an empty string'
-        );
     }
 
     var socket = client.getSocket(context);

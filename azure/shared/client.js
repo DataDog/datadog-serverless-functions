@@ -16,7 +16,7 @@ const INVALID = 'invalid';
 
 var DD_API_KEY = process.env.DD_API_KEY || '<DATADOG_API_KEY>';
 var DD_URL = process.env.DD_URL || 'functions-intake.logs.datadoghq.com';
-var DD_TAGS = process.env.DD_TAGS || '<TAG_KEY>:<TAG_VALUE>';
+var DD_TAGS = process.env.DD_TAGS || ''; // Replace '' by your comma-separated list of tags
 var DD_PORT = process.env.DD_PORT || 10516;
 var DD_SERVICE = process.env.DD_SERVICE || 'azure';
 var DD_SOURCE = process.env.DD_SOURCE || 'azure';
@@ -122,7 +122,7 @@ function extractResourceId(record) {
     if (resourceId.length > 4) {
         metadata.tags.push('resource_group:' + resourceId[4]);
     }
-    if (resourceId.length > 6) {
+    if (resourceId.length > 6 && resourceId[6]) {
         metadata.source = resourceId[6].replace('microsoft.', 'azure.');
     }
     return metadata;
