@@ -20,6 +20,8 @@ import boto3
 
 print('Loading function')
 
+DD_SITE = os.getenv("DD_SITE", default="datadoghq.com")
+
 # retrieve datadog options from KMS
 KMS_ENCRYPTED_KEYS = os.environ['kmsEncryptedKeys']
 kms = boto3.client('kms')
@@ -308,7 +310,7 @@ class Stats(object):
 
         creds = urllib.urlencode(datadog_keys)
         data = json.dumps(metrics_dict)
-        url = '%s?%s' % (datadog_keys.get('api_host', 'https://app.datadoghq.com/api/v1/series'), creds)
+        url = '%s?%s' % (datadog_keys.get('api_host', 'https://app.%s/api/v1/series' % DD_SITE), creds)
         req = urllib2.Request(url, data, {'Content-Type': 'application/json'})
         response = urllib2.urlopen(req)
         print('INFO Submitted data with status {}'.format(response.getcode()))
