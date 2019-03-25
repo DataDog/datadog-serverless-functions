@@ -6,7 +6,7 @@
 const VERSION = '0.1.0';
 var client = require('../Shared/client.js');
 
-module.exports = function(context, eventHubMessages) {
+module.exports = function(context, blobContent) {
     if (VERSION !== client.VERSION) {
         context.log.warn(
             `Function version (${VERSION}) is different from client library version (${
@@ -34,7 +34,11 @@ module.exports = function(context, eventHubMessages) {
         }
     };
 
-    client.handleLogs(sender, eventHubMessages, context);
+    var logs = blobContent.trim().split('\n');
+
+    logs.forEach(log => {
+        client.handleLogs(sender, log, context);
+    });
 
     socket.end();
     context.done();
