@@ -4,13 +4,11 @@ The Datadog-Azure function is used to forward Azure logs to Datadog from new blo
 a storage account. The function reads the file, plits lines on \n and sends each line as
 a log entry to Datadog.
 
-**This is currently in beta, instructions and code are subject to modifications.**
-
 ## Quick Start
 
 The provided Node.js script must be deployed into your Azure Functions service. Follow the tutorial below to learn how to do so:
 
-### 1. Create a new EventHub triggered function
+### 1. Create a new Blob triggered function
 
 - Expand your function application and click the `+` button next to `Functions`. If this is the first function in your function application, select `Custom function`. This displays the complete set of function templates.
 - In the search field type `Blob` and choose `Blob Trigger`.
@@ -20,16 +18,6 @@ The provided Node.js script must be deployed into your Azure Functions service. 
 - Add the wanted `Storage account connection` or create a new one if you haven't have one already.
 
 ### 2. Provide the code
-
-#### 2.1 Shared library
-
-- Select your Function App and go to `Function app settings` and copy paste the content of [`host.json`](../host.json).
-- Go to the `Platform features` and click on `Advanced tools (Kudu)` under the Development tools section
-- In the menu bar, click on Tools > Zip Push Deploy
-- Create a folder name `Shared` by clicking on the "+" next to `/wwwroot`
-- Click on Shared, add a file name `client.js`, and copy paste the content of [shared/client.js](../shared/client.js) then save.
-
-#### 2.2 Azure function
 
 - Copy paste the code of the [Datadog-Azure function](./index.js).
 
