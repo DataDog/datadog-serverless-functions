@@ -39,16 +39,13 @@ except Exception:
 
 # DD_API_KEY: Datadog API Key
 DD_API_KEY = "<your_api_key>"
-try:
-    if "DD_KMS_API_KEY" in os.environ:
-        ENCRYPTED = os.environ["DD_KMS_API_KEY"]
-        DD_API_KEY = boto3.client("kms").decrypt(
-            CiphertextBlob=base64.b64decode(ENCRYPTED)
-        )["Plaintext"]
-    elif "DD_API_KEY" in os.environ:
-        DD_API_KEY = os.environ["DD_API_KEY"]
-except Exception:
-    pass
+if "DD_KMS_API_KEY" in os.environ:
+    ENCRYPTED = os.environ["DD_KMS_API_KEY"]
+    DD_API_KEY = boto3.client("kms").decrypt(
+        CiphertextBlob=base64.b64decode(ENCRYPTED)
+    )["Plaintext"]
+elif "DD_API_KEY" in os.environ:
+    DD_API_KEY = os.environ["DD_API_KEY"]
 
 # Strip any trailing and leading whitespace from the API key
 DD_API_KEY = DD_API_KEY.strip()
