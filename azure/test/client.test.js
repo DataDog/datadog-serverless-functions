@@ -1,5 +1,5 @@
 var assert = require('assert');
-var client = require('../shared/client.js').forTests;
+var client = require('../activity_logs_monitoring').forTests;
 var constants = client.constants
 
 
