@@ -30,12 +30,17 @@ try:
         DD_PORT = int(os.environ.get("DD_PORT", 10516))
 except Exception:
     DD_PORT = 10516
+
 # Scrubbing sensitive data
-# Option to redact all pattern that looks like an ip address
+# Option to redact all pattern that looks like an ip address / email address
 try:
     is_ipscrubbing = os.environ["REDACT_IP"]
 except Exception:
     is_ipscrubbing = False
+try:
+    is_emailscrubbing = os.environ["REDACT_EMAIL"]
+except Exception:
+    is_emailscrubbing = False
 
 # DD_API_KEY: Datadog API Key
 DD_API_KEY = "<your_api_key>"
@@ -54,6 +59,8 @@ cloudtrail_regex = re.compile(
     "\d+_CloudTrail_\w{2}-\w{4,9}-\d_\d{8}T\d{4}Z.+.json.gz$", re.I
 )
 ip_regex = re.compile("\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", re.I)
+email_regex = re.compile("[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+", re.I)
+
 DD_SOURCE = "ddsource"
 DD_CUSTOM_TAGS = "ddtags"
 DD_SERVICE = "service"
@@ -109,6 +116,16 @@ class DatadogConnection(object):
         if is_ipscrubbing:
             try:
                 str_entry = ip_regex.sub("xxx.xxx.xxx.xx", str_entry)
+            except Exception as e:
+                print(
+                    "Unexpected exception while scrubbing logs: {} for event {}".format(
+                        str(e), str_entry
+                    )
+                )
+        # Scrub email addresses if activated
+        if is_emailscrubbing:
+            try:
+                str_entry = email_regex.sub("xxxxx@xxxxx.com", str_entry)
             except Exception as e:
                 print(
                     "Unexpected exception while scrubbing logs: {} for event {}".format(
