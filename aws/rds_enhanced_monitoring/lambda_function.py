@@ -15,6 +15,9 @@ from StringIO import StringIO
 
 import boto3
 
+
+DD_SITE = os.getenv("DD_SITE", default="datadoghq.com")
+
 # retrieve datadog options from KMS
 KMS_ENCRYPTED_KEYS = os.environ['kmsEncryptedKeys']
 kms = boto3.client('kms')
@@ -51,18 +54,19 @@ def _process_rds_enhanced_monitoring_message(ts, message, account, region):
         'aws.rds.virtual_cpus', message["numVCPUs"], timestamp=ts, tags=tags, host=host_id
     )
 
-    stats.gauge(
-        'aws.rds.load.1', message["loadAverageMinute"]["one"],
-        timestamp=ts, tags=tags, host=host_id
-    )
-    stats.gauge(
-        'aws.rds.load.5', message["loadAverageMinute"]["five"],
-        timestamp=ts, tags=tags, host=host_id
-    )
-    stats.gauge(
-        'aws.rds.load.15', message["loadAverageMinute"]["fifteen"],
-        timestamp=ts, tags=tags, host=host_id
-    )
+    if "loadAverageMinute" in message:
+        stats.gauge(
+            'aws.rds.load.1', message["loadAverageMinute"]["one"],
+            timestamp=ts, tags=tags, host=host_id
+        )
+        stats.gauge(
+            'aws.rds.load.5', message["loadAverageMinute"]["five"],
+            timestamp=ts, tags=tags, host=host_id
+        )
+        stats.gauge(
+            'aws.rds.load.15', message["loadAverageMinute"]["fifteen"],
+            timestamp=ts, tags=tags, host=host_id
+        )
 
     for namespace in ["cpuUtilization", "memory", "tasks", "swap"]:
         for key, value in message.get(namespace, {}).iteritems():
@@ -72,7 +76,10 @@ def _process_rds_enhanced_monitoring_message(ts, message, account, region):
             )
 
     for network_stats in message.get("network", []):
-        network_tag = ["interface:%s" % network_stats.pop("interface")]
+        if "interface" in network_stats:
+            network_tag = ["interface:%s" % network_stats.pop("interface")]
+        else:
+            network_tag = []
         for key, value in network_stats.iteritems():
             stats.gauge(
                 'aws.rds.network.%s' % key, value,
@@ -87,10 +94,10 @@ def _process_rds_enhanced_monitoring_message(ts, message, account, region):
         )
 
     for fs_stats in message.get("fileSys", []):
-        fs_tag = [
-            "name:%s" % fs_stats.pop("name"),
-            "mountPoint:%s" % fs_stats.pop("mountPoint")
-        ]
+        fs_tag = []
+        for tag_key in ["name", "mountPoint"]:
+            if tag_key in fs_stats:
+                fs_tag.append("%s:%s" % (tag_key, fs_stats.pop(tag_key)))
         for key, value in fs_stats.iteritems():
             stats.gauge(
                 'aws.rds.filesystem.%s' % key, value,
@@ -98,10 +105,10 @@ def _process_rds_enhanced_monitoring_message(ts, message, account, region):
             )
 
     for process_stats in message.get("processList", []):
-        process_tag = [
-            "name:%s" % process_stats.pop("name"),
-            "id:%s" % process_stats.pop("id")
-        ]
+        process_tag = []
+        for tag_key in ["name", "id"]:
+            if tag_key in process_stats:
+                process_tag.append("%s:%s" % (tag_key, process_stats.pop(tag_key)))
         for key, value in process_stats.iteritems():
             stats.gauge(
                 'aws.rds.process.%s' % key, value,
@@ -159,7 +166,7 @@ class Stats(object):
 
         creds = urllib.urlencode(datadog_keys)
         data = json.dumps(metrics_dict)
-        url = '%s?%s' % (datadog_keys.get('api_host', 'https://app.datadoghq.com/api/v1/series'), creds)
+        url = '%s?%s' % (datadog_keys.get('api_host', 'https://app.%s/api/v1/series' % DD_SITE), creds)
         req = urllib2.Request(url, data, {'Content-Type': 'application/json'})
         response = urllib2.urlopen(req)
         print 'INFO Submitted data with status', response.getcode()

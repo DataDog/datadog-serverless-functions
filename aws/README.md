@@ -15,6 +15,7 @@ Each lambda function will retrieve datadog api keys from KMS.
    - Create a KMS key - http://docs.aws.amazon.com/kms/latest/developerguide/create-keys.html
    - Encrypt the token using the AWS CLI.`aws kms encrypt --key-id alias/<KMS key name> --plaintext '{"api_key":"<dd_api_key>", "app_key":"<dd_app_key>"}'`
    - Make sure to save the base-64 encoded, encrypted key (CiphertextBlob). This will be used for the `KMS_ENCRYPTED_KEYS` variable in all lambda functions.
+   - Optional: set the environment variable `DD_SITE` to `datadoghq.eu` and data is automatically forwarded to your EU platform.
 
 1. Create and configure a lambda function
    - In the AWS Console, create a `lambda_execution` policy, with the following policy:
