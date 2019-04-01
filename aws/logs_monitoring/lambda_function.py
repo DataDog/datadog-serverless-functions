@@ -6,14 +6,14 @@
 from __future__ import print_function
 
 import base64
+import gzip
 import json
-import urllib
 import os
+import re
 import socket
 import ssl
-import re
+import urllib
 from io import BytesIO, BufferedReader
-import gzip
 
 import boto3
 
@@ -293,53 +293,53 @@ def awslogs_handler(event, context, metadata):
     with gzip.GzipFile(
         fileobj=BytesIO(base64.b64decode(event["awslogs"]["data"]))
     ) as decompress_stream:
-        # Reading line by line avoid a bug where gzip would take a very long time (>5min) for
-        # file around 60MB gzipped
+        # Reading line by line avoid a bug where gzip would take a very long
+        # time (>5min) for file around 60MB gzipped
         data = "".join(BufferedReader(decompress_stream))
     logs = json.loads(str(data))
+
     # Set the source on the logs
     source = logs.get("logGroup", "cloudwatch")
     metadata[DD_SOURCE] = parse_event_source(event, source)
-    ##default service to source value
+
+    # Default service to source value
     metadata[DD_SERVICE] = metadata[DD_SOURCE]
 
-    # Send lines to Datadog
+    # Build aws attributes
+    aws_attributes = {
+        "aws": {
+            "awslogs": {
+                "logGroup": logs["logGroup"],
+                "logStream": logs["logStream"],
+                "owner": logs["owner"],
+            }
+        }
+    }
+
+    # For Lambda logs we want to extract the function name,
+    # then rebuild the arn of the monitored lambda using that name.
+    # Start by splitting the log group to get the function name
+    if metadata[DD_SOURCE] == "lambda":
+        log_group_parts = logs["logGroup"].split("/lambda/")
+        if len(log_group_parts) > 0:
+            function_name = log_group_parts[1].lower()
+            # Split the arn of the forwarder to extract the prefix
+            arn_parts = context.invoked_function_arn.split("function:")
+            if len(arn_parts) > 0:
+                arn_prefix = arn_parts[0]
+                # Rebuild the arn by replacing the function name
+                arn = arn_prefix + "function:" + function_name
+                # Add the arn as a log attribute
+                arn_attributes = {"lambda": {"arn": arn}}
+                aws_attributes = merge_dicts(aws_attributes, arn_attributes)
+                # Add the function name as tag
+                metadata[DD_CUSTOM_TAGS] += ",functionname:" + function_name
+                # Set the arn as the hostname
+                metadata[DD_HOST] = arn
+
+    # Create and send structured logs to Datadog
     for log in logs["logEvents"]:
-        # Create structured object and send it
-        structured_line = merge_dicts(
-            log,
-            {
-                "aws": {
-                    "awslogs": {
-                        "logGroup": logs["logGroup"],
-                        "logStream": logs["logStream"],
-                        "owner": logs["owner"],
-                    }
-                }
-            },
-        )
-        ## For Lambda logs, we want to extract the function name
-        ## and we reconstruct the the arn of the monitored lambda
-        # 1. we split the log group to get the function name
-        if metadata[DD_SOURCE] == "lambda":
-            loggroupsplit = logs["logGroup"].split("/lambda/")
-            if len(loggroupsplit) > 0:
-                functioname = loggroupsplit[1].lower()
-                # 2. We split the arn of the forwarder to extract the prefix
-                arnsplit = context.invoked_function_arn.split("function:")
-                if len(arnsplit) > 0:
-                    arn_prefix = arnsplit[0]
-                    # 3. We replace the function name in the arn
-                    arn = arn_prefix + "function:" + functioname
-                    # 4. We add the arn as a log attribute
-                    structured_line = merge_dicts(log, {"lambda": {"arn": arn}})
-                    # 5. We add the function name as tag
-                    metadata[DD_CUSTOM_TAGS] = (
-                        metadata[DD_CUSTOM_TAGS] + ",functionname:" + functioname
-                    )
-                    #6 we set the arn as the hostname
-                    metadata[DD_HOST] = arn
-        yield structured_line
+        yield merge_dicts(log, aws_attributes)
 
 
 # Handle Cloudwatch Events
