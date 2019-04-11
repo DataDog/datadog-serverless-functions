@@ -22,7 +22,7 @@ var DD_SERVICE = process.env.DD_SERVICE || 'azure';
 var DD_SOURCE = process.env.DD_SOURCE || 'azure';
 var DD_SOURCE_CATEGORY = process.env.DD_SOURCE_CATEGORY || 'azure';
 
-module.exports = function(context, eventHubMessages) {
+module.exports = function(context, blobContent) {
     if (!DD_API_KEY || DD_API_KEY === '<DATADOG_API_KEY>') {
         context.log.error(
             'You must configure your API key before starting this function (see ## Parameters section)'
@@ -40,7 +40,11 @@ module.exports = function(context, eventHubMessages) {
         }
     };
 
-    handleLogs(sender, eventHubMessages, context);
+    var logs = blobContent.trim().split('\n');
+
+    logs.forEach(log => {
+        handleLogs(sender, log, context);
+    });
 
     socket.end();
     context.done();
@@ -151,16 +155,3 @@ function extractResourceId(record) {
     }
     return metadata;
 }
-
-module.exports.forTests = {
-    getLogFormat,
-    extractResourceId,
-    constants: {
-        STRING,
-        STRING_ARRAY,
-        JSON_OBJECT,
-        JSON_RECORDS,
-        JSON_ARRAY,
-        INVALID
-    }
-};

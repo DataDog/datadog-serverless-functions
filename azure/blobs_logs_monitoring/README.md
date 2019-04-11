@@ -1,26 +1,25 @@
 # Datadog-Azure function
 
-The Datadog-Azure function is used to forward Azure logs to Datadog, including Activity and Diagnostic logs from EventHub.
+The Datadog-Azure function is used to forward Azure logs to Datadog from new blob files added in
+a storage account. The function reads the file, plits lines on \n and sends each line as
+a log entry to Datadog.
 
 ## Quick Start
 
 The provided Node.js script must be deployed into your Azure Functions service. Follow the tutorial below to learn how to do so:
 
-### 1. Create a new EventHub triggered function
+### 1. Create a new Blob triggered function
 
 - Expand your function application and click the `+` button next to `Functions`. If this is the first function in your function application, select `Custom function`. This displays the complete set of function templates.
-- In the search field type `Event Hub` and choose `Event Hub Trigger`.
+- In the search field type `Blob` and choose `Blob Trigger`.
 - Select the `Javascript` language in the right menu.
 - Enter a name for the function.
-- Add the wanted `Event Hub connection` or create a new one if you haven't have one already.
-- Select the `Event Hub consumer group` and the `Event Hub Name` you want to pull logs from.
+- Select the path in the storage account where you want to read file from you want to pull logs from.
+- Add the wanted `Storage account connection` or create a new one if you haven't have one already.
 
 ### 2. Provide the code
 
 - Copy paste the code of the [Datadog-Azure function](./index.js).
-- In the `Integrate` part:
-  - `Event Hub Cardinality` must be set to `Many`.
-  - Set the `Event Parameter Name` to `eventHubMessages`.
 
 ## Parameters
 
@@ -35,7 +34,7 @@ There are 2 possibilities to set your [Datadog's API key](https://app.datadoghq.
 
 You have two options to add custom tags to your logs:
 
-- Manually by editing the function code: Replace the `<TAG_KEY>:<TAG_VALUE>` placeholder for the `DD_TAGS` variable by a comma separated list of tags
+- Manually by editing the function code: Replace the `''` placeholder for the `DD_TAGS` variable by a comma separated list of tags
 - Automatically with the `DD_TAGS` environment variable
 
 Learn more about Datadog tagging in our main [Tagging documentation](https://docs.datadoghq.com/tagging/).

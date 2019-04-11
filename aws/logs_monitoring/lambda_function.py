@@ -6,16 +6,16 @@
 from __future__ import print_function
 
 import base64
+import gzip
 import json
-import urllib
 import os
+import re
 import socket
 from botocore.vendored import requests
 import time
 import ssl
-import re
+import urllib
 from io import BytesIO, BufferedReader
-import gzip
 
 import boto3
 
@@ -41,24 +41,25 @@ else:
 
 
 # Scrubbing sensitive data
-# Option to redact all pattern that looks like an ip address
+# Option to redact all pattern that looks like an ip address / email address
 try:
     is_ipscrubbing = os.environ["REDACT_IP"]
 except Exception:
     is_ipscrubbing = False
+try:
+    is_emailscrubbing = os.environ["REDACT_EMAIL"]
+except Exception:
+    is_emailscrubbing = False
 
 # DD_API_KEY: Datadog API Key
 DD_API_KEY = "<your_api_key>"
-try:
-    if "DD_KMS_API_KEY" in os.environ:
-        ENCRYPTED = os.environ["DD_KMS_API_KEY"]
-        DD_API_KEY = boto3.client("kms").decrypt(
-            CiphertextBlob=base64.b64decode(ENCRYPTED)
-        )["Plaintext"]
-    elif "DD_API_KEY" in os.environ:
-        DD_API_KEY = os.environ["DD_API_KEY"]
-except Exception:
-    pass
+if "DD_KMS_API_KEY" in os.environ:
+    ENCRYPTED = os.environ["DD_KMS_API_KEY"]
+    DD_API_KEY = boto3.client("kms").decrypt(
+        CiphertextBlob=base64.b64decode(ENCRYPTED)
+    )["Plaintext"]
+elif "DD_API_KEY" in os.environ:
+    DD_API_KEY = os.environ["DD_API_KEY"]
 
 # Strip any trailing and leading whitespace from the API key
 DD_API_KEY = DD_API_KEY.strip()
@@ -260,9 +261,14 @@ class DatadogBatcher(object):
 
 
 class DatadogScrubber(object):
-    def __init__(self, shouldScrubIPs):
+    def __init__(self, shouldScrubIPs, shouldScrubEmails):
         self._ip_regex = (
             re.compile("\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", re.I)
+            if shouldScrubIPs
+            else None
+        )
+        self._email_regex = (
+            re.compile("[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+", re.I)
             if shouldScrubIPs
             else None
         )
@@ -270,7 +276,12 @@ class DatadogScrubber(object):
     def scrub(self, payload):
         if self._ip_regex is not None:
             try:
-                return self._ip_regex.sub("xxx.xxx.xxx.xxx", payload)
+                payload = self._ip_regex.sub("xxx.xxx.xxx.xxx", payload)
+            except Exception as e:
+                raise ScrubbingException()
+        if self._email_regex is not None:
+            try:
+                payload = self._email_regex.sub("xxxxx@xxxxx.com", str_entry)
             except Exception as e:
                 raise ScrubbingException()
         return payload
@@ -290,7 +301,7 @@ def lambda_handler(event, context):
 
     logs = generate_logs(event, context)
 
-    scrubber = DatadogScrubber(is_ipscrubbing)
+    scrubber = DatadogScrubber(is_ipscrubbing, is_emailscrubbing)
     if DD_USE_TCP:
         batcher = DatadogBatcher(256 * 1000, 256 * 1000, 1)
         cli = DatadogTCPClient(DD_URL, DD_PORT, DD_API_KEY, scrubber)
@@ -442,53 +453,53 @@ def awslogs_handler(event, context, metadata):
     with gzip.GzipFile(
         fileobj=BytesIO(base64.b64decode(event["awslogs"]["data"]))
     ) as decompress_stream:
-        # Reading line by line avoid a bug where gzip would take a very long time (>5min) for
-        # file around 60MB gzipped
+        # Reading line by line avoid a bug where gzip would take a very long
+        # time (>5min) for file around 60MB gzipped
         data = "".join(BufferedReader(decompress_stream))
     logs = json.loads(str(data))
+
     # Set the source on the logs
     source = logs.get("logGroup", "cloudwatch")
     metadata[DD_SOURCE] = parse_event_source(event, source)
-    ##default service to source value
+
+    # Default service to source value
     metadata[DD_SERVICE] = metadata[DD_SOURCE]
 
-    # Send lines to Datadog
+    # Build aws attributes
+    aws_attributes = {
+        "aws": {
+            "awslogs": {
+                "logGroup": logs["logGroup"],
+                "logStream": logs["logStream"],
+                "owner": logs["owner"],
+            }
+        }
+    }
+
+    # For Lambda logs we want to extract the function name,
+    # then rebuild the arn of the monitored lambda using that name.
+    # Start by splitting the log group to get the function name
+    if metadata[DD_SOURCE] == "lambda":
+        log_group_parts = logs["logGroup"].split("/lambda/")
+        if len(log_group_parts) > 0:
+            function_name = log_group_parts[1].lower()
+            # Split the arn of the forwarder to extract the prefix
+            arn_parts = context.invoked_function_arn.split("function:")
+            if len(arn_parts) > 0:
+                arn_prefix = arn_parts[0]
+                # Rebuild the arn by replacing the function name
+                arn = arn_prefix + "function:" + function_name
+                # Add the arn as a log attribute
+                arn_attributes = {"lambda": {"arn": arn}}
+                aws_attributes = merge_dicts(aws_attributes, arn_attributes)
+                # Add the function name as tag
+                metadata[DD_CUSTOM_TAGS] += ",functionname:" + function_name
+                # Set the arn as the hostname
+                metadata[DD_HOST] = arn
+
+    # Create and send structured logs to Datadog
     for log in logs["logEvents"]:
-        # Create structured object and send it
-        structured_line = merge_dicts(
-            log,
-            {
-                "aws": {
-                    "awslogs": {
-                        "logGroup": logs["logGroup"],
-                        "logStream": logs["logStream"],
-                        "owner": logs["owner"],
-                    }
-                }
-            },
-        )
-        ## For Lambda logs, we want to extract the function name
-        ## and we reconstruct the the arn of the monitored lambda
-        # 1. we split the log group to get the function name
-        if metadata[DD_SOURCE] == "lambda":
-            loggroupsplit = logs["logGroup"].split("/lambda/")
-            if len(loggroupsplit) > 0:
-                functioname = loggroupsplit[1].lower()
-                # 2. We split the arn of the forwarder to extract the prefix
-                arnsplit = context.invoked_function_arn.split("function:")
-                if len(arnsplit) > 0:
-                    arn_prefix = arnsplit[0]
-                    # 3. We replace the function name in the arn
-                    arn = "{}function:{}".format(arn_prefix, functioname)
-                    # 4. We add the arn as a log attribute
-                    structured_line = merge_dicts(log, {"lambda": {"arn": arn}})
-                    # 5. We add the function name as tag
-                    metadata[DD_CUSTOM_TAGS] = "{},functionname:{}".format(
-                        metadata[DD_CUSTOM_TAGS], functioname
-                    )
-                    # 6 we set the arn as the hostname
-                    metadata[DD_HOST] = arn
-        yield structured_line
+        yield merge_dicts(log, aws_attributes)
 
 
 # Handle Cloudwatch Events
@@ -567,6 +578,7 @@ def parse_event_source(event, key):
         "rds",
         "sns",
         "waf",
+        "docdb",
     ]:
         if source in key:
             return source
@@ -593,7 +605,7 @@ def parse_service_arn(source, key, bucket, context):
         idsplit = key.split("/")
         if len(keysplit) > 3:
             region = keysplit[2].lower()
-            name = keysplit[3].lower()
+            name = keysplit[3]
             elbname = name.replace(".", "/")
             if len(idsplit) > 1:
                 idvalue = idsplit[1]

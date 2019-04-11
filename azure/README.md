@@ -1,3 +1,4 @@
 # Azure functions
 
-[Activity and Diagnostic Logs](./activity_logs_monitoring/README.md)
+* [EventHub triggered function](./activity_logs_monitoring/)
+* [Blob triggered function](./blobs_logs_monitoring/)
