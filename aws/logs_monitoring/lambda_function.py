@@ -150,7 +150,7 @@ class DatadogTCPClient(object):
     def _connect(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock = ssl.wrap_socket(sock)
-        sock.create_connection((self.host, self.port), timeout=self._timeout)
+        sock.connect((self.host, self.port))
         self._sock = sock
 
     def _close(self):
