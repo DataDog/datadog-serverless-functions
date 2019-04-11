@@ -47,6 +47,8 @@ class ScrubbingRuleConfig(object):
         self.placeholder = placeholder
 
 
+# Scrubbing sensitive data
+# Option to redact all pattern that looks like an ip address / email address
 SCRUBBING_RULE_CONFIGS = [
     ScrubbingRuleConfig(
         "REDACT_IP", "\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", "xxx.xxx.xxx.xxx"
@@ -57,19 +59,6 @@ SCRUBBING_RULE_CONFIGS = [
         "xxxxx@xxxxx.com",
     ),
 ]
-
-
-# Scrubbing sensitive data
-# Option to redact all pattern that looks like an ip address / email address
-scrubbingRules = []
-for config in SCRUBBING_RULE_CONFIGS:
-    try:
-        if s.environ.get(config.name, False) == True:
-            scrubbingRules.append(
-                ScrubbingRule(re.compile(config.pattern, re.I), config.placeholder)
-            )
-    except Exception:
-        pass
 
 
 # DD_API_KEY: Datadog API Key
@@ -139,12 +128,11 @@ class DatadogTCPClient(object):
     Client that sends a batch of logs over TCP.
     """
 
-    def __init__(self, host, port, api_key, scrubber, timeout=5):
+    def __init__(self, host, port, api_key, scrubber):
         self.host = host
         self.port = port
         self._api_key = api_key
         self._scrubber = scrubber
-        self._timeout = timeout
         self._sock = None
 
     def _connect(self):
@@ -289,7 +277,18 @@ class ScrubbingRule(object):
 
 
 class DatadogScrubber(object):
-    def __init__(self, rules):
+    def __init__(self, configs):
+        rules = []
+        for config in configs:
+            try:
+                if os.environ.get(config.name, False):
+                    rules.append(
+                        ScrubbingRule(
+                            re.compile(config.pattern, re.I), config.placeholder
+                        )
+                    )
+            except Exception:
+                pass
         self._rules = rules
 
     def scrub(self, payload):
@@ -315,7 +314,7 @@ def lambda_handler(event, context):
 
     logs = generate_logs(event, context)
 
-    scrubber = DatadogScrubber(scrubbingRules)
+    scrubber = DatadogScrubber(SCRUBBING_RULE_CONFIGS)
     if DD_USE_TCP:
         batcher = DatadogBatcher(256 * 1000, 256 * 1000, 1)
         cli = DatadogTCPClient(DD_URL, DD_PORT, DD_API_KEY, scrubber)
