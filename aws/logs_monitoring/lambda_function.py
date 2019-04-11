@@ -40,16 +40,37 @@ else:
     DD_URL = os.getenv("DD_URL", default="lambda-http-intake.logs." + DD_SITE)
 
 
+class ScrubbingRuleConfig(object):
+
+    DEFAULTS = [
+        ScrubbingRuleConfig(
+            "REDACT_IP", "\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", "xxx.xxx.xxx.xxx"
+        ),
+        ScrubbingRuleConfig(
+            "REDACT_EMAIL",
+            "[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+",
+            "xxxxx@xxxxx.com",
+        ),
+    ]
+
+    def __init__(self, name, pattern, placeholder):
+        self.name = name
+        self.pattern = pattern
+        self.placeholder = placeholder
+
+
 # Scrubbing sensitive data
 # Option to redact all pattern that looks like an ip address / email address
-try:
-    is_ipscrubbing = os.environ["REDACT_IP"]
-except Exception:
-    is_ipscrubbing = False
-try:
-    is_emailscrubbing = os.environ["REDACT_EMAIL"]
-except Exception:
-    is_emailscrubbing = False
+scrubbingRules = []
+for config in ScrubbingRuleConfig.DEFAULTS:
+    try:
+        if s.environ.get(config.name, False) == True:
+            scrubbingRules.append(
+                ScrubbingRule(re.compile(config.pattern, re.I), config.placeholder)
+            )
+    except Exception:
+        pass
+
 
 # DD_API_KEY: Datadog API Key
 DD_API_KEY = "<your_api_key>"
@@ -260,28 +281,20 @@ class DatadogBatcher(object):
         return batches
 
 
+class ScrubbingRule(object):
+    def __init__(self, regex, placeholder):
+        self.regex = regex
+        self.placeholder = placeholder
+
+
 class DatadogScrubber(object):
-    def __init__(self, shouldScrubIPs, shouldScrubEmails):
-        self._ip_regex = (
-            re.compile("\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", re.I)
-            if shouldScrubIPs
-            else None
-        )
-        self._email_regex = (
-            re.compile("[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+", re.I)
-            if shouldScrubIPs
-            else None
-        )
+    def __init__(self, rules):
+        self._rules = rules
 
     def scrub(self, payload):
-        if self._ip_regex is not None:
+        for rule in self._rules:
             try:
-                payload = self._ip_regex.sub("xxx.xxx.xxx.xxx", payload)
-            except Exception as e:
-                raise ScrubbingException()
-        if self._email_regex is not None:
-            try:
-                payload = self._email_regex.sub("xxxxx@xxxxx.com", str_entry)
+                payload = rule.regex.sub(rule.placeholder, payload)
             except Exception as e:
                 raise ScrubbingException()
         return payload
@@ -301,7 +314,7 @@ def lambda_handler(event, context):
 
     logs = generate_logs(event, context)
 
-    scrubber = DatadogScrubber(is_ipscrubbing, is_emailscrubbing)
+    scrubber = DatadogScrubber(scrubbingRules)
     if DD_USE_TCP:
         batcher = DatadogBatcher(256 * 1000, 256 * 1000, 1)
         cli = DatadogTCPClient(DD_URL, DD_PORT, DD_API_KEY, scrubber)
