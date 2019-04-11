@@ -139,17 +139,18 @@ class DatadogTCPClient(object):
     Client that sends a batch of logs over TCP.
     """
 
-    def __init__(self, host, port, api_key, scrubber):
+    def __init__(self, host, port, api_key, scrubber, timeout=5):
         self.host = host
         self.port = port
         self._api_key = api_key
         self._scrubber = scrubber
+        self._timeout = timeout
         self._sock = None
 
     def _connect(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock = ssl.wrap_socket(sock)
-        sock.connect((self.host, self.port))
+        sock.create_connection((self.host, self.port), timeout=self._timeout)
         self._sock = sock
 
     def _close(self):
@@ -167,7 +168,7 @@ class DatadogTCPClient(object):
                     ["{} {}\n".format(self._api_key, json.dumps(log)) for log in logs]
                 )
             )
-            self._sock.send(frame.encode("UTF-8"))
+            self._sock.sendall(frame.encode("UTF-8"))
         except ScrubbingException as e:
             raise Exception("could not scrub the payload")
         except Exception as e:
