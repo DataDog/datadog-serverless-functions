@@ -41,28 +41,28 @@ else:
 
 
 class ScrubbingRuleConfig(object):
-
-    DEFAULTS = [
-        ScrubbingRuleConfig(
-            "REDACT_IP", "\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", "xxx.xxx.xxx.xxx"
-        ),
-        ScrubbingRuleConfig(
-            "REDACT_EMAIL",
-            "[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+",
-            "xxxxx@xxxxx.com",
-        ),
-    ]
-
     def __init__(self, name, pattern, placeholder):
         self.name = name
         self.pattern = pattern
         self.placeholder = placeholder
 
 
+SCRUBBING_RULE_CONFIGS = [
+    ScrubbingRuleConfig(
+        "REDACT_IP", "\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", "xxx.xxx.xxx.xxx"
+    ),
+    ScrubbingRuleConfig(
+        "REDACT_EMAIL",
+        "[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+",
+        "xxxxx@xxxxx.com",
+    ),
+]
+
+
 # Scrubbing sensitive data
 # Option to redact all pattern that looks like an ip address / email address
 scrubbingRules = []
-for config in ScrubbingRuleConfig.DEFAULTS:
+for config in SCRUBBING_RULE_CONFIGS:
     try:
         if s.environ.get(config.name, False) == True:
             scrubbingRules.append(
