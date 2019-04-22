@@ -316,6 +316,10 @@ def awslogs_handler(event, context, metadata):
         }
     }
 
+    # Set host as log group where cloudwatch is source
+    if metadata[DD_SOURCE] == "cloudwatch":
+        metadata[DD_HOST] = aws_attributes["aws"]["awslogs"]["logGroup"]
+
     # For Lambda logs we want to extract the function name,
     # then rebuild the arn of the monitored lambda using that name.
     # Start by splitting the log group to get the function name
