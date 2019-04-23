@@ -21,6 +21,12 @@ The provided Node.js script must be deployed into your Azure Functions service. 
 
 - Copy paste the code of the [Datadog-Azure function](./index.js).
 
+## 3. (optional) Send logs to EU or to a proxy
+
+### Send logs to EU
+
+Set the environment variable `DD_SITE` to `datadoghq.eu` and logs are automatically forwarded to your EU platform.
+
 ## Parameters
 
 - **API KEY**:

@@ -22,6 +22,12 @@ The provided Node.js script must be deployed into your Azure Functions service. 
   - `Event Hub Cardinality` must be set to `Many`.
   - Set the `Event Parameter Name` to `eventHubMessages`.
 
+## 3. (optional) Send logs to EU or to a proxy
+
+### Send logs to EU
+
+Set the environment variable `DD_SITE` to `datadoghq.eu` and logs are automatically forwarded to your EU platform.
+
 ## Parameters
 
 - **API KEY**:
