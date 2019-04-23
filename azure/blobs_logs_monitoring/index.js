@@ -15,9 +15,14 @@ const JSON_ARRAY = 'json-array'; // example: [{"key": "value"}, {"key": "value"}
 const INVALID = 'invalid';
 
 var DD_API_KEY = process.env.DD_API_KEY || '<DATADOG_API_KEY>';
-var DD_URL = process.env.DD_URL || 'functions-intake.logs.datadoghq.com';
+var DD_SITE = process.env.DD_SITE || 'datadoghq.com';
+var DD_URL = process.env.DD_URL || 'functions-intake.logs.' + DD_SITE;
+if (DD_SITE === 'datadoghq.eu') {
+    var DD_PORT = process.env.DD_PORT || 443;
+} else {
+    var DD_PORT = process.env.DD_PORT || 10516;
+}
 var DD_TAGS = process.env.DD_TAGS || ''; // Replace '' by your comma-separated list of tags
-var DD_PORT = process.env.DD_PORT || 10516;
 var DD_SERVICE = process.env.DD_SERVICE || 'azure';
 var DD_SOURCE = process.env.DD_SOURCE || 'azure';
 var DD_SOURCE_CATEGORY = process.env.DD_SOURCE_CATEGORY || 'azure';
