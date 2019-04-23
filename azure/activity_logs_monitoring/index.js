@@ -14,18 +14,14 @@ const JSON_RECORDS = 'json-records'; // example: [{"records": [{}, {}, ...]}, {"
 const JSON_ARRAY = 'json-array'; // example: [{"key": "value"}, {"key": "value"}, ...]
 const INVALID = 'invalid';
 
-var DD_API_KEY = process.env.DD_API_KEY || '<DATADOG_API_KEY>';
-var DD_SITE = process.env.DD_SITE || 'datadoghq.com';
-var DD_URL = process.env.DD_URL || 'functions-intake.logs.' + DD_SITE;
-if (DD_SITE === 'datadoghq.eu') {
-    var DD_PORT = process.env.DD_PORT || 443;
-} else {
-    var DD_PORT = process.env.DD_PORT || 10516;
-}
-var DD_TAGS = process.env.DD_TAGS || ''; // Replace '' by your comma-separated list of tags
-var DD_SERVICE = process.env.DD_SERVICE || 'azure';
-var DD_SOURCE = process.env.DD_SOURCE || 'azure';
-var DD_SOURCE_CATEGORY = process.env.DD_SOURCE_CATEGORY || 'azure';
+const DD_API_KEY = process.env.DD_API_KEY || '<DATADOG_API_KEY>';
+const DD_SITE = process.env.DD_SITE || 'datadoghq.com';
+const DD_URL = process.env.DD_URL || 'functions-intake.logs.' + DD_SITE;
+const DD_PORT = process.env.DD_PORT || (DD_SITE === 'datadoghq.eu') ? 443 : 10516
+const DD_TAGS = process.env.DD_TAGS || ''; // Replace '' by your comma-separated list of tags
+const DD_SERVICE = process.env.DD_SERVICE || 'azure';
+const DD_SOURCE = process.env.DD_SOURCE || 'azure';
+const DD_SOURCE_CATEGORY = process.env.DD_SOURCE_CATEGORY || 'azure';
 
 module.exports = function(context, eventHubMessages) {
     if (!DD_API_KEY || DD_API_KEY === '<DATADOG_API_KEY>') {
