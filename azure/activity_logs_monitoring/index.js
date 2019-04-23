@@ -5,7 +5,7 @@
 
 var tls = require('tls');
 
-const VERSION = '0.1.0';
+const VERSION = '0.1.1';
 
 const STRING = 'string'; // example: 'some message'
 const STRING_ARRAY = 'string-array'; // example: ['one message', 'two message', ...]
