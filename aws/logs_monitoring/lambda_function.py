@@ -435,6 +435,7 @@ def parse_event_source(event, key):
         "sns",
         "waf",
         "docdb",
+        "fargate"
     ]:
         if source in key:
             return source
