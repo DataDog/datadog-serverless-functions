@@ -13,6 +13,7 @@ import re
 import socket
 import ssl
 import urllib
+import itertools
 from io import BytesIO, BufferedReader
 
 import boto3
@@ -212,6 +213,8 @@ def generate_logs(event, context, metadata):
             logs = cwevent_handler(event, metadata)
         elif event_type == "sns":
             logs = sns_handler(event, metadata)
+        elif event_type == "kinesis":
+            logs = kinesis_awslogs_handler(event, context, metadata)
     except Exception as e:
         # Logs through the socket the error
         err_message = "Error parsing the object. Exception: {} for event {}".format(
@@ -230,6 +233,8 @@ def parse_event_type(event):
             return "s3"
         elif "Sns" in event["Records"][0]:
             return "sns"
+        elif "eventSource" in event["Records"][0] and event["Records"][0]["eventSource"] == "aws:kinesis":
+            return "kinesis"
 
     elif "awslogs" in event:
         return "awslogs"
@@ -287,6 +292,18 @@ def s3_handler(event, context, metadata):
             yield structured_line
 
 
+# Handle CloudWatch logs from Kinesis
+def kinesis_awslogs_handler(event, context, metadata):
+    def reformat_record(record):
+        return {
+            "awslogs": {
+                "data": record["kinesis"]["data"]
+            }
+        }
+        
+    return itertools.chain.from_iterable(awslogs_handler(reformat_record(r), context, metadata) for r in event["Records"])
+
+
 # Handle CloudWatch logs
 def awslogs_handler(event, context, metadata):
     # Get logs
@@ -325,7 +342,7 @@ def awslogs_handler(event, context, metadata):
     # Start by splitting the log group to get the function name
     if metadata[DD_SOURCE] == "lambda":
         log_group_parts = logs["logGroup"].split("/lambda/")
-        if len(log_group_parts) > 0:
+        if len(log_group_parts) > 1:
             function_name = log_group_parts[1].lower()
             # Split the arn of the forwarder to extract the prefix
             arn_parts = context.invoked_function_arn.split("function:")
@@ -421,7 +438,7 @@ def parse_event_source(event, key):
     ]:
         if source in key:
             return source
-    if "API-Gateway" in key:
+    if "API-Gateway" in key or "ApiGateway" in key:
         return "apigateway"
     if is_cloudtrail(str(key)):
         return "cloudtrail"
