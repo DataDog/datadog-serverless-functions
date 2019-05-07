@@ -41,7 +41,7 @@ module.exports = function(context, blobContent) {
         }
     };
 
-    var logs = blobContent.trim().split('\n');
+    var logs = blobContent.toString().trim().split('\n');
 
     logs.forEach(log => {
         handleLogs(sender, log, context);
