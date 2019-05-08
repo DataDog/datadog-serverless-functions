@@ -58,6 +58,7 @@ DD_API_KEY = DD_API_KEY.strip()
 # DD_MULTILINE_REGEX: Datadog Multiline Log Regular Expression Patter
 if "DD_MULTILINE_LOG_REGEX_PATTERN" in os.environ:
     DD_MULTILINE_LOG_REGEX_PATTERN = os.environ["DD_MULTILINE_LOG_REGEX_PATTERN"]
+    multiline_regex = re.compile("(?<!^)\s+(?={})(?!.\s)".format(DD_MULTILINE_LOG_REGEX_PATTERN))
 
 cloudtrail_regex = re.compile(
     "\d+_CloudTrail_\w{2}-\w{4,9}-\d_\d{8}T\d{4}Z.+.json.gz$", re.I
@@ -283,7 +284,7 @@ def s3_handler(event, context, metadata):
     else:
         # Check if using multiline log regex pattern
         if DD_MULTILINE_LOG_REGEX_PATTERN:
-            split_data = re.compile("(?<!^)\s+(?=%s)(?!.\s)" % (DD_MULTILINE_LOG_REGEX_PATTERN,)).split(data)
+            split_data = multiline_regex.split(data)
         else:
             split_data = data.splitlines()
 
