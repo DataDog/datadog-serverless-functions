@@ -41,7 +41,12 @@ module.exports = function(context, blobContent) {
         }
     };
 
-    var logs = blobContent.toString().trim().split('\n');
+    var logs;
+    if (typeof blobContent === 'string') {
+        logs = blobContent.trim().split('\n');
+    } else {
+        logs = JSON.stringify(blobContent).trim().split('\n');
+    }
 
     logs.forEach(log => {
         handleLogs(sender, log, context);
