@@ -441,13 +441,14 @@ def parse_event_source(event, key):
             return source
     if "API-Gateway" in key or "ApiGateway" in key:
         return "apigateway"
-    if is_cloudtrail(str(key)):
+    if is_cloudtrail(str(key)) or ('logGroup' in event and event['logGroup'] == 'CloudTrail'):
         return "cloudtrail"
     if "awslogs" in event:
         return "cloudwatch"
     if "Records" in event and len(event["Records"]) > 0:
         if "s3" in event["Records"][0]:
             return "s3"
+
     return "aws"
 
 def parse_service_arn(source, key, bucket, context):
