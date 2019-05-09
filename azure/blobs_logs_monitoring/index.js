@@ -5,7 +5,7 @@
 
 var tls = require('tls');
 
-const VERSION = '0.1.1';
+const VERSION = '0.1.2';
 
 const STRING = 'string'; // example: 'some message'
 const STRING_ARRAY = 'string-array'; // example: ['one message', 'two message', ...]
@@ -41,7 +41,12 @@ module.exports = function(context, blobContent) {
         }
     };
 
-    var logs = blobContent.trim().split('\n');
+    var logs;
+    if (typeof blobContent === 'string') {
+        logs = blobContent.trim().split('\n');
+    } else {
+        logs = JSON.stringify(blobContent).trim().split('\n');
+    }
 
     logs.forEach(log => {
         handleLogs(sender, log, context);
