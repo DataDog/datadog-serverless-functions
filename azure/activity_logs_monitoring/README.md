@@ -30,6 +30,10 @@ Set the environment variable `DD_SITE` to `datadoghq.eu` and logs are automatica
 
 ## Parameters
 
+- **Connection String**
+
+The `LOGSEVENTHUBCONNECTIONSTRING` app setting must be set to primary connection string of the targeted event hub namespace with entity path
+
 - **API KEY**:
 
 There are 2 possibilities to set your [Datadog's API key](https://app.datadoghq.com/account/settings#api):
