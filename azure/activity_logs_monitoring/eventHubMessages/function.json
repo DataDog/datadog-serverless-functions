@@ -5,7 +5,7 @@
         "name": "eventHubMessages",
         "direction": "in",
         "path": "insights-operational-logs",
-        "connection": "DDEventHubTest_RootManageSharedAccessKey_EVENTHUB",
+        "connection": "LOGSEVENTHUBCONNECTIONSTRING",
         "cardinality": "many",
         "consumerGroup": "$Default"
       }
