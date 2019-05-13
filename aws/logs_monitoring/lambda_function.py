@@ -55,6 +55,12 @@ elif "DD_API_KEY" in os.environ:
 # Strip any trailing and leading whitespace from the API key
 DD_API_KEY = DD_API_KEY.strip()
 
+# DD_MULTILINE_REGEX: Datadog Multiline Log Regular Expression Pattern
+if "DD_MULTILINE_LOG_REGEX_PATTERN" in os.environ:
+    DD_MULTILINE_LOG_REGEX_PATTERN = os.environ["DD_MULTILINE_LOG_REGEX_PATTERN"]
+    multiline_regex = re.compile("(?<!^)\s+(?={})(?!.\s)".format(DD_MULTILINE_LOG_REGEX_PATTERN))
+    multiline_regex_start_pattern = re.compile("^{}".format(DD_MULTILINE_LOG_REGEX_PATTERN))
+
 cloudtrail_regex = re.compile(
     "\d+_CloudTrail_\w{2}-\w{4,9}-\d_\d{8}T\d{4}Z.+.json.gz$", re.I
 )
@@ -277,8 +283,15 @@ def s3_handler(event, context, metadata):
             )
             yield structured_line
     else:
+        # Check if using multiline log regex pattern
+        # and determine whether line or pattern separated logs
+        if DD_MULTILINE_LOG_REGEX_PATTERN and multiline_regex_start_pattern.match(data):
+            split_data = multiline_regex.split(data)
+        else:
+            split_data = data.splitlines()
+
         # Send lines to Datadog
-        for line in data.splitlines():
+        for line in split_data:
             # Create structured object and send it
             structured_line = {
                 "aws": {"s3": {"bucket": bucket, "key": key}},

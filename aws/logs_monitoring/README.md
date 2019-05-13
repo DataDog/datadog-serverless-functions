@@ -10,6 +10,7 @@ AWS lambda function to ship ELB, S3, CloudTrail, VPC, CloudFront and CloudWatch 
 - SSL Security
 - JSON events providing details about S3 documents forwarded
 - Structured meta-information can be attached to the events
+- Multiline Log Support (S3 Only)
 
 # Quick Start
 
@@ -93,3 +94,9 @@ Two environment variables can be used to forward logs through a proxy:
 If the test "succeeded", you are all set! The test log will not show up in the platform.
 
 For S3 logs, there may be some latency between the time a first S3 log file is posted and the Lambda function wakes up.
+
+## 6. (optional) Multiline Log support for s3
+
+If there are multiline logs in s3, set `DD_MULTILINE_LOG_REGEX_PATTERN` environment variable to the specified regex pattern to detect for a new log line.
+
+- Example: for multiline logs beginning with pattern `11/10/2014`: `DD_MULTILINE_LOG_REGEX_PATTERN="\d{2}\/\d{2}\/\d{4}"`
