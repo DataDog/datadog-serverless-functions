@@ -55,11 +55,11 @@ elif "DD_API_KEY" in os.environ:
 # Strip any trailing and leading whitespace from the API key
 DD_API_KEY = DD_API_KEY.strip()
 
-# DD_MULTILINE_REGEX: Datadog Multiline Log Regular Expression Patter
+# DD_MULTILINE_REGEX: Datadog Multiline Log Regular Expression Pattern
 if "DD_MULTILINE_LOG_REGEX_PATTERN" in os.environ:
     DD_MULTILINE_LOG_REGEX_PATTERN = os.environ["DD_MULTILINE_LOG_REGEX_PATTERN"]
     multiline_regex = re.compile("(?<!^)\s+(?={})(?!.\s)".format(DD_MULTILINE_LOG_REGEX_PATTERN))
-    multiline_regex_start_pattern = re.compile(DD_MULTILINE_LOG_REGEX_PATTERN)
+    multiline_regex_start_pattern = re.compile("^{}".format(DD_MULTILINE_LOG_REGEX_PATTERN))
 
 cloudtrail_regex = re.compile(
     "\d+_CloudTrail_\w{2}-\w{4,9}-\d_\d{8}T\d{4}Z.+.json.gz$", re.I
@@ -284,14 +284,9 @@ def s3_handler(event, context, metadata):
             yield structured_line
     else:
         # Check if using multiline log regex pattern
-        if DD_MULTILINE_LOG_REGEX_PATTERN:
+        # and determine whether line or pattern separated logs
+        if DD_MULTILINE_LOG_REGEX_PATTERN and multiline_regex_start_pattern.match(data):
             split_data = multiline_regex.split(data)
-
-            # handle case where lambda is passed both line and pattern separated logs
-            # if there is only a single log and that log does not start with multiline regex pattern
-            # assume that these are line separated logs, not pattern separated
-            if len(split_data) <= 1 and not multiline_regex_start_pattern.match(data):
-                split_data = data.splitlines()
         else:
             split_data = data.splitlines()
 
