@@ -77,8 +77,12 @@ DD_API_KEY = DD_API_KEY.strip()
 # DD_MULTILINE_REGEX: Datadog Multiline Log Regular Expression Pattern
 if "DD_MULTILINE_LOG_REGEX_PATTERN" in os.environ:
     DD_MULTILINE_LOG_REGEX_PATTERN = os.environ["DD_MULTILINE_LOG_REGEX_PATTERN"]
-    multiline_regex = re.compile("(?<!^)\s+(?={})(?!.\s)".format(DD_MULTILINE_LOG_REGEX_PATTERN))
-    multiline_regex_start_pattern = re.compile("^{}".format(DD_MULTILINE_LOG_REGEX_PATTERN))
+    multiline_regex = re.compile(
+        "(?<!^)\s+(?={})(?!.\s)".format(DD_MULTILINE_LOG_REGEX_PATTERN)
+    )
+    multiline_regex_start_pattern = re.compile(
+        "^{}".format(DD_MULTILINE_LOG_REGEX_PATTERN)
+    )
 
 DD_SOURCE = "ddsource"
 DD_CUSTOM_TAGS = "ddtags"
