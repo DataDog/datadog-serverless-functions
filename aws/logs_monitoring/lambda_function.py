@@ -97,23 +97,21 @@ class DatadogClient(object):
     Client that implements a linear retrying logic to send a batch of logs.
     """
 
-    def __init__(self, client, max_retries=3, backoff=1):
+    def __init__(self, client, max_backoff=30):
         self._client = client
-        self._max_retries = max_retries
-        self._backoff = backoff
+        self._max_backoff = max_backoff
 
     def send(self, logs):
-        retry = 0
-        while retry <= self._max_retries:
-            if retry > 0:
-                time.sleep(self._backoff)
+        backoff = 1
+        while True:
             try:
                 self._client.send(logs)
+                return
             except RetriableException as e:
-                retry += 1
+                time.sleep(backoff)
+                if backoff < self._max_backoff:
+                    backoff *= 2
                 continue
-            return
-        raise Exception("max number of retries reached: {}".format(self._max_retries))
 
     def __enter__(self):
         self._client.__enter__()
