@@ -94,7 +94,7 @@ class ScrubbingException(Exception):
 
 class DatadogClient(object):
     """
-    Client that implements a linear retrying logic to send a batch of logs.
+    Client that implements a exponential retrying logic to send a batch of logs.
     """
 
     def __init__(self, client, max_backoff=30):
@@ -258,8 +258,8 @@ class DatadogBatcher(object):
                 batch = []
                 size_bytes = 0
                 size_count = 0
+            # all logs exceeding max_log_size_bytes are dropped here
             if log_size_bytes <= self._max_log_size_bytes:
-                # all logs exceeding max_log_size_bytes are dropped here
                 batch.append(log)
                 size_bytes += log_size_bytes
                 size_count += 1
@@ -286,7 +286,7 @@ class DatadogScrubber(object):
                         )
                     )
             except Exception:
-                pass
+                raise Exception("could not compile rule with config: {}".format(config))
         self._rules = rules
 
     def scrub(self, payload):
