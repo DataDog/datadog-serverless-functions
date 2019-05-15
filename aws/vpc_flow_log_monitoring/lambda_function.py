@@ -230,13 +230,19 @@ def process_duration(start, end, tags, timestamp):
 
 
 def process_packets(packets, tags, timestamp):
-    stats.histogram("packets.per_request", int(packets), tags=tags, timestamp=timestamp)
-    stats.increment("packets.total", int(packets), tags=tags, timestamp=timestamp)
+    try:
+        stats.histogram("packets.per_request", int(packets), tags=tags, timestamp=timestamp)
+        stats.increment("packets.total", int(packets), tags=tags, timestamp=timestamp)
+    except ValueError:
+        pass
 
 
 def process_bytes(_bytes, tags, timestamp):
-    stats.histogram("bytes.per_request", int(_bytes), tags=tags, timestamp=timestamp)
-    stats.increment("bytes.total", int(_bytes), tags=tags, timestamp=timestamp)
+    try:
+        stats.histogram("bytes.per_request", int(_bytes), tags=tags, timestamp=timestamp)
+        stats.increment("bytes.total", int(_bytes), tags=tags, timestamp=timestamp)
+    except ValueError:
+        pass
 
 
 class Stats(object):
