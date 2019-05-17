@@ -75,6 +75,7 @@ elif "DD_API_KEY" in os.environ:
 DD_API_KEY = DD_API_KEY.strip()
 
 # DD_MULTILINE_REGEX: Datadog Multiline Log Regular Expression Pattern
+DD_MULTILINE_LOG_REGEX_PATTERN = None
 if "DD_MULTILINE_LOG_REGEX_PATTERN" in os.environ:
     DD_MULTILINE_LOG_REGEX_PATTERN = os.environ["DD_MULTILINE_LOG_REGEX_PATTERN"]
     multiline_regex = re.compile(
