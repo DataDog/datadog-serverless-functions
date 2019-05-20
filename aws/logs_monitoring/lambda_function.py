@@ -11,36 +11,55 @@ import json
 import os
 import re
 import socket
+from botocore.vendored import requests
+import time
 import ssl
 import urllib
 from io import BytesIO, BufferedReader
 
 import boto3
 
-# Proxy
-# Define the proxy endpoint to forward the logs to
-DD_SITE = os.getenv("DD_SITE", default="datadoghq.com")
-DD_URL = os.getenv("DD_URL", default="lambda-intake.logs." + DD_SITE)
 
-# Define the proxy port to forward the logs to
-try:
-    if "DD_SITE" in os.environ and DD_SITE == "datadoghq.eu":
-        DD_PORT = int(os.environ.get("DD_PORT", 443))
-    else:
-        DD_PORT = int(os.environ.get("DD_PORT", 10516))
-except Exception:
-    DD_PORT = 10516
+# Change this value to change the underlying network client (HTTP or TCP),
+# by default, use the HTTP client.
+DD_USE_TCP = os.getenv("DD_USE_TCP", default="false").lower() == "true"
+
+
+# Define the destination endpoint to send logs to
+DD_SITE = os.getenv("DD_SITE", default="datadoghq.com")
+if DD_USE_TCP:
+    DD_URL = os.getenv("DD_URL", default="lambda-intake.logs." + DD_SITE)
+    try:
+        if "DD_SITE" in os.environ and DD_SITE == "datadoghq.eu":
+            DD_PORT = int(os.environ.get("DD_PORT", 443))
+        else:
+            DD_PORT = int(os.environ.get("DD_PORT", 10516))
+    except Exception:
+        DD_PORT = 10516
+else:
+    DD_URL = os.getenv("DD_URL", default="lambda-http-intake.logs." + DD_SITE)
+
+
+class ScrubbingRuleConfig(object):
+    def __init__(self, name, pattern, placeholder):
+        self.name = name
+        self.pattern = pattern
+        self.placeholder = placeholder
+
 
 # Scrubbing sensitive data
 # Option to redact all pattern that looks like an ip address / email address
-try:
-    is_ipscrubbing = os.environ["REDACT_IP"]
-except Exception:
-    is_ipscrubbing = False
-try:
-    is_emailscrubbing = os.environ["REDACT_EMAIL"]
-except Exception:
-    is_emailscrubbing = False
+SCRUBBING_RULE_CONFIGS = [
+    ScrubbingRuleConfig(
+        "REDACT_IP", "\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", "xxx.xxx.xxx.xxx"
+    ),
+    ScrubbingRuleConfig(
+        "REDACT_EMAIL",
+        "[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+",
+        "xxxxx@xxxxx.com",
+    ),
+]
+
 
 # DD_API_KEY: Datadog API Key
 DD_API_KEY = "<your_api_key>"
@@ -59,101 +78,235 @@ DD_API_KEY = DD_API_KEY.strip()
 DD_MULTILINE_LOG_REGEX_PATTERN = None
 if "DD_MULTILINE_LOG_REGEX_PATTERN" in os.environ:
     DD_MULTILINE_LOG_REGEX_PATTERN = os.environ["DD_MULTILINE_LOG_REGEX_PATTERN"]
-    multiline_regex = re.compile("(?<!^)\s+(?={})(?!.\s)".format(DD_MULTILINE_LOG_REGEX_PATTERN))
-    multiline_regex_start_pattern = re.compile("^{}".format(DD_MULTILINE_LOG_REGEX_PATTERN))
-
-cloudtrail_regex = re.compile(
-    "\d+_CloudTrail_\w{2}-\w{4,9}-\d_\d{8}T\d{4}Z.+.json.gz$", re.I
-)
-ip_regex = re.compile("\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", re.I)
-email_regex = re.compile("[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+", re.I)
+    multiline_regex = re.compile(
+        "(?<!^)\s+(?={})(?!.\s)".format(DD_MULTILINE_LOG_REGEX_PATTERN)
+    )
+    multiline_regex_start_pattern = re.compile(
+        "^{}".format(DD_MULTILINE_LOG_REGEX_PATTERN)
+    )
 
 DD_SOURCE = "ddsource"
 DD_CUSTOM_TAGS = "ddtags"
 DD_SERVICE = "service"
 DD_HOST = "host"
-DD_FORWARDER_VERSION = "1.2.3"
+DD_FORWARDER_VERSION = "1.3.0"
 
 # Pass custom tags as environment variable, ensure comma separated, no trailing comma in envvar!
 DD_TAGS = os.environ.get("DD_TAGS", "")
 
 
-class DatadogConnection(object):
-    def __init__(self, host, port, ddApiKey):
-        self.host = host
-        self.port = port
-        self.api_key = ddApiKey
-        self._sock = None
+class RetriableException(Exception):
+    pass
 
-    def _connect(self):
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s = ssl.wrap_socket(s)
-        s.connect((self.host, self.port))
-        return s
 
-    def safe_submit_log(self, log, metadata):
-        try:
-            self.send_entry(log, metadata)
-        except Exception as e:
-            # retry once
-            if self._sock:
-                # make sure we don't keep old connections open
-                self._sock.close()
-            self._sock = self._connect()
-            self.send_entry(log, metadata)
-        return self
+class ScrubbingException(Exception):
+    pass
 
-    def send_entry(self, log_entry, metadata):
-        # The log_entry can only be a string or a dict
-        if isinstance(log_entry, str):
-            log_entry = {"message": log_entry}
-        elif not isinstance(log_entry, dict):
-            raise Exception(
-                "Cannot send the entry as it must be either a string or a dict. Provided entry: "
-                + str(log_entry)
-            )
 
-        # Merge with metadata
-        log_entry = merge_dicts(log_entry, metadata)
+class DatadogClient(object):
+    """
+    Client that implements a exponential retrying logic to send a batch of logs.
+    """
 
-        # Send to Datadog
-        str_entry = json.dumps(log_entry)
+    def __init__(self, client, max_backoff=30):
+        self._client = client
+        self._max_backoff = max_backoff
 
-        # Scrub ip addresses if activated
-        if is_ipscrubbing:
+    def send(self, logs):
+        backoff = 1
+        while True:
             try:
-                str_entry = ip_regex.sub("xxx.xxx.xxx.xx", str_entry)
-            except Exception as e:
-                print(
-                    "Unexpected exception while scrubbing logs: {} for event {}".format(
-                        str(e), str_entry
-                    )
-                )
-        # Scrub email addresses if activated
-        if is_emailscrubbing:
-            try:
-                str_entry = email_regex.sub("xxxxx@xxxxx.com", str_entry)
-            except Exception as e:
-                print(
-                    "Unexpected exception while scrubbing logs: {} for event {}".format(
-                        str(e), str_entry
-                    )
-                )
-
-        # For debugging purpose uncomment the following line
-        # print(str_entry)
-        prefix = "%s " % self.api_key
-        return self._sock.send((prefix + str_entry + "\n").encode("UTF-8"))
+                self._client.send(logs)
+                return
+            except RetriableException as e:
+                time.sleep(backoff)
+                if backoff < self._max_backoff:
+                    backoff *= 2
+                continue
 
     def __enter__(self):
-        self._sock = self._connect()
+        self._client.__enter__()
         return self
 
     def __exit__(self, ex_type, ex_value, traceback):
+        self._client.__exit__(ex_type, ex_value, traceback)
+
+
+class DatadogTCPClient(object):
+    """
+    Client that sends a batch of logs over TCP.
+    """
+
+    def __init__(self, host, port, api_key, scrubber):
+        self.host = host
+        self.port = port
+        self._api_key = api_key
+        self._scrubber = scrubber
+        self._sock = None
+
+    def _connect(self):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock = ssl.wrap_socket(sock)
+        sock.connect((self.host, self.port))
+        self._sock = sock
+
+    def _close(self):
         if self._sock:
             self._sock.close()
-        if ex_type is not None:
-            print("DatadogConnection exit: ", ex_type, ex_value, traceback)
+
+    def _reset(self):
+        self._close()
+        self._connect()
+
+    def send(self, logs):
+        try:
+            frame = self._scrubber.scrub(
+                "".join(
+                    ["{} {}\n".format(self._api_key, json.dumps(log)) for log in logs]
+                )
+            )
+            self._sock.sendall(frame.encode("UTF-8"))
+        except ScrubbingException as e:
+            raise Exception("could not scrub the payload")
+        except Exception as e:
+            # most likely a network error, reset the connection
+            self._reset()
+            raise RetriableException()
+
+    def __enter__(self):
+        self._connect()
+        return self
+
+    def __exit__(self, ex_type, ex_value, traceback):
+        self._close()
+
+
+class DatadogHTTPClient(object):
+    """
+    Client that sends a batch of logs over HTTP.
+    """
+
+    _POST = "POST"
+    _HEADERS = {"Content-type": "application/json"}
+
+    def __init__(self, host, api_key, scrubber, timeout=10):
+        self._url = "https://{}/v1/input/{}".format(host, api_key)
+        self._scrubber = scrubber
+        self._timeout = timeout
+        self._session = None
+
+    def _connect(self):
+        self._session = requests.Session()
+        self._session.headers.update(self._HEADERS)
+
+    def _close(self):
+        self._session.close()
+
+    def send(self, logs):
+        """
+        Sends a batch of log, only retry on server and network errors.
+        """
+        try:
+            resp = self._session.post(
+                self._url,
+                data=self._scrubber.scrub(json.dumps(logs)),
+                timeout=self._timeout,
+            )
+        except ScrubbingException as e:
+            raise Exception("could not scrub the payload")
+        except Exception as e:
+            # most likely a network error
+            raise RetriableException()
+        if resp.status_code >= 500:
+            # server error
+            raise RetriableException()
+        elif resp.status_code >= 400:
+            # client error
+            raise Exception(
+                "client error, status: {}, reason {}".format(
+                    resp.status_code, resp.reason
+                )
+            )
+        else:
+            # success
+            return
+
+    def __enter__(self):
+        self._connect()
+        return self
+
+    def __exit__(self, ex_type, ex_value, traceback):
+        self._close()
+
+
+class DatadogBatcher(object):
+    def __init__(self, max_log_size_bytes, max_size_bytes, max_size_count):
+        self._max_log_size_bytes = max_log_size_bytes
+        self._max_size_bytes = max_size_bytes
+        self._max_size_count = max_size_count
+
+    def _sizeof_bytes(self, log):
+        return len(json.dumps(log).encode("UTF-8"))
+
+    def batch(self, logs):
+        """
+        Returns an array of batches.
+        Each batch contains at most max_size_count logs and
+        is not strictly greater than max_size_bytes.
+        All logs strictly greater than max_log_size_bytes are dropped.
+        """
+        batches = []
+        batch = []
+        size_bytes = 0
+        size_count = 0
+        for log in logs:
+            log_size_bytes = self._sizeof_bytes(log)
+            if size_count > 0 and (
+                size_count >= self._max_size_count
+                or size_bytes + log_size_bytes > self._max_size_bytes
+            ):
+                batches.append(batch)
+                batch = []
+                size_bytes = 0
+                size_count = 0
+            # all logs exceeding max_log_size_bytes are dropped here
+            if log_size_bytes <= self._max_log_size_bytes:
+                batch.append(log)
+                size_bytes += log_size_bytes
+                size_count += 1
+        if size_count > 0:
+            batches.append(batch)
+        return batches
+
+
+class ScrubbingRule(object):
+    def __init__(self, regex, placeholder):
+        self.regex = regex
+        self.placeholder = placeholder
+
+
+class DatadogScrubber(object):
+    def __init__(self, configs):
+        rules = []
+        for config in configs:
+            try:
+                if os.environ.get(config.name, False):
+                    rules.append(
+                        ScrubbingRule(
+                            re.compile(config.pattern, re.I), config.placeholder
+                        )
+                    )
+            except Exception:
+                raise Exception("could not compile rule with config: {}".format(config))
+        self._rules = rules
+
+    def scrub(self, payload):
+        for rule in self._rules:
+            try:
+                payload = rule.regex.sub(rule.placeholder, payload)
+            except Exception as e:
+                raise ScrubbingException()
+        return payload
 
 
 def lambda_handler(event, context):
@@ -168,46 +321,26 @@ def lambda_handler(event, context):
             "The API key is not the expected length. Please confirm that your API key is correct"
         )
 
-    metadata = {"ddsourcecategory": "aws"}
+    logs = generate_logs(event, context)
 
-    # create socket
-    with DatadogConnection(DD_URL, DD_PORT, DD_API_KEY) as con:
-        # Add the context to meta
-        if "aws" not in metadata:
-            metadata["aws"] = {}
-        aws_meta = metadata["aws"]
-        aws_meta["function_version"] = context.function_version
-        aws_meta["invoked_function_arn"] = context.invoked_function_arn
-        # Add custom tags here by adding new value with the following format "key1:value1, key2:value2"  - might be subject to modifications
-        dd_custom_tags_data = {
-            "forwardername": context.function_name.lower(),
-            "memorysize": context.memory_limit_in_mb,
-            "forwarder_version": DD_FORWARDER_VERSION,
-        }
-        metadata[DD_CUSTOM_TAGS] = ",".join(
-            filter(
-                None,
-                [
-                    DD_TAGS,
-                    ",".join(
-                        [
-                            "{}:{}".format(k, v)
-                            for k, v in dd_custom_tags_data.iteritems()
-                        ]
-                    ),
-                ],
-            )
-        )
+    scrubber = DatadogScrubber(SCRUBBING_RULE_CONFIGS)
+    if DD_USE_TCP:
+        batcher = DatadogBatcher(256 * 1000, 256 * 1000, 1)
+        cli = DatadogTCPClient(DD_URL, DD_PORT, DD_API_KEY, scrubber)
+    else:
+        batcher = DatadogBatcher(128 * 1000, 1 * 1000 * 1000, 25)
+        cli = DatadogHTTPClient(DD_URL, DD_API_KEY, scrubber)
 
-        try:
-            logs = generate_logs(event, context, metadata)
-            for log in logs:
-                con = con.safe_submit_log(log, metadata)
-        except Exception as e:
-            print("Unexpected exception: {} for event {}".format(str(e), event))
+    with DatadogClient(cli) as client:
+        for batch in batcher.batch(logs):
+            try:
+                client.send(batch)
+            except Exception as e:
+                print("Unexpected exception: {}, event: {}".format(str(e), event))
 
 
-def generate_logs(event, context, metadata):
+def generate_logs(event, context):
+    metadata = generate_metadata(context)
     try:
         # Route to the corresponding parser
         event_type = parse_event_type(event)
@@ -225,10 +358,52 @@ def generate_logs(event, context, metadata):
             str(e), event
         )
         logs = [err_message]
-    return logs
+    return normalize_logs(logs, metadata)
+
+
+def generate_metadata(context):
+    metadata = {
+        "ddsourcecategory": "aws",
+        "aws": {
+            "function_version": context.function_version,
+            "invoked_function_arn": context.invoked_function_arn,
+        },
+    }
+    # Add custom tags here by adding new value with the following format "key1:value1, key2:value2"  - might be subject to modifications
+    dd_custom_tags_data = {
+        "forwardername": context.function_name.lower(),
+        "memorysize": context.memory_limit_in_mb,
+        "forwarder_version": DD_FORWARDER_VERSION,
+    }
+    metadata[DD_CUSTOM_TAGS] = ",".join(
+        filter(
+            None,
+            [
+                DD_TAGS,
+                ",".join(
+                    ["{}:{}".format(k, v) for k, v in dd_custom_tags_data.iteritems()]
+                ),
+            ],
+        )
+    )
+
+    return metadata
 
 
 # Utility functions
+
+
+def normalize_logs(logs, metadata):
+    normalized = []
+    for log in logs:
+        if isinstance(log, dict):
+            normalized.append(merge_dicts(log, metadata))
+        elif isinstance(log, str):
+            normalized.append(merge_dicts({"message": log}, metadata))
+        else:
+            # drop this log
+            continue
+    return normalized
 
 
 def parse_event_type(event):
@@ -410,6 +585,11 @@ def merge_dicts(a, b, path=None):
     return a
 
 
+cloudtrail_regex = re.compile(
+    "\d+_CloudTrail_\w{2}-\w{4,9}-\d_\d{8}T\d{4}Z.+.json.gz$", re.I
+)
+
+
 def is_cloudtrail(key):
     match = cloudtrail_regex.search(key)
     return bool(match)
@@ -446,13 +626,14 @@ def parse_event_source(event, key):
             return "s3"
     return "aws"
 
+
 def parse_service_arn(source, key, bucket, context):
     if source == "elb":
-        #For ELB logs we parse the filename to extract parameters in order to rebuild the ARN
-        #1. We extract the region from the filename
-        #2. We extract the loadbalancer name and replace the "." by "/" to match the ARN format
-        #3. We extract the id of the loadbalancer
-        #4. We build the arn
+        # For ELB logs we parse the filename to extract parameters in order to rebuild the ARN
+        # 1. We extract the region from the filename
+        # 2. We extract the loadbalancer name and replace the "." by "/" to match the ARN format
+        # 3. We extract the id of the loadbalancer
+        # 4. We build the arn
         keysplit = key.split("_")
         idsplit = key.split("/")
         if len(keysplit) > 3:
@@ -461,34 +642,38 @@ def parse_service_arn(source, key, bucket, context):
             elbname = name.replace(".", "/")
             if len(idsplit) > 1:
                 idvalue = idsplit[1]
-                return "arn:aws:elasticloadbalancing:" + region + ":" + idvalue + ":loadbalancer/" + elbname
+                return "arn:aws:elasticloadbalancing:{}:{}:loadbalancer/{}".format(
+                    region, idvalue, elbname
+                )
     if source == "s3":
-        #For S3 access logs we use the bucket name to rebuild the arn
+        # For S3 access logs we use the bucket name to rebuild the arn
         if bucket:
-            return "arn:aws:s3:::" + bucket
+            return "arn:aws:s3:::{}".format(bucket)
     if source == "cloudfront":
-        #For Cloudfront logs we need to get the account and distribution id from the lambda arn and the filename
-        #1. We extract the cloudfront id  from the filename
-        #2. We extract the AWS account id from the lambda arn
-        #3. We build the arn
+        # For Cloudfront logs we need to get the account and distribution id from the lambda arn and the filename
+        # 1. We extract the cloudfront id  from the filename
+        # 2. We extract the AWS account id from the lambda arn
+        # 3. We build the arn
         namesplit = key.split("/")
         if len(namesplit) > 0:
-            filename = namesplit[len(namesplit)-1] 
-            #(distribution-ID.YYYY-MM-DD-HH.unique-ID.gz)
+            filename = namesplit[len(namesplit) - 1]
+            # (distribution-ID.YYYY-MM-DD-HH.unique-ID.gz)
             filenamesplit = filename.split(".")
             if len(filenamesplit) > 3:
-                distributionID = filenamesplit[len(filenamesplit)-4].lower()
+                distributionID = filenamesplit[len(filenamesplit) - 4].lower()
                 arn = context.invoked_function_arn
                 arnsplit = arn.split(":")
                 if len(arnsplit) == 7:
                     awsaccountID = arnsplit[4].lower()
-                    return "arn:aws:cloudfront::" + awsaccountID+":distribution/" + distributionID
+                    return "arn:aws:cloudfront::{}:distribution/{}".format(
+                        awsaccountID, distributionID
+                    )
     if source == "redshift":
-        #For redshift logs we leverage the filename to extract the relevant information
-        #1. We extract the region from the filename
-        #2. We extract the account-id from the filename
-        #3. We extract the name of the cluster
-        #4. We build the arn: arn:aws:redshift:region:account-id:cluster:cluster-name
+        # For redshift logs we leverage the filename to extract the relevant information
+        # 1. We extract the region from the filename
+        # 2. We extract the account-id from the filename
+        # 3. We extract the name of the cluster
+        # 4. We build the arn: arn:aws:redshift:region:account-id:cluster:cluster-name
         namesplit = key.split("/")
         if len(namesplit) == 8:
             region = namesplit[3].lower()
@@ -497,5 +682,7 @@ def parse_service_arn(source, key, bucket, context):
             filesplit = filename.split("_")
             if len(filesplit) == 6:
                 clustername = filesplit[3]
-                return "arn:aws:redshift:" + region + ":" + accountID + ":cluster:" + clustername
+                return "arn:aws:redshift:{}:{}:cluster:{}:".format(
+                    region, accountID, clustername
+                )
     return
