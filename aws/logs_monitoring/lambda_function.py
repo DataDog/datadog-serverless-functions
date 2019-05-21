@@ -21,8 +21,8 @@ import boto3
 
 
 # Change this value to change the underlying network client (HTTP or TCP),
-# by default, use the HTTP client.
-DD_USE_TCP = os.getenv("DD_USE_TCP", default="false").lower() == "true"
+# by default, use the TCP client.
+DD_USE_TCP = os.getenv("DD_USE_TCP", default="true").lower() == "true"
 
 
 # Define the destination endpoint to send logs to
@@ -89,7 +89,7 @@ DD_SOURCE = "ddsource"
 DD_CUSTOM_TAGS = "ddtags"
 DD_SERVICE = "service"
 DD_HOST = "host"
-DD_FORWARDER_VERSION = "1.3.0"
+DD_FORWARDER_VERSION = "1.3.1"
 
 # Pass custom tags as environment variable, ensure comma separated, no trailing comma in envvar!
 DD_TAGS = os.environ.get("DD_TAGS", "")
