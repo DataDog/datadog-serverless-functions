@@ -520,6 +520,9 @@ def awslogs_handler(event, context, metadata):
             metadata[DD_CUSTOM_TAGS] = (
                     metadata[DD_CUSTOM_TAGS] + ",logname:" + match.group("name")
             )
+            # We can intuit the sourcecategory in some cases
+            if match.group("name") == "postgresql":
+                metadata[DD_CUSTOM_TAGS] + ",sourcecategory:" + match.group("name")
 
     # For Lambda logs we want to extract the function name,
     # then rebuild the arn of the monitored lambda using that name.
