@@ -74,8 +74,8 @@ SCRUBBING_RULE_CONFIGS = [
         "xxxxx@xxxxx.com",
     ),
     ScrubbingRuleConfig(
-        "DD_SCRUBBING_RULE", 
-        os.getenv("DD_SCRUBBING_RULE", default=None), 
+        "DD_SCRUBBING_RULE",
+        os.getenv("DD_SCRUBBING_RULE", default=None),
         os.getenv("DD_SCRUBBING_RULE_REPLACEMENT", default="xxxxx")
     )
 ]
@@ -92,7 +92,7 @@ def compileRegex(rule, pattern):
             raise Exception("could not compile {} regex with pattern: {}".format(rule, pattern))
 
 
-# Filtering logs 
+# Filtering logs
 # Option to include or exclude logs based on a pattern match
 INCLUDE_AT_MATCH = os.getenv("INCLUDE_AT_MATCH", default=None)
 include_regex = compileRegex("INCLUDE_AT_MATCH", INCLUDE_AT_MATCH)
@@ -357,7 +357,7 @@ class DatadogScrubber(object):
             if config.name in os.environ:
                 rules.append(
                     ScrubbingRule(
-                        compileRegex(config.name, config.pattern), 
+                        compileRegex(config.name, config.pattern),
                         config.placeholder
                     )
                 )
@@ -494,7 +494,7 @@ def filter_logs(logs):
     """
     if INCLUDE_AT_MATCH is None and EXCLUDE_AT_MATCH is None:
         # convert to strings
-        return logs 
+        return logs
     # Add logs that should be sent to logs_to_send
     logs_to_send = []
     # Test each log for exclusion and inclusion, if the criteria exist
@@ -505,7 +505,7 @@ def filter_logs(logs):
                 if re.search(exclude_regex, log):
                     continue
             if INCLUDE_AT_MATCH is not None:
-                # if no include match is found, do not add log to logs_to_send 
+                # if no include match is found, do not add log to logs_to_send
                 if not re.search(include_regex, log):
                     continue
             logs_to_send.append(log)
@@ -591,7 +591,23 @@ def s3_handler(event, context, metadata):
         with gzip.GzipFile(fileobj=BytesIO(data)) as decompress_stream:
             # Reading line by line avoid a bug where gzip would take a very long time (>5min) for
             # file around 60MB gzipped
-            data = b"".join(BufferedReader(decompress_stream))
+
+            # Only make another copy of our log data if we're performing some operation
+            # against the entire block of data. Need to conserve memory in lambda land.
+            if DD_MULTILINE_LOG_REGEX_PATTERN or is_cloudtrail(str(key)):
+                data = b"".join(BufferedReader(decompress_stream))
+            else:
+                # Send decompressed lines to Datadog. Stream iter is line-by-line already.
+
+                # NOTE: Duplicates the non-compressed case below, but we can't allow falling through to that
+                #   since we'll lose the decompress_stream context.
+                for line in decompress_stream:
+                    structured_line = {
+                        "aws": {"s3": {"bucket": bucket, "key": key}},
+                        "message": line,
+                    }
+                    yield structured_line
+                return
 
     if is_cloudtrail(str(key)):
         cloud_trail = json.loads(data)
@@ -628,7 +644,7 @@ def kinesis_awslogs_handler(event, context, metadata):
                 "data": record["kinesis"]["data"]
             }
         }
-        
+
     return itertools.chain.from_iterable(awslogs_handler(reformat_record(r), context, metadata) for r in event["Records"])
 
 
@@ -813,7 +829,7 @@ def parse_service_arn(source, key, bucket, context):
             keysplit = "/".join(idsplit).split("_")
         # If no prefix, split the key
         else:
-            keysplit = key.split("_")        
+            keysplit = key.split("_")
         if len(keysplit) > 3:
             region = keysplit[2].lower()
             name = keysplit[3]
