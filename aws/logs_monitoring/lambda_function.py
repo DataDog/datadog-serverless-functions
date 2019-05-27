@@ -315,12 +315,12 @@ class DatadogBatcher(object):
 
     def batch(self, logs):
         """
-        Returns an array of batches.
+        Generates batches of logs.
+
         Each batch contains at most max_size_count logs and
         is not strictly greater than max_size_bytes.
         All logs strictly greater than max_log_size_bytes are dropped.
         """
-        batches = []
         batch = []
         size_bytes = 0
         size_count = 0
@@ -330,7 +330,7 @@ class DatadogBatcher(object):
                 size_count >= self._max_size_count
                 or size_bytes + log_size_bytes > self._max_size_bytes
             ):
-                batches.append(batch)
+                yield batch
                 batch = []
                 size_bytes = 0
                 size_count = 0
@@ -340,8 +340,10 @@ class DatadogBatcher(object):
                 size_bytes += log_size_bytes
                 size_count += 1
         if size_count > 0:
-            batches.append(batch)
-        return batches
+            # yield the final batch, which wasn't quite full...
+            # We keep as a yield here, since "return <foo>" is illegal in python 2.x.
+            # The docs for this lambda state 2.7 support...
+            yield batch
 
 
 class ScrubbingRule(object):
