@@ -535,16 +535,14 @@ def forward_metrics(metrics):
 
 
 def normalize_events(events, metadata):
-    normalized = []
     for event in events:
         if isinstance(event, dict):
-            normalized.append(merge_dicts(event, metadata))
+            yield merge_dicts(event, metadata)
         elif isinstance(event, str):
-            normalized.append(merge_dicts({"message": event}, metadata))
+            yield merge_dicts({"message": event}, metadata)
         else:
             # drop this log
             continue
-    return normalized
 
 
 def parse_event_type(event):
