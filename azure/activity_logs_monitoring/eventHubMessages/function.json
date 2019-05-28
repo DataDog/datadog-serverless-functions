@@ -1,14 +1,10 @@
 {
-    "bindings": [
-      {
-        "type": "eventHubTrigger",
-        "name": "eventHubMessages",
-        "direction": "in",
-        "path": "insights-operational-logs",
-        "connection": "LOGSEVENTHUBCONNECTIONSTRING",
-        "cardinality": "many",
-        "consumerGroup": "$Default"
-      }
-    ],
-    "disabled": false
-  }
+	"bindings": [{
+	"type": "eventHubTrigger",
+	"name": "eventHubMessages",
+	"direction": "in",
+	"connection": "LOGSEVENTHUBCONNECTIONSTRING",
+	"cardinality": "many",
+	"eventHubName": ""
+	}]
+}

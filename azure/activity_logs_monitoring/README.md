@@ -1,6 +1,6 @@
 # Datadog-Azure function
 
-The Datadog-Azure function is used to forward Azure logs to Datadog, including Activity and Diagnostic logs from EventHub.
+The Datadog-Azure integration function is used to forward Azure logs to Datadog, including Activity and Diagnostic logs from EventHub.
 
 ## Quick Start
 
@@ -8,44 +8,30 @@ The provided Node.js script must be deployed into your Azure Functions service. 
 
 ### 1. Create a new EventHub triggered function
 
-- Expand your function application and click the `+` button next to `Functions`. If this is the first function in your function application, select `Custom function`. This displays the complete set of function templates.
-- In the search field type `Event Hub` and choose `Event Hub Trigger`.
-- Select the `Javascript` language in the right menu.
-- Enter a name for the function.
-- Add the wanted `Event Hub connection` or create a new one if you haven't have one already.
-- Select the `Event Hub consumer group` and the `Event Hub Name` you want to pull logs from.
+```
+dotnet build extensions.csproj -o bin --no-incremental
+zip -r datadog_logs.zip *
+az functionapp deployment source config-zip  -g myResourceGroup -n <app_name> --src datadog_logs.zip
+az resource invoke-action --resource-group myResourceGroup --action syncfunctiontriggers --name <app_name> --resource-type Microsoft.Web/sites
+```
+[1]
 
-### 2. Provide the code
-
-- Copy paste the code of the [Datadog-Azure function](./index.js).
-- In the `Integrate` part:
-  - `Event Hub Cardinality` must be set to `Many`.
-  - Set the `Event Parameter Name` to `eventHubMessages`.
-
-## 3. (optional) Send logs to EU or to a proxy
+## 2. (optional) Send logs to EU or to a proxy
 
 ### Send logs to EU
 
-Set the environment variable `DD_SITE` to `datadoghq.eu` and logs are automatically forwarded to your EU platform.
+Add the app setting `DD_SITE` and set to `datadoghq.eu` and logs are automatically forwarded to your EU platform.
 
 ## Parameters
 
-- **Connection String**
-
-The `LOGSEVENTHUBCONNECTIONSTRING` app setting must be set to primary connection string of the targeted event hub namespace with entity path
-
 - **API KEY**:
 
-There are 2 possibilities to set your [Datadog's API key](https://app.datadoghq.com/account/settings#api):
-
-1. Replace `<DATADOG_API_KEY>` in the code with your API Key value.
-2. Set the value through the `DD_API_KEY` environment variable
+Set the [Datadog's API key](https://app.datadoghq.com/account/settings#api) value through the `DD_API_KEY` app setting
 
 - **Custom Tags**:
 
-You have two options to add custom tags to your logs:
-
-- Manually by editing the function code: Replace the `<TAG_KEY>:<TAG_VALUE>` placeholder for the `DD_TAGS` variable by a comma separated list of tags
-- Automatically with the `DD_TAGS` environment variable
+Add custom tags to your logs with the `DD_TAGS` environment variable by a comma separated list of tags
 
 Learn more about Datadog tagging in our main [Tagging documentation](https://docs.datadoghq.com/tagging/).
+
+[1]: https://docs.microsoft.com/en-us/azure/azure-functions/deployment-zip-push#cli
