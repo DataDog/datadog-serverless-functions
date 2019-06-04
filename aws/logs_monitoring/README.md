@@ -1,7 +1,6 @@
-# Datadog-lambda
+# Datadog Log Forwarder
 
-
-AWS lambda function to ship ELB, S3, CloudTrail, VPC, CloudFront and CloudWatch logs to Datadog
+AWS Lambda function to ship logs and metrics from ELB, S3, CloudTrail, VPC, CloudFront and CloudWatch logs to Datadog
 
 # Features
 
@@ -12,6 +11,7 @@ AWS lambda function to ship ELB, S3, CloudTrail, VPC, CloudFront and CloudWatch 
 - JSON events providing details about S3 documents forwarded
 - Structured meta-information can be attached to the events
 - Multiline Log Support (S3 Only)
+- Forward custom metrics from Lambda logs
 
 # Quick Start
 
@@ -101,3 +101,17 @@ For S3 logs, there may be some latency between the time a first S3 log file is p
 If there are multiline logs in s3, set `DD_MULTILINE_LOG_REGEX_PATTERN` environment variable to the specified regex pattern to detect for a new log line.
 
 - Example: for multiline logs beginning with pattern `11/10/2014`: `DD_MULTILINE_LOG_REGEX_PATTERN="\d{2}\/\d{2}\/\d{4}"`
+
+## 7. (optional) Forward Metrics from Lambda Logs
+
+If your Lambda function powers a performance-critical task (e.g., a consumer-facing API), you can avoid the added latencies of metric-submitting API calls, by writing custom metrics to CloudWatch Logs using the appropriate Datadog Lambda Layer (e.g., [Lambda Layer for Python](https://github.com/DataDog/datadog-lambda-layer-python)). The log forwarder will automatically detect log entries that contain metrics and forward them to Datadog metric intake.
+
+The [Datadog Lambda Layer for Python 2.7]((https://github.com/DataDog/datadog-lambda-layer-python)) **MUST** be added to the log forwarder Lambda function, to enable metric forwarding. Use the Lambda layer ARN below, and replace `us-east-1` with the actual AWS region where your log forwarder operates.
+
+```
+arn:aws:lambda:us-east-1:464622532012:layer:Datadog-Python27:2
+```
+
+**IMPORTANT**
+
+The log forwarder forwards logs by default. If you do NOT use the Datadog log management product, you **MUST** set environment variable `DD_FORWARD_LOG` to `False`, to avoid sending logs to Datadog. The log forwarder will then only forward metrics.

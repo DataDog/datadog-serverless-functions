@@ -20,6 +20,19 @@ from io import BytesIO, BufferedReader
 
 import boto3
 
+try:
+    from datadog_lambda.wrapper import datadog_lambda_wrapper
+    from datadog_lambda.metric import lambda_metric
+    DD_FORWARD_METRIC = True
+except ImportError:
+    # Datadog Lambda layer is required to forward metrics
+    DD_FORWARD_METRIC = False
+
+
+# Set this variable to `False` to disable log forwarding.
+# E.g., you only want to forward metrics from logs, but not logs.
+DD_FORWARD_LOG = os.getenv("DD_FORWARD_LOG", default="true").lower() == "true"
+
 
 # Change this value to change the underlying network client (HTTP or TCP),
 # by default, use the TCP client.
@@ -90,7 +103,7 @@ DD_SOURCE = "ddsource"
 DD_CUSTOM_TAGS = "ddtags"
 DD_SERVICE = "service"
 DD_HOST = "host"
-DD_FORWARDER_VERSION = "1.3.1"
+DD_FORWARDER_VERSION = "1.3.2"
 
 # Pass custom tags as environment variable, ensure comma separated, no trailing comma in envvar!
 DD_TAGS = os.environ.get("DD_TAGS", "")
@@ -310,19 +323,41 @@ class DatadogScrubber(object):
         return payload
 
 
-def lambda_handler(event, context):
+def lambda_handler_wrapped(event, context):
+    check_api_key()
+    logs = generate_logs(event, context)
+    forward_logs(logs)
+    forward_lambda_metrics(logs)
+
+
+if DD_FORWARD_METRIC:
+    # Datadog Lambda layer is required to forward metrics
+    lambda_handler = datadog_lambda_wrapper(lambda_handler_wrapped)
+else:
+    lambda_handler = lambda_handler_wrapped
+
+
+def check_api_key():
+    """Check Datadog API Key"""
     # Check prerequisites
     if DD_API_KEY == "<your_api_key>" or DD_API_KEY == "":
         raise Exception(
-            "You must configure your API key before starting this lambda function (see #Parameters section)"
+            "You must configure your Datadog API key using "
+            "DD_KMS_API_KEY or DD_API_KEY"
         )
     # Check if the API key is the correct number of characters
     if len(DD_API_KEY) != 32:
         raise Exception(
-            "The API key is not the expected length. Please confirm that your API key is correct"
+            "The API key is not the expected length. "
+            "Please confirm that your API key is correct"
         )
 
-    logs = generate_logs(event, context)
+
+def forward_logs(logs):
+    """Forward logs to Datadog"""
+    if not DD_FORWARD_LOG:
+        print("Log forwarding is disabled")
+        return
 
     scrubber = DatadogScrubber(SCRUBBING_RULE_CONFIGS)
     if DD_USE_TCP:
@@ -337,7 +372,7 @@ def lambda_handler(event, context):
             try:
                 client.send(batch)
             except Exception as e:
-                print("Unexpected exception: {}, event: {}".format(str(e), event))
+                print("Unexpected exception: {}, batch: {}".format(str(e), batch))
 
 
 def generate_logs(event, context):
@@ -391,6 +426,29 @@ def generate_metadata(context):
     )
 
     return metadata
+
+
+def forward_lambda_metrics(logs):
+    """
+    Process custom metrics submitted via lambda logs, and send them to Datadog
+    in a background thread using `lambda_metric` that is provided by the
+    Datadog Python Lambda Layer.
+    """
+    if not DD_FORWARD_METRIC:
+        return
+
+    for log in logs:
+        try:
+            if log.get(DD_SOURCE) != 'lambda':
+                continue
+            metric = json.loads(log['message'])
+            required_attrs = ('metric_name', 'value', 'timestamp', 'tags')
+            if all(attr in metric for attr in required_attrs):
+                lambda_metric(**metric)
+        except ValueError:
+            continue
+        except Exception as e:
+            print("Unexpected exception: {}, log: {}".format(str(e), log))
 
 
 # Utility functions
