@@ -119,7 +119,7 @@ class DatadogClient(object):
             try:
                 self._client.send(logs)
                 return
-            except RetriableException as e:
+            except RetriableException:
                 time.sleep(backoff)
                 if backoff < self._max_backoff:
                     backoff *= 2
@@ -167,9 +167,9 @@ class DatadogTCPClient(object):
                 )
             )
             self._sock.sendall(frame.encode("UTF-8"))
-        except ScrubbingException as e:
+        except ScrubbingException:
             raise Exception("could not scrub the payload")
-        except Exception as e:
+        except Exception:
             # most likely a network error, reset the connection
             self._reset()
             raise RetriableException()
@@ -213,9 +213,9 @@ class DatadogHTTPClient(object):
                 data=self._scrubber.scrub(json.dumps(logs)),
                 timeout=self._timeout,
             )
-        except ScrubbingException as e:
+        except ScrubbingException:
             raise Exception("could not scrub the payload")
-        except Exception as e:
+        except Exception:
             # most likely a network error
             raise RetriableException()
         if resp.status_code >= 500:
@@ -305,7 +305,7 @@ class DatadogScrubber(object):
         for rule in self._rules:
             try:
                 payload = rule.regex.sub(rule.placeholder, payload)
-            except Exception as e:
+            except Exception:
                 raise ScrubbingException()
         return payload
 
