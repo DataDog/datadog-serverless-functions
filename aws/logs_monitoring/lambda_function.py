@@ -415,7 +415,7 @@ def parse_event_type(event):
             return "s3"
         elif "Sns" in event["Records"][0]:
             return "sns"
-        elif "eventSource" in event["Records"][0] and event["Records"][0]["eventSource"] == "aws:kinesis":
+        elif "kinesis" in event["Records"][0]:
             return "kinesis"
 
     elif "awslogs" in event:
