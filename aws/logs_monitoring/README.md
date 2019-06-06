@@ -6,6 +6,7 @@ AWS lambda function to ship ELB, S3, CloudTrail, VPC, CloudFront and CloudWatch 
 # Features
 
 - Use AWS Lambda to re-route triggered S3 events to Datadog
+- Use AWS Lambda to re-route triggered Kinesis data stream events to Datadog, only the Cloudwatch logs are supported
 - Cloudwatch, ELB, S3, CloudTrail, VPC and CloudFont logs can be forwarded
 - SSL Security
 - JSON events providing details about S3 documents forwarded
