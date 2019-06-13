@@ -325,21 +325,21 @@ class DatadogScrubber(object):
         return payload
 
 
-def datadog_log_forwarder(event, context):
+def datadog_forwarder(event, context):
     """The actual lambda function entry point"""
     check_api_key()
     logs = generate_logs(event, context)
     if DD_FORWARD_LOG:
         forward_logs(logs)
     if DD_FORWARD_METRIC:
-        forward_lambda_metrics(logs)
+        forward_metrics(logs)
 
 
 if DD_FORWARD_METRIC:
     # Datadog Lambda layer is required to forward metrics
-    lambda_handler = datadog_lambda_wrapper(datadog_log_forwarder)
+    lambda_handler = datadog_lambda_wrapper(datadog_forwarder)
 else:
-    lambda_handler = datadog_log_forwarder
+    lambda_handler = datadog_forwarder
 
 
 def check_api_key():
@@ -429,16 +429,14 @@ def generate_metadata(context):
     return metadata
 
 
-def forward_lambda_metrics(logs):
+def forward_metrics(logs):
     """
-    Process custom metrics submitted via lambda logs, and send them to Datadog
+    Process custom metrics submitted via logs, and send them to Datadog
     in a background thread using `lambda_metric` that is provided by the
     Datadog Python Lambda Layer.
     """
     for log in logs:
         try:
-            if log.get(DD_SOURCE) != 'lambda':
-                continue
             metric = json.loads(log['message'])
             required_attrs = ('metric_name', 'value', 'timestamp', 'tags')
             if all(attr in metric for attr in required_attrs):
