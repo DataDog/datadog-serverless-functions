@@ -32,6 +32,8 @@ except ImportError:
 # Set this variable to `False` to disable log forwarding.
 # E.g., you only want to forward metrics from logs, but not logs.
 DD_FORWARD_LOG = os.getenv("DD_FORWARD_LOG", default="true").lower() == "true"
+if not DD_FORWARD_LOG:
+    print("Log forwarding is disabled")
 
 
 # Change this value to change the underlying network client (HTTP or TCP),
@@ -103,7 +105,7 @@ DD_SOURCE = "ddsource"
 DD_CUSTOM_TAGS = "ddtags"
 DD_SERVICE = "service"
 DD_HOST = "host"
-DD_FORWARDER_VERSION = "1.3.2"
+DD_FORWARDER_VERSION = "1.4.0"
 
 # Pass custom tags as environment variable, ensure comma separated, no trailing comma in envvar!
 DD_TAGS = os.environ.get("DD_TAGS", "")
@@ -323,18 +325,21 @@ class DatadogScrubber(object):
         return payload
 
 
-def lambda_handler_wrapped(event, context):
+def datadog_log_forwarder(event, context):
+    """The actual lambda function entry point"""
     check_api_key()
     logs = generate_logs(event, context)
-    forward_logs(logs)
-    forward_lambda_metrics(logs)
+    if DD_FORWARD_LOG:
+        forward_logs(logs)
+    if DD_FORWARD_METRIC:
+        forward_lambda_metrics(logs)
 
 
 if DD_FORWARD_METRIC:
     # Datadog Lambda layer is required to forward metrics
-    lambda_handler = datadog_lambda_wrapper(lambda_handler_wrapped)
+    lambda_handler = datadog_lambda_wrapper(datadog_log_forwarder)
 else:
-    lambda_handler = lambda_handler_wrapped
+    lambda_handler = datadog_log_forwarder
 
 
 def check_api_key():
@@ -355,10 +360,6 @@ def check_api_key():
 
 def forward_logs(logs):
     """Forward logs to Datadog"""
-    if not DD_FORWARD_LOG:
-        print("Log forwarding is disabled")
-        return
-
     scrubber = DatadogScrubber(SCRUBBING_RULE_CONFIGS)
     if DD_USE_TCP:
         batcher = DatadogBatcher(256 * 1000, 256 * 1000, 1)
@@ -434,9 +435,6 @@ def forward_lambda_metrics(logs):
     in a background thread using `lambda_metric` that is provided by the
     Datadog Python Lambda Layer.
     """
-    if not DD_FORWARD_METRIC:
-        return
-
     for log in logs:
         try:
             if log.get(DD_SOURCE) != 'lambda':
@@ -444,6 +442,7 @@ def forward_lambda_metrics(logs):
             metric = json.loads(log['message'])
             required_attrs = ('metric_name', 'value', 'timestamp', 'tags')
             if all(attr in metric for attr in required_attrs):
+                # push the metric to lambda layer for background flushing
                 lambda_metric(**metric)
         except ValueError:
             continue
