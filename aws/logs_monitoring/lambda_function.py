@@ -21,19 +21,18 @@ from io import BytesIO, BufferedReader
 import boto3
 
 try:
+    # Datadog Lambda layer is required to forward metrics
     from datadog_lambda.wrapper import datadog_lambda_wrapper
-    from datadog_lambda.metric import lambda_metric
+    from datadog_lambda.metric import lambda_stats
     DD_FORWARD_METRIC = True
 except ImportError:
-    # Datadog Lambda layer is required to forward metrics
+    # For backward-compatibility
     DD_FORWARD_METRIC = False
 
 
 # Set this variable to `False` to disable log forwarding.
-# E.g., you only want to forward metrics from logs, but not logs.
+# E.g., when you only want to forward metrics from logs.
 DD_FORWARD_LOG = os.getenv("DD_FORWARD_LOG", default="true").lower() == "true"
-if not DD_FORWARD_LOG:
-    print("Log forwarding is disabled")
 
 
 # Change this value to change the underlying network client (HTTP or TCP),
@@ -89,6 +88,26 @@ elif "DD_API_KEY" in os.environ:
 
 # Strip any trailing and leading whitespace from the API key
 DD_API_KEY = DD_API_KEY.strip()
+
+# DD_API_KEY must be set
+if DD_API_KEY == "<your_api_key>" or DD_API_KEY == "":
+    raise Exception(
+        "You must configure your Datadog API key using "
+        "DD_KMS_API_KEY or DD_API_KEY"
+    )
+# Check if the API key is the correct number of characters
+if len(DD_API_KEY) != 32:
+    raise Exception(
+        "The API key is not the expected length. "
+        "Please confirm that your API key is correct"
+    )
+# Validate the API key
+validation_res = requests.get(
+    "https://api.{}/api/v1/validate?api_key={}".format(DD_SITE, DD_API_KEY)
+)
+if not validation_res.ok:
+    raise Exception("The API key is not valid.")
+
 
 # DD_MULTILINE_REGEX: Datadog Multiline Log Regular Expression Pattern
 DD_MULTILINE_LOG_REGEX_PATTERN = None
@@ -327,12 +346,12 @@ class DatadogScrubber(object):
 
 def datadog_forwarder(event, context):
     """The actual lambda function entry point"""
-    check_api_key()
     logs = generate_logs(event, context)
+    metrics, logs = extract_metrics(logs)
     if DD_FORWARD_LOG:
         forward_logs(logs)
     if DD_FORWARD_METRIC:
-        forward_metrics(logs)
+        forward_metrics(metrics)
 
 
 if DD_FORWARD_METRIC:
@@ -340,22 +359,6 @@ if DD_FORWARD_METRIC:
     lambda_handler = datadog_lambda_wrapper(datadog_forwarder)
 else:
     lambda_handler = datadog_forwarder
-
-
-def check_api_key():
-    """Check Datadog API Key"""
-    # Check prerequisites
-    if DD_API_KEY == "<your_api_key>" or DD_API_KEY == "":
-        raise Exception(
-            "You must configure your Datadog API key using "
-            "DD_KMS_API_KEY or DD_API_KEY"
-        )
-    # Check if the API key is the correct number of characters
-    if len(DD_API_KEY) != 32:
-        raise Exception(
-            "The API key is not the expected length. "
-            "Please confirm that your API key is correct"
-        )
 
 
 def forward_logs(logs):
@@ -429,23 +432,49 @@ def generate_metadata(context):
     return metadata
 
 
-def forward_metrics(logs):
+def extract_metric(log):
+    """Extract metric from a log entry if possible"""
+    try:
+        metric = json.loads(log['message'])
+        required_attrs = {'m', 'v', 'e', 't'}
+        if all(attr in metric for attr in required_attrs):
+            return metric
+        else:
+            return None
+    except Exception:
+        return None
+
+
+def extract_metrics(logs):
     """
-    Process custom metrics submitted via logs, and send them to Datadog
-    in a background thread using `lambda_metric` that is provided by the
-    Datadog Python Lambda Layer.
+    Extracted metrics from logs. Return both the extracted metrics
+    and the logs with metrics removed.
     """
+    extracted_metrics, filtered_logs = [], []
     for log in logs:
+        metric = extract_metric(log)
+        if metric:
+            extracted_metrics.append(metric)
+        else:
+            filtered_logs.append(log)
+    return extracted_metrics, filtered_logs
+
+
+def forward_metrics(metrics):
+    """
+    Forward custom metrics submitted via logs to Datadog in a background thread
+    using `lambda_stats` that is provided by the Datadog Python Lambda Layer.
+    """
+    for metric in metrics:
         try:
-            metric = json.loads(log['message'])
-            required_attrs = ('metric_name', 'value', 'timestamp', 'tags')
-            if all(attr in metric for attr in required_attrs):
-                # push the metric to lambda layer for background flushing
-                lambda_metric(**metric)
-        except ValueError:
-            continue
+            lambda_stats.distribution(
+                metric['m'],
+                metric['v'],
+                timestamp=metric['e'],
+                tags=metric['t']
+            )
         except Exception as e:
-            print("Unexpected exception: {}, log: {}".format(str(e), log))
+            print("Unexpected exception: {}, metric: {}".format(str(e), metric))
 
 
 # Utility functions
