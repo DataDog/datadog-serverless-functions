@@ -346,8 +346,8 @@ class DatadogScrubber(object):
 
 def datadog_forwarder(event, context):
     """The actual lambda function entry point"""
-    logs = generate_logs(event, context)
-    metrics, logs = extract_metrics(logs)
+    events = parse(event, context)
+    metrics, logs = split(events)
     if DD_FORWARD_LOG:
         forward_logs(logs)
     if DD_FORWARD_METRIC:
@@ -379,28 +379,29 @@ def forward_logs(logs):
                 print("Unexpected exception: {}, batch: {}".format(str(e), batch))
 
 
-def generate_logs(event, context):
+def parse(event, context):
+    """Parse Lambda input to normalized events"""
     metadata = generate_metadata(context)
     try:
         # Route to the corresponding parser
         event_type = parse_event_type(event)
         if event_type == "s3":
-            logs = s3_handler(event, context, metadata)
+            events = s3_handler(event, context, metadata)
         elif event_type == "awslogs":
-            logs = awslogs_handler(event, context, metadata)
+            events = awslogs_handler(event, context, metadata)
         elif event_type == "events":
-            logs = cwevent_handler(event, metadata)
+            events = cwevent_handler(event, metadata)
         elif event_type == "sns":
-            logs = sns_handler(event, metadata)
+            events = sns_handler(event, metadata)
         elif event_type == "kinesis":
-            logs = kinesis_awslogs_handler(event, context, metadata)
+            events = kinesis_awslogs_handler(event, context, metadata)
     except Exception as e:
         # Logs through the socket the error
         err_message = "Error parsing the object. Exception: {} for event {}".format(
             str(e), event
         )
-        logs = [err_message]
-    return normalize_logs(logs, metadata)
+        events = [err_message]
+    return normalize_events(events, metadata)
 
 
 def generate_metadata(context):
@@ -432,10 +433,10 @@ def generate_metadata(context):
     return metadata
 
 
-def extract_metric(log):
-    """Extract metric from a log entry if possible"""
+def extract_metric(event):
+    """Extract metric from an event if possible"""
     try:
-        metric = json.loads(log['message'])
+        metric = json.loads(event['message'])
         required_attrs = {'m', 'v', 'e', 't'}
         if all(attr in metric for attr in required_attrs):
             return metric
@@ -445,19 +446,16 @@ def extract_metric(log):
         return None
 
 
-def extract_metrics(logs):
-    """
-    Extracted metrics from logs. Return both the extracted metrics
-    and the logs with metrics removed.
-    """
-    extracted_metrics, filtered_logs = [], []
-    for log in logs:
-        metric = extract_metric(log)
+def split(events):
+    """Split events to metrics and logs"""
+    metrics, logs = [], []
+    for event in events:
+        metric = extract_metric(event)
         if metric:
-            extracted_metrics.append(metric)
+            metrics.append(metric)
         else:
-            filtered_logs.append(log)
-    return extracted_metrics, filtered_logs
+            logs.append(event)
+    return metrics, logs
 
 
 def forward_metrics(metrics):
@@ -480,13 +478,13 @@ def forward_metrics(metrics):
 # Utility functions
 
 
-def normalize_logs(logs, metadata):
+def normalize_events(events, metadata):
     normalized = []
-    for log in logs:
-        if isinstance(log, dict):
-            normalized.append(merge_dicts(log, metadata))
-        elif isinstance(log, str):
-            normalized.append(merge_dicts({"message": log}, metadata))
+    for event in events:
+        if isinstance(event, dict):
+            normalized.append(merge_dicts(event, metadata))
+        elif isinstance(event, str):
+            normalized.append(merge_dicts({"message": event}, metadata))
         else:
             # drop this log
             continue
