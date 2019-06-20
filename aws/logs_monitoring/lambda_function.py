@@ -20,6 +20,20 @@ from io import BytesIO, BufferedReader
 
 import boto3
 
+try:
+    # Datadog Lambda layer is required to forward metrics
+    from datadog_lambda.wrapper import datadog_lambda_wrapper
+    from datadog_lambda.metric import lambda_stats
+    DD_FORWARD_METRIC = True
+except ImportError:
+    # For backward-compatibility
+    DD_FORWARD_METRIC = False
+
+
+# Set this variable to `False` to disable log forwarding.
+# E.g., when you only want to forward metrics from logs.
+DD_FORWARD_LOG = os.getenv("DD_FORWARD_LOG", default="true").lower() == "true"
+
 
 # Change this value to change the underlying network client (HTTP or TCP),
 # by default, use the TCP client.
@@ -75,6 +89,26 @@ elif "DD_API_KEY" in os.environ:
 # Strip any trailing and leading whitespace from the API key
 DD_API_KEY = DD_API_KEY.strip()
 
+# DD_API_KEY must be set
+if DD_API_KEY == "<your_api_key>" or DD_API_KEY == "":
+    raise Exception(
+        "You must configure your Datadog API key using "
+        "DD_KMS_API_KEY or DD_API_KEY"
+    )
+# Check if the API key is the correct number of characters
+if len(DD_API_KEY) != 32:
+    raise Exception(
+        "The API key is not the expected length. "
+        "Please confirm that your API key is correct"
+    )
+# Validate the API key
+validation_res = requests.get(
+    "https://api.{}/api/v1/validate?api_key={}".format(DD_SITE, DD_API_KEY)
+)
+if not validation_res.ok:
+    raise Exception("The API key is not valid.")
+
+
 # DD_MULTILINE_REGEX: Datadog Multiline Log Regular Expression Pattern
 DD_MULTILINE_LOG_REGEX_PATTERN = None
 if "DD_MULTILINE_LOG_REGEX_PATTERN" in os.environ:
@@ -90,7 +124,7 @@ DD_SOURCE = "ddsource"
 DD_CUSTOM_TAGS = "ddtags"
 DD_SERVICE = "service"
 DD_HOST = "host"
-DD_FORWARDER_VERSION = "1.3.1"
+DD_FORWARDER_VERSION = "1.4.0"
 
 # Pass custom tags as environment variable, ensure comma separated, no trailing comma in envvar!
 DD_TAGS = os.environ.get("DD_TAGS", "")
@@ -310,20 +344,25 @@ class DatadogScrubber(object):
         return payload
 
 
-def lambda_handler(event, context):
-    # Check prerequisites
-    if DD_API_KEY == "<your_api_key>" or DD_API_KEY == "":
-        raise Exception(
-            "You must configure your API key before starting this lambda function (see #Parameters section)"
-        )
-    # Check if the API key is the correct number of characters
-    if len(DD_API_KEY) != 32:
-        raise Exception(
-            "The API key is not the expected length. Please confirm that your API key is correct"
-        )
+def datadog_forwarder(event, context):
+    """The actual lambda function entry point"""
+    events = parse(event, context)
+    metrics, logs = split(events)
+    if DD_FORWARD_LOG:
+        forward_logs(logs)
+    if DD_FORWARD_METRIC:
+        forward_metrics(metrics)
 
-    logs = generate_logs(event, context)
 
+if DD_FORWARD_METRIC:
+    # Datadog Lambda layer is required to forward metrics
+    lambda_handler = datadog_lambda_wrapper(datadog_forwarder)
+else:
+    lambda_handler = datadog_forwarder
+
+
+def forward_logs(logs):
+    """Forward logs to Datadog"""
     scrubber = DatadogScrubber(SCRUBBING_RULE_CONFIGS)
     if DD_USE_TCP:
         batcher = DatadogBatcher(256 * 1000, 256 * 1000, 1)
@@ -337,31 +376,32 @@ def lambda_handler(event, context):
             try:
                 client.send(batch)
             except Exception as e:
-                print("Unexpected exception: {}, event: {}".format(str(e), event))
+                print("Unexpected exception: {}, batch: {}".format(str(e), batch))
 
 
-def generate_logs(event, context):
+def parse(event, context):
+    """Parse Lambda input to normalized events"""
     metadata = generate_metadata(context)
     try:
         # Route to the corresponding parser
         event_type = parse_event_type(event)
         if event_type == "s3":
-            logs = s3_handler(event, context, metadata)
+            events = s3_handler(event, context, metadata)
         elif event_type == "awslogs":
-            logs = awslogs_handler(event, context, metadata)
+            events = awslogs_handler(event, context, metadata)
         elif event_type == "events":
-            logs = cwevent_handler(event, metadata)
+            events = cwevent_handler(event, metadata)
         elif event_type == "sns":
-            logs = sns_handler(event, metadata)
+            events = sns_handler(event, metadata)
         elif event_type == "kinesis":
-            logs = kinesis_awslogs_handler(event, context, metadata)
+            events = kinesis_awslogs_handler(event, context, metadata)
     except Exception as e:
         # Logs through the socket the error
         err_message = "Error parsing the object. Exception: {} for event {}".format(
             str(e), event
         )
-        logs = [err_message]
-    return normalize_logs(logs, metadata)
+        events = [err_message]
+    return normalize_events(events, metadata)
 
 
 def generate_metadata(context):
@@ -393,16 +433,58 @@ def generate_metadata(context):
     return metadata
 
 
+def extract_metric(event):
+    """Extract metric from an event if possible"""
+    try:
+        metric = json.loads(event['message'])
+        required_attrs = {'m', 'v', 'e', 't'}
+        if all(attr in metric for attr in required_attrs):
+            return metric
+        else:
+            return None
+    except Exception:
+        return None
+
+
+def split(events):
+    """Split events to metrics and logs"""
+    metrics, logs = [], []
+    for event in events:
+        metric = extract_metric(event)
+        if metric:
+            metrics.append(metric)
+        else:
+            logs.append(event)
+    return metrics, logs
+
+
+def forward_metrics(metrics):
+    """
+    Forward custom metrics submitted via logs to Datadog in a background thread
+    using `lambda_stats` that is provided by the Datadog Python Lambda Layer.
+    """
+    for metric in metrics:
+        try:
+            lambda_stats.distribution(
+                metric['m'],
+                metric['v'],
+                timestamp=metric['e'],
+                tags=metric['t']
+            )
+        except Exception as e:
+            print("Unexpected exception: {}, metric: {}".format(str(e), metric))
+
+
 # Utility functions
 
 
-def normalize_logs(logs, metadata):
+def normalize_events(events, metadata):
     normalized = []
-    for log in logs:
-        if isinstance(log, dict):
-            normalized.append(merge_dicts(log, metadata))
-        elif isinstance(log, str):
-            normalized.append(merge_dicts({"message": log}, metadata))
+    for event in events:
+        if isinstance(event, dict):
+            normalized.append(merge_dicts(event, metadata))
+        elif isinstance(event, str):
+            normalized.append(merge_dicts({"message": event}, metadata))
         else:
             # drop this log
             continue
