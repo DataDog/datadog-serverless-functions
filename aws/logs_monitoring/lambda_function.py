@@ -85,7 +85,6 @@ if "DD_CUSTOM_SCRUBBING_RULE" in os.environ:
         )
     )
 
-
 # DD_API_KEY: Datadog API Key
 DD_API_KEY = "<your_api_key>"
 if "DD_KMS_API_KEY" in os.environ:
