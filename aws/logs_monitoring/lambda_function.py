@@ -109,13 +109,16 @@ if not validation_res.ok:
     raise Exception("The API key is not valid.")
 
 
-# DD_MULTILINE_REGEX: Datadog Multiline Log Regular Expression Pattern
+# DD_MULTILINE_LOG_REGEX_PATTERN: Datadog Multiline Log Regular Expression Pattern
 DD_MULTILINE_LOG_REGEX_PATTERN = None
 if "DD_MULTILINE_LOG_REGEX_PATTERN" in os.environ:
     DD_MULTILINE_LOG_REGEX_PATTERN = os.environ["DD_MULTILINE_LOG_REGEX_PATTERN"]
-    multiline_regex = re.compile(
-        "(?<!^)\s+(?={})(?!.\s)".format(DD_MULTILINE_LOG_REGEX_PATTERN)
-    )
+    try:
+        multiline_regex = re.compile(
+            "(?<!^)\s+(?={})(?!.\s)".format(DD_MULTILINE_LOG_REGEX_PATTERN)
+        )
+    except Exception:
+        raise Exception("could not compile multiline regex with pattern: {}".format(DD_MULTILINE_LOG_REGEX_PATTERN))
     multiline_regex_start_pattern = re.compile(
         "^{}".format(DD_MULTILINE_LOG_REGEX_PATTERN)
     )
