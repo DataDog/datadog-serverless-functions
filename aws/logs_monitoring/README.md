@@ -97,15 +97,16 @@ If the test "succeeded", you are all set! The test log will not show up in the p
 
 For S3 logs, there may be some latency between the time a first S3 log file is posted and the Lambda function wakes up.
 
-## 6. (optional) Redaction rules
+## 6. (optional) Scrubbing / Redaction rules
 
-Multiple scrubbing options are available.  REDACT_IP and REDACT_EMAIL match against hard-coded patterns, and DD_CUSTOM_SCRUBBING_RULE allows users to supply a custom regular expression.
+Multiple scrubbing options are available.  `REDACT_IP` and `REDACT_EMAIL` match against hard-coded patterns, and `DD_CUSTOM_SCRUBBING_RULE` allows users to supply a custom regular expression.
 
 - To use `REDACT_IP`, add it as an environment variable and give it any value (the exact value doesn't matter).  
     - Text matching `\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}` will be replaced with `xxx.xxx.xxx.xxx`.
 - To use `REDACT_EMAIL`, add it as an environment variable and give it any value (the exact value doesn't matter).
 	- Text matching `[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+` will be replaced with `xxxxx@xxxxx.com`.
-- To use `DD_CUSTOM_SCRUBBING_RULE`, add it as a environment variable, and supply a regular expression as the value. 
+- To use `DD_CUSTOM_SCRUBBING_RULE`, add it as a environment variable, and supply a regular expression as the value.
+    - Text matching the user-supplied regular expression will be replaced with `xxxxx`. 
 
 ## 7. (optional) Multiline Log support for s3
 
