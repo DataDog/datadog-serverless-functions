@@ -75,6 +75,16 @@ SCRUBBING_RULE_CONFIGS = [
     ),
 ]
 
+# DD_CUSTOM_SCRUBBING_RULE: Regular expression for custom scrubbing rule
+DD_CUSTOM_SCRUBBING_RULE = None
+if "DD_CUSTOM_SCRUBBING_RULE" in os.environ:
+    DD_CUSTOM_SCRUBBING_RULE = os.environ["DD_CUSTOM_SCRUBBING_RULE"]
+    SCRUBBING_RULE_CONFIGS.append(
+        ScrubbingRuleConfig(
+            "DD_CUSTOM_SCRUBBING_RULE", DD_CUSTOM_SCRUBBING_RULE, "xxxxx"
+        )
+    )
+
 
 # DD_API_KEY: Datadog API Key
 DD_API_KEY = "<your_api_key>"
@@ -332,7 +342,7 @@ class DatadogScrubber(object):
                         )
                     )
             except Exception:
-                raise Exception("could not compile rule with config: {}".format(config))
+                raise Exception("could not compile rule with config: {}".format(config.name))
         self._rules = rules
 
     def scrub(self, payload):
