@@ -56,7 +56,7 @@ There are 3 possibilities to set your Datadog's API key (available in your Datad
 - **(Optional) Metadata**:
 
 You can optionally change the structured metadata. The metadata is merged to all the log events sent by the Lambda script.
-Example: to add the environment value to your logs:
+Example adding the environment (`env`) value to your logs:
 
 ```
 metadata = {
@@ -69,7 +69,7 @@ metadata = {
 
 You have two options to add custom tags to your logs:
 
-- Manually by editing the lambda code [there](https://github.com/DataDog/dd-aws-lambda-functions/blob/master/Log/lambda_function.py#L79).
+- Manually by editing the lambda code [here](https://github.com/DataDog/datadog-serverless-functions/blob/master/aws/logs_monitoring/lambda_function.py#L418-L423).
 - Automatically with the `DD_TAGS` environment variable (tags must be a comma-separated list of strings).
 
 ## 3. (optional) Send logs to EU or to a proxy
@@ -88,7 +88,7 @@ Two environment variables can be used to forward logs through a proxy:
 ## 4. Configuration
 
 - Set the memory to the highest possible value.
-- Set also the timeout limit. We recommends 120 seconds to deal with big files.
+- Also set the timeout limit. We recommends 120 seconds to deal with big files.
 - Hit the `Save and Test` button.
 
 ## 5. Testing it
@@ -99,7 +99,7 @@ For S3 logs, there may be some latency between the time a first S3 log file is p
 
 ## 6. (optional) Scrubbing / Redaction rules
 
-Multiple scrubbing options are available.  `REDACT_IP` and `REDACT_EMAIL` match against hard-coded patterns, and `DD_CUSTOM_SCRUBBING_RULE` allows users to supply a custom regular expression.
+Multiple scrubbing options are available.  `REDACT_IP` and `REDACT_EMAIL` match against hard-coded patterns, while `DD_CUSTOM_SCRUBBING_RULE` allows users to supply a custom regular expression.
 
 - To use `REDACT_IP`, add it as an environment variable and give it any value (the exact value doesn't matter).  
     - Text matching `\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}` will be replaced with `xxx.xxx.xxx.xxx`.
