@@ -80,6 +80,27 @@ SCRUBBING_RULE_CONFIGS = [
     )
 ]
 
+
+class FilteringRuleConfig(object):
+    def __init__(self, name, pattern, placeholder):
+        self.name = name
+        self.pattern = pattern
+
+# Filtering rules: INCLUDE_AT_MATCH and EXCLUDE_AT_MATCH
+# Option to include or exclude logs based on a pattern match
+FILTERING_RULE_CONFIGS = [
+    FilteringRuleConfig(
+        "INCLUDE_AT_MATCH", 
+        os.getenv("INCLUDE_AT_MATCH", default=None)
+    ),
+     FilteringRuleConfig(
+        "EXCLUDE_AT_MATCH", 
+        os.getenv("EXCLUDE_AT_MATCH", default=None)
+    ),   
+]
+
+
+
 # DD_API_KEY: Datadog API Key
 DD_API_KEY = "<your_api_key>"
 if "DD_KMS_API_KEY" in os.environ:
@@ -464,6 +485,10 @@ def split(events):
             logs.append(event)
     return metrics, logs
 
+def filter_logs(logs):
+    for log in logs:
+        try:
+            #TODO
 
 def forward_metrics(metrics):
     """
