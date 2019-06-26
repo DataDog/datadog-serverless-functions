@@ -107,7 +107,7 @@ Multiple scrubbing options are available.  `REDACT_IP` and `REDACT_EMAIL` match 
 	- Text matching `[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+` will be replaced with `xxxxx@xxxxx.com`.
 - To use `DD_CUSTOM_SCRUBBING_RULE`, add it as a environment variable, and supply a regular expression as the value.
     - Text matching the user-supplied regular expression will be replaced with `xxxxx`, by default. 
-    - Use the DD_CUSTOM_SCRUBBING_RULE_REPLACEMENT environment variable to supply a custom replacement value instead of `xxxxx`
+    - Use the `DD_CUSTOM_SCRUBBING_RULE_REPLACEMENT` environment variable to supply a custom replacement value instead of `xxxxx`
 
 ## 7. (optional) Multiline Log support for s3
 
