@@ -107,7 +107,7 @@ Multiple scrubbing options are available.  `REDACT_IP` and `REDACT_EMAIL` match 
 	- Text matching `[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+` will be replaced with `xxxxx@xxxxx.com`.
 - To use `DD_CUSTOM_SCRUBBING_RULE`, add it as a environment variable, and supply a regular expression as the value.
     - Text matching the user-supplied regular expression will be replaced with `xxxxx`, by default. 
-    - To customize the replacement text, change the `xxxxx` to the desired text in the `ScrubbingRuleConfig` for the `DD_CUSTOM_SCRUBBING_RULE` [here](https://github.com/DataDog/datadog-serverless-functions/blob/master/aws/logs_monitoring/lambda_function.py#L80).
+    - Use the DD_CUSTOM_SCRUBBING_RULE_REPLACEMENT environment variable to supply a custom replacement value instead of `xxxxx`
 
 ## 7. (optional) Multiline Log support for s3
 

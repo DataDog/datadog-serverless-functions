@@ -63,7 +63,7 @@ class ScrubbingRuleConfig(object):
 
 
 # Scrubbing sensitive data
-# Option to redact all pattern that looks like an ip address / email address
+# Option to redact all pattern that looks like an ip address / email address / custom pattern
 SCRUBBING_RULE_CONFIGS = [
     ScrubbingRuleConfig(
         "REDACT_IP", "\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", "xxx.xxx.xxx.xxx"
@@ -73,17 +73,12 @@ SCRUBBING_RULE_CONFIGS = [
         "[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+",
         "xxxxx@xxxxx.com",
     ),
-]
-
-# DD_CUSTOM_SCRUBBING_RULE: Regular expression for custom scrubbing rule
-DD_CUSTOM_SCRUBBING_RULE = None
-if "DD_CUSTOM_SCRUBBING_RULE" in os.environ:
-    DD_CUSTOM_SCRUBBING_RULE = os.environ["DD_CUSTOM_SCRUBBING_RULE"]
-    SCRUBBING_RULE_CONFIGS.append(
-        ScrubbingRuleConfig(
-            "DD_CUSTOM_SCRUBBING_RULE", DD_CUSTOM_SCRUBBING_RULE, "xxxxx"
-        )
+    ScrubbingRuleConfig(
+        "CUSTOM_SCRUBBING_RULE", 
+        os.getenv("CUSTOM_SCRUBBING_RULE", default=None), 
+        os.getenv("CUSTOM_SCRUBBING_RULE_REPLACEMENT", default="xxxxx")
     )
+]
 
 # DD_API_KEY: Datadog API Key
 DD_API_KEY = "<your_api_key>"
