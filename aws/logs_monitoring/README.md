@@ -10,6 +10,7 @@ AWS Lambda function to ship logs and metrics from ELB, S3, CloudTrail, VPC, Clou
 - SSL Security
 - JSON events providing details about S3 documents forwarded
 - Structured meta-information can be attached to the events
+- Scrubbing / Redaction rules
 - Multiline Log Support (S3 Only)
 - Forward custom metrics from logs
 
@@ -55,7 +56,7 @@ There are 3 possibilities to set your Datadog's API key (available in your Datad
 - **(Optional) Metadata**:
 
 You can optionally change the structured metadata. The metadata is merged to all the log events sent by the Lambda script.
-Example: to add the environment value to your logs:
+Example adding the environment (`env`) value to your logs:
 
 ```
 metadata = {
@@ -68,7 +69,7 @@ metadata = {
 
 You have two options to add custom tags to your logs:
 
-- Manually by editing the lambda code [there](https://github.com/DataDog/dd-aws-lambda-functions/blob/master/Log/lambda_function.py#L79).
+- Manually by editing the lambda code [here](https://github.com/DataDog/datadog-serverless-functions/blob/master/aws/logs_monitoring/lambda_function.py#L418-L423).
 - Automatically with the `DD_TAGS` environment variable (tags must be a comma-separated list of strings).
 
 ## 3. (optional) Send logs to EU or to a proxy
@@ -87,7 +88,7 @@ Two environment variables can be used to forward logs through a proxy:
 ## 4. Configuration
 
 - Set the memory to the highest possible value.
-- Set also the timeout limit. We recommends 120 seconds to deal with big files.
+- Also set the timeout limit. We recommends 120 seconds to deal with big files.
 - Hit the `Save and Test` button.
 
 ## 5. Testing it
@@ -96,13 +97,25 @@ If the test "succeeded", you are all set! The test log will not show up in the p
 
 For S3 logs, there may be some latency between the time a first S3 log file is posted and the Lambda function wakes up.
 
-## 6. (optional) Multiline Log support for s3
+## 6. (optional) Scrubbing / Redaction rules
+
+Multiple scrubbing options are available.  `REDACT_IP` and `REDACT_EMAIL` match against hard-coded patterns, while `DD_CUSTOM_SCRUBBING_RULE` allows users to supply a custom regular expression.
+
+- To use `REDACT_IP`, add it as an environment variable and set the value to `true`.  
+    - Text matching `\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}` will be replaced with `xxx.xxx.xxx.xxx`.
+- To use `REDACT_EMAIL`, add it as an environment variable and set the value to `true`.
+	- Text matching `[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+` will be replaced with `xxxxx@xxxxx.com`.
+- To use `CUSTOM_SCRUBBING_RULE`, add it as a environment variable, and supply a regular expression as the value.
+    - Text matching the user-supplied regular expression will be replaced with `xxxxx`, by default. 
+    - Use the `CUSTOM_SCRUBBING_RULE_REPLACEMENT` environment variable to supply a custom replacement value instead of `xxxxx`.
+
+## 7. (optional) Multiline Log support for s3
 
 If there are multiline logs in s3, set `DD_MULTILINE_LOG_REGEX_PATTERN` environment variable to the specified regex pattern to detect for a new log line.
 
 - Example: for multiline logs beginning with pattern `11/10/2014`: `DD_MULTILINE_LOG_REGEX_PATTERN="\d{2}\/\d{2}\/\d{4}"`
 
-## 7. (optional) Forward Metrics from Logs
+## 8. (optional) Forward Metrics from Logs
 
 For example, if you have a Lambda function that powers a performance-critical task (e.g., a consumer-facing API), you can avoid the added latencies of submitting metric via API calls, by writing custom metrics to CloudWatch Logs using the appropriate Datadog Lambda Layer (e.g., [Lambda Layer for Python](https://github.com/DataDog/datadog-lambda-layer-python)). The log forwarder will automatically detect log entries that contain metrics and forward them to Datadog metric intake.
 
