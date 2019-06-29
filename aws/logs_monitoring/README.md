@@ -11,6 +11,7 @@ AWS Lambda function to ship logs and metrics from ELB, S3, CloudTrail, VPC, Clou
 - JSON events providing details about S3 documents forwarded
 - Structured meta-information can be attached to the events
 - Scrubbing / Redaction rules
+- Filtering rules (`INCLUDE_AT_MATCH` and `EXCLUDE_AT_MATCH`)
 - Multiline Log Support (S3 Only)
 - Forward custom metrics from logs
 
@@ -109,13 +110,21 @@ Multiple scrubbing options are available.  `REDACT_IP` and `REDACT_EMAIL` match 
     - Text matching the user-supplied regular expression will be replaced with `xxxxx`, by default. 
     - Use the `CUSTOM_SCRUBBING_RULE_REPLACEMENT` environment variable to supply a custom replacement value instead of `xxxxx`.
 
-## 7. (optional) Multiline Log support for s3
+## 7. (optional) Filtering rules
+
+Use the `INCLUDE_AT_MATCH` OR `EXCLUDE_AT_MATCH` environment variables to include or exclude logs based on a regular expression match, respectively.
+
+- To use `INCLUDE_AT_MATCH` add it as an environment variable, and set it's value to a regular expression. A log that matches the regular expression will be included unless it matches an exclusion criteria.
+- To use `EXCLUDE_AT_MATCH` add it as an environment variable, and set it's value to a regular expression. A log that matches the regular expression will be excluded.
+- If a log matches both the inclusion and exclusion criteria, it will be excluded.
+
+## 8. (optional) Multiline Log support for s3
 
 If there are multiline logs in s3, set `DD_MULTILINE_LOG_REGEX_PATTERN` environment variable to the specified regex pattern to detect for a new log line.
 
 - Example: for multiline logs beginning with pattern `11/10/2014`: `DD_MULTILINE_LOG_REGEX_PATTERN="\d{2}\/\d{2}\/\d{4}"`
 
-## 8. (optional) Forward Metrics from Logs
+## 9. (optional) Forward Metrics from Logs
 
 For example, if you have a Lambda function that powers a performance-critical task (e.g., a consumer-facing API), you can avoid the added latencies of submitting metric via API calls, by writing custom metrics to CloudWatch Logs using the appropriate Datadog Lambda Layer (e.g., [Lambda Layer for Python](https://github.com/DataDog/datadog-lambda-layer-python)). The log forwarder will automatically detect log entries that contain metrics and forward them to Datadog metric intake.
 

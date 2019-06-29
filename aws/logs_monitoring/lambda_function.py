@@ -81,23 +81,24 @@ SCRUBBING_RULE_CONFIGS = [
 ]
 
 
-
 # Filtering logs 
 # Option to include or exclude logs based on a pattern match
 INCLUDE_AT_MATCH = os.getenv("INCLUDE_AT_MATCH", default=None)
 if INCLUDE_AT_MATCH is not None:
+    if INCLUDE_AT_MATCH == "":
+        raise Exception("No pattern provided:\nAdd pattern or remove INCLUDE_AT_MATCH environment variable")
     try:
        include_regex = re.compile(INCLUDE_AT_MATCH)
     except Exception:
         raise Exception("could not compile inclusion regex with pattern: {}".format(INCLUDE_AT_MATCH))
-
 EXCLUDE_AT_MATCH = os.getenv("EXCLUDE_AT_MATCH", default=None)
 if EXCLUDE_AT_MATCH is not None:
+    if EXCLUDE_AT_MATCH == "":
+        raise Exception("No pattern provided:\nAdd pattern or remove EXCLUDE_AT_MATCH environment variable")
     try:
        exclude_regex = re.compile(EXCLUDE_AT_MATCH)
     except Exception:
         raise Exception("could not compile exclusion regex with pattern: {}".format(EXCLUDE_AT_MATCH))
-
 
 
 # DD_API_KEY: Datadog API Key
@@ -376,10 +377,7 @@ def datadog_forwarder(event, context):
     events = parse(event, context)
     metrics, logs = split(events)
     if DD_FORWARD_LOG:
-        if INCLUDE_AT_MATCH is None and EXCLUDE_AT_MATCH is None:
-            forward_logs(logs)
-        else:
-            forward_logs(filter_logs(logs))
+        forward_logs(filter_logs(logs))
     if DD_FORWARD_METRIC:
         forward_metrics(metrics)
 
@@ -487,22 +485,30 @@ def split(events):
             logs.append(event)
     return metrics, logs
 
+
 # should only be called when INCLUDE_AT_MATCH and/or EXCLUDE_AT_MATCH exist
 def filter_logs(logs):
     """
-    Applies log filtering rules
+    Applies log filtering rules.
+    If no filtering rules exist, return all the logs.
     """
     if INCLUDE_AT_MATCH is None and EXCLUDE_AT_MATCH is None:
         return logs 
+    # Add logs that should be sent to logs_to_send
     logs_to_send = []
+    # If both an include and exclude rules exist, 
+    # send logs that match inclusion criteria, but not exclusion criteria
     if INCLUDE_AT_MATCH is not None and EXCLUDE_AT_MATCH is not None:
         for log in logs:
             try:
-                if re.search(include_regex, json.dumps(log)) is not None and re.search(exclude_regex, json.dumps(log)) is None:
+
+                string_log = json.dumps(log)
+                if re.search(include_regex, string_log) is not None and re.search(exclude_regex, string_log) is None:
                     logs_to_send.append(log)
             except ScrubbingException:
                 raise Exception("could not filter the payload")
         return logs_to_send
+    # else if only an inclusion rule exists, send logs that match inclusion criteria
     elif INCLUDE_AT_MATCH is not None:
         for log in logs:
             try:
@@ -511,14 +517,16 @@ def filter_logs(logs):
             except ScrubbingException:
                 raise Exception("could not filter the payload")
         return logs_to_send
+    # else if only an exclusion rule exists, send logs that do not match exclusion criteria
     elif EXCLUDE_AT_MATCH is not None:
         for log in logs:
             try:
-                if re.search(exclude_regex, json.dumps(log)) is  None:
+                if re.search(exclude_regex, json.dumps(log)) is None:
                     logs_to_send.append(log)
             except ScrubbingException:
                 raise Exception("could not filter the payload")
         return logs_to_send
+
 
 def forward_metrics(metrics):
     """
