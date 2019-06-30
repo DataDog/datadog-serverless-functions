@@ -112,10 +112,10 @@ Multiple scrubbing options are available.  `REDACT_IP` and `REDACT_EMAIL` match 
 
 ## 7. (optional) Filtering rules
 
-Use the `INCLUDE_AT_MATCH` OR `EXCLUDE_AT_MATCH` environment variables to include or exclude logs based on a regular expression match, respectively.
+Use the `EXCLUDE_AT_MATCH` OR `INCLUDE_AT_MATCH` environment variables to filter logs based on a regular expression match.
 
-- To use `INCLUDE_AT_MATCH` add it as an environment variable, and set it's value to a regular expression. A log that matches the regular expression will be included unless it matches an exclusion criteria.
-- To use `EXCLUDE_AT_MATCH` add it as an environment variable, and set it's value to a regular expression. A log that matches the regular expression will be excluded.
+- To use `EXCLUDE_AT_MATCH` add it as an environment variable and set its value to a regular expression. Logs matching the regular expression will be excluded.
+- To use `INCLUDE_AT_MATCH` add it as an environment variable and set its value to a regular expression. If not excluded by `EXCLUDE_AT_MATCH`, logs matching the regular expression will be included.
 - If a log matches both the inclusion and exclusion criteria, it will be excluded.
 
 ## 8. (optional) Multiline Log support for s3
