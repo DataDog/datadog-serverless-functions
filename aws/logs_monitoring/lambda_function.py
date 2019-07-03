@@ -74,9 +74,9 @@ SCRUBBING_RULE_CONFIGS = [
         "xxxxx@xxxxx.com",
     ),
     ScrubbingRuleConfig(
-        "CUSTOM_SCRUBBING_RULE", 
-        os.getenv("CUSTOM_SCRUBBING_RULE", default=None), 
-        os.getenv("CUSTOM_SCRUBBING_RULE_REPLACEMENT", default="xxxxx")
+        "DD_SCRUBBING_RULE", 
+        os.getenv("DD_SCRUBBING_RULE", default=None), 
+        os.getenv("DD_SCRUBBING_RULE_REPLACEMENT", default="xxxxx")
     )
 ]
 
@@ -496,36 +496,22 @@ def filter_logs(logs):
         return logs 
     # Add logs that should be sent to logs_to_send
     logs_to_send = []
-    # If both an include and exclude rules exist, 
-    # send logs that match inclusion criteria, but not exclusion criteria
-    if INCLUDE_AT_MATCH is not None and EXCLUDE_AT_MATCH is not None:
-        for log in logs:
-            try:
-
-                string_log = json.dumps(log)
-                if re.search(include_regex, string_log) is not None and re.search(exclude_regex, string_log) is None:
-                    logs_to_send.append(log)
-            except ScrubbingException:
-                raise Exception("could not filter the payload")
-        return logs_to_send
-    # else if only an inclusion rule exists, send logs that match inclusion criteria
-    elif INCLUDE_AT_MATCH is not None:
-        for log in logs:
-            try:
-                if re.search(include_regex, json.dumps(log)) is not None:
-                    logs_to_send.append(log)
-            except ScrubbingException:
-                raise Exception("could not filter the payload")
-        return logs_to_send
-    # else if only an exclusion rule exists, send logs that do not match exclusion criteria
-    elif EXCLUDE_AT_MATCH is not None:
-        for log in logs:
-            try:
-                if re.search(exclude_regex, json.dumps(log)) is None:
-                    logs_to_send.append(log)
-            except ScrubbingException:
-                raise Exception("could not filter the payload")
-        return logs_to_send
+    # Test each log for exclusion and inclusion, if the criteria exist
+    for log in logs:
+        try:
+            string_log = json.dumps(log)
+            if EXCLUDE_AT_MATCH is not None:
+                # if an exclude match is found, do not add log to logs_to_send
+                if re.search(exclude_regex, string_log):
+                    continue
+            if INCLUDE_AT_MATCH is not None:
+                # if no include match is found, do not add log to logs_to_send 
+                if not re.search(include_regex, string_log):
+                    continue
+            logs_to_send.append(log)
+        except ScrubbingException:
+            raise Exception("could not filter the payload")
+    return logs_to_send
 
 
 def forward_metrics(metrics):
