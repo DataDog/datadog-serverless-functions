@@ -225,7 +225,7 @@ class DatadogTCPClient(object):
         try:
             frame = self._scrubber.scrub(
                 "".join(
-                    ["{} {}\n".format(self._api_key, json.dumps(log)) for log in logs]
+                    ["{} {}\n".format(self._api_key, log) for log in logs]
                 )
             )
             self._sock.sendall(frame.encode("UTF-8"))
@@ -272,7 +272,7 @@ class DatadogHTTPClient(object):
         try:
             resp = self._session.post(
                 self._url,
-                data=self._scrubber.scrub(json.dumps(logs)),
+                data=self._scrubber.scrub("[{}]".format(", ".join(map(json.dumps, logs)))),
                 timeout=self._timeout,
             )
         except ScrubbingException:
@@ -309,7 +309,7 @@ class DatadogBatcher(object):
         self._max_size_count = max_size_count
 
     def _sizeof_bytes(self, log):
-        return len(json.dumps(log).encode("UTF-8"))
+        return len(log.encode("UTF-8"))
 
     def batch(self, logs):
         """
@@ -493,7 +493,8 @@ def filter_logs(logs):
     If no filtering rules exist, return all the logs.
     """
     if INCLUDE_AT_MATCH is None and EXCLUDE_AT_MATCH is None:
-        return logs 
+        # convert to strings
+        return map(json.dumps, logs) 
     # Add logs that should be sent to logs_to_send
     logs_to_send = []
     # Test each log for exclusion and inclusion, if the criteria exist
@@ -508,7 +509,7 @@ def filter_logs(logs):
                 # if no include match is found, do not add log to logs_to_send 
                 if not re.search(include_regex, string_log):
                     continue
-            logs_to_send.append(log)
+            logs_to_send.append(string_log)
         except ScrubbingException:
             raise Exception("could not filter the payload")
     return logs_to_send
