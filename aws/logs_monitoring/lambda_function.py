@@ -127,6 +127,8 @@ if "DD_MULTILINE_LOG_REGEX_PATTERN" in os.environ:
         "^{}".format(DD_MULTILINE_LOG_REGEX_PATTERN)
     )
 
+rds_regex = re.compile("/aws/rds/instance/(?P<host>[^/]+)/(?P<name>[^/]+)")
+
 DD_SOURCE = "ddsource"
 DD_CUSTOM_TAGS = "ddtags"
 DD_SERVICE = "service"
@@ -614,6 +616,19 @@ def awslogs_handler(event, context, metadata):
     # Set host as log group where cloudwatch is source
     if metadata[DD_SOURCE] == "cloudwatch":
         metadata[DD_HOST] = aws_attributes["aws"]["awslogs"]["logGroup"]
+
+    # When parsing rds logs, use the cloudwatch log group name to derive the
+    # rds instance name, and add the log name of the stream ingested
+    if metadata[DD_SOURCE] == "rds":
+        match = rds_regex.match(logs["logGroup"])
+        if match is not None:
+            metadata[DD_HOST] = match.group("host")
+            metadata[DD_CUSTOM_TAGS] = (
+                    metadata[DD_CUSTOM_TAGS] + ",logname:" + match.group("name")
+            )
+            # We can intuit the sourcecategory in some cases
+            if match.group("name") == "postgresql":
+                metadata[DD_CUSTOM_TAGS] + ",sourcecategory:" + match.group("name")
 
     # For Lambda logs we want to extract the function name,
     # then rebuild the arn of the monitored lambda using that name.
