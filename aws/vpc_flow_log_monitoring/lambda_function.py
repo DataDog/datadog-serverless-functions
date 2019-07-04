@@ -37,9 +37,15 @@ def process_message(message, tags, timestamp, node_ip):
     version, account_id, interface_id, srcaddr, dstaddr, srcport, dstport, protocol, packets, _bytes, start, end, action, log_status = message.split(" ")
 
     detailed_tags = [
+        "aws_account:%s" % account_id,
         "interface_id:%s" % interface_id,
         "protocol:%s" % protocol_id_to_name(protocol),
         "ip:%s" % node_ip,
+        "src_address:%s" % srcaddr,
+        "src_port:%s" % srcport,
+        "dest_address:%s" % dstaddr,
+        "dest_port:%s" % dstport,   
+        "status:%s" % log_status,
     ] + tags
     if srcaddr == node_ip:
         detailed_tags.append("direction:outbound")
