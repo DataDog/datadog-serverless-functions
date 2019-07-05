@@ -51,16 +51,17 @@ def process_message(message, tags, timestamp, node_ip):
         detailed_tags.append("direction:outbound")
     if dstaddr == node_ip:
         detailed_tags.append("direction:inbound")
+    try:
+        process_log_status(log_status, detailed_tags, timestamp)
+        if log_status == 'NODATA':
+            return
 
-    process_log_status(log_status, detailed_tags, timestamp)
-    if log_status == 'NODATA':
-        return
-
-    process_action(action, detailed_tags, timestamp)
-    process_duration(start, end, detailed_tags, timestamp)
-    process_packets(packets, detailed_tags, timestamp)
-    process_bytes(_bytes, detailed_tags, timestamp)
-
+        process_action(action, detailed_tags, timestamp)
+        process_duration(start, end, detailed_tags, timestamp)
+        process_packets(packets, detailed_tags, timestamp)
+        process_bytes(_bytes, detailed_tags, timestamp)
+    except Exception, e:
+        print (e)
 
 def compute_node_ip(events):
     ip_count = Counter()
