@@ -323,9 +323,14 @@ class Stats(object):
         creds = urllib.urlencode(datadog_keys)
         data = json.dumps(metrics_dict)
         url = '%s?%s' % (datadog_keys.get('api_host', 'https://app.%s/api/v1/series' % DD_SITE), creds)
-        req = urllib2.Request(url, data, {'Content-Type': 'application/json'})
-        response = urllib2.urlopen(req)
-        print('INFO Submitted data with status {}'.format(response.getcode()))
+        try:
+            req = urllib2.Request(url, data, {'Content-Type': 'application/json'})
+            response = urllib2.urlopen(req)
+            print('INFO Submitted data with status {}'.format(response.getcode()))
+        except Exception, e:
+            print (e)
+            print (data)
+            print(req)
 
 stats = Stats()
 
