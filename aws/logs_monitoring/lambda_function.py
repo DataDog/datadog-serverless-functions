@@ -703,7 +703,7 @@ def awslogs_handler(event, context, metadata):
     else:
         log_events = logs["logEvents"]
 
-    for log in logs["logEvents"]:
+    for log in logs_events:
         yield merge_dicts(log, aws_attributes)
 
 
