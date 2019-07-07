@@ -122,7 +122,7 @@ If there are multiline logs in CloudWatch, set `DD_MULTILINE_CLOUDWATCH_LOG_REGE
 - Note: Backslashes in regex should be escaped to ensure they are handled correctly when JSON is parsed, ie `\d{2}` => `\\d{2}`.
 
 - Example: for multiline logs from CloudWatch log group `aws/lambda/exampleOne` beginning with pattern `11/10/2014` and log group `aws/lambda/exampleTwo` beginning with pattern: `2014-11-10`: `DD_MULTILINE_CLOUDWATCH_LOG_REGEX_PATTERNS=
-{"/aws/lambda/exampleOne":"\\d{4}/\\d{2}/\\d{2}", "/aws/lambda/exampleTwo":"\\d{4}-\\d{2}-\\d{2}"}`
+{"/aws/lambda/exampleOne":"\\d{2}/\\d{2}/\\d{4}", "/aws/lambda/exampleTwo":"\\d{4}-\\d{2}-\\d{2}"}`
 
 ## 9. (optional) Forward Metrics from Logs
 
