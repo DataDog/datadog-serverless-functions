@@ -122,10 +122,33 @@ if "DD_MULTILINE_LOG_REGEX_PATTERN" in os.environ:
             "(?<!^)\s+(?={})(?!.\s)".format(DD_MULTILINE_LOG_REGEX_PATTERN)
         )
     except Exception:
-        raise Exception("could not compile multiline regex with pattern: {}".format(DD_MULTILINE_LOG_REGEX_PATTERN))
+        raise Exception("could not compile s3 multiline regex with pattern: {}".format(DD_MULTILINE_LOG_REGEX_PATTERN))
     multiline_regex_start_pattern = re.compile(
         "^{}".format(DD_MULTILINE_LOG_REGEX_PATTERN)
     )
+
+
+# DD_MULTILINE_CLOUDWATCH_REGEX: Datadog Multiline Cloudwatch Logs Regular Expression Patterns for Log Groups
+DD_MULTILINE_CLOUDWATCH_LOG_REGEX_PATTERNS = None
+if "DD_MULTILINE_CLOUDWATCH_LOG_REGEX_PATTERNS" in os.environ:
+    multiline_regexs = os.environ["DD_MULTILINE_CLOUDWATCH_LOG_REGEX_PATTERNS"]
+    try:
+        DD_MULTILINE_CLOUDWATCH_LOG_REGEX_PATTERNS = {}
+        cloudwatch_regex_dict = json.loads(multiline_regexs)
+
+        # compile regex start paterns for each dictionary entry
+        for log_group_name in cloudwatch_regex_dict:
+            if log_group_name not in DD_MULTILINE_CLOUDWATCH_LOG_REGEX_PATTERNS:
+                log_group_rule = cloudwatch_regex_dict[log_group_name]
+
+                # ensure pattern only matchs at start of line
+                DD_MULTILINE_CLOUDWATCH_LOG_REGEX_PATTERNS[log_group_name] = re.compile(
+                    "^{}".format(log_group_rule)
+                )
+
+    except Exception as e:
+        DD_MULTILINE_CLOUDWATCH_LOG_REGEX_PATTERNS = None
+        raise Exception("could not compile cloudwatch multiline log regex with patterns: {} , error: {}".format(multiline_regexs, str(e)))
 
 rds_regex = re.compile("/aws/rds/instance/(?P<host>[^/]+)/(?P<name>[^/]+)")
 
@@ -652,6 +675,34 @@ def awslogs_handler(event, context, metadata):
                 metadata[DD_HOST] = arn
 
     # Create and send structured logs to Datadog
+    # if multiline regex, iterate over log events and concatenate multiline logs into parent log
+    # child multiline logs must have matching timestamp and not match regex start pattern
+    log_events = []
+
+    if DD_MULTILINE_CLOUDWATCH_LOG_REGEX_PATTERNS and logs["logGroup"] in DD_MULTILINE_CLOUDWATCH_LOG_REGEX_PATTERNS:
+        multiline_log_timestamp = None
+        multiline_log_flag = False
+        log_group = logs["logGroup"]
+
+        for log in logs["logEvents"]:
+            if DD_MULTILINE_CLOUDWATCH_LOG_REGEX_PATTERNS[log_group].match(log["message"]):
+                multiline_log_timestamp = log["timestamp"]
+                multiline_log_flag = True
+                log_events.append(log)
+            elif log["timestamp"] != multiline_log_timestamp:
+                multiline_log_timestamp = None
+                multiline_log_flag = False
+                log_events.append(log)
+            elif multiline_log_flag:
+                # valid child multiline log, matching timestamp and multiline log flag has been toggled
+                log_events[-1]["message"] += log["message"]
+            else:
+                # edge case, multiple logs without starting pattern regex
+                multiline_log_timestamp = None
+                log_events.append(log)
+    else:
+        log_events = logs["logEvents"]
+
     for log in logs["logEvents"]:
         yield merge_dicts(log, aws_attributes)
 
