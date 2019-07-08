@@ -325,22 +325,26 @@ class Stats(object):
                     )
 
         self._initialize()
+        
+        n = 5000
+        series_segment = [series[i * n:(i + 1) * n] for i in range((len(series) + n - 1) // n )]  
+        
+        for seg in series_segment: 
+            metrics_dict = {
+                'series': seg,
+            }
 
-        metrics_dict = {
-            'series': series,
-        }
-
-        creds = urllib.urlencode(datadog_keys)
-        data = json.dumps(metrics_dict)
-        url = '%s?%s' % (datadog_keys.get('api_host', 'https://app.%s/api/v1/series' % DD_SITE), creds)
-        try:
-            req = urllib2.Request(url, data, {'Content-Type': 'application/json'})
-            response = urllib2.urlopen(req)
-            print('INFO Submitted data with status {}'.format(response.getcode()))
-        except Exception, e:
-            print (e)
-            print (data)
-            print(req)
+            creds = urllib.urlencode(datadog_keys)
+            data = json.dumps(metrics_dict)
+            url = '%s?%s' % (datadog_keys.get('api_host', 'https://app.%s/api/v1/series' % DD_SITE), creds)
+            try:
+                req = urllib2.Request(url, data, {'Content-Type': 'application/json'})
+                response = urllib2.urlopen(req)
+                print('INFO Submitted data with status {}'.format(response.getcode()))
+            except Exception, e:
+                print (e)
+                print (data)
+                print(req)
 
 stats = Stats()
 
