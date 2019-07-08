@@ -47,19 +47,29 @@ def process_message(message, tags, timestamp, node_ip):
         "dest_port:%s" % dstport,   
         "status:%s" % log_status,
     ] + tags
+    
+    base_tags = [
+        "aws_account:%s" % account_id,
+        "interface_id:%s" % interface_id,
+        "protocol:%s" % protocol_id_to_name(protocol),
+        "ip:%s" % node_ip,
+    ] + tags
+    
     if srcaddr == node_ip:
         detailed_tags.append("direction:outbound")
+        base_tags.append("direction:outbound")
     if dstaddr == node_ip:
         detailed_tags.append("direction:inbound")
+        base_tags.append("direction:inbound")
 
     process_log_status(log_status, detailed_tags, timestamp)
     if log_status == 'NODATA':
         return
 
     process_action(action, detailed_tags, timestamp)
-    process_duration(start, end, detailed_tags, timestamp)
-    process_packets(packets, detailed_tags, timestamp)
-    process_bytes(_bytes, detailed_tags, timestamp)
+    process_duration(start, end, base_tags, timestamp)
+    process_packets(packets, base_tags, timestamp)
+    process_bytes(_bytes, base_tags, timestamp)
 
 
 def compute_node_ip(events):
