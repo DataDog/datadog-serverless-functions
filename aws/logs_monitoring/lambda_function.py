@@ -80,25 +80,25 @@ SCRUBBING_RULE_CONFIGS = [
     )
 ]
 
+# Use for include, exclude, and scrubbing rules
+def compileRegex(rule, pattern):
+    if pattern is not None:
+        if pattern == "":
+            # If pattern is an empty string, raise exception
+            raise Exception("No pattern provided:\nAdd pattern or remove {} environment variable".format(rule))
+        try:
+            return re.compile(pattern)
+        except Exception:
+            raise Exception("could not compile {} regex with pattern: {}".format(rule, pattern))
+
 
 # Filtering logs 
 # Option to include or exclude logs based on a pattern match
 INCLUDE_AT_MATCH = os.getenv("INCLUDE_AT_MATCH", default=None)
-if INCLUDE_AT_MATCH is not None:
-    if INCLUDE_AT_MATCH == "":
-        raise Exception("No pattern provided:\nAdd pattern or remove INCLUDE_AT_MATCH environment variable")
-    try:
-       include_regex = re.compile(INCLUDE_AT_MATCH)
-    except Exception:
-        raise Exception("could not compile inclusion regex with pattern: {}".format(INCLUDE_AT_MATCH))
+include_regex = compileRegex("INCLUDE_AT_MATCH", INCLUDE_AT_MATCH)
+
 EXCLUDE_AT_MATCH = os.getenv("EXCLUDE_AT_MATCH", default=None)
-if EXCLUDE_AT_MATCH is not None:
-    if EXCLUDE_AT_MATCH == "":
-        raise Exception("No pattern provided:\nAdd pattern or remove EXCLUDE_AT_MATCH environment variable")
-    try:
-       exclude_regex = re.compile(EXCLUDE_AT_MATCH)
-    except Exception:
-        raise Exception("could not compile exclusion regex with pattern: {}".format(EXCLUDE_AT_MATCH))
+exclude_regex = compileRegex("EXCLUDE_AT_MATCH", EXCLUDE_AT_MATCH)
 
 
 # DD_API_KEY: Datadog API Key
@@ -352,15 +352,13 @@ class DatadogScrubber(object):
     def __init__(self, configs):
         rules = []
         for config in configs:
-            try:
-                if os.environ.get(config.name, False):
-                    rules.append(
-                        ScrubbingRule(
-                            re.compile(config.pattern, re.I), config.placeholder
-                        )
+            if config.name in os.environ:
+                rules.append(
+                    ScrubbingRule(
+                        compileRegex(config.name, config.pattern), 
+                        config.placeholder
                     )
-            except Exception:
-                raise Exception("could not compile rule with config: {}".format(config.name))
+                )
         self._rules = rules
 
     def scrub(self, payload):
