@@ -272,7 +272,7 @@ class DatadogHTTPClient(object):
         try:
             resp = self._session.post(
                 self._url,
-                data=self._scrubber.scrub("[{}]".format(", ".join(map(json.dumps, logs)))),
+                data=self._scrubber.scrub("[{}]".format(",".join(logs))),
                 timeout=self._timeout,
             )
         except ScrubbingException:
