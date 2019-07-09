@@ -758,10 +758,11 @@ def parse_service_arn(source, key, bucket, context):
         # 3. We extract the id of the loadbalancer
         # 4. We build the arn
         idsplit = key.split("/")
-        # If AWSLogs isn't the first element of idsplit, there is a prefix 
+        # If there is a prefix on the S3 bucket, idsplit[1] will be "AWSLogs"
         # Remove the prefix before splitting they key
-        if idsplit[0] != "AWSLogs":
-            keysplit = "/".join(idsplit[1:]).split("_")
+        if len(idsplit) > 1 and idsplit[1] == "AWSLogs":
+            idsplit = idsplit[1:]
+            keysplit = "/".join(idsplit).split("_")
         # If no prefix, split the key
         else:
             keysplit = key.split("_")        
