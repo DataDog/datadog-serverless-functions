@@ -757,8 +757,15 @@ def parse_service_arn(source, key, bucket, context):
         # 2. We extract the loadbalancer name and replace the "." by "/" to match the ARN format
         # 3. We extract the id of the loadbalancer
         # 4. We build the arn
-        keysplit = key.split("_")
         idsplit = key.split("/")
+        # If there is a prefix on the S3 bucket, idsplit[1] will be "AWSLogs"
+        # Remove the prefix before splitting they key
+        if len(idsplit) > 1 and idsplit[1] == "AWSLogs":
+            idsplit = idsplit[1:]
+            keysplit = "/".join(idsplit).split("_")
+        # If no prefix, split the key
+        else:
+            keysplit = key.split("_")        
         if len(keysplit) > 3:
             region = keysplit[2].lower()
             name = keysplit[3]
