@@ -74,11 +74,32 @@ SCRUBBING_RULE_CONFIGS = [
         "xxxxx@xxxxx.com",
     ),
     ScrubbingRuleConfig(
-        "CUSTOM_SCRUBBING_RULE", 
-        os.getenv("CUSTOM_SCRUBBING_RULE", default=None), 
-        os.getenv("CUSTOM_SCRUBBING_RULE_REPLACEMENT", default="xxxxx")
+        "DD_SCRUBBING_RULE", 
+        os.getenv("DD_SCRUBBING_RULE", default=None), 
+        os.getenv("DD_SCRUBBING_RULE_REPLACEMENT", default="xxxxx")
     )
 ]
+
+# Use for include, exclude, and scrubbing rules
+def compileRegex(rule, pattern):
+    if pattern is not None:
+        if pattern == "":
+            # If pattern is an empty string, raise exception
+            raise Exception("No pattern provided:\nAdd pattern or remove {} environment variable".format(rule))
+        try:
+            return re.compile(pattern)
+        except Exception:
+            raise Exception("could not compile {} regex with pattern: {}".format(rule, pattern))
+
+
+# Filtering logs 
+# Option to include or exclude logs based on a pattern match
+INCLUDE_AT_MATCH = os.getenv("INCLUDE_AT_MATCH", default=None)
+include_regex = compileRegex("INCLUDE_AT_MATCH", INCLUDE_AT_MATCH)
+
+EXCLUDE_AT_MATCH = os.getenv("EXCLUDE_AT_MATCH", default=None)
+exclude_regex = compileRegex("EXCLUDE_AT_MATCH", EXCLUDE_AT_MATCH)
+
 
 # DD_API_KEY: Datadog API Key
 DD_API_KEY = "<your_api_key>"
@@ -206,7 +227,7 @@ class DatadogTCPClient(object):
         try:
             frame = self._scrubber.scrub(
                 "".join(
-                    ["{} {}\n".format(self._api_key, json.dumps(log)) for log in logs]
+                    ["{} {}\n".format(self._api_key, log) for log in logs]
                 )
             )
             self._sock.sendall(frame.encode("UTF-8"))
@@ -253,7 +274,7 @@ class DatadogHTTPClient(object):
         try:
             resp = self._session.post(
                 self._url,
-                data=self._scrubber.scrub(json.dumps(logs)),
+                data=self._scrubber.scrub("[{}]".format(",".join(logs))),
                 timeout=self._timeout,
             )
         except ScrubbingException:
@@ -290,7 +311,7 @@ class DatadogBatcher(object):
         self._max_size_count = max_size_count
 
     def _sizeof_bytes(self, log):
-        return len(json.dumps(log).encode("UTF-8"))
+        return len(log.encode("UTF-8"))
 
     def batch(self, logs):
         """
@@ -333,15 +354,13 @@ class DatadogScrubber(object):
     def __init__(self, configs):
         rules = []
         for config in configs:
-            try:
-                if os.environ.get(config.name, False):
-                    rules.append(
-                        ScrubbingRule(
-                            re.compile(config.pattern, re.I), config.placeholder
-                        )
+            if config.name in os.environ:
+                rules.append(
+                    ScrubbingRule(
+                        compileRegex(config.name, config.pattern), 
+                        config.placeholder
                     )
-            except Exception:
-                raise Exception("could not compile rule with config: {}".format(config.name))
+                )
         self._rules = rules
 
     def scrub(self, payload):
@@ -358,7 +377,7 @@ def datadog_forwarder(event, context):
     events = parse(event, context)
     metrics, logs = split(events)
     if DD_FORWARD_LOG:
-        forward_logs(logs)
+        forward_logs(filter_logs(logs))
     if DD_FORWARD_METRIC:
         forward_metrics(metrics)
 
@@ -463,8 +482,36 @@ def split(events):
         if metric:
             metrics.append(metric)
         else:
-            logs.append(event)
+            logs.append(json.dumps(event))
     return metrics, logs
+
+
+# should only be called when INCLUDE_AT_MATCH and/or EXCLUDE_AT_MATCH exist
+def filter_logs(logs):
+    """
+    Applies log filtering rules.
+    If no filtering rules exist, return all the logs.
+    """
+    if INCLUDE_AT_MATCH is None and EXCLUDE_AT_MATCH is None:
+        # convert to strings
+        return logs 
+    # Add logs that should be sent to logs_to_send
+    logs_to_send = []
+    # Test each log for exclusion and inclusion, if the criteria exist
+    for log in logs:
+        try:
+            if EXCLUDE_AT_MATCH is not None:
+                # if an exclude match is found, do not add log to logs_to_send
+                if re.search(exclude_regex, log):
+                    continue
+            if INCLUDE_AT_MATCH is not None:
+                # if no include match is found, do not add log to logs_to_send 
+                if not re.search(include_regex, log):
+                    continue
+            logs_to_send.append(log)
+        except ScrubbingException:
+            raise Exception("could not filter the payload")
+    return logs_to_send
 
 
 def forward_metrics(metrics):

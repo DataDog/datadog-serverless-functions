@@ -11,6 +11,7 @@ AWS Lambda function to ship logs and metrics from ELB, S3, CloudTrail, VPC, Clou
 - JSON events providing details about S3 documents forwarded
 - Structured meta-information can be attached to the events
 - Scrubbing / Redaction rules
+- Filtering rules (`INCLUDE_AT_MATCH` and `EXCLUDE_AT_MATCH`)
 - Multiline Log Support (S3 Only)
 - Forward custom metrics from logs
 
@@ -99,23 +100,33 @@ For S3 logs, there may be some latency between the time a first S3 log file is p
 
 ## 6. (optional) Scrubbing / Redaction rules
 
-Multiple scrubbing options are available.  `REDACT_IP` and `REDACT_EMAIL` match against hard-coded patterns, while `DD_CUSTOM_SCRUBBING_RULE` allows users to supply a custom regular expression.
-
+Multiple scrubbing options are available.  `REDACT_IP` and `REDACT_EMAIL` match against hard-coded patterns, while `DD_SCRUBBING_RULE` allows users to supply a regular expression.  
 - To use `REDACT_IP`, add it as an environment variable and set the value to `true`.  
     - Text matching `\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}` will be replaced with `xxx.xxx.xxx.xxx`.
 - To use `REDACT_EMAIL`, add it as an environment variable and set the value to `true`.
 	- Text matching `[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+` will be replaced with `xxxxx@xxxxx.com`.
-- To use `CUSTOM_SCRUBBING_RULE`, add it as a environment variable, and supply a regular expression as the value.
+- To use `DD_SCRUBBING_RULE`, add it as a environment variable, and supply a regular expression as the value.
     - Text matching the user-supplied regular expression will be replaced with `xxxxx`, by default. 
-    - Use the `CUSTOM_SCRUBBING_RULE_REPLACEMENT` environment variable to supply a custom replacement value instead of `xxxxx`.
+    - Use the `DD_SCRUBBING_RULE_REPLACEMENT` environment variable to supply a replacement value instead of `xxxxx`.  
+- Scrubbing rules are applied to the full JSON-formatted log, including any metadata that is automatically added by the Lambda function.
+- Each instance of a pattern match is replaced until no more matches are found in each log. 
 
-## 7. (optional) Multiline Log support for s3
+## 7. (optional) Filtering rules
+
+Use the `EXCLUDE_AT_MATCH` OR `INCLUDE_AT_MATCH` environment variables to filter logs based on a regular expression match.
+
+- To use `EXCLUDE_AT_MATCH` add it as an environment variable and set its value to a regular expression. Logs matching the regular expression will be excluded.
+- To use `INCLUDE_AT_MATCH` add it as an environment variable and set its value to a regular expression. If not excluded by `EXCLUDE_AT_MATCH`, logs matching the regular expression will be included.
+- If a log matches both the inclusion and exclusion criteria, it will be excluded.
+- Filtering rules are applied to the full JSON-formatted log, including any metadata that is automatically added by the function.
+
+## 8. (optional) Multiline Log support for s3
 
 If there are multiline logs in s3, set `DD_MULTILINE_LOG_REGEX_PATTERN` environment variable to the specified regex pattern to detect for a new log line.
 
 - Example: for multiline logs beginning with pattern `11/10/2014`: `DD_MULTILINE_LOG_REGEX_PATTERN="\d{2}\/\d{2}\/\d{4}"`
 
-## 8. (optional) Forward Metrics from Logs
+## 9. (optional) Forward Metrics from Logs
 
 For example, if you have a Lambda function that powers a performance-critical task (e.g., a consumer-facing API), you can avoid the added latencies of submitting metric via API calls, by writing custom metrics to CloudWatch Logs using the appropriate Datadog Lambda Layer (e.g., [Lambda Layer for Python](https://github.com/DataDog/datadog-lambda-layer-python)). The log forwarder will automatically detect log entries that contain metrics and forward them to Datadog metric intake.
 
