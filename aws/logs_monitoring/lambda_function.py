@@ -480,7 +480,7 @@ def split(events):
         if metric:
             metrics.append(metric)
         else:
-            logs.append(event)
+            logs.append(json.dumps(event))
     return metrics, logs
 
 
@@ -492,22 +492,21 @@ def filter_logs(logs):
     """
     if INCLUDE_AT_MATCH is None and EXCLUDE_AT_MATCH is None:
         # convert to strings
-        return map(json.dumps, logs) 
+        return logs 
     # Add logs that should be sent to logs_to_send
     logs_to_send = []
     # Test each log for exclusion and inclusion, if the criteria exist
     for log in logs:
         try:
-            string_log = json.dumps(log)
             if EXCLUDE_AT_MATCH is not None:
                 # if an exclude match is found, do not add log to logs_to_send
-                if re.search(exclude_regex, string_log):
+                if re.search(exclude_regex, log):
                     continue
             if INCLUDE_AT_MATCH is not None:
                 # if no include match is found, do not add log to logs_to_send 
-                if not re.search(include_regex, string_log):
+                if not re.search(include_regex, log):
                     continue
-            logs_to_send.append(string_log)
+            logs_to_send.append(log)
         except ScrubbingException:
             raise Exception("could not filter the payload")
     return logs_to_send
