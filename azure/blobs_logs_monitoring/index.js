@@ -44,6 +44,8 @@ module.exports = function(context, blobContent) {
     var logs;
     if (typeof blobContent === 'string') {
         logs = blobContent.trim().split('\n');
+    } else if (Buffer.isBuffer(blobContent)) {
+        logs = blobContent.toString('utf8').trim().split('\n');
     } else {
         logs = JSON.stringify(blobContent).trim().split('\n');
     }
