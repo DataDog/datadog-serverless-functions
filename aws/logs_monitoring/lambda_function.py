@@ -19,6 +19,8 @@ import itertools
 from io import BytesIO, BufferedReader
 
 import boto3
+from ast import literal_eval
+from copy import deepcopy
 
 try:
     # Datadog Lambda layer is required to forward metrics
@@ -112,6 +114,10 @@ validation_res = requests.get(
 if not validation_res.ok:
     raise Exception("The API key is not valid.")
 
+def create_multiline_start_regex(start_pattern):
+    return re.compile(
+        "^{}".format(start_pattern)
+    )
 
 # DD_MULTILINE_LOG_REGEX_PATTERN: Datadog Multiline Log Regular Expression Pattern
 DD_MULTILINE_LOG_REGEX_PATTERN = None
@@ -123,32 +129,29 @@ if "DD_MULTILINE_LOG_REGEX_PATTERN" in os.environ:
         )
     except Exception:
         raise Exception("could not compile s3 multiline regex with pattern: {}".format(DD_MULTILINE_LOG_REGEX_PATTERN))
-    multiline_regex_start_pattern = re.compile(
-        "^{}".format(DD_MULTILINE_LOG_REGEX_PATTERN)
-    )
 
+    multiline_regex_start_pattern = create_multiline_start_regex(DD_MULTILINE_LOG_REGEX_PATTERN)
 
 # DD_MULTILINE_CLOUDWATCH_REGEX: Datadog Multiline Cloudwatch Logs Regular Expression Patterns for Log Groups
 DD_MULTILINE_CLOUDWATCH_LOG_REGEX_PATTERNS = None
 if "DD_MULTILINE_CLOUDWATCH_LOG_REGEX_PATTERNS" in os.environ:
-    multiline_regexs = os.environ["DD_MULTILINE_CLOUDWATCH_LOG_REGEX_PATTERNS"]
+    multiline_regexes = os.environ["DD_MULTILINE_CLOUDWATCH_LOG_REGEX_PATTERNS"]
     try:
         DD_MULTILINE_CLOUDWATCH_LOG_REGEX_PATTERNS = {}
-        cloudwatch_regex_dict = json.loads(multiline_regexs)
+
+        # json.loads() throws error on json with non-escaped regex, this is a workaround vs forcing user to escape their json
+        cloudwatch_regex_dict = literal_eval(multiline_regexes)
 
         # compile regex start paterns for each dictionary entry
-        for log_group_name in cloudwatch_regex_dict:
+        for log_group_name, log_group_rule in cloudwatch_regex_dict.iteritems():
             if log_group_name not in DD_MULTILINE_CLOUDWATCH_LOG_REGEX_PATTERNS:
-                log_group_rule = cloudwatch_regex_dict[log_group_name]
 
                 # ensure pattern only matchs at start of line
-                DD_MULTILINE_CLOUDWATCH_LOG_REGEX_PATTERNS[log_group_name] = re.compile(
-                    "^{}".format(log_group_rule)
-                )
+                DD_MULTILINE_CLOUDWATCH_LOG_REGEX_PATTERNS[log_group_name] = create_multiline_start_regex(log_group_rule)
 
     except Exception as e:
         DD_MULTILINE_CLOUDWATCH_LOG_REGEX_PATTERNS = None
-        raise Exception("could not compile cloudwatch multiline log regex with patterns: {} , error: {}".format(multiline_regexs, str(e)))
+        raise Exception("could not compile cloudwatch multiline log regex with patterns: {} , error: {}".format(multiline_regexes, str(e)))
 
 rds_regex = re.compile("/aws/rds/instance/(?P<host>[^/]+)/(?P<name>[^/]+)")
 
@@ -680,26 +683,38 @@ def awslogs_handler(event, context, metadata):
     log_events = []
 
     if DD_MULTILINE_CLOUDWATCH_LOG_REGEX_PATTERNS and logs["logGroup"] in DD_MULTILINE_CLOUDWATCH_LOG_REGEX_PATTERNS:
-        multiline_log_timestamp = None
-        multiline_log_flag = False
         log_group = logs["logGroup"]
+        intermediate_buffer = {}
 
         for log in logs["logEvents"]:
             if DD_MULTILINE_CLOUDWATCH_LOG_REGEX_PATTERNS[log_group].match(log["message"]):
-                multiline_log_timestamp = log["timestamp"]
-                multiline_log_flag = True
+
+                # new multiline log, flush intermediate buffer if it exists
+                if intermediate_buffer:
+                    log_events.append(intermediate_buffer)
+
+                # start new buffer
+                intermediate_buffer = deepcopy(log)
+
+            elif log["timestamp"] != intermediate_buffer.get("timestamp"):
+
+                # new log without start pattern, flush intermediate buffer and reset
+                if intermediate_buffer:
+                    log_events.append(intermediate_buffer)
+                    intermediate_buffer = {}
+
                 log_events.append(log)
-            elif log["timestamp"] != multiline_log_timestamp:
-                multiline_log_timestamp = None
-                multiline_log_flag = False
-                log_events.append(log)
-            elif multiline_log_flag:
-                # valid child multiline log, matching timestamp and multiline log flag has been toggled
-                log_events[-1]["message"] += log["message"]
+            elif intermediate_buffer:
+                # valid child multiline log, matching timestamp and a buffer has been created
+                intermediate_buffer["message"] += log["message"]
             else:
                 # edge case, multiple logs without starting pattern regex
-                multiline_log_timestamp = None
                 log_events.append(log)
+
+        # flush buffer if it is the last log
+        if intermediate_buffer:
+            log_events.append(intermediate_buffer)
+
     else:
         log_events = logs["logEvents"]
 
