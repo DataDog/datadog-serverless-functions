@@ -131,10 +131,8 @@ If there are multiline logs in s3, set `DD_MULTILINE_LOG_REGEX_PATTERN` environm
 
 If there are multiline logs in CloudWatch, set `DD_MULTILINE_CLOUDWATCH_LOG_REGEX_PATTERNS` environment variable to the specified regex pattern to detect for a new log line per log group. This environment variable must be set to JSON, with each log group it's own key, with each value the regex start pattern to detect for a new log line in that log group.
 
-- Note: Backslashes in regex should be escaped to ensure they are handled correctly when JSON is parsed, ie `\d{2}` => `\\d{2}`.
-
 - Example: for multiline logs from CloudWatch log group `aws/lambda/exampleOne` beginning with pattern `11/10/2014` and log group `aws/lambda/exampleTwo` beginning with pattern: `2014-11-10`: `DD_MULTILINE_CLOUDWATCH_LOG_REGEX_PATTERNS=
-{"/aws/lambda/exampleOne":"\\d{2}/\\d{2}/\\d{4}", "/aws/lambda/exampleTwo":"\\d{4}-\\d{2}-\\d{2}"}`
+{"/aws/lambda/exampleOne":"\d{2}/\d{2}/\d{4}", "/aws/lambda/exampleTwo":"\d{4}-\d{2}-\d{2}"}`
 
 =======
 >>>>>>> master
