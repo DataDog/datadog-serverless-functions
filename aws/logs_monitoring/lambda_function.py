@@ -497,8 +497,6 @@ def filter_logs(logs):
     if INCLUDE_AT_MATCH is None and EXCLUDE_AT_MATCH is None:
         # convert to strings
         return logs
-    # Add logs that should be sent to logs_to_send
-    logs_to_send = []
     # Test each log for exclusion and inclusion, if the criteria exist
     for log in logs:
         try:
@@ -510,11 +508,9 @@ def filter_logs(logs):
                 # if no include match is found, do not add log to logs_to_send
                 if not re.search(include_regex, log):
                     continue
-            logs_to_send.append(log)
+            yield log
         except ScrubbingException:
             raise Exception("could not filter the payload")
-    return logs_to_send
-
 
 def forward_metrics(metrics):
     """
