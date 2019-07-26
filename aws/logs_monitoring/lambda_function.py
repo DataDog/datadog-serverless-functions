@@ -460,6 +460,16 @@ def generate_metadata(context):
 
     return metadata
 
+def parse_tags_from_message(event):
+    """extract tags from message json if possible"""
+    try:
+        data = json.loads(event['message'])
+        if 'ddtags' in data:
+            return data['ddtags']
+        else:
+            return None
+    except Exception:
+        return None
 
 def extract_metric(event):
     """Extract metric from an event if possible"""
@@ -538,12 +548,22 @@ def normalize_events(events, metadata):
     normalized = []
     for event in events:
         if isinstance(event, dict):
-            normalized.append(merge_dicts(event, metadata))
+            normal_event = merge_dicts(event, metadata)
         elif isinstance(event, str):
-            normalized.append(merge_dicts({"message": event}, metadata))
+            normal_event = merge_dicts({"message": event}, metadata)
         else:
             # drop this log
             continue
+
+
+        ddtags_from_message = parse_tags_from_message(event)
+        if ddtags_from_message is not None:
+            if DD_CUSTOM_TAGS in normal_event:
+                normal_event[DD_CUSTOM_TAGS] += ",{}".format(ddtags_from_message)
+            else:
+                normal_event[DD_CUSTOM_TAGS] = "{}".format(ddtags_from_message)
+
+        normalized.append(normal_event)
     return normalized
 
 
