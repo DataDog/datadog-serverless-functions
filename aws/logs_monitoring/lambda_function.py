@@ -494,9 +494,6 @@ def filter_logs(logs):
     Applies log filtering rules.
     If no filtering rules exist, return all the logs.
     """
-    if INCLUDE_AT_MATCH is None and EXCLUDE_AT_MATCH is None:
-        # convert to strings
-        return logs
     # Test each log for exclusion and inclusion, if the criteria exist
     for log in logs:
         try:
