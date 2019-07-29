@@ -14,7 +14,7 @@ import socket
 from botocore.vendored import requests
 import time
 import ssl
-import urllib
+import six.moves.urllib as urllib  # for for Python 2.7 urllib.unquote_plus
 import itertools
 from io import BytesIO, BufferedReader
 
@@ -452,7 +452,7 @@ def generate_metadata(context):
             [
                 DD_TAGS,
                 ",".join(
-                    ["{}:{}".format(k, v) for k, v in dd_custom_tags_data.iteritems()]
+                    ["{}:{}".format(k, v) for k, v in dd_custom_tags_data.items()]
                 ),
             ],
         )
@@ -570,7 +570,7 @@ def s3_handler(event, context, metadata):
 
     # Get the object from the event and show its content type
     bucket = event["Records"][0]["s3"]["bucket"]["name"]
-    key = urllib.unquote_plus(event["Records"][0]["s3"]["object"]["key"]).decode("utf8")
+    key = urllib.parse.unquote_plus(event["Records"][0]["s3"]["object"]["key"])
 
     source = parse_event_source(event, key)
     metadata[DD_SOURCE] = source
@@ -591,7 +591,7 @@ def s3_handler(event, context, metadata):
         with gzip.GzipFile(fileobj=BytesIO(data)) as decompress_stream:
             # Reading line by line avoid a bug where gzip would take a very long time (>5min) for
             # file around 60MB gzipped
-            data = "".join(BufferedReader(decompress_stream))
+            data = b"".join(BufferedReader(decompress_stream))
 
     if is_cloudtrail(str(key)):
         cloud_trail = json.loads(data)
@@ -604,6 +604,7 @@ def s3_handler(event, context, metadata):
     else:
         # Check if using multiline log regex pattern
         # and determine whether line or pattern separated logs
+        data = data.decode("utf-8")
         if DD_MULTILINE_LOG_REGEX_PATTERN and multiline_regex_start_pattern.match(data):
             split_data = multiline_regex.split(data)
         else:
@@ -639,8 +640,8 @@ def awslogs_handler(event, context, metadata):
     ) as decompress_stream:
         # Reading line by line avoid a bug where gzip would take a very long
         # time (>5min) for file around 60MB gzipped
-        data = "".join(BufferedReader(decompress_stream))
-    logs = json.loads(str(data))
+        data = b"".join(BufferedReader(decompress_stream))
+    logs = json.loads(data)
 
     # Set the source on the logs
     source = logs.get("logGroup", "cloudwatch")
