@@ -140,7 +140,7 @@ if "DD_MULTILINE_LOG_REGEX_PATTERN" in os.environ:
     DD_MULTILINE_LOG_REGEX_PATTERN = os.environ["DD_MULTILINE_LOG_REGEX_PATTERN"]
     try:
         multiline_regex = re.compile(
-            "\n+(?={})".format(DD_MULTILINE_LOG_REGEX_PATTERN)
+            "[\n\r\f]+(?={})".format(DD_MULTILINE_LOG_REGEX_PATTERN)
         )
     except Exception:
         raise Exception("could not compile multiline regex with pattern: {}".format(DD_MULTILINE_LOG_REGEX_PATTERN))
