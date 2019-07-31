@@ -565,6 +565,25 @@ def s3_handler(event, context, metadata):
     bucket = event["Records"][0]["s3"]["bucket"]["name"]
     key = urllib.parse.unquote_plus(event["Records"][0]["s3"]["object"]["key"])
 
+    # Common attributes for the events we find
+    aws_attributes = {
+        "aws": {
+            "s3": {
+                "bucket": bucket, 
+                "key": key
+            }
+        }
+    }
+
+    # Build a structured message out of the s3 event data.
+    def reformat_record(record):
+        # We can be fed either strings, or event dictionaries here.
+        # Checking against dict type here, to avoid the python 2 vs 3 thing
+        # with checking for basestring, str, bytes...  
+        if not isinstance(record, dict):
+            record = {"message": record}
+        return merge_dicts(record, aws_attributes)
+
     source = parse_event_source(event, key)
     metadata[DD_SOURCE] = source
     ##default service to source value
@@ -591,25 +610,15 @@ def s3_handler(event, context, metadata):
                 data = b"".join(BufferedReader(decompress_stream))
             else:
                 # Send decompressed lines to Datadog. Stream iter is line-by-line already.
-
-                # NOTE: Duplicates the non-compressed case below, but we can't allow falling through to that
-                #   since we'll lose the decompress_stream context.
                 for line in decompress_stream:
-                    structured_line = {
-                        "aws": {"s3": {"bucket": bucket, "key": key}},
-                        "message": line,
-                    }
-                    yield structured_line
+                    yield reformat_record(line)
                 return
 
     if is_cloudtrail(str(key)):
         cloud_trail = json.loads(data)
         for event in cloud_trail["Records"]:
             # Create structured object and send it
-            structured_line = merge_dicts(
-                event, {"aws": {"s3": {"bucket": bucket, "key": key}}}
-            )
-            yield structured_line
+            yield reformat_record(event)
     else:
         # Check if using multiline log regex pattern
         # and determine whether line or pattern separated logs
@@ -622,11 +631,7 @@ def s3_handler(event, context, metadata):
         # Send lines to Datadog
         for line in split_data:
             # Create structured object and send it
-            structured_line = {
-                "aws": {"s3": {"bucket": bucket, "key": key}},
-                "message": line,
-            }
-            yield structured_line
+            yield reformat_record(line)
 
 
 # Handle CloudWatch logs from Kinesis
