@@ -29,7 +29,7 @@ The provided Python script must be deployed into your AWS Lambda service. We wil
 ## 2. Provide the code
 
 - Copy paste the code of the Lambda function
-- Set the runtime to `Python 2.7`
+- Set the runtime to `Python 2.7`, `Python 3.6`, or `Python 3.7`
 - Set the handler to `lambda_function.lambda_handler`
 
 
@@ -130,10 +130,10 @@ If there are multiline logs in s3, set `DD_MULTILINE_LOG_REGEX_PATTERN` environm
 
 For example, if you have a Lambda function that powers a performance-critical task (e.g., a consumer-facing API), you can avoid the added latencies of submitting metric via API calls, by writing custom metrics to CloudWatch Logs using the appropriate Datadog Lambda Layer (e.g., [Lambda Layer for Python](https://github.com/DataDog/datadog-lambda-layer-python)). The log forwarder will automatically detect log entries that contain metrics and forward them to Datadog metric intake.
 
-The [Datadog Lambda Layer for Python 2.7]((https://github.com/DataDog/datadog-lambda-layer-python)) **MUST** be added to the log forwarder Lambda function, to enable metric forwarding. Use the Lambda layer ARN below, and replace `us-east-1` with the actual AWS region where your log forwarder operates.
+The [Datadog Lambda Layer for Python 2.7, 3.6, or 3.7]((https://github.com/DataDog/datadog-lambda-layer-python)) **MUST** be added to the log forwarder Lambda function, to enable metric forwarding. Use the Lambda layer ARN below, and replace `us-east-1` with the actual AWS region where your log forwarder operates and replace `Python27` with the Python runtime your function uses (`Python27`, `Python36`, or `Python37`).
 
 ```
-arn:aws:lambda:us-east-1:464622532012:layer:Datadog-Python27:3
+arn:aws:lambda:us-east-1:464622532012:layer:Datadog-Python27:5
 ```
 
 **IMPORTANT**
