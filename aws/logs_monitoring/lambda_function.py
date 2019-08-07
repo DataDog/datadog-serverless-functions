@@ -576,7 +576,7 @@ def s3_handler(event, context, metadata):
     }
 
     # Build a structured message out of the s3 event data.
-    def reformat_record(record):
+    def build_message(record):
         # We can be fed either strings, or event dictionaries here.
         # Checking against dict type here, to avoid the python 2 vs 3 thing
         # with checking for basestring, str, bytes...  
@@ -611,14 +611,14 @@ def s3_handler(event, context, metadata):
             else:
                 # Send decompressed lines to Datadog. Stream iter is line-by-line already.
                 for line in decompress_stream:
-                    yield reformat_record(line)
+                    yield build_message(line)
                 return
 
     if is_cloudtrail(str(key)):
         cloud_trail = json.loads(data)
         for event in cloud_trail["Records"]:
             # Create structured object and send it
-            yield reformat_record(event)
+            yield build_message(event)
     else:
         # Check if using multiline log regex pattern
         # and determine whether line or pattern separated logs
@@ -631,7 +631,7 @@ def s3_handler(event, context, metadata):
         # Send lines to Datadog
         for line in split_data:
             # Create structured object and send it
-            yield reformat_record(line)
+            yield build_message(line)
 
 
 # Handle CloudWatch logs from Kinesis
