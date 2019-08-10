@@ -19,7 +19,7 @@ Thanks for helping this code base grow! In order to ease/speed up our review, he
 
 ## Commits
 
-- Pleaes keep each commit's changes small and focused--many changes in the same commit makes them harder to review.
+- Please keep each commit's changes small and focused--many changes in the same commit makes them harder to review.
 - Please also combine each code-change within one commit rather than many commits. Rebase liberally.
 - Please make all commit messages clear and communicative.
 
