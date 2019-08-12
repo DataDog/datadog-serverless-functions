@@ -101,7 +101,6 @@ include_regex = compileRegex("INCLUDE_AT_MATCH", INCLUDE_AT_MATCH)
 
 EXCLUDE_AT_MATCH = os.getenv("EXCLUDE_AT_MATCH", default=None)
 exclude_regex = compileRegex("EXCLUDE_AT_MATCH", EXCLUDE_AT_MATCH)
-
 # DD_API_KEY: Datadog API Key
 DD_API_KEY = "<your_api_key>"
 if "DD_KMS_API_KEY" in os.environ:
@@ -132,7 +131,6 @@ if len(DD_API_KEY) != 32:
 validation_res = requests.get(
     "https://api.{}/api/v1/validate?api_key={}".format(DD_SITE, DD_API_KEY)
 )
-
 if not validation_res.ok:
     raise Exception("The API key is not valid.")
 
