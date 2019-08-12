@@ -103,35 +103,37 @@ exclude_regex = compileRegex("EXCLUDE_AT_MATCH", EXCLUDE_AT_MATCH)
 
 # DD_API_KEY: Datadog API Key
 DD_API_KEY = "<your_api_key>"
-if "DD_KMS_API_KEY" in os.environ:
-    ENCRYPTED = os.environ["DD_KMS_API_KEY"]
-    DD_API_KEY = boto3.client("kms").decrypt(
-        CiphertextBlob=base64.b64decode(ENCRYPTED)
-    )["Plaintext"]
-elif "DD_API_KEY" in os.environ:
-    DD_API_KEY = os.environ["DD_API_KEY"]
 
-# Strip any trailing and leading whitespace from the API key
-DD_API_KEY = DD_API_KEY.strip()
+def validation():
+    if "DD_KMS_API_KEY" in os.environ:
+        ENCRYPTED = os.environ["DD_KMS_API_KEY"]
+        DD_API_KEY = boto3.client("kms").decrypt(
+            CiphertextBlob=base64.b64decode(ENCRYPTED)
+        )["Plaintext"]
+    elif "DD_API_KEY" in os.environ:
+        DD_API_KEY = os.environ["DD_API_KEY"]
 
-# DD_API_KEY must be set
-if DD_API_KEY == "<your_api_key>" or DD_API_KEY == "":
-    raise Exception(
-        "You must configure your Datadog API key using "
-        "DD_KMS_API_KEY or DD_API_KEY"
+    # Strip any trailing and leading whitespace from the API key
+    DD_API_KEY = DD_API_KEY.strip()
+
+    # DD_API_KEY must be set
+    if DD_API_KEY == "<your_api_key>" or DD_API_KEY == "":
+        raise Exception(
+            "You must configure your Datadog API key using "
+            "DD_KMS_API_KEY or DD_API_KEY"
+        )
+    # Check if the API key is the correct number of characters
+    if len(DD_API_KEY) != 32:
+        raise Exception(
+            "The API key is not the expected length. "
+            "Please confirm that your API key is correct"
+        )
+    # Validate the API key
+    validation_res = requests.get(
+        "https://api.{}/api/v1/validate?api_key={}".format(DD_SITE, DD_API_KEY)
     )
-# Check if the API key is the correct number of characters
-if len(DD_API_KEY) != 32:
-    raise Exception(
-        "The API key is not the expected length. "
-        "Please confirm that your API key is correct"
-    )
-# Validate the API key
-validation_res = requests.get(
-    "https://api.{}/api/v1/validate?api_key={}".format(DD_SITE, DD_API_KEY)
-)
-if not validation_res.ok:
-    raise Exception("The API key is not valid.")
+    if not validation_res.ok:
+        raise Exception("The API key is not valid.")
 
 
 # DD_MULTILINE_LOG_REGEX_PATTERN: Datadog Multiline Log Regular Expression Pattern
@@ -374,6 +376,7 @@ class DatadogScrubber(object):
 
 def datadog_forwarder(event, context):
     """The actual lambda function entry point"""
+    validation()
     events = parse(event, context)
     metrics, logs = split(events)
     if DD_FORWARD_LOG:
