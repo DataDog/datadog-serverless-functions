@@ -158,20 +158,25 @@ if "DD_MULTILINE_LOG_REGEX_PATTERN" in os.environ:
 
 # DD_MULTILINE_CLOUDWATCH_REGEX: Datadog Multiline Cloudwatch Logs Regular Expression Patterns for Log Groups
 DD_MULTILINE_CLOUDWATCH_LOG_REGEX_PATTERNS = None
+
 if "DD_MULTILINE_CLOUDWATCH_LOG_REGEX_PATTERNS" in os.environ:
+    DD_MULTILINE_CLOUDWATCH_LOG_REGEX_PATTERNS = create_multiline_rules()
+
+def create_multiline_rules():
     multiline_regexes = os.environ["DD_MULTILINE_CLOUDWATCH_LOG_REGEX_PATTERNS"]
     try:
-        DD_MULTILINE_CLOUDWATCH_LOG_REGEX_PATTERNS = {}
+        dd_multiline_cloudwatch_log_regex_patterns = {}
 
         # json.loads() throws error on json with non-escaped regex, this is a workaround vs forcing user to escape their json
         cloudwatch_regex_dict = literal_eval(multiline_regexes)
 
         # compile regex start paterns for each dictionary entry
         for log_group_name, log_group_rule in cloudwatch_regex_dict.iteritems():
-            if log_group_name not in DD_MULTILINE_CLOUDWATCH_LOG_REGEX_PATTERNS:
-
+            if log_group_name not in dd_multiline_cloudwatch_log_regex_patterns:
                 # ensure pattern only matchs at start of line
-                DD_MULTILINE_CLOUDWATCH_LOG_REGEX_PATTERNS[log_group_name] = create_multiline_start_regex(log_group_rule)
+                dd_multiline_cloudwatch_log_regex_patterns[log_group_name] = create_multiline_start_regex(log_group_rule)
+
+        return dd_multiline_cloudwatch_log_regex_patterns
 
     except Exception as e:
         DD_MULTILINE_CLOUDWATCH_LOG_REGEX_PATTERNS = None
@@ -734,7 +739,7 @@ def awslogs_handler(event, context, metadata):
     log_events = []
 
     if DD_MULTILINE_CLOUDWATCH_LOG_REGEX_PATTERNS and logs["logGroup"] in DD_MULTILINE_CLOUDWATCH_LOG_REGEX_PATTERNS:
-        log_events = concatenate_multiline_logs(logs)
+        log_events = concatenate_multiline_logs(logs, DD_MULTILINE_CLOUDWATCH_LOG_REGEX_PATTERNS)
 
     else:
         log_events = logs["logEvents"]
@@ -904,14 +909,12 @@ def parse_service_arn(source, key, bucket, context):
                 )
     return
 
-def concatenate_multiline_logs(logs, log_events=[]):
+def concatenate_multiline_logs(logs, dd_multiline_cloudwatch_log_regex_patterns=None, log_events=[]):
     log_group = logs['logGroup']
     intermediate_buffer = {}
 
-    DD_MULTILINE_CLOUDWATCH_LOG_REGEX_PATTERNS = {}
-    DD_MULTILINE_CLOUDWATCH_LOG_REGEX_PATTERNS[log_group] = re.compile(logs['logGroup'])
     for log in logs["logEvents"]:
-        if DD_MULTILINE_CLOUDWATCH_LOG_REGEX_PATTERNS[log_group].match(log["message"]):
+        if dd_multiline_cloudwatch_log_regex_patterns[log_group].match(log["message"]):
 
             # new multiline log, flush intermediate buffer if it exists
             if intermediate_buffer:

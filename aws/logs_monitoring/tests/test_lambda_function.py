@@ -1,11 +1,12 @@
 import os
 import unittest
-from lambda_function import concatenate_multiline_logs
+import mock
+from lambda_function import create_multiline_rules, concatenate_multiline_logs
 
 
 def example_event_data(*args, **kwargs):
     temp = {}
-    temp["logGroup"] = '/aws/lambda/examplefunction'
+    temp["logGroup"] = "example_function"
     temp["logEvents"] = [ { "id": '34912906382115817415310389072300611503980664147748519936',
            "timestamp": 1565548867148,
            "message": 'this is a test ruby\n' },
@@ -42,14 +43,16 @@ def example_event_data(*args, **kwargs):
 
     return temp
 
-def mock_validation(*args, **kwargs):
-    return {'ok':'ok'}
-
 class ConcatenateMultilineLogs(unittest.TestCase):
+    def setUp(self):
+        self.env = mock.patch.dict('os.environ', {'DD_API_KEY':'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa12', "DD_MULTILINE_CLOUDWATCH_LOG_REGEX_PATTERNS": '{"example_function": "example"}' })
+
     def test_concatenate_multiline_logs(self):
-        event_data = example_event_data()
-        response = concatenate_multiline_logs(event_data)
-        self.assertEqual(isinstance(response, list), True, 'should return a list of logs')
+        with self.env:
+            rules = create_multiline_rules()
+            event_data = example_event_data()
+            response = concatenate_multiline_logs(event_data, rules)
+            self.assertEqual(isinstance(response, list), True, 'should return a list of logs')
 
 if __name__ == '__main__':
     unittest.main()
