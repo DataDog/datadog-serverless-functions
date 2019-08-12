@@ -102,38 +102,41 @@ include_regex = compileRegex("INCLUDE_AT_MATCH", INCLUDE_AT_MATCH)
 EXCLUDE_AT_MATCH = os.getenv("EXCLUDE_AT_MATCH", default=None)
 exclude_regex = compileRegex("EXCLUDE_AT_MATCH", EXCLUDE_AT_MATCH)
 
-
 # DD_API_KEY: Datadog API Key
 DD_API_KEY = "<your_api_key>"
-if "DD_KMS_API_KEY" in os.environ:
-    ENCRYPTED = os.environ["DD_KMS_API_KEY"]
-    DD_API_KEY = boto3.client("kms").decrypt(
-        CiphertextBlob=base64.b64decode(ENCRYPTED)
-    )["Plaintext"]
-elif "DD_API_KEY" in os.environ:
-    DD_API_KEY = os.environ["DD_API_KEY"]
 
-# Strip any trailing and leading whitespace from the API key
-DD_API_KEY = DD_API_KEY.strip()
+def validation():
+    if "DD_KMS_API_KEY" in os.environ:
+        ENCRYPTED = os.environ["DD_KMS_API_KEY"]
+        DD_API_KEY = boto3.client("kms").decrypt(
+            CiphertextBlob=base64.b64decode(ENCRYPTED)
+        )["Plaintext"]
+    elif "DD_API_KEY" in os.environ:
+        DD_API_KEY = os.environ["DD_API_KEY"]
 
-# DD_API_KEY must be set
-if DD_API_KEY == "<your_api_key>" or DD_API_KEY == "":
-    raise Exception(
-        "You must configure your Datadog API key using "
-        "DD_KMS_API_KEY or DD_API_KEY"
+    # Strip any trailing and leading whitespace from the API key
+    DD_API_KEY = DD_API_KEY.strip()
+
+    # DD_API_KEY must be set
+    if DD_API_KEY == "<your_api_key>" or DD_API_KEY == "":
+        raise Exception(
+            "You must configure your Datadog API key using "
+            "DD_KMS_API_KEY or DD_API_KEY"
+        )
+    # Check if the API key is the correct number of characters
+    if len(DD_API_KEY) != 32:
+        raise Exception(
+            "The API key is not the expected length. "
+            "Please confirm that your API key is correct"
+        )
+
+    # Validate the API key
+    validation_res = requests.get(
+        "https://api.{}/api/v1/validate?api_key={}".format(DD_SITE, DD_API_KEY)
     )
-# Check if the API key is the correct number of characters
-if len(DD_API_KEY) != 32:
-    raise Exception(
-        "The API key is not the expected length. "
-        "Please confirm that your API key is correct"
-    )
-# Validate the API key
-validation_res = requests.get(
-    "https://api.{}/api/v1/validate?api_key={}".format(DD_SITE, DD_API_KEY)
-)
-if not validation_res.ok:
-    raise Exception("The API key is not valid.")
+
+    if not validation_res.ok:
+        raise Exception("The API key is not valid.")
 
 def create_multiline_start_regex(start_pattern):
     return re.compile(
@@ -400,6 +403,7 @@ class DatadogScrubber(object):
 
 def datadog_forwarder(event, context):
     """The actual lambda function entry point"""
+    validation()
     events = parse(event, context)
     metrics, logs = split(events)
     if DD_FORWARD_LOG:
@@ -730,37 +734,7 @@ def awslogs_handler(event, context, metadata):
     log_events = []
 
     if DD_MULTILINE_CLOUDWATCH_LOG_REGEX_PATTERNS and logs["logGroup"] in DD_MULTILINE_CLOUDWATCH_LOG_REGEX_PATTERNS:
-        log_group = logs["logGroup"]
-        intermediate_buffer = {}
-
-        for log in logs["logEvents"]:
-            if DD_MULTILINE_CLOUDWATCH_LOG_REGEX_PATTERNS[log_group].match(log["message"]):
-
-                # new multiline log, flush intermediate buffer if it exists
-                if intermediate_buffer:
-                    log_events.append(intermediate_buffer)
-
-                # start new buffer
-                intermediate_buffer = deepcopy(log)
-
-            elif log["timestamp"] != intermediate_buffer.get("timestamp"):
-
-                # new log without start pattern, flush intermediate buffer and reset
-                if intermediate_buffer:
-                    log_events.append(intermediate_buffer)
-                    intermediate_buffer = {}
-
-                log_events.append(log)
-            elif intermediate_buffer:
-                # valid child multiline log, matching timestamp and a buffer has been created
-                intermediate_buffer["message"] += log["message"]
-            else:
-                # edge case, multiple logs without starting pattern regex
-                log_events.append(log)
-
-        # flush buffer if it is the last log
-        if intermediate_buffer:
-            log_events.append(intermediate_buffer)
+        log_events = concatenate_multiline_logs(logs)
 
     else:
         log_events = logs["logEvents"]
@@ -929,3 +903,39 @@ def parse_service_arn(source, key, bucket, context):
                     region, accountID, clustername
                 )
     return
+
+def concatenate_multiline_logs(logs, log_events=[]):
+    log_group = logs['logGroup']
+    intermediate_buffer = {}
+
+    DD_MULTILINE_CLOUDWATCH_LOG_REGEX_PATTERNS = {}
+    DD_MULTILINE_CLOUDWATCH_LOG_REGEX_PATTERNS[log_group] = re.compile(logs['logGroup'])
+    for log in logs["logEvents"]:
+        if DD_MULTILINE_CLOUDWATCH_LOG_REGEX_PATTERNS[log_group].match(log["message"]):
+
+            # new multiline log, flush intermediate buffer if it exists
+            if intermediate_buffer:
+                log_events.append(intermediate_buffer)
+
+            # start new buffer
+            intermediate_buffer = deepcopy(log)
+
+        elif log["timestamp"] != intermediate_buffer.get("timestamp"):
+
+            # new log without start pattern, flush intermediate buffer and reset
+            if intermediate_buffer:
+                log_events.append(intermediate_buffer)
+                intermediate_buffer = {}
+
+            log_events.append(log)
+        elif intermediate_buffer:
+            # valid child multiline log, matching timestamp and a buffer has been created
+            intermediate_buffer["message"] += log["message"]
+        else:
+            # edge case, multiple logs without starting pattern regex
+            log_events.append(log)
+
+    # flush buffer if it is the last log
+    if intermediate_buffer:
+        log_events.append(intermediate_buffer)
+    return log_events
