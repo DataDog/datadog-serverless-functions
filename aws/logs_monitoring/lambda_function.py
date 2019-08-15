@@ -24,11 +24,14 @@ try:
     # Datadog Lambda layer is required to forward metrics
     from datadog_lambda.wrapper import datadog_lambda_wrapper
     from datadog_lambda.metric import lambda_stats
+    from datadog_lambda.trace_intake import forward_traces
+
     DD_FORWARD_METRIC = True
+    DD_FORWARD_TRACES = True
 except ImportError:
     # For backward-compatibility
     DD_FORWARD_METRIC = False
-
+    DD_FORWARD_TRACES = False
 
 # Set this variable to `False` to disable log forwarding.
 # E.g., when you only want to forward metrics from logs.
@@ -375,14 +378,16 @@ class DatadogScrubber(object):
 def datadog_forwarder(event, context):
     """The actual lambda function entry point"""
     events = parse(event, context)
-    metrics, logs = split(events)
+    metrics, logs, traces = split(events)
     if DD_FORWARD_LOG:
         forward_logs(filter_logs(logs))
     if DD_FORWARD_METRIC:
         forward_metrics(metrics)
+    if DD_FORWARD_TRACES and len(traces) > 0:
+        forward_traces(traces)
 
 
-if DD_FORWARD_METRIC:
+if DD_FORWARD_METRIC or DD_FORWARD_TRACES:
     # Datadog Lambda layer is required to forward metrics
     lambda_handler = datadog_lambda_wrapper(datadog_forwarder)
 else:
@@ -461,6 +466,22 @@ def generate_metadata(context):
     return metadata
 
 
+def extract_traces(event):
+    """Extract traces from an event if possible"""
+    try:
+        message = event['message']
+        # Early short circuit, to prevent processing everything as json.
+        if not message.startswith('{"datadog_traces":['):
+            return
+        trace = json.loads(message)
+        if 'datadog_traces' in trace:
+            return trace['datadog_traces']
+        else:
+            return None
+    except Exception:
+        return None
+
+
 def extract_metric(event):
     """Extract metric from an event if possible"""
     try:
@@ -476,14 +497,17 @@ def extract_metric(event):
 
 def split(events):
     """Split events to metrics and logs"""
-    metrics, logs = [], []
+    metrics, logs, traces = [], [], []
     for event in events:
         metric = extract_metric(event)
+        spans = extract_traces(event)
         if metric:
             metrics.append(metric)
+        elif spans:
+            traces = traces + spans
         else:
             logs.append(json.dumps(event))
-    return metrics, logs
+    return metrics, logs, traces
 
 
 # should only be called when INCLUDE_AT_MATCH and/or EXCLUDE_AT_MATCH exist
