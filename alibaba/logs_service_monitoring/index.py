@@ -21,9 +21,9 @@ import logging
 from aliyun.log import LogClient
 
 # edit below
-# DD_ALIBABA_ACCESSKEYID = "<your_alibaba_access_key_id"
-# DD_ALIBABA_ACCESSKEYSECRET = "<your_alibaba_access_key_secret"
-# DD_API_KEY = "<your_api_key>"
+DD_ALIBABA_ACCESSKEYID = "<your_alibaba_access_key_id"
+DD_ALIBABA_ACCESSKEYSECRET = "<your_alibaba_access_key_secret"
+DD_API_KEY = "<your_api_key>"
 
 # TODO: fix validation for passing api key as env var
 
