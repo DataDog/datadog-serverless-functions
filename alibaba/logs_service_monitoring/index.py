@@ -294,12 +294,17 @@ def parse(event, context):
 
     if isinstance(event,list):
       for logs_dictionary in event:
-          if logs_dictionary["logs"]:
+          if logs_dictionary.get("logs"):
               for log_line_dictionary in logs_dictionary["logs"]:
-                  if log_line_dictionary["content"]:
+                  #ecs logtail logs
+                  if log_line_dictionary.get("content"):
                       log_content = log_line_dictionary["content"]
-                      structured_line = {"alibaba": {}, "message": log_content}
-                      structured_logs.append(structured_line) 
+                  #actiontrail logs
+                  else:
+                      log_content = log_line_dictionary
+
+                  structured_line = {"alibaba": {}, "message": log_content}
+                  structured_logs.append(structured_line)
 
     return normalize_events(structured_logs)
 
