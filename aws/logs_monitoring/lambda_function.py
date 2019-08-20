@@ -114,24 +114,25 @@ elif "DD_API_KEY" in os.environ:
 # Strip any trailing and leading whitespace from the API key
 DD_API_KEY = DD_API_KEY.strip()
 
-# DD_API_KEY must be set
-if DD_API_KEY == "<your_api_key>" or DD_API_KEY == "":
-    raise Exception(
-        "You must configure your Datadog API key using "
-        "DD_KMS_API_KEY or DD_API_KEY"
+if not os.getenv('DD_TEST_ONLY', default="false") == "true":
+    # DD_API_KEY must be set
+    if DD_API_KEY == "<your_api_key>" or DD_API_KEY == "":
+        raise Exception(
+            "You must configure your Datadog API key using "
+            "DD_KMS_API_KEY or DD_API_KEY"
+        )
+    # Check if the API key is the correct number of characters
+    if len(DD_API_KEY) != 32:
+        raise Exception(
+            "The API key is not the expected length. "
+            "Please confirm that your API key is correct"
+        )
+    # Validate the API key
+    validation_res = requests.get(
+        "https://api.{}/api/v1/validate?api_key={}".format(DD_SITE, DD_API_KEY)
     )
-# Check if the API key is the correct number of characters
-if len(DD_API_KEY) != 32:
-    raise Exception(
-        "The API key is not the expected length. "
-        "Please confirm that your API key is correct"
-    )
-# Validate the API key
-validation_res = requests.get(
-    "https://api.{}/api/v1/validate?api_key={}".format(DD_SITE, DD_API_KEY)
-)
-if not validation_res.ok:
-    raise Exception("The API key is not valid.")
+    if not validation_res.ok:
+        raise Exception("The API key is not valid.")
 
 
 # DD_MULTILINE_LOG_REGEX_PATTERN: Datadog Multiline Log Regular Expression Pattern
@@ -303,6 +304,20 @@ class DatadogHTTPClient(object):
     def __exit__(self, ex_type, ex_value, traceback):
         self._close()
 
+class DatadogDummyHTTPClient(object):
+    """
+    Client that doesn't send a batch of logs over HTTP.
+    """
+
+    def send(self, logs):
+        pass
+
+    def __enter__(self):
+        pass
+
+    def __exit__(self, ex_type, ex_value, traceback):
+        pass
+
 
 class DatadogBatcher(object):
     def __init__(self, max_log_size_bytes, max_size_bytes, max_size_count):
@@ -397,7 +412,10 @@ def forward_logs(logs):
         cli = DatadogTCPClient(DD_URL, DD_PORT, DD_API_KEY, scrubber)
     else:
         batcher = DatadogBatcher(128 * 1000, 1 * 1000 * 1000, 25)
-        cli = DatadogHTTPClient(DD_URL, DD_API_KEY, scrubber)
+        if not os.getenv('DD_TEST_ONLY', default="false") == "true":
+            cli = DatadogHTTPClient(DD_URL, DD_API_KEY, scrubber)
+        else:
+            cli = DatadogDummyHTTPClient()
 
     with DatadogClient(cli) as client:
         for batch in batcher.batch(logs):
