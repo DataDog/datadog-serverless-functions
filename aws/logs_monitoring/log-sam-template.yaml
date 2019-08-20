@@ -12,4 +12,10 @@ Resources:
       Timeout: 120
       Layers:
         - !Sub 'arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Python27:3'
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: "Allow"
+              Action: "logs:ListTagsLogGroup"
+              Resource: "*"
     Type: AWS::Serverless::Function

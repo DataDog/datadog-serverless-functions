@@ -679,6 +679,17 @@ def awslogs_handler(event, context, metadata):
         }
     }
 
+    # Try to retrieve additional metadata tags from log group
+    try:
+        client = boto3.client("logs")
+        tags = client.list_tags_log_group(logGroupName=logs["logGroup"])
+        if tags:
+            update_metadata_from_cloudwatch_tags(tags.get("tags", {}), metadata)
+    except Exception as e:
+        # Ignore any errors; this is an optional feature
+        print("Unable to fetch tags from CloudWatch log group ({}). (Reason: {}) Skipping.".format(logs["logGroup"], e))
+        pass
+
     # Set host as log group where cloudwatch is source
     if metadata[DD_SOURCE] == "cloudwatch":
         metadata[DD_HOST] = aws_attributes["aws"]["awslogs"]["logGroup"]
@@ -721,6 +732,14 @@ def awslogs_handler(event, context, metadata):
     for log in logs["logEvents"]:
         yield merge_dicts(log, aws_attributes)
 
+
+DD_TAG_PREFIX="dd-tag-"
+def update_metadata_from_cloudwatch_tags(tags, metadata):
+    ddtags = {k[len(DD_TAG_PREFIX):]: v for k, v in tags.items() if k.startswith(DD_TAG_PREFIX)}
+    metadata[DD_CUSTOM_TAGS] = ",".join([
+        metadata.get(DD_CUSTOM_TAGS, ""),
+        ",".join(["{}:{}".format(k, v) for k, v in ddtags.items()])
+    ])
 
 # Handle Cloudwatch Events
 def cwevent_handler(event, metadata):
