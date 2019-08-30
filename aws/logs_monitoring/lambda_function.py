@@ -154,7 +154,7 @@ DD_SOURCE = "ddsource"
 DD_CUSTOM_TAGS = "ddtags"
 DD_SERVICE = "service"
 DD_HOST = "host"
-DD_FORWARDER_VERSION = "1.5.0"
+DD_FORWARDER_VERSION = "1.5.1"
 
 # Pass custom tags as environment variable, ensure comma separated, no trailing comma in envvar!
 DD_TAGS = os.environ.get("DD_TAGS", "")
@@ -698,6 +698,10 @@ def awslogs_handler(event, context, metadata):
                 metadata[DD_CUSTOM_TAGS] += ",functionname:" + function_name
                 # Set the arn as the hostname
                 metadata[DD_HOST] = arn
+                # Default `env` to `none` and `service` to the function name,
+                # for correlation with the APM env and service.
+                metadata[DD_SERVICE] = function_name
+                metadata[DD_CUSTOM_TAGS] += ",env:none"
 
     # Create and send structured logs to Datadog
     for log in logs["logEvents"]:
