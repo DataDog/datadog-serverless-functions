@@ -610,8 +610,17 @@ def s3_handler(event, context, metadata):
         else:
             split_data = data.splitlines()
 
-        # Send lines to Datadog
+        filtered_log_lines = []
         for line in split_data:
+          if metadata[DD_SOURCE] == "waf":
+              log_json = json.loads(line)
+              if log_json["action"] != "ALLOW" or len(log_json["nonTerminatingMatchingRules"]) > 0:
+                  filtered_log_lines.append(line)
+          else:
+              filtered_log_lines.append(line)
+
+        # Send lines to Datadog
+        for line in filtered_log_lines:
             # Create structured object and send it
             structured_line = {
                 "aws": {"s3": {"bucket": bucket, "key": key}},

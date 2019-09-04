@@ -1,0 +1,49 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Pushes logs and metrics from AWS to Datadog.
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues:
+    - production
+    - staging
+    - development
+  RollbarAccessToken:
+    Type: AWS::SSM::Parameter::Value<String>
+  DatadogApiKey:
+    Type: AWS::SSM::Parameter::Value<String>
+
+Resources:
+  DatadogLogForwarder:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName:
+        Fn::Sub: cf-${Environment}-datadog-log-forwarder
+      Description: 'https://github.com/BookBub/datadog-serverless-functions/tree/master/aws/logs_monitoring'
+      Environment:
+        Variables:
+          ENVIRONMENT: !Ref Environment
+          ROLLBAR_ACCESS_TOKEN: !Ref RollbarAccessToken
+          DD_API_KEY: !Ref DatadogApiKey
+      CodeUri: ./src/
+      Handler: lambda_function.lambda_handler
+      Runtime: python2.7
+      Timeout: 120 # 2 minutes
+      MemorySize: 2048
+      Tracing: Active
+      Policies:
+      - AmazonSSMReadOnlyAccess
+      - {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "s3:Get*",
+                "s3:List*"
+              ],
+              "Resource": "*"
+            }
+          ]
+        }
+

@@ -1,0 +1,4 @@
+boto3==1.9.131
+rollbar==0.14.7
+aws_xray_sdk==2.4.2
+
