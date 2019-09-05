@@ -79,7 +79,7 @@ You have two options to add custom tags to your logs:
 
 By default, the forwarder sends logs using HTTPS through the port 443. 
 
-If you would rather use raw TCP, set the environment variable `DD_USE_TCP` to `true`.
+To send logs over a SSL encrypted TCP connection, set the environment variable `DD_USE_TCP` to `true`.
 
 ### Send logs to EU
 
