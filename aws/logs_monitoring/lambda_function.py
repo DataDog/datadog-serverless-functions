@@ -510,11 +510,11 @@ def split(events):
     metrics, logs, traces = [], [], []
     for event in events:
         metric = extract_metric(event)
-        spans = extract_traces(event)
+        new_trace = extract_traces(event)
         if metric:
             metrics.append(metric)
-        elif spans:
-            traces = traces + spans
+        elif new_trace:
+            traces = traces + [new_trace]
         else:
             logs.append(json.dumps(event))
     return metrics, logs, traces
