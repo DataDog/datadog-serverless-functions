@@ -37,7 +37,7 @@ DD_FORWARD_LOG = os.getenv("DD_FORWARD_LOG", default="true").lower() == "true"
 
 # Change this value to change the underlying network client (HTTP or TCP),
 # by default, use the TCP client.
-DD_USE_TCP = os.getenv("DD_USE_TCP", default="true").lower() == "true"
+DD_USE_TCP = os.getenv("DD_USE_TCP", default="false").lower() == "true"
 
 
 # Define the destination endpoint to send logs to
@@ -74,8 +74,8 @@ SCRUBBING_RULE_CONFIGS = [
         "xxxxx@xxxxx.com",
     ),
     ScrubbingRuleConfig(
-        "DD_SCRUBBING_RULE", 
-        os.getenv("DD_SCRUBBING_RULE", default=None), 
+        "DD_SCRUBBING_RULE",
+        os.getenv("DD_SCRUBBING_RULE", default=None),
         os.getenv("DD_SCRUBBING_RULE_REPLACEMENT", default="xxxxx")
     )
 ]
@@ -92,7 +92,7 @@ def compileRegex(rule, pattern):
             raise Exception("could not compile {} regex with pattern: {}".format(rule, pattern))
 
 
-# Filtering logs 
+# Filtering logs
 # Option to include or exclude logs based on a pattern match
 INCLUDE_AT_MATCH = os.getenv("INCLUDE_AT_MATCH", default=None)
 include_regex = compileRegex("INCLUDE_AT_MATCH", INCLUDE_AT_MATCH)
@@ -154,7 +154,7 @@ DD_SOURCE = "ddsource"
 DD_CUSTOM_TAGS = "ddtags"
 DD_SERVICE = "service"
 DD_HOST = "host"
-DD_FORWARDER_VERSION = "1.5.1"
+DD_FORWARDER_VERSION = "2.0.0"
 
 # Pass custom tags as environment variable, ensure comma separated, no trailing comma in envvar!
 DD_TAGS = os.environ.get("DD_TAGS", "")
@@ -357,7 +357,7 @@ class DatadogScrubber(object):
             if config.name in os.environ:
                 rules.append(
                     ScrubbingRule(
-                        compileRegex(config.name, config.pattern), 
+                        compileRegex(config.name, config.pattern),
                         config.placeholder
                     )
                 )
@@ -396,7 +396,7 @@ def forward_logs(logs):
         batcher = DatadogBatcher(256 * 1000, 256 * 1000, 1)
         cli = DatadogTCPClient(DD_URL, DD_PORT, DD_API_KEY, scrubber)
     else:
-        batcher = DatadogBatcher(128 * 1000, 1 * 1000 * 1000, 25)
+        batcher = DatadogBatcher(256 * 1000, 2 * 1000 * 1000, 200)
         cli = DatadogHTTPClient(DD_URL, DD_API_KEY, scrubber)
 
     with DatadogClient(cli) as client:
@@ -494,7 +494,7 @@ def filter_logs(logs):
     """
     if INCLUDE_AT_MATCH is None and EXCLUDE_AT_MATCH is None:
         # convert to strings
-        return logs 
+        return logs
     # Add logs that should be sent to logs_to_send
     logs_to_send = []
     # Test each log for exclusion and inclusion, if the criteria exist
@@ -505,7 +505,7 @@ def filter_logs(logs):
                 if re.search(exclude_regex, log):
                     continue
             if INCLUDE_AT_MATCH is not None:
-                # if no include match is found, do not add log to logs_to_send 
+                # if no include match is found, do not add log to logs_to_send
                 if not re.search(include_regex, log):
                     continue
             logs_to_send.append(log)
@@ -628,7 +628,7 @@ def kinesis_awslogs_handler(event, context, metadata):
                 "data": record["kinesis"]["data"]
             }
         }
-        
+
     return itertools.chain.from_iterable(awslogs_handler(reformat_record(r), context, metadata) for r in event["Records"])
 
 
@@ -817,7 +817,7 @@ def parse_service_arn(source, key, bucket, context):
             keysplit = "/".join(idsplit).split("_")
         # If no prefix, split the key
         else:
-            keysplit = key.split("_")        
+            keysplit = key.split("_")
         if len(keysplit) > 3:
             region = keysplit[2].lower()
             name = keysplit[3]
