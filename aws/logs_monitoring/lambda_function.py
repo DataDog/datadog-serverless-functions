@@ -24,13 +24,19 @@ try:
     # Datadog Lambda layer is required to forward metrics
     from datadog_lambda.wrapper import datadog_lambda_wrapper
     from datadog_lambda.metric import lambda_stats
-    from datadog_lambda.trace_intake import forward_traces
 
     DD_FORWARD_METRIC = True
-    DD_FORWARD_TRACES = True
 except ImportError:
     # For backward-compatibility
     DD_FORWARD_METRIC = False
+
+try:
+    # Datadog Trace Layer is required to forward traces
+    from trace_forwarder.connection import TraceConnection
+
+    DD_FORWARD_TRACES = True
+except ImportError:
+    # For backward-compatibility
     DD_FORWARD_TRACES = False
 
 # Set this variable to `False` to disable log forwarding.
@@ -136,6 +142,10 @@ validation_res = requests.get(
 if not validation_res.ok:
     raise Exception("The API key is not valid.")
 
+trace_connection = None
+if DD_FORWARD_TRACES:
+    trace_connection = TraceConnection("https://trace.agent.{}".format(DD_SITE), DD_API_KEY)
+trace_regex = re.compile(r"^\s*{\s*\"traces\"\s*\:\s*\[")
 
 # DD_MULTILINE_LOG_REGEX_PATTERN: Datadog Multiline Log Regular Expression Pattern
 DD_MULTILINE_LOG_REGEX_PATTERN = None
@@ -377,6 +387,7 @@ class DatadogScrubber(object):
 
 def datadog_forwarder(event, context):
     """The actual lambda function entry point"""
+    global trace_connection
     events = parse(event, context)
     metrics, logs, traces = split(events)
     if DD_FORWARD_LOG:
@@ -384,7 +395,11 @@ def datadog_forwarder(event, context):
     if DD_FORWARD_METRIC:
         forward_metrics(metrics)
     if DD_FORWARD_TRACES and len(traces) > 0:
-        forward_traces(traces)
+        try:
+            for trace in traces:
+                trace_connection.send_trace(trace)
+        except Exception as e:
+            print(e)
 
 
 if DD_FORWARD_METRIC or DD_FORWARD_TRACES:
@@ -469,15 +484,10 @@ def generate_metadata(context):
 def extract_traces(event):
     """Extract traces from an event if possible"""
     try:
-        message = event['message']
-        # Early short circuit, to prevent processing everything as json.
-        if not message.startswith('{"datadog_traces":['):
+        message = event["message"]
+        if not trace_regex.match(message):
             return
-        trace = json.loads(message)
-        if 'datadog_traces' in trace:
-            return trace['datadog_traces']
-        else:
-            return None
+        return message
     except Exception:
         return None
 
