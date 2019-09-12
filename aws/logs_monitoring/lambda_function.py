@@ -108,6 +108,7 @@ if "DD_KMS_API_KEY" in os.environ:
     DD_API_KEY = boto3.client("kms").decrypt(
         CiphertextBlob=base64.b64decode(ENCRYPTED)
     )["Plaintext"]
+    DD_API_KEY = DD_API_KEY.decode("utf-8")
 elif "DD_API_KEY" in os.environ:
     DD_API_KEY = os.environ["DD_API_KEY"]
 
