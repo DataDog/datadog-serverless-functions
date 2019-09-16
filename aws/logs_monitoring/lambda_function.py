@@ -395,11 +395,7 @@ def datadog_forwarder(event, context):
     if DD_FORWARD_METRIC:
         forward_metrics(metrics)
     if DD_FORWARD_TRACES and len(traces) > 0:
-        try:
-            for trace in traces:
-                trace_connection.send_trace(trace)
-        except Exception as e:
-            print(e)
+        forward_traces(traces)
 
 
 if DD_FORWARD_METRIC or DD_FORWARD_TRACES:
@@ -481,7 +477,7 @@ def generate_metadata(context):
     return metadata
 
 
-def extract_traces(event):
+def extract_trace(event):
     """Extract traces from an event if possible"""
     try:
         message = event["message"]
@@ -510,11 +506,11 @@ def split(events):
     metrics, logs, traces = [], [], []
     for event in events:
         metric = extract_metric(event)
-        new_trace = extract_traces(event)
+        trace = extract_trace(event)
         if metric and DD_FORWARD_METRIC:
             metrics.append(metric)
-        elif new_trace and DD_FORWARD_TRACES:
-            traces = traces + [new_trace]
+        elif trace and DD_FORWARD_TRACES:
+            traces.append(trace)
         else:
             logs.append(json.dumps(event))
     return metrics, logs, traces
@@ -563,6 +559,14 @@ def forward_metrics(metrics):
             )
         except Exception as e:
             print("Unexpected exception: {}, metric: {}".format(str(e), metric))
+
+
+def forward_traces(traces):
+    try:
+        for trace in traces:
+            trace_connection.send_trace(trace)
+    except Exception as e:
+        print(e)
 
 
 # Utility functions
