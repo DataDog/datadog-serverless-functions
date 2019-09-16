@@ -511,9 +511,9 @@ def split(events):
     for event in events:
         metric = extract_metric(event)
         new_trace = extract_traces(event)
-        if metric:
+        if metric and DD_FORWARD_METRIC:
             metrics.append(metric)
-        elif new_trace:
+        elif new_trace and DD_FORWARD_TRACES:
             traces = traces + [new_trace]
         else:
             logs.append(json.dumps(event))
