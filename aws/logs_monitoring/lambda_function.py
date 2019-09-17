@@ -478,7 +478,6 @@ def generate_metadata(context):
 def extract_trace(event):
     """Extract traces from an event if possible"""
     try:
-        print(event)
         message = event["message"]
         obj = json.loads(event['message'])
         if not "traces" in obj or not isinstance(obj["traces"], list):
