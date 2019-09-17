@@ -145,7 +145,6 @@ if not validation_res.ok:
 trace_connection = None
 if DD_FORWARD_TRACES:
     trace_connection = TraceConnection("https://trace.agent.{}".format(DD_SITE), DD_API_KEY)
-trace_regex = re.compile(r"^\s*{\s*\"traces\"\s*\:\s*\[")
 
 # DD_MULTILINE_LOG_REGEX_PATTERN: Datadog Multiline Log Regular Expression Pattern
 DD_MULTILINE_LOG_REGEX_PATTERN = None
@@ -387,7 +386,6 @@ class DatadogScrubber(object):
 
 def datadog_forwarder(event, context):
     """The actual lambda function entry point"""
-    global trace_connection
     events = parse(event, context)
     metrics, logs, traces = split(events)
     if DD_FORWARD_LOG:
@@ -480,9 +478,11 @@ def generate_metadata(context):
 def extract_trace(event):
     """Extract traces from an event if possible"""
     try:
+        print(event)
         message = event["message"]
-        if not trace_regex.match(message):
-            return
+        obj = json.loads(event['message'])
+        if not "traces" in obj or not isinstance(obj["traces"], list):
+            return None
         return message
     except Exception:
         return None
