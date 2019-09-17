@@ -12,4 +12,6 @@ Resources:
       Timeout: 120
       Layers:
         - !Sub 'arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Python27:3'
+        - !Sub 'arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Trace-Forwarder-Python27:1'
+
     Type: AWS::Serverless::Function

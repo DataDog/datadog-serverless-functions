@@ -24,11 +24,20 @@ try:
     # Datadog Lambda layer is required to forward metrics
     from datadog_lambda.wrapper import datadog_lambda_wrapper
     from datadog_lambda.metric import lambda_stats
+
     DD_FORWARD_METRIC = True
 except ImportError:
     # For backward-compatibility
     DD_FORWARD_METRIC = False
 
+try:
+    # Datadog Trace Layer is required to forward traces
+    from trace_forwarder.connection import TraceConnection
+
+    DD_FORWARD_TRACES = True
+except ImportError:
+    # For backward-compatibility
+    DD_FORWARD_TRACES = False
 
 # Set this variable to `False` to disable log forwarding.
 # E.g., when you only want to forward metrics from logs.
@@ -133,6 +142,9 @@ validation_res = requests.get(
 if not validation_res.ok:
     raise Exception("The API key is not valid.")
 
+trace_connection = None
+if DD_FORWARD_TRACES:
+    trace_connection = TraceConnection("https://trace.agent.{}".format(DD_SITE), DD_API_KEY)
 
 # DD_MULTILINE_LOG_REGEX_PATTERN: Datadog Multiline Log Regular Expression Pattern
 DD_MULTILINE_LOG_REGEX_PATTERN = None
@@ -375,14 +387,16 @@ class DatadogScrubber(object):
 def datadog_forwarder(event, context):
     """The actual lambda function entry point"""
     events = parse(event, context)
-    metrics, logs = split(events)
+    metrics, logs, traces = split(events)
     if DD_FORWARD_LOG:
         forward_logs(filter_logs(logs))
     if DD_FORWARD_METRIC:
         forward_metrics(metrics)
+    if DD_FORWARD_TRACES and len(traces) > 0:
+        forward_traces(traces)
 
 
-if DD_FORWARD_METRIC:
+if DD_FORWARD_METRIC or DD_FORWARD_TRACES:
     # Datadog Lambda layer is required to forward metrics
     lambda_handler = datadog_lambda_wrapper(datadog_forwarder)
 else:
@@ -461,6 +475,18 @@ def generate_metadata(context):
     return metadata
 
 
+def extract_trace(event):
+    """Extract traces from an event if possible"""
+    try:
+        message = event["message"]
+        obj = json.loads(event['message'])
+        if not "traces" in obj or not isinstance(obj["traces"], list):
+            return None
+        return message
+    except Exception:
+        return None
+
+
 def extract_metric(event):
     """Extract metric from an event if possible"""
     try:
@@ -476,14 +502,17 @@ def extract_metric(event):
 
 def split(events):
     """Split events to metrics and logs"""
-    metrics, logs = [], []
+    metrics, logs, traces = [], [], []
     for event in events:
         metric = extract_metric(event)
-        if metric:
+        trace = extract_trace(event)
+        if metric and DD_FORWARD_METRIC:
             metrics.append(metric)
+        elif trace and DD_FORWARD_TRACES:
+            traces.append(trace)
         else:
             logs.append(json.dumps(event))
-    return metrics, logs
+    return metrics, logs, traces
 
 
 # should only be called when INCLUDE_AT_MATCH and/or EXCLUDE_AT_MATCH exist
@@ -529,6 +558,14 @@ def forward_metrics(metrics):
             )
         except Exception as e:
             print("Unexpected exception: {}, metric: {}".format(str(e), metric))
+
+
+def forward_traces(traces):
+    try:
+        for trace in traces:
+            trace_connection.send_trace(trace)
+    except Exception as e:
+        print(e)
 
 
 # Utility functions
