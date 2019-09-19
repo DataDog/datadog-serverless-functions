@@ -24,11 +24,20 @@ try:
     # Datadog Lambda layer is required to forward metrics
     from datadog_lambda.wrapper import datadog_lambda_wrapper
     from datadog_lambda.metric import lambda_stats
+
     DD_FORWARD_METRIC = True
 except ImportError:
     # For backward-compatibility
     DD_FORWARD_METRIC = False
 
+try:
+    # Datadog Trace Layer is required to forward traces
+    from trace_forwarder.connection import TraceConnection
+
+    DD_FORWARD_TRACES = True
+except ImportError:
+    # For backward-compatibility
+    DD_FORWARD_TRACES = False
 
 # Set this variable to `False` to disable log forwarding.
 # E.g., when you only want to forward metrics from logs.
@@ -37,7 +46,7 @@ DD_FORWARD_LOG = os.getenv("DD_FORWARD_LOG", default="true").lower() == "true"
 
 # Change this value to change the underlying network client (HTTP or TCP),
 # by default, use the TCP client.
-DD_USE_TCP = os.getenv("DD_USE_TCP", default="true").lower() == "true"
+DD_USE_TCP = os.getenv("DD_USE_TCP", default="false").lower() == "true"
 
 
 # Define the destination endpoint to send logs to
@@ -74,8 +83,8 @@ SCRUBBING_RULE_CONFIGS = [
         "xxxxx@xxxxx.com",
     ),
     ScrubbingRuleConfig(
-        "DD_SCRUBBING_RULE", 
-        os.getenv("DD_SCRUBBING_RULE", default=None), 
+        "DD_SCRUBBING_RULE",
+        os.getenv("DD_SCRUBBING_RULE", default=None),
         os.getenv("DD_SCRUBBING_RULE_REPLACEMENT", default="xxxxx")
     )
 ]
@@ -92,7 +101,7 @@ def compileRegex(rule, pattern):
             raise Exception("could not compile {} regex with pattern: {}".format(rule, pattern))
 
 
-# Filtering logs 
+# Filtering logs
 # Option to include or exclude logs based on a pattern match
 INCLUDE_AT_MATCH = os.getenv("INCLUDE_AT_MATCH", default=None)
 include_regex = compileRegex("INCLUDE_AT_MATCH", INCLUDE_AT_MATCH)
@@ -133,6 +142,9 @@ validation_res = requests.get(
 if not validation_res.ok:
     raise Exception("The API key is not valid.")
 
+trace_connection = None
+if DD_FORWARD_TRACES:
+    trace_connection = TraceConnection("https://trace.agent.{}".format(DD_SITE), DD_API_KEY)
 
 # DD_MULTILINE_LOG_REGEX_PATTERN: Datadog Multiline Log Regular Expression Pattern
 DD_MULTILINE_LOG_REGEX_PATTERN = None
@@ -154,7 +166,7 @@ DD_SOURCE = "ddsource"
 DD_CUSTOM_TAGS = "ddtags"
 DD_SERVICE = "service"
 DD_HOST = "host"
-DD_FORWARDER_VERSION = "1.5.0"
+DD_FORWARDER_VERSION = "2.0.0"
 
 # Pass custom tags as environment variable, ensure comma separated, no trailing comma in envvar!
 DD_TAGS = os.environ.get("DD_TAGS", "")
@@ -357,7 +369,7 @@ class DatadogScrubber(object):
             if config.name in os.environ:
                 rules.append(
                     ScrubbingRule(
-                        compileRegex(config.name, config.pattern), 
+                        compileRegex(config.name, config.pattern),
                         config.placeholder
                     )
                 )
@@ -375,14 +387,16 @@ class DatadogScrubber(object):
 def datadog_forwarder(event, context):
     """The actual lambda function entry point"""
     events = parse(event, context)
-    metrics, logs = split(events)
+    metrics, logs, traces = split(events)
     if DD_FORWARD_LOG:
         forward_logs(filter_logs(logs))
     if DD_FORWARD_METRIC:
         forward_metrics(metrics)
+    if DD_FORWARD_TRACES and len(traces) > 0:
+        forward_traces(traces)
 
 
-if DD_FORWARD_METRIC:
+if DD_FORWARD_METRIC or DD_FORWARD_TRACES:
     # Datadog Lambda layer is required to forward metrics
     lambda_handler = datadog_lambda_wrapper(datadog_forwarder)
 else:
@@ -396,7 +410,7 @@ def forward_logs(logs):
         batcher = DatadogBatcher(256 * 1000, 256 * 1000, 1)
         cli = DatadogTCPClient(DD_URL, DD_PORT, DD_API_KEY, scrubber)
     else:
-        batcher = DatadogBatcher(128 * 1000, 1 * 1000 * 1000, 25)
+        batcher = DatadogBatcher(256 * 1000, 2 * 1000 * 1000, 200)
         cli = DatadogHTTPClient(DD_URL, DD_API_KEY, scrubber)
 
     with DatadogClient(cli) as client:
@@ -461,6 +475,18 @@ def generate_metadata(context):
     return metadata
 
 
+def extract_trace(event):
+    """Extract traces from an event if possible"""
+    try:
+        message = event["message"]
+        obj = json.loads(event['message'])
+        if not "traces" in obj or not isinstance(obj["traces"], list):
+            return None
+        return message
+    except Exception:
+        return None
+
+
 def extract_metric(event):
     """Extract metric from an event if possible"""
     try:
@@ -476,14 +502,17 @@ def extract_metric(event):
 
 def split(events):
     """Split events to metrics and logs"""
-    metrics, logs = [], []
+    metrics, logs, traces = [], [], []
     for event in events:
         metric = extract_metric(event)
-        if metric:
+        trace = extract_trace(event)
+        if metric and DD_FORWARD_METRIC:
             metrics.append(metric)
+        elif trace and DD_FORWARD_TRACES:
+            traces.append(trace)
         else:
             logs.append(json.dumps(event))
-    return metrics, logs
+    return metrics, logs, traces
 
 
 # should only be called when INCLUDE_AT_MATCH and/or EXCLUDE_AT_MATCH exist
@@ -494,7 +523,7 @@ def filter_logs(logs):
     """
     if INCLUDE_AT_MATCH is None and EXCLUDE_AT_MATCH is None:
         # convert to strings
-        return logs 
+        return logs
     # Add logs that should be sent to logs_to_send
     logs_to_send = []
     # Test each log for exclusion and inclusion, if the criteria exist
@@ -505,7 +534,7 @@ def filter_logs(logs):
                 if re.search(exclude_regex, log):
                     continue
             if INCLUDE_AT_MATCH is not None:
-                # if no include match is found, do not add log to logs_to_send 
+                # if no include match is found, do not add log to logs_to_send
                 if not re.search(include_regex, log):
                     continue
             logs_to_send.append(log)
@@ -529,6 +558,14 @@ def forward_metrics(metrics):
             )
         except Exception as e:
             print("Unexpected exception: {}, metric: {}".format(str(e), metric))
+
+
+def forward_traces(traces):
+    try:
+        for trace in traces:
+            trace_connection.send_trace(trace)
+    except Exception as e:
+        print(e)
 
 
 # Utility functions
@@ -628,7 +665,7 @@ def kinesis_awslogs_handler(event, context, metadata):
                 "data": record["kinesis"]["data"]
             }
         }
-        
+
     return itertools.chain.from_iterable(awslogs_handler(reformat_record(r), context, metadata) for r in event["Records"])
 
 
@@ -698,6 +735,10 @@ def awslogs_handler(event, context, metadata):
                 metadata[DD_CUSTOM_TAGS] += ",functionname:" + function_name
                 # Set the arn as the hostname
                 metadata[DD_HOST] = arn
+                # Default `env` to `none` and `service` to the function name,
+                # for correlation with the APM env and service.
+                metadata[DD_SERVICE] = function_name
+                metadata[DD_CUSTOM_TAGS] += ",env:none"
 
     # Create and send structured logs to Datadog
     for log in logs["logEvents"]:
@@ -813,7 +854,7 @@ def parse_service_arn(source, key, bucket, context):
             keysplit = "/".join(idsplit).split("_")
         # If no prefix, split the key
         else:
-            keysplit = key.split("_")        
+            keysplit = key.split("_")
         if len(keysplit) > 3:
             region = keysplit[2].lower()
             name = keysplit[3]

@@ -4,6 +4,7 @@ AWS Lambda function to ship logs and metrics from ELB, S3, CloudTrail, VPC, Clou
 
 # Features
 
+- Forward logs through HTTPS (defaulted to port 443)
 - Use AWS Lambda to re-route triggered S3 events to Datadog
 - Use AWS Lambda to re-route triggered Kinesis data stream events to Datadog, only the Cloudwatch logs are supported
 - Cloudwatch, ELB, S3, CloudTrail, VPC and CloudFront logs can be forwarded
@@ -74,6 +75,12 @@ You have two options to add custom tags to your logs:
 - Automatically with the `DD_TAGS` environment variable (tags must be a comma-separated list of strings).
 
 ## 3. (optional) Send logs to EU or to a proxy
+
+### Send logs through TCP
+
+By default, the forwarder sends logs using HTTPS through the port 443. 
+
+To send logs over a SSL encrypted TCP connection, set the environment variable `DD_USE_TCP` to `true`.
 
 ### Send logs to EU
 
