@@ -15,17 +15,19 @@ from botocore.vendored import requests
 import time
 import ssl
 import six.moves.urllib as urllib  # for for Python 2.7 urllib.unquote_plus
-import itertools
 import uuid
+import itertools
 from io import BytesIO, BufferedReader
 
 import boto3
 
+lambda_container_uuid = uuid.uuid4()
+container_start_time = time.time()
+
 try:
     # Datadog Lambda layer is required to forward metrics
     from datadog_lambda.wrapper import datadog_lambda_wrapper
-    from datadog_lambda.metric import lambda_stats, lambda_metric
-
+    from datadog_lambda.metric import (lambda_stats, lambda_metric)
     DD_FORWARD_METRIC = True
 except ImportError:
     # For backward-compatibility
@@ -39,7 +41,7 @@ DD_FORWARD_LOG = os.getenv("DD_FORWARD_LOG", default="true").lower() == "true"
 
 # Change this value to change the underlying network client (HTTP or TCP),
 # by default, use the TCP client.
-DD_USE_TCP = os.getenv("DD_USE_TCP", default="false").lower() == "true"
+DD_USE_TCP = os.getenv("DD_USE_TCP", default="true").lower() == "true"
 
 
 # Define the destination endpoint to send logs to
@@ -55,11 +57,6 @@ if DD_USE_TCP:
         DD_PORT = 10516
 else:
     DD_URL = os.getenv("DD_URL", default="lambda-http-intake.logs." + DD_SITE)
-
-
-lambda_container_uuid = uuid.uuid4()
-container_start_time = time.time()
-
 
 
 class ScrubbingRuleConfig(object):
@@ -83,8 +80,8 @@ SCRUBBING_RULE_CONFIGS = [
     ScrubbingRuleConfig(
         "DD_SCRUBBING_RULE",
         os.getenv("DD_SCRUBBING_RULE", default=None),
-        os.getenv("DD_SCRUBBING_RULE_REPLACEMENT", default="xxxxx"),
-    ),
+        os.getenv("DD_SCRUBBING_RULE_REPLACEMENT", default="xxxxx")
+    )
 ]
 
 # Use for include, exclude, and scrubbing rules
@@ -92,17 +89,11 @@ def compileRegex(rule, pattern):
     if pattern is not None:
         if pattern == "":
             # If pattern is an empty string, raise exception
-            raise Exception(
-                "No pattern provided:\nAdd pattern or remove {} environment variable".format(
-                    rule
-                )
-            )
+            raise Exception("No pattern provided:\nAdd pattern or remove {} environment variable".format(rule))
         try:
             return re.compile(pattern)
         except Exception:
-            raise Exception(
-                "could not compile {} regex with pattern: {}".format(rule, pattern)
-            )
+            raise Exception("could not compile {} regex with pattern: {}".format(rule, pattern))
 
 
 # Filtering logs
@@ -130,7 +121,8 @@ DD_API_KEY = DD_API_KEY.strip()
 # DD_API_KEY must be set
 if DD_API_KEY == "<your_api_key>" or DD_API_KEY == "":
     raise Exception(
-        "You must configure your Datadog API key using " "DD_KMS_API_KEY or DD_API_KEY"
+        "You must configure your Datadog API key using "
+        "DD_KMS_API_KEY or DD_API_KEY"
     )
 # Check if the API key is the correct number of characters
 if len(DD_API_KEY) != 32:
@@ -152,14 +144,10 @@ if "DD_MULTILINE_LOG_REGEX_PATTERN" in os.environ:
     DD_MULTILINE_LOG_REGEX_PATTERN = os.environ["DD_MULTILINE_LOG_REGEX_PATTERN"]
     try:
         multiline_regex = re.compile(
-            "[\n\r\f]+(?={})".format(DD_MULTILINE_LOG_REGEX_PATTERN)
+            "(?<!^)\s+(?={})(?!.\s)".format(DD_MULTILINE_LOG_REGEX_PATTERN)
         )
     except Exception:
-        raise Exception(
-            "could not compile multiline regex with pattern: {}".format(
-                DD_MULTILINE_LOG_REGEX_PATTERN
-            )
-        )
+        raise Exception("could not compile multiline regex with pattern: {}".format(DD_MULTILINE_LOG_REGEX_PATTERN))
     multiline_regex_start_pattern = re.compile(
         "^{}".format(DD_MULTILINE_LOG_REGEX_PATTERN)
     )
@@ -170,7 +158,7 @@ DD_SOURCE = "ddsource"
 DD_CUSTOM_TAGS = "ddtags"
 DD_SERVICE = "service"
 DD_HOST = "host"
-DD_FORWARDER_VERSION = "2.0.0"
+DD_FORWARDER_VERSION = "1.4.1"
 
 # Pass custom tags as environment variable, ensure comma separated, no trailing comma in envvar!
 DD_TAGS = os.environ.get("DD_TAGS", "")
@@ -242,7 +230,9 @@ class DatadogTCPClient(object):
     def send(self, logs):
         try:
             frame = self._scrubber.scrub(
-                "".join(["{} {}\n".format(self._api_key, log) for log in logs])
+                "".join(
+                    ["{} {}\n".format(self._api_key, log) for log in logs]
+                )
             )
             self._sock.sendall(frame.encode("UTF-8"))
         except ScrubbingException:
@@ -371,7 +361,8 @@ class DatadogScrubber(object):
             if config.name in os.environ:
                 rules.append(
                     ScrubbingRule(
-                        compileRegex(config.name, config.pattern), config.placeholder
+                        compileRegex(config.name, config.pattern),
+                        config.placeholder
                     )
                 )
         self._rules = rules
@@ -384,17 +375,10 @@ class DatadogScrubber(object):
                 raise ScrubbingException()
         return payload
 
-
-
 def log_debug_info(event, context):
     """swf - Logs some info that will help test the new Lambda integration metrics
     """
     try:
-        lambda_metric(
-            "dd.log_forwarder_container_age",
-            time.time() - container_start_time,
-            tags=["lambda_container_uuid:{}".format(lambda_container_uuid)],
-        )
         print("This is the event the forwarder was invoked with " + str(event))
         print("This is the context the forwarder was invoked with " + str(context))
         print("Executed in container " + str(lambda_container_uuid))
@@ -410,17 +394,11 @@ def log_debug_info(event, context):
         logs_data = json.loads(data)
         print("These are the logs sent to the forwarder " + str(logs_data))
         log_group = logs_data.get("logGroup")
-        uuid_and_log_group = {
-            "lambda_container_uuid": lambda_container_uuid,
-            "log_group": log_group,
-        }
+        uuid_and_log_group = {"lambda_container_uuid": lambda_container_uuid, "log_group": log_group}
         print(uuid_and_log_group)
-        tags = ["{}:{}".format(k, v) for k, v in uuid_and_log_group.items()]
-
-        lambda_metric("dd.log_forwarder_invoked", 1, tags=tags)
+        lambda_metric("dd.log_forwarder_invoked", 1, tags=["{}:{}".format(k, v) for k, v in uuid_and_log_group.items()])
     except Exception as e:
         print("Encountered exception in debug logging: " + str(e))
-
 
 def datadog_forwarder(event, context):
     """The actual lambda function entry point"""
@@ -447,7 +425,7 @@ def forward_logs(logs):
         batcher = DatadogBatcher(256 * 1000, 256 * 1000, 1)
         cli = DatadogTCPClient(DD_URL, DD_PORT, DD_API_KEY, scrubber)
     else:
-        batcher = DatadogBatcher(256 * 1000, 2 * 1000 * 1000, 200)
+        batcher = DatadogBatcher(128 * 1000, 1 * 1000 * 1000, 25)
         cli = DatadogHTTPClient(DD_URL, DD_API_KEY, scrubber)
 
     with DatadogClient(cli) as client:
@@ -515,8 +493,8 @@ def generate_metadata(context):
 def extract_metric(event):
     """Extract metric from an event if possible"""
     try:
-        metric = json.loads(event["message"])
-        required_attrs = {"m", "v", "e", "t"}
+        metric = json.loads(event['message'])
+        required_attrs = {'m', 'v', 'e', 't'}
         if all(attr in metric for attr in required_attrs):
             return metric
         else:
@@ -573,7 +551,10 @@ def forward_metrics(metrics):
     for metric in metrics:
         try:
             lambda_stats.distribution(
-                metric["m"], metric["v"], timestamp=metric["e"], tags=metric["t"]
+                metric['m'],
+                metric['v'],
+                timestamp=metric['e'],
+                tags=metric['t']
             )
         except Exception as e:
             print("Unexpected exception: {}, metric: {}".format(str(e), metric))
@@ -671,11 +652,13 @@ def s3_handler(event, context, metadata):
 # Handle CloudWatch logs from Kinesis
 def kinesis_awslogs_handler(event, context, metadata):
     def reformat_record(record):
-        return {"awslogs": {"data": record["kinesis"]["data"]}}
+        return {
+            "awslogs": {
+                "data": record["kinesis"]["data"]
+            }
+        }
 
-    return itertools.chain.from_iterable(
-        awslogs_handler(reformat_record(r), context, metadata) for r in event["Records"]
-    )
+    return itertools.chain.from_iterable(awslogs_handler(reformat_record(r), context, metadata) for r in event["Records"])
 
 
 # Handle CloudWatch logs
@@ -718,7 +701,7 @@ def awslogs_handler(event, context, metadata):
         if match is not None:
             metadata[DD_HOST] = match.group("host")
             metadata[DD_CUSTOM_TAGS] = (
-                metadata[DD_CUSTOM_TAGS] + ",logname:" + match.group("name")
+                    metadata[DD_CUSTOM_TAGS] + ",logname:" + match.group("name")
             )
             # We can intuit the sourcecategory in some cases
             if match.group("name") == "postgresql":
@@ -744,10 +727,6 @@ def awslogs_handler(event, context, metadata):
                 metadata[DD_CUSTOM_TAGS] += ",functionname:" + function_name
                 # Set the arn as the hostname
                 metadata[DD_HOST] = arn
-                # Default `env` to `none` and `service` to the function name,
-                # for correlation with the APM env and service.
-                metadata[DD_SERVICE] = function_name
-                metadata[DD_CUSTOM_TAGS] += ",env:none"
 
     # Create and send structured logs to Datadog
     for log in logs["logEvents"]:
@@ -831,15 +810,13 @@ def parse_event_source(event, key):
         "sns",
         "waf",
         "docdb",
-        "fargate",
+        "fargate"
     ]:
         if source in key:
             return source
     if "API-Gateway" in key or "ApiGateway" in key:
         return "apigateway"
-    if is_cloudtrail(str(key)) or (
-        "logGroup" in event and event["logGroup"] == "CloudTrail"
-    ):
+    if is_cloudtrail(str(key)) or ('logGroup' in event and event['logGroup'] == 'CloudTrail'):
         return "cloudtrail"
     if "awslogs" in event:
         return "cloudwatch"
