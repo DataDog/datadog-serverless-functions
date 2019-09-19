@@ -39,18 +39,43 @@ except ImportError:
     # For backward-compatibility
     DD_FORWARD_TRACES = False
 
-# Set this variable to `False` to disable log forwarding.
-# E.g., when you only want to forward metrics from logs.
+#####################################
+############# PARAMETERS ############
+#####################################
+
+## @param DD_API_KEY - String - required - default: none
+## The Datadog API key associated with your Datadog Account
+## It can be found here:
+##
+##   * Datadog US Site: https://app.datadoghq.com/account/settings#api
+##   * Datadog EU Site: https://app.datadoghq.eu/account/settings#api
+#
+DD_API_KEY = "<YOUR_DATADOG_API_KEY>"
+
+## @param DD_FORWARD_LOG - boolean - optional - default: true
+## Set this variable to `False` to disable log forwarding.
+## E.g., when you only want to forward metrics from logs.
+#
 DD_FORWARD_LOG = os.getenv("DD_FORWARD_LOG", default="true").lower() == "true"
 
-
-# Change this value to change the underlying network client (HTTP or TCP),
-# by default, use the TCP client.
+## @param DD_USE_TCP - boolean - optional -default: false
+## Change this value to `true` to send your logs and metrics using the HTTP network client
+## By default, it use the TCP client.
+#
 DD_USE_TCP = os.getenv("DD_USE_TCP", default="false").lower() == "true"
 
-
-# Define the destination endpoint to send logs to
+## @param DD_SITE - String - optional -default: datadoghq.com
+## Define the Datadog Site to send your logs and metrics to.
+## Set it to `datadoghq.eu` to send your logs and metrics to Datadog EU site.
+#
 DD_SITE = os.getenv("DD_SITE", default="datadoghq.com")
+
+## @param DD_TAGS - list of comma separated strings - optional -default: none
+## Pass custom tags as environment variable or through this variable.
+## Ensure your tags are a comma separated list of strings with no trailing comma in the envvar!
+#
+DD_TAGS = os.environ.get("DD_TAGS", "")
+
 if DD_USE_TCP:
     DD_URL = os.getenv("DD_URL", default="lambda-intake.logs." + DD_SITE)
     try:
@@ -109,9 +134,6 @@ include_regex = compileRegex("INCLUDE_AT_MATCH", INCLUDE_AT_MATCH)
 EXCLUDE_AT_MATCH = os.getenv("EXCLUDE_AT_MATCH", default=None)
 exclude_regex = compileRegex("EXCLUDE_AT_MATCH", EXCLUDE_AT_MATCH)
 
-
-# DD_API_KEY: Datadog API Key
-DD_API_KEY = "<your_api_key>"
 if "DD_KMS_API_KEY" in os.environ:
     ENCRYPTED = os.environ["DD_KMS_API_KEY"]
     DD_API_KEY = boto3.client("kms").decrypt(
@@ -124,7 +146,7 @@ elif "DD_API_KEY" in os.environ:
 DD_API_KEY = DD_API_KEY.strip()
 
 # DD_API_KEY must be set
-if DD_API_KEY == "<your_api_key>" or DD_API_KEY == "":
+if DD_API_KEY == "<YOUR_DATADOG_API_KEY>" or DD_API_KEY == "":
     raise Exception(
         "You must configure your Datadog API key using "
         "DD_KMS_API_KEY or DD_API_KEY"
@@ -167,10 +189,6 @@ DD_CUSTOM_TAGS = "ddtags"
 DD_SERVICE = "service"
 DD_HOST = "host"
 DD_FORWARDER_VERSION = "2.0.0"
-
-# Pass custom tags as environment variable, ensure comma separated, no trailing comma in envvar!
-DD_TAGS = os.environ.get("DD_TAGS", "")
-
 
 class RetriableException(Exception):
     pass
