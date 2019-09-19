@@ -49,16 +49,16 @@ There are 3 possibilities to set your Datadog API key:
 2. **Environment Variable**: Use the `DD_API_KEY` environment variable for the Lambda function.
 3. **Manual**: Replace `<YOUR_DATADOG_API_KEY>` in the code:
 
-        ```
-        ## @param DD_API_KEY - String - required - default: none
-        ## The Datadog API key associated with your Datadog Account
-        ## It can be found here:
-        ##
-        ##   * Datadog US Site: https://app.datadoghq.com/account/settings#api
-        ##   * Datadog EU Site: https://app.datadoghq.eu/account/settings#api
-        #
-        DD_API_KEY = "<YOUR_DATADOG_API_KEY>"
-        ```
+  ```python
+  ## @param DD_API_KEY - String - required - default: none
+  ## The Datadog API key associated with your Datadog Account
+  ## It can be found here:
+  ##
+  ##   * Datadog US Site: https://app.datadoghq.com/account/settings#api
+  ##   * Datadog EU Site: https://app.datadoghq.eu/account/settings#api
+  #
+  DD_API_KEY = "<YOUR_DATADOG_API_KEY>"
+  ```
 
 #### Custom Tags
 
@@ -67,13 +67,13 @@ Add custom tags to all data forwarded by your function, either:
 * Use the `DD_TAGS` environment variable. Your tags must be a comma-separated list of strings with no trailing comma.
 * Edit the lambda code directly:
 
-        ```python
-        ## @param DD_TAGS - list of comma separated strings - optional -default: none
-        ## Pass custom tags as environment variable or through this variable.
-        ## Ensure your tags are a comma separated list of strings with no trailing comma in the envvar!
-        #
-        DD_TAGS = os.environ.get("DD_TAGS", "")
-        ```
+  ```python
+  ## @param DD_TAGS - list of comma separated strings - optional -default: none
+  ## Pass custom tags as environment variable or through this variable.
+  ## Ensure your tags are a comma separated list of strings with no trailing comma in the envvar!
+  #
+  DD_TAGS = os.environ.get("DD_TAGS", "")
+  ```
 
 #### Datadog Site
 
@@ -82,13 +82,13 @@ Define your Datadog Site to send data to, `datadoghq.com` for Datadog US site or
 * Use the `DD_SITE` environment variable.
 * Edit the lambda code directly:
 
-        ```python
-        ## @param DD_SITE - String - optional -default: datadoghq.com
-        ## Define the Datadog Site to send your logs and metrics to.
-        ## Set it to `datadoghq.eu` to send your logs and metrics to Datadog EU site.
-        #
-        DD_SITE = os.getenv("DD_SITE", default="datadoghq.com")
-        ```
+  ```python
+  ## @param DD_SITE - String - optional -default: datadoghq.com
+  ## Define the Datadog Site to send your logs and metrics to.
+  ## Set it to `datadoghq.eu` to send your logs and metrics to Datadog EU site.
+  #
+  DD_SITE = os.getenv("DD_SITE", default="datadoghq.com")
+  ```
 
 #### Send logs through TCP or HTTP.
 
@@ -97,13 +97,13 @@ By default, the forwarder sends logs using HTTPS through the port `443`. To send
 * Set the environment variable `DD_USE_TCP` to `true`.
 * Edit the lambda code directly:
 
-        ```python
-        ## @param DD_USE_TCP - boolean - optional -default: false
-        ## Change this value to `true` to send your logs and metrics using the HTTP network client
-        ## By default, it use the TCP client.
-        #
-        DD_USE_TCP = os.getenv("DD_USE_TCP", default="false").lower() == "true"
-        ```
+  ```python
+  ## @param DD_USE_TCP - boolean - optional -default: false
+  ## Change this value to `true` to send your logs and metrics using the HTTP network client
+  ## By default, it use the TCP client.
+  #
+  DD_USE_TCP = os.getenv("DD_USE_TCP", default="false").lower() == "true"
+  ```
 
 #### Proxy
 
