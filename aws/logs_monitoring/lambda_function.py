@@ -9,16 +9,16 @@ import base64
 import gzip
 import json
 import os
-import re
-import socket
-from botocore.vendored import requests
-import time
-import ssl
-import six.moves.urllib as urllib  # for for Python 2.7 urllib.unquote_plus
-import itertools
-from io import BytesIO, BufferedReader
 
 import boto3
+import itertools
+import re
+import six.moves.urllib as urllib  # for for Python 2.7 urllib.unquote_plus
+import socket
+import ssl
+import time
+from botocore.vendored import requests
+from io import BytesIO, BufferedReader
 
 try:
     # Datadog Lambda layer is required to forward metrics
@@ -48,6 +48,9 @@ DD_FORWARD_LOG = os.getenv("DD_FORWARD_LOG", default="true").lower() == "true"
 # by default, use the TCP client.
 DD_USE_TCP = os.getenv("DD_USE_TCP", default="false").lower() == "true"
 
+# Set this value to disable SSL over our TCP client.
+# Useful when you are forwarding your logs via TCP to a proxy.
+DD_NO_SSL = os.getenv("DD_NO_SSL", default="false").lower() == "true"
 
 # Define the destination endpoint to send logs to
 DD_SITE = os.getenv("DD_SITE", default="datadoghq.com")
@@ -55,14 +58,14 @@ if DD_USE_TCP:
     DD_URL = os.getenv("DD_URL", default="lambda-intake.logs." + DD_SITE)
     try:
         if "DD_SITE" in os.environ and DD_SITE == "datadoghq.eu":
-            DD_PORT = int(os.environ.get("DD_PORT", 443))
+            DD_PORT = int(os.getenv("DD_PORT", default="443"))
         else:
-            DD_PORT = int(os.environ.get("DD_PORT", 10516))
+            DD_PORT = int(os.getenv("DD_PORT", default="10516"))
     except Exception:
         DD_PORT = 10516
 else:
     DD_URL = os.getenv("DD_URL", default="lambda-http-intake.logs." + DD_SITE)
-
+    DD_PORT = int(os.getenv("DD_PORT", default="443"))
 
 class ScrubbingRuleConfig(object):
     def __init__(self, name, pattern, placeholder):
@@ -166,7 +169,7 @@ DD_SOURCE = "ddsource"
 DD_CUSTOM_TAGS = "ddtags"
 DD_SERVICE = "service"
 DD_HOST = "host"
-DD_FORWARDER_VERSION = "2.0.0"
+DD_FORWARDER_VERSION = "2.1.0"
 
 # Pass custom tags as environment variable, ensure comma separated, no trailing comma in envvar!
 DD_TAGS = os.environ.get("DD_TAGS", "")
@@ -214,16 +217,18 @@ class DatadogTCPClient(object):
     Client that sends a batch of logs over TCP.
     """
 
-    def __init__(self, host, port, api_key, scrubber):
+    def __init__(self, host, port, no_ssl, api_key, scrubber):
         self.host = host
         self.port = port
+        self._use_ssl = not no_ssl
         self._api_key = api_key
         self._scrubber = scrubber
         self._sock = None
 
     def _connect(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock = ssl.wrap_socket(sock)
+        if self._use_ssl:
+            sock = ssl.wrap_socket(sock)
         sock.connect((self.host, self.port))
         self._sock = sock
 
@@ -266,8 +271,8 @@ class DatadogHTTPClient(object):
     _POST = "POST"
     _HEADERS = {"Content-type": "application/json"}
 
-    def __init__(self, host, api_key, scrubber, timeout=10):
-        self._url = "https://{}/v1/input/{}".format(host, api_key)
+    def __init__(self, host, port, api_key, scrubber, timeout=10):
+        self._url = "https://{}:{}/v1/input/{}".format(host, port, api_key)
         self._scrubber = scrubber
         self._timeout = timeout
         self._session = None
@@ -408,10 +413,10 @@ def forward_logs(logs):
     scrubber = DatadogScrubber(SCRUBBING_RULE_CONFIGS)
     if DD_USE_TCP:
         batcher = DatadogBatcher(256 * 1000, 256 * 1000, 1)
-        cli = DatadogTCPClient(DD_URL, DD_PORT, DD_API_KEY, scrubber)
+        cli = DatadogTCPClient(DD_URL, DD_PORT, DD_NO_SSL, DD_API_KEY, scrubber)
     else:
         batcher = DatadogBatcher(256 * 1000, 2 * 1000 * 1000, 200)
-        cli = DatadogHTTPClient(DD_URL, DD_API_KEY, scrubber)
+        cli = DatadogHTTPClient(DD_URL, DD_PORT, DD_API_KEY, scrubber)
 
     with DatadogClient(cli) as client:
         for batch in batcher.batch(logs):
