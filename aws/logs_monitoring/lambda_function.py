@@ -112,7 +112,12 @@ exclude_regex = compileRegex("EXCLUDE_AT_MATCH", EXCLUDE_AT_MATCH)
 
 # DD_API_KEY: Datadog API Key
 DD_API_KEY = "<your_api_key>"
-if "DD_KMS_API_KEY" in os.environ:
+if "DD_API_KEY_SECRET_ARN" in os.environ:
+    SECRET_ARN = os.environ["DD_API_KEY_SECRET_ARN"]
+    DD_API_KEY = boto3.client("secretsmanager").get_secret_value(
+        SecretId=SECRET_ARN
+    )["SecretString"]
+elif "DD_KMS_API_KEY" in os.environ:
     ENCRYPTED = os.environ["DD_KMS_API_KEY"]
     DD_API_KEY = boto3.client("kms").decrypt(
         CiphertextBlob=base64.b64decode(ENCRYPTED)
