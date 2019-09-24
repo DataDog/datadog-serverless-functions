@@ -4,16 +4,17 @@ AWS Lambda function to ship logs and metrics from ELB, S3, CloudTrail, VPC, Clou
 
 ## Features
 
-- Forward logs through HTTPS (defaulted to port 443).
-- Use AWS Lambda to re-route triggered S3 events to Datadog.
-- Use AWS Lambda to re-route triggered Kinesis data stream events to Datadog, only the Cloudwatch logs are supported.
-- Cloudwatch, ELB, S3, CloudTrail, VPC and CloudFont logs can be forwarded.
-- JSON events providing details about S3 documents forwarded.
-- Structured meta-information can be attached to the events.
-- Scrubbing / Redaction rules.
-- Filtering rules (`INCLUDE_AT_MATCH` and `EXCLUDE_AT_MATCH`).
-- Multiline Log Support (S3 Only).
-- Forward custom metrics from logs.
+- Forward logs through HTTPS (defaulted to port 443)
+- Use AWS Lambda to re-route triggered S3 events to Datadog
+- Use AWS Lambda to re-route triggered Kinesis data stream events to Datadog, only the Cloudwatch logs are supported
+- Cloudwatch, ELB, S3, CloudTrail, VPC and CloudFront logs can be forwarded
+- SSL Security
+- JSON events providing details about S3 documents forwarded
+- Structured meta-information can be attached to the events
+- Scrubbing / Redaction rules
+- Filtering rules (`INCLUDE_AT_MATCH` and `EXCLUDE_AT_MATCH`)
+- Multiline Log Support (S3 Only)
+- Forward custom metrics from logs
 
 ## Quick Start
 
@@ -45,7 +46,7 @@ Set the Datadog API key for your Datadog platform, it can be found here:
 
 There are 3 possibilities to set your Datadog API key:
 
-1. **KMS Encrypted key (recommended)**: Use the `DD_KMS_API_KEY` environment variable to use a KMS encrypted key. Make sure that the Lambda excution role is listed in the KMS Key user in https://console.aws.amazon.com/iam/home#encryptionKeys.
+1. **KMS Encrypted key (recommended)**: Use the `DD_KMS_API_KEY` environment variable to use a KMS encrypted key. Make sure that the Lambda execution role is listed in the KMS Key user in https://console.aws.amazon.com/iam/home#encryptionKeys.
 2. **Environment Variable**: Use the `DD_API_KEY` environment variable for the Lambda function.
 3. **Manual**: Replace `<YOUR_DATADOG_API_KEY>` in the code:
 
