@@ -7,7 +7,8 @@ AWS Lambda function to ship logs and metrics from ELB, S3, CloudTrail, VPC, Clou
 - Forward logs through HTTPS (defaulted to port 443)
 - Use AWS Lambda to re-route triggered S3 events to Datadog
 - Use AWS Lambda to re-route triggered Kinesis data stream events to Datadog, only the Cloudwatch logs are supported
-- Cloudwatch, ELB, S3, CloudTrail, VPC and CloudFont logs can be forwarded
+- Cloudwatch, ELB, S3, CloudTrail, VPC and CloudFront logs can be forwarded
+- SSL Security
 - JSON events providing details about S3 documents forwarded
 - Structured meta-information can be attached to the events
 - Scrubbing / Redaction rules
@@ -50,7 +51,7 @@ metadata = {
 
 There are 3 possibilities to set your Datadog's API key (available in your Datadog platform):
 
-1. **KMS Encrypted key (recommended)**: Use the `DD_KMS_API_KEY` environment variable to use a KMS encrypted key. Make sure that the Lambda excution role is listed in the KMS Key user in https://console.aws.amazon.com/iam/home#encryptionKeys.
+1. **KMS Encrypted key (recommended)**: Use the `DD_KMS_API_KEY` environment variable to use a KMS encrypted key. Make sure that the Lambda execution role is listed in the KMS Key user in https://console.aws.amazon.com/iam/home#encryptionKeys.
 2. **Environment Variable**: Use the `DD_API_KEY` environment variable of the Lambda function
 3. **Manual**: Replace `<your_api_key>` in the code:
 
@@ -95,7 +96,7 @@ Two environment variables can be used to forward logs through a proxy:
 ## 4. Configuration
 
 - Set the memory to the highest possible value.
-- Also set the timeout limit. We recommends 120 seconds to deal with big files.
+- Also set the timeout limit. We recommend 120 seconds to deal with big files.
 - Hit the `Save and Test` button.
 
 ## 5. Testing it
