@@ -19,6 +19,8 @@ import itertools
 import uuid
 from io import BytesIO, BufferedReader
 
+from .enhanced_metrics import calculate_and_submit_lambda_metrics
+
 import boto3
 
 try:
@@ -431,6 +433,7 @@ def datadog_forwarder(event, context):
     if DD_FORWARD_METRIC:
         forward_metrics(metrics)
     log_debug_info(event, context)
+    calculate_and_submit_lambda_metrics(logs)
 
 
 if DD_FORWARD_METRIC:
