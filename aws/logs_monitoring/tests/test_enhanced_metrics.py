@@ -1,10 +1,13 @@
 import unittest
 
+from mock import patch
+
 from enhanced_metrics import (
     sanitize_aws_tag_string,
     parse_metrics_from_report_log,
     parse_lambda_tags_from_arn,
     generate_enhanced_lambda_metrics,
+    LambdaTagsCache,
 )
 
 
@@ -33,7 +36,7 @@ class TestEnhancedMetrics(unittest.TestCase):
         self.assertEqual(sanitize_aws_tag_string("s-erv:erl_ess"), "s_erv_erl_ess")
 
     def test_parse_lambda_tags_from_arn(self):
-        self.assertEqual(
+        self.assertListEqual(
             parse_lambda_tags_from_arn(
                 "arn:aws:lambda:us-east-1:1234597598159:function:swf-hello-test"
             ),
@@ -49,26 +52,74 @@ class TestEnhancedMetrics(unittest.TestCase):
         self.assertEqual(parsed_metrics, [])
 
         parsed_metrics = parse_metrics_from_report_log(self.standard_report)
-        self.assertEqual(
+
+        # The timestamps are None because the timestamp is added after the metrics are parsed
+        self.assertListEqual(
             [metric.__dict__ for metric in parsed_metrics],
             [
-                {"name": "duration", "tags": ["memorysize:128"], "value": 0.62},
-                {"name": "billed_duration", "tags": ["memorysize:128"], "value": 100},
-                {"name": "max_memory_used", "tags": ["memorysize:128"], "value": 51},
+                {
+                    "name": "aws.lambda.enhanced.duration",
+                    "tags": ["memorysize:128"],
+                    "value": 0.00062,
+                    "timestamp": None,
+                },
+                {
+                    "name": "aws.lambda.enhanced.billed_duration",
+                    "tags": ["memorysize:128"],
+                    "value": 0.1000,
+                    "timestamp": None,
+                },
+                {
+                    "name": "aws.lambda.enhanced.max_memory_used",
+                    "tags": ["memorysize:128"],
+                    "value": 51.0,
+                    "timestamp": None,
+                },
+                {
+                    "name": "aws.lambda.enhanced.estimated_cost",
+                    "tags": ["memorysize:128"],
+                    "timestamp": None,
+                    "value": 4.0833375e-07,
+                },
             ],
         )
 
         parsed_metrics = parse_metrics_from_report_log(self.report_with_xray)
-        self.assertEqual(
+        self.assertListEqual(
             [metric.__dict__ for metric in parsed_metrics],
             [
-                {"name": "duration", "tags": ["memorysize:128"], "value": 1711.87},
-                {"name": "billed_duration", "tags": ["memorysize:128"], "value": 1800},
-                {"name": "max_memory_used", "tags": ["memorysize:128"], "value": 98},
+                {
+                    "name": "aws.lambda.enhanced.duration",
+                    "tags": ["memorysize:128"],
+                    "timestamp": None,
+                    "value": 1.71187,
+                },
+                {
+                    "name": "aws.lambda.enhanced.billed_duration",
+                    "tags": ["memorysize:128"],
+                    "timestamp": None,
+                    "value": 1.8,
+                },
+                {
+                    "name": "aws.lambda.enhanced.max_memory_used",
+                    "tags": ["memorysize:128"],
+                    "timestamp": None,
+                    "value": 98.0,
+                },
+                {
+                    "name": "aws.lambda.enhanced.estimated_cost",
+                    "tags": ["memorysize:128"],
+                    "timestamp": None,
+                    "value": 3.9500075e-06,
+                },
             ],
         )
 
-    def test_generate_enhanced_lambda_metrics(self):
+    @patch("enhanced_metrics.build_arn_to_lambda_tags_cache")
+    def test_generate_enhanced_lambda_metrics(self, mock_build_cache):
+        mock_build_cache.return_value = {}
+        tags_cache = LambdaTagsCache()
+
         logs_input = [
             {
                 "message": "REPORT RequestId: fe1467d6-1458-4e20-8e40-9aaa4be7a0f4\tDuration: 3470.65 ms\tBilled Duration: 3500 ms\tMemory Size: 128 MB\tMax Memory Used: 89 MB\t\nXRAY TraceId: 1-5d8bba5a-dc2932496a65bab91d2d42d4\tSegmentId: 5ff79d2a06b82ad6\tSampled: true\t\n",
@@ -84,9 +135,10 @@ class TestEnhancedMetrics(unittest.TestCase):
                 "lambda": {
                     "arn": "arn:aws:lambda:us-east-1:172597598159:function:post-coupon-prod-us"
                 },
+                "timestamp": 10000,
             },
             {
-                "message": "REPORT RequestId: 4d30924b-6c69-463c-9ee2-9d831592f624\tDuration: 143.55 ms\tBilled Duration: 200 ms\tMemory Size: 512 MB\tMax Memory Used: 89 MB\t\nXRAY TraceId: 1-5d8bba5f-0ceae97823c479c00c75754e\tSegmentId: 36d912a53c0f3c24\tSampled: true\t\n",
+                "message": "REPORT RequestId: 4d30924b-6c69-463c-9ee2-9d831592f624\tDuration: 143.55 ms\tBilled Duration: 200 ms\tMemory Size: 512 MB\tMax Memory Used: 75 MB\t\nXRAY TraceId: 1-5d8bba5f-0ceae97823c479c00c75754e\tSegmentId: 36d912a53c0f3c24\tSampled: true\t\n",
                 "aws": {
                     "awslogs": {
                         "logGroup": "/aws/lambda/post-coupon-staging",
@@ -99,74 +151,103 @@ class TestEnhancedMetrics(unittest.TestCase):
                 "lambda": {
                     "arn": "arn:aws:lambda:us-east-1:172597598159:function:post-coupon-staging"
                 },
+                "timestamp": 20000,
             },
         ]
 
-        generated_metrics = generate_enhanced_lambda_metrics(logs_input, {})
-        expected_metrics = [
-            {
-                "name": "duration",
-                "tags": [
-                    "memorysize:128",
-                    "region:us-east-1",
-                    "account_id:172597598159",
-                    "functionname:post-coupon-prod-us",
-                ],
-                "value": 3470.65,
-            },
-            {
-                "name": "billed_duration",
-                "tags": [
-                    "memorysize:128",
-                    "region:us-east-1",
-                    "account_id:172597598159",
-                    "functionname:post-coupon-prod-us",
-                ],
-                "value": 3500.0,
-            },
-            {
-                "name": "max_memory_used",
-                "tags": [
-                    "memorysize:128",
-                    "region:us-east-1",
-                    "account_id:172597598159",
-                    "functionname:post-coupon-prod-us",
-                ],
-                "value": 89.0,
-            },
-            {
-                "name": "duration",
-                "tags": [
-                    "memorysize:512",
-                    "region:us-east-1",
-                    "account_id:172597598159",
-                    "functionname:post-coupon-staging",
-                ],
-                "value": 143.55,
-            },
-            {
-                "name": "billed_duration",
-                "tags": [
-                    "memorysize:512",
-                    "region:us-east-1",
-                    "account_id:172597598159",
-                    "functionname:post-coupon-staging",
-                ],
-                "value": 200.0,
-            },
-            {
-                "name": "max_memory_used",
-                "tags": [
-                    "memorysize:512",
-                    "region:us-east-1",
-                    "account_id:172597598159",
-                    "functionname:post-coupon-staging",
-                ],
-                "value": 89.0,
-            },
-        ]
+        generated_metrics = generate_enhanced_lambda_metrics(logs_input, tags_cache)
         self.assertEqual(
-            [metric.__dict__ for metric in generated_metrics], expected_metrics
+            [metric.__dict__ for metric in generated_metrics],
+            [
+                {
+                    "name": "aws.lambda.enhanced.duration",
+                    "tags": [
+                        "memorysize:128",
+                        "region:us-east-1",
+                        "account_id:172597598159",
+                        "functionname:post-coupon-prod-us",
+                    ],
+                    "timestamp": 10000,
+                    "value": 3.47065,
+                },
+                {
+                    "name": "aws.lambda.enhanced.billed_duration",
+                    "tags": [
+                        "memorysize:128",
+                        "region:us-east-1",
+                        "account_id:172597598159",
+                        "functionname:post-coupon-prod-us",
+                    ],
+                    "timestamp": 10000,
+                    "value": 3.5,
+                },
+                {
+                    "name": "aws.lambda.enhanced.max_memory_used",
+                    "tags": [
+                        "memorysize:128",
+                        "region:us-east-1",
+                        "account_id:172597598159",
+                        "functionname:post-coupon-prod-us",
+                    ],
+                    "timestamp": 10000,
+                    "value": 89.0,
+                },
+                {
+                    "name": "aws.lambda.enhanced.estimated_cost",
+                    "tags": [
+                        "memorysize:128",
+                        "region:us-east-1",
+                        "account_id:172597598159",
+                        "functionname:post-coupon-prod-us",
+                    ],
+                    "timestamp": 10000,
+                    "value": 0.00000749168125,
+                },
+                {
+                    "name": "aws.lambda.enhanced.duration",
+                    "tags": [
+                        "memorysize:512",
+                        "region:us-east-1",
+                        "account_id:172597598159",
+                        "functionname:post-coupon-staging",
+                    ],
+                    "timestamp": 20000,
+                    "value": 0.14355,
+                },
+                {
+                    "name": "aws.lambda.enhanced.billed_duration",
+                    "tags": [
+                        "memorysize:512",
+                        "region:us-east-1",
+                        "account_id:172597598159",
+                        "functionname:post-coupon-staging",
+                    ],
+                    "timestamp": 20000,
+                    "value": 0.2,
+                },
+                {
+                    "name": "aws.lambda.enhanced.max_memory_used",
+                    "tags": [
+                        "memorysize:512",
+                        "region:us-east-1",
+                        "account_id:172597598159",
+                        "functionname:post-coupon-staging",
+                    ],
+                    "timestamp": 20000,
+                    "value": 75.0,
+                },
+                {
+                    "name": "aws.lambda.enhanced.estimated_cost",
+                    "tags": [
+                        "memorysize:512",
+                        "region:us-east-1",
+                        "account_id:172597598159",
+                        "functionname:post-coupon-staging",
+                    ],
+                    "timestamp": 20000,
+                    "value": 0.00000186667,
+                },
+            ],
         )
 
         tags_by_arn = {
@@ -183,95 +264,132 @@ class TestEnhancedMetrics(unittest.TestCase):
                 "creator:swf",
             ],
         }
-        generated_metrics = generate_enhanced_lambda_metrics(logs_input, tags_by_arn)
-        expected_metrics = [
-            {
-                "name": "duration",
-                "tags": [
-                    "memorysize:128",
-                    "region:us-east-1",
-                    "account_id:172597598159",
-                    "functionname:post-coupon-prod-us",
-                    "team:metrics",
-                    "monitor:datadog",
-                    "env:prod",
-                    "creator:swf",
-                ],
-                "value": 3470.65,
-            },
-            {
-                "name": "billed_duration",
-                "tags": [
-                    "memorysize:128",
-                    "region:us-east-1",
-                    "account_id:172597598159",
-                    "functionname:post-coupon-prod-us",
-                    "team:metrics",
-                    "monitor:datadog",
-                    "env:prod",
-                    "creator:swf",
-                ],
-                "value": 3500.0,
-            },
-            {
-                "name": "max_memory_used",
-                "tags": [
-                    "memorysize:128",
-                    "region:us-east-1",
-                    "account_id:172597598159",
-                    "functionname:post-coupon-prod-us",
-                    "team:metrics",
-                    "monitor:datadog",
-                    "env:prod",
-                    "creator:swf",
-                ],
-                "value": 89.0,
-            },
-            {
-                "name": "duration",
-                "tags": [
-                    "memorysize:512",
-                    "region:us-east-1",
-                    "account_id:172597598159",
-                    "functionname:post-coupon-staging",
-                    "team:serverless",
-                    "monitor:datadog",
-                    "env:staging",
-                    "creator:swf",
-                ],
-                "value": 143.55,
-            },
-            {
-                "name": "billed_duration",
-                "tags": [
-                    "memorysize:512",
-                    "region:us-east-1",
-                    "account_id:172597598159",
-                    "functionname:post-coupon-staging",
-                    "team:serverless",
-                    "monitor:datadog",
-                    "env:staging",
-                    "creator:swf",
-                ],
-                "value": 200.0,
-            },
-            {
-                "name": "max_memory_used",
-                "tags": [
-                    "memorysize:512",
-                    "region:us-east-1",
-                    "account_id:172597598159",
-                    "functionname:post-coupon-staging",
-                    "team:serverless",
-                    "monitor:datadog",
-                    "env:staging",
-                    "creator:swf",
-                ],
-                "value": 89.0,
-            },
-        ]
+        tags_cache.tags_by_arn = tags_by_arn
+        generated_metrics = generate_enhanced_lambda_metrics(logs_input, tags_cache)
         self.assertEqual(
-            [metric.__dict__ for metric in generated_metrics], expected_metrics
+            [metric.__dict__ for metric in generated_metrics],
+            [
+                {
+                    "name": "aws.lambda.enhanced.duration",
+                    "tags": [
+                        "memorysize:128",
+                        "region:us-east-1",
+                        "account_id:172597598159",
+                        "functionname:post-coupon-prod-us",
+                        "team:metrics",
+                        "monitor:datadog",
+                        "env:prod",
+                        "creator:swf",
+                    ],
+                    "timestamp": 10000,
+                    "value": 3.47065,
+                },
+                {
+                    "name": "aws.lambda.enhanced.billed_duration",
+                    "tags": [
+                        "memorysize:128",
+                        "region:us-east-1",
+                        "account_id:172597598159",
+                        "functionname:post-coupon-prod-us",
+                        "team:metrics",
+                        "monitor:datadog",
+                        "env:prod",
+                        "creator:swf",
+                    ],
+                    "timestamp": 10000,
+                    "value": 3.5,
+                },
+                {
+                    "name": "aws.lambda.enhanced.max_memory_used",
+                    "tags": [
+                        "memorysize:128",
+                        "region:us-east-1",
+                        "account_id:172597598159",
+                        "functionname:post-coupon-prod-us",
+                        "team:metrics",
+                        "monitor:datadog",
+                        "env:prod",
+                        "creator:swf",
+                    ],
+                    "timestamp": 10000,
+                    "value": 89.0,
+                },
+                {
+                    "name": "aws.lambda.enhanced.estimated_cost",
+                    "tags": [
+                        "memorysize:128",
+                        "region:us-east-1",
+                        "account_id:172597598159",
+                        "functionname:post-coupon-prod-us",
+                        "team:metrics",
+                        "monitor:datadog",
+                        "env:prod",
+                        "creator:swf",
+                    ],
+                    "timestamp": 10000,
+                    "value": 0.00000749168125,
+                },
+                {
+                    "name": "aws.lambda.enhanced.duration",
+                    "tags": [
+                        "memorysize:512",
+                        "region:us-east-1",
+                        "account_id:172597598159",
+                        "functionname:post-coupon-staging",
+                        "team:serverless",
+                        "monitor:datadog",
+                        "env:staging",
+                        "creator:swf",
+                    ],
+                    "timestamp": 20000,
+                    "value": 0.14355,
+                },
+                {
+                    "name": "aws.lambda.enhanced.billed_duration",
+                    "tags": [
+                        "memorysize:512",
+                        "region:us-east-1",
+                        "account_id:172597598159",
+                        "functionname:post-coupon-staging",
+                        "team:serverless",
+                        "monitor:datadog",
+                        "env:staging",
+                        "creator:swf",
+                    ],
+                    "timestamp": 20000,
+                    "value": 0.2,
+                },
+                {
+                    "name": "aws.lambda.enhanced.max_memory_used",
+                    "tags": [
+                        "memorysize:512",
+                        "region:us-east-1",
+                        "account_id:172597598159",
+                        "functionname:post-coupon-staging",
+                        "team:serverless",
+                        "monitor:datadog",
+                        "env:staging",
+                        "creator:swf",
+                    ],
+                    "timestamp": 20000,
+                    "value": 75.0,
+                },
+                {
+                    "name": "aws.lambda.enhanced.estimated_cost",
+                    "tags": [
+                        "memorysize:512",
+                        "region:us-east-1",
+                        "account_id:172597598159",
+                        "functionname:post-coupon-staging",
+                        "team:serverless",
+                        "monitor:datadog",
+                        "env:staging",
+                        "creator:swf",
+                    ],
+                    "timestamp": 20000,
+                    "value": 0.00000186667,
+                },
+            ],
         )
 
 

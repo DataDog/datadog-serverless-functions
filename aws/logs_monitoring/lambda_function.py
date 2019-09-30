@@ -19,7 +19,7 @@ import itertools
 import uuid
 from io import BytesIO, BufferedReader
 
-from .enhanced_metrics import calculate_and_submit_lambda_metrics
+from enhanced_metrics import parse_and_submit_enhanced_metrics
 
 import boto3
 
@@ -388,7 +388,7 @@ class DatadogScrubber(object):
 
 
 
-def log_debug_info(event, context):
+def log_debug_info(event, context, logs):
     """swf - Logs some info that will help test the new Lambda integration metrics
     """
     try:
@@ -397,6 +397,10 @@ def log_debug_info(event, context):
             time.time() - container_start_time,
             tags=["lambda_container_uuid:{}".format(lambda_container_uuid)],
         )
+
+        print("Forwarder with context {} extracted these logs: {}".format(context, logs))
+
+
         print("This is the event the forwarder was invoked with " + str(event))
         print("This is the context the forwarder was invoked with " + str(context))
         print("Executed in container " + str(lambda_container_uuid))
@@ -429,11 +433,15 @@ def datadog_forwarder(event, context):
     events = parse(event, context)
     metrics, logs = split(events)
     if DD_FORWARD_LOG:
-        forward_logs(filter_logs(logs))
+        log_event_strings = map(json.dumps, logs)
+        filtered_logs = filter_logs(log_event_strings)
+        forward_logs(filtered_logs)
     if DD_FORWARD_METRIC:
         forward_metrics(metrics)
-    log_debug_info(event, context)
-    calculate_and_submit_lambda_metrics(logs)
+    log_debug_info(event, context, logs)
+    # TODO
+    lambda_tags_by_arn = {}
+    parse_and_submit_enhanced_metrics(logs, lambda_tags_by_arn)
 
 
 if DD_FORWARD_METRIC:
@@ -536,7 +544,7 @@ def split(events):
         if metric:
             metrics.append(metric)
         else:
-            logs.append(json.dumps(event))
+            logs.append(event)
     return metrics, logs
 
 
