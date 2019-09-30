@@ -1,9 +1,13 @@
 import re
+import os
+
 from collections import defaultdict
 from time import time
 
 
 import boto3
+from botocore.exceptions import ClientError
+
 from datadog_lambda.metric import lambda_metric
 
 
@@ -19,7 +23,16 @@ ESTIMATED_COST_METRIC_NAME = "estimated_cost"
 
 GET_RESOURCES_LAMBDA_FILTER = "lambda"
 
+FETCH_CUSTOM_TAGS_ENV_VAR_NAME = "DD_FETCH_CUSTOM_TAGS"
+
 resource_tagging_client = boto3.client("resourcegroupstaggingapi")
+
+
+def should_fetch_custom_tags():
+    """Checks the env var to determine if the customer has opted-in to fetching custom tags
+    """
+    env_var_value = os.environ.get(FETCH_CUSTOM_TAGS_ENV_VAR_NAME)
+    return env_var_value and env_var_value.lower() == "true"
 
 
 def sanitize_aws_tag_string(raw_string):
@@ -50,31 +63,63 @@ def get_dd_tag_string_from_aws_dict(aws_key_value_tag_dict):
     return "{}:{}".format(key, value)
 
 
-def build_arn_to_lambda_tags_cache():
+def parse_get_resources_response_for_tags_by_arn(get_resources_page):
+    """Parses a page of GetResources response for the mapping from ARN to tags
+
+
+    """
+    tags_by_arn = defaultdict(list)
+
+    aws_resouce_tag_mappings = get_resources_page["ResourceTagMappingList"]
+    for aws_resource_tag_mapping in aws_resouce_tag_mappings:
+        function_arn = aws_resource_tag_mapping["ResourceARN"]
+        raw_aws_tags = aws_resource_tag_mapping["Tags"]
+        tags = map(get_dd_tag_string_from_aws_dict, raw_aws_tags)
+
+        tags_by_arn[function_arn] += tags
+
+    return tags_by_arn
+
+
+def build_tags_by_arn_cache():
     """Makes API calls to GetResources to get the live tags of the account's Lambda functions
 
+    Returns an empty dict instead of fetching custom tags if the tag fetch env variable is not set to true
+
     Returns:
-        arn_to_tags_cache (dict<str, str[]>): each Lambda's tags in a dict by ARN
+        tags_by_arn_cache (dict<str, str[]>): each Lambda's tags in a dict keyed by ARN
     """
-    arn_to_tags_cache = defaultdict(list)
+    # If the custom tag fetch env var is not set to true do not fetch; return an empty dict
+    if not should_fetch_custom_tags():
+        print(
+            "Not fetching custom tags because the environment variable {} is not set to true".format(
+                FETCH_CUSTOM_TAGS_ENV_VAR_NAME
+            )
+        )
+        return {}
+
+    tags_by_arn_cache = {}
     get_resources_paginator = resource_tagging_client.get_paginator("get_resources")
 
-    for page in get_resources_paginator.paginate(
-        ResourceTypeFilters=[GET_RESOURCES_LAMBDA_FILTER], ResourcesPerPage=100
-    ):
-        lambda_metric(
-            "{}.get_resources_api_calls".format(ENHANCED_METRICS_NAMESPACE_PREFIX), 1
+    try:
+        for page in get_resources_paginator.paginate(
+            ResourceTypeFilters=[GET_RESOURCES_LAMBDA_FILTER], ResourcesPerPage=100
+        ):
+            lambda_metric(
+                "{}.get_resources_api_calls".format(ENHANCED_METRICS_NAMESPACE_PREFIX),
+                1,
+            )
+            page_tags_by_arn = parse_get_resources_response_for_tags_by_arn(page)
+            tags_by_arn_cache.update(page_tags_by_arn)
+
+    except ClientError as ce:
+        print(
+            "Encountered a ClientError when trying to fetch tags. "
+            "You may need to give this Lambda's role permission to use the Resource Groups Tagging "
+            "API GetResources method: {}".format(ce)
         )
-        # log.info("Response from resource tagging endpoint: %s", page)
-        aws_resouce_tag_mappings = page["ResourceTagMappingList"]
-        for aws_resource_tag_mapping in aws_resouce_tag_mappings:
-            function_arn = aws_resource_tag_mapping["ResourceARN"]
-            raw_aws_tags = aws_resource_tag_mapping["Tags"]
-            tags = map(get_dd_tag_string_from_aws_dict, raw_aws_tags)
 
-            arn_to_tags_cache[function_arn] += tags
-
-    return arn_to_tags_cache
+    return tags_by_arn_cache
 
 
 class LambdaTagsCache(object):
@@ -87,7 +132,7 @@ class LambdaTagsCache(object):
     def _fetch_tags(self):
         """Populate the tags in the cache by making calls to GetResources
         """
-        self.tags_by_arn = build_arn_to_lambda_tags_cache()
+        self.tags_by_arn = build_tags_by_arn_cache()
         self.last_tags_fetch_time = time()
 
     def _are_tags_out_of_date(self):
@@ -109,11 +154,6 @@ class LambdaTagsCache(object):
         if self._are_tags_out_of_date():
             self._fetch_tags()
 
-        print(
-            "Fetching tags for ARN {} with this cache: {}".format(
-                resource_arn, self.tags_by_arn
-            )
-        )
         function_tags = self.tags_by_arn.get(resource_arn, [])
 
         print("Found these tags for {} ARN: {}".format(resource_arn, function_tags))
