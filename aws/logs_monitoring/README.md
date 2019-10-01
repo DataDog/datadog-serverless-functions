@@ -87,7 +87,7 @@ Set the environment variable `DD_SITE` to `datadoghq.eu` and logs are automatica
 
 ### Send logs through a proxy
 
-For TCP, ensure that you disable SSL between the lambda and your proxy by setting `DD_NO_SSL` to `true`
+Ensure that you disable SSL between the lambda and your proxy by setting `DD_NO_SSL` to `true`
  
 Two environment variables can be used to forward logs through a proxy:
 
