@@ -1,13 +1,14 @@
 # Datadog Forwarder
 
-AWS Lambda function to ship logs and metrics from ELB, S3, CloudTrail, VPC, CloudFront and CloudWatch logs to Datadog
+AWS Lambda function to ship logs and metrics from ELB, S3, CloudTrail, VPC, CloudFront, and CloudWatch logs to Datadog
 
-# Features
+## Features
 
 - Forward logs through HTTPS (defaulted to port 443)
 - Use AWS Lambda to re-route triggered S3 events to Datadog
 - Use AWS Lambda to re-route triggered Kinesis data stream events to Datadog, only the Cloudwatch logs are supported
-- Cloudwatch, ELB, S3, CloudTrail, VPC and CloudFont logs can be forwarded
+- Cloudwatch, ELB, S3, CloudTrail, VPC and CloudFront logs can be forwarded
+- SSL Security
 - JSON events providing details about S3 documents forwarded
 - Structured meta-information can be attached to the events
 - Scrubbing / Redaction rules
@@ -15,126 +16,148 @@ AWS Lambda function to ship logs and metrics from ELB, S3, CloudTrail, VPC, Clou
 - Multiline Log Support (S3 Only)
 - Forward custom metrics from logs
 
-# Quick Start
+## Quick Start
 
-The provided Python script must be deployed into your AWS Lambda service. We will explain how in this step-by-step tutorial.
+The provided Python script must be deployed into your AWS Lambda service to collect your logs and send them to Datadog.
 
-## 1. Create a new Lambda function
+### 1. Create a new Lambda function
 
-- Navigate to the Lambda console: https://console.aws.amazon.com/lambda/home and create a new function.
-- Select `Author from scratch` and give the function a unique name.
-- For `Role`, select `Create new role from template(s)` and give the role a unique name.
-- Under Policy templates, search for and select `s3 object read-only permissions`.
+1. [Navigate to the Lambda console](https://console.aws.amazon.com/lambda/home) and create a new function.
+2. Select `Author from scratch` and give the function a unique name: `datadog-log-monitoring-function`
+3. For `Role`, select `Create new role from template(s)` and give the role a unique name: `datadog-log-monitoring-function-role`
+4. Under Policy templates, select `s3 object read-only permissions`.
 
-## 2. Provide the code
+### 2. Provide the code
 
-- Copy paste the code of the Lambda function
-- Set the runtime to `Python 2.7`, `Python 3.6`, or `Python 3.7`
-- Set the handler to `lambda_function.lambda_handler`
+1. Copy paste the code of the Lambda function from the `lambda_function.py` file.
+2. Set the runtime to `Python 2.7`, `Python 3.6`, or `Python 3.7`
+3. Set the handler to `lambda_function.lambda_handler`
 
+### 3. Set your Parameters
 
-### Parameters
+At the top of the script you'll find a section called `PARAMETERS`, that's where you want to edit your code, available paramters are:
 
-At the top of the script you'll find a section called `#Parameters`, that's where you want to edit your code.
+#### DD_API_KEY
 
-```
-#Parameters
-ddApiKey = "<your_api_key>"
-# metadata: Additional metadata to send with the logs
-metadata = {
-    "ddsourcecategory": "aws"
-}
-```
+Set the Datadog API key for your Datadog platform, it can be found here:
 
-- **API key**:
+* Datadog US Site: https://app.datadoghq.com/account/settings#api
+* Datadog EU Site: https://app.datadoghq.eu/account/settings#api
 
-There are 3 possibilities to set your Datadog's API key (available in your Datadog platform):
+There are 3 possibilities to set your Datadog API key:
 
-1. **KMS Encrypted key (recommended)**: Use the `DD_KMS_API_KEY` environment variable to use a KMS encrypted key. Make sure that the Lambda excution role is listed in the KMS Key user in https://console.aws.amazon.com/iam/home#encryptionKeys.
-2. **Environment Variable**: Use the `DD_API_KEY` environment variable of the Lambda function
-3. **Manual**: Replace `<your_api_key>` in the code:
+1. **KMS Encrypted key (recommended)**: Use the `DD_KMS_API_KEY` environment variable to use a KMS encrypted key. Make sure that the Lambda execution role is listed in the KMS Key user in https://console.aws.amazon.com/iam/home#encryptionKeys.
+2. **Environment Variable**: Use the `DD_API_KEY` environment variable for the Lambda function.
+3. **Manual**: Replace `<YOUR_DATADOG_API_KEY>` in the code:
 
-- **(Optional) Metadata**:
+  ```python
+  ## @param DD_API_KEY - String - required - default: none
+  ## The Datadog API key associated with your Datadog Account
+  ## It can be found here:
+  ##
+  ##   * Datadog US Site: https://app.datadoghq.com/account/settings#api
+  ##   * Datadog EU Site: https://app.datadoghq.eu/account/settings#api
+  #
+  DD_API_KEY = "<YOUR_DATADOG_API_KEY>"
+  ```
 
-You can optionally change the structured metadata. The metadata is merged to all the log events sent by the Lambda script.
-Example adding the environment (`env`) value to your logs:
+#### Custom Tags
 
-```
-metadata = {
-    "ddsourcecategory": "aws",
-    "env": "prod",
-}
-```
+Add custom tags to all data forwarded by your function, either:
 
-- **(Optional) Custom Tags**
+* Use the `DD_TAGS` environment variable. Your tags must be a comma-separated list of strings with no trailing comma.
+* Edit the lambda code directly:
 
-You have two options to add custom tags to your logs:
+  ```python
+  ## @param DD_TAGS - list of comma separated strings - optional -default: none
+  ## Pass custom tags as environment variable or through this variable.
+  ## Ensure your tags are a comma separated list of strings with no trailing comma in the envvar!
+  #
+  DD_TAGS = os.environ.get("DD_TAGS", "")
+  ```
 
-- Manually by editing the lambda code [here](https://github.com/DataDog/datadog-serverless-functions/blob/master/aws/logs_monitoring/lambda_function.py#L418-L423).
-- Automatically with the `DD_TAGS` environment variable (tags must be a comma-separated list of strings).
+#### Datadog Site
 
-## 3. (optional) Send logs to EU or to a proxy
+Define your Datadog Site to send data to, `datadoghq.com` for Datadog US site or `datadoghq.eu` for Datadog EU site, either:
 
-### Send logs through TCP
+* Use the `DD_SITE` environment variable.
+* Edit the lambda code directly:
 
-By default, the forwarder sends logs using HTTPS through the port 443. 
+  ```python
+  ## @param DD_SITE - String - optional -default: datadoghq.com
+  ## Define the Datadog Site to send your logs and metrics to.
+  ## Set it to `datadoghq.eu` to send your logs and metrics to Datadog EU site.
+  #
+  DD_SITE = os.getenv("DD_SITE", default="datadoghq.com")
+  ```
 
-To send logs over a SSL encrypted TCP connection, set the environment variable `DD_USE_TCP` to `true`.
+#### Send logs through TCP or HTTP.
 
-### Send logs to EU
+By default, the forwarder sends logs using HTTPS through the port `443`. To send logs over a SSL encrypted TCP connection either:
 
-Set the environment variable `DD_SITE` to `datadoghq.eu` and logs are automatically forwarded to your EU platform.
+* Set the environment variable `DD_USE_TCP` to `true`.
+* Edit the lambda code directly:
 
-### Send logs through a proxy
+  ```python
+  ## @param DD_USE_TCP - boolean - optional -default: false
+  ## Change this value to `true` to send your logs and metrics using the HTTP network client
+  ## By default, it use the TCP client.
+  #
+  DD_USE_TCP = os.getenv("DD_USE_TCP", default="false").lower() == "true"
+  ```
+
+#### Proxy
 
 Two environment variables can be used to forward logs through a proxy:
 
-- `DD_URL`: Define the proxy endpoint to forward the logs to
-- `DD_PORT`: Define the proxy port to forward the logs to
+* `DD_URL`: Define the proxy endpoint to forward the logs to.
+* `DD_PORT`: Define the proxy port to forward the logs to.
 
-## 4. Configuration
+## 3. Configure your function
 
-- Set the memory to the highest possible value.
-- Also set the timeout limit. We recommends 120 seconds to deal with big files.
-- Hit the `Save and Test` button.
+To configure your function:
 
-## 5. Testing it
+1. Set the memory to the highest possible value.
+2. Also set the timeout limit. 120 seconds is recommended to deal with big files.
+3. Hit the `Save and Test` button.
 
-If the test "succeeded", you are all set! The test log will not show up in the platform.
+## 4. Test it
 
-For S3 logs, there may be some latency between the time a first S3 log file is posted and the Lambda function wakes up.
+If the test "succeeded", you are all set! The test log doesn't show up in the platform.
 
-## 6. (optional) Scrubbing / Redaction rules
+**Note**: For S3 logs, there may be some latency between the time a first S3 log file is posted and the Lambda function wakes up.
 
-Multiple scrubbing options are available.  `REDACT_IP` and `REDACT_EMAIL` match against hard-coded patterns, while `DD_SCRUBBING_RULE` allows users to supply a regular expression.  
-- To use `REDACT_IP`, add it as an environment variable and set the value to `true`.  
-    - Text matching `\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}` will be replaced with `xxx.xxx.xxx.xxx`.
+## 5. (optional) Scrubbing / Redaction rules
+
+Multiple scrubbing options are available.  `REDACT_IP` and `REDACT_EMAIL` match against hard-coded patterns, while `DD_SCRUBBING_RULE` allows users to supply a regular expression.
+- To use `REDACT_IP`, add it as an environment variable and set the value to `true`.
+    - Text matching `\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}` is replaced with `xxx.xxx.xxx.xxx`.
 - To use `REDACT_EMAIL`, add it as an environment variable and set the value to `true`.
-	- Text matching `[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+` will be replaced with `xxxxx@xxxxx.com`.
+	- Text matching `[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+` is replaced with `xxxxx@xxxxx.com`.
 - To use `DD_SCRUBBING_RULE`, add it as a environment variable, and supply a regular expression as the value.
-    - Text matching the user-supplied regular expression will be replaced with `xxxxx`, by default. 
-    - Use the `DD_SCRUBBING_RULE_REPLACEMENT` environment variable to supply a replacement value instead of `xxxxx`.  
+    - Text matching the user-supplied regular expression is replaced with `xxxxx`, by default.
+    - Use the `DD_SCRUBBING_RULE_REPLACEMENT` environment variable to supply a replacement value instead of `xxxxx`.
 - Scrubbing rules are applied to the full JSON-formatted log, including any metadata that is automatically added by the Lambda function.
-- Each instance of a pattern match is replaced until no more matches are found in each log. 
+- Each instance of a pattern match is replaced until no more matches are found in each log.
 
-## 7. (optional) Filtering rules
+## 6. (optional) Filtering rules
 
-Use the `EXCLUDE_AT_MATCH` OR `INCLUDE_AT_MATCH` environment variables to filter logs based on a regular expression match.
+Use the `EXCLUDE_AT_MATCH` OR `INCLUDE_AT_MATCH` environment variables to filter logs based on a regular expression match:
 
-- To use `EXCLUDE_AT_MATCH` add it as an environment variable and set its value to a regular expression. Logs matching the regular expression will be excluded.
-- To use `INCLUDE_AT_MATCH` add it as an environment variable and set its value to a regular expression. If not excluded by `EXCLUDE_AT_MATCH`, logs matching the regular expression will be included.
-- If a log matches both the inclusion and exclusion criteria, it will be excluded.
+- To use `EXCLUDE_AT_MATCH` add it as an environment variable and set its value to a regular expression. Logs matching the regular expression are excluded.
+- To use `INCLUDE_AT_MATCH` add it as an environment variable and set its value to a regular expression. If not excluded by `EXCLUDE_AT_MATCH`, logs matching the regular expression are included.
+- If a log matches both the inclusion and exclusion criteria, it is excluded.
 - Filtering rules are applied to the full JSON-formatted log, including any metadata that is automatically added by the function.
 
-## 8. (optional) Multiline Log support for s3
+## 7. (optional) Multiline Log support for s3
 
 If there are multiline logs in s3, set `DD_MULTILINE_LOG_REGEX_PATTERN` environment variable to the specified regex pattern to detect for a new log line.
 
 - Example: for multiline logs beginning with pattern `11/10/2014`: `DD_MULTILINE_LOG_REGEX_PATTERN="\d{2}\/\d{2}\/\d{4}"`
 
-## 9. (optional) Forward Metrics from Logs
+## 8. (optional) Forward Metrics from Logs
 
-For example, if you have a Lambda function that powers a performance-critical task (e.g., a consumer-facing API), you can avoid the added latencies of submitting metric via API calls, by writing custom metrics to CloudWatch Logs using the appropriate Datadog Lambda Layer (e.g., [Lambda Layer for Python](https://github.com/DataDog/datadog-lambda-layer-python)). The log forwarder will automatically detect log entries that contain metrics and forward them to Datadog metric intake.
+For example, if you have a Lambda function that powers a performance-critical task (e.g., a consumer-facing API), you can avoid the added latencies of submitting metric via API calls, by writing custom metrics to CloudWatch Logs using the appropriate Datadog Lambda Layer (e.g., [Lambda Layer for Python](https://github.com/DataDog/datadog-lambda-layer-python)). The log forwarder automatically detects log entries that contain metrics and forward them to Datadog metric intake.
 
 The [Datadog Lambda Layer for Python 2.7, 3.6, or 3.7]((https://github.com/DataDog/datadog-lambda-layer-python)) **MUST** be added to the log forwarder Lambda function, to enable metric forwarding. Use the Lambda layer ARN below, and replace `us-east-1` with the actual AWS region where your log forwarder operates and replace `Python27` with the Python runtime your function uses (`Python27`, `Python36`, or `Python37`).
 

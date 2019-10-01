@@ -33,19 +33,52 @@ except ImportError:
     # For backward-compatibility
     DD_FORWARD_METRIC = False
 
+try:
+    # Datadog Trace Layer is required to forward traces
+    from trace_forwarder.connection import TraceConnection
 
-# Set this variable to `False` to disable log forwarding.
-# E.g., when you only want to forward metrics from logs.
+    DD_FORWARD_TRACES = True
+except ImportError:
+    # For backward-compatibility
+    DD_FORWARD_TRACES = False
+
+#####################################
+############# PARAMETERS ############
+#####################################
+
+## @param DD_API_KEY - String - required - default: none
+## The Datadog API key associated with your Datadog Account
+## It can be found here:
+##
+##   * Datadog US Site: https://app.datadoghq.com/account/settings#api
+##   * Datadog EU Site: https://app.datadoghq.eu/account/settings#api
+#
+DD_API_KEY = "<YOUR_DATADOG_API_KEY>"
+
+## @param DD_FORWARD_LOG - boolean - optional - default: true
+## Set this variable to `False` to disable log forwarding.
+## E.g., when you only want to forward metrics from logs.
+#
 DD_FORWARD_LOG = os.getenv("DD_FORWARD_LOG", default="true").lower() == "true"
 
-
-# Change this value to change the underlying network client (HTTP or TCP),
-# by default, use the TCP client.
+## @param DD_USE_TCP - boolean - optional -default: false
+## Change this value to `true` to send your logs and metrics using the HTTP network client
+## By default, it use the TCP client.
+#
 DD_USE_TCP = os.getenv("DD_USE_TCP", default="false").lower() == "true"
 
-
-# Define the destination endpoint to send logs to
+## @param DD_SITE - String - optional -default: datadoghq.com
+## Define the Datadog Site to send your logs and metrics to.
+## Set it to `datadoghq.eu` to send your logs and metrics to Datadog EU site.
+#
 DD_SITE = os.getenv("DD_SITE", default="datadoghq.com")
+
+## @param DD_TAGS - list of comma separated strings - optional -default: none
+## Pass custom tags as environment variable or through this variable.
+## Ensure your tags are a comma separated list of strings with no trailing comma in the envvar!
+#
+DD_TAGS = os.environ.get("DD_TAGS", "")
+
 if DD_USE_TCP:
     DD_URL = os.getenv("DD_URL", default="lambda-intake.logs." + DD_SITE)
     try:
@@ -110,9 +143,6 @@ include_regex = compileRegex("INCLUDE_AT_MATCH", INCLUDE_AT_MATCH)
 EXCLUDE_AT_MATCH = os.getenv("EXCLUDE_AT_MATCH", default=None)
 exclude_regex = compileRegex("EXCLUDE_AT_MATCH", EXCLUDE_AT_MATCH)
 
-
-# DD_API_KEY: Datadog API Key
-DD_API_KEY = "<your_api_key>"
 if "DD_KMS_API_KEY" in os.environ:
     ENCRYPTED = os.environ["DD_KMS_API_KEY"]
     DD_API_KEY = boto3.client("kms").decrypt(
@@ -125,7 +155,7 @@ elif "DD_API_KEY" in os.environ:
 DD_API_KEY = DD_API_KEY.strip()
 
 # DD_API_KEY must be set
-if DD_API_KEY == "<your_api_key>" or DD_API_KEY == "":
+if DD_API_KEY == "<YOUR_DATADOG_API_KEY>" or DD_API_KEY == "":
     raise Exception(
         "You must configure your Datadog API key using " "DD_KMS_API_KEY or DD_API_KEY"
     )
@@ -142,6 +172,9 @@ validation_res = requests.get(
 if not validation_res.ok:
     raise Exception("The API key is not valid.")
 
+trace_connection = None
+if DD_FORWARD_TRACES:
+    trace_connection = TraceConnection("https://trace.agent.{}".format(DD_SITE), DD_API_KEY)
 
 # DD_MULTILINE_LOG_REGEX_PATTERN: Datadog Multiline Log Regular Expression Pattern
 DD_MULTILINE_LOG_REGEX_PATTERN = None
@@ -168,10 +201,6 @@ DD_CUSTOM_TAGS = "ddtags"
 DD_SERVICE = "service"
 DD_HOST = "host"
 DD_FORWARDER_VERSION = "2.0.0"
-
-# Pass custom tags as environment variable, ensure comma separated, no trailing comma in envvar!
-DD_TAGS = os.environ.get("DD_TAGS", "")
-
 
 class RetriableException(Exception):
     pass
@@ -385,18 +414,20 @@ class DatadogScrubber(object):
 def datadog_forwarder(event, context):
     """The actual lambda function entry point"""
     events = parse(event, context)
-    metrics, logs = split(events)
+    metrics, logs, traces = split(events)
     if DD_FORWARD_LOG:
         log_event_strings = map(json.dumps, logs)
         filtered_logs = filter_logs(log_event_strings)
         forward_logs(filtered_logs)
     if DD_FORWARD_METRIC:
         forward_metrics(metrics)
+    if DD_FORWARD_TRACES and len(traces) > 0:
+        forward_traces(traces)
 
     parse_and_submit_enhanced_metrics(logs)
 
 
-if DD_FORWARD_METRIC:
+if DD_FORWARD_METRIC or DD_FORWARD_TRACES:
     # Datadog Lambda layer is required to forward metrics
     lambda_handler = datadog_lambda_wrapper(datadog_forwarder)
 else:
@@ -475,6 +506,18 @@ def generate_metadata(context):
     return metadata
 
 
+def extract_trace(event):
+    """Extract traces from an event if possible"""
+    try:
+        message = event["message"]
+        obj = json.loads(event['message'])
+        if not "traces" in obj or not isinstance(obj["traces"], list):
+            return None
+        return message
+    except Exception:
+        return None
+
+
 def extract_metric(event):
     """Extract metric from an event if possible"""
     try:
@@ -490,14 +533,17 @@ def extract_metric(event):
 
 def split(events):
     """Split events to metrics and logs"""
-    metrics, logs = [], []
+    metrics, logs, traces = [], [], []
     for event in events:
         metric = extract_metric(event)
-        if metric:
+        trace = extract_trace(event)
+        if metric and DD_FORWARD_METRIC:
             metrics.append(metric)
+        elif trace and DD_FORWARD_TRACES:
+            traces.append(trace)
         else:
             logs.append(event)
-    return metrics, logs
+    return metrics, logs, traces
 
 
 # should only be called when INCLUDE_AT_MATCH and/or EXCLUDE_AT_MATCH exist
@@ -540,6 +586,14 @@ def forward_metrics(metrics):
             )
         except Exception as e:
             print("Unexpected exception: {}, metric: {}".format(str(e), metric))
+
+
+def forward_traces(traces):
+    try:
+        for trace in traces:
+            trace_connection.send_trace(trace)
+    except Exception as e:
+        print(e)
 
 
 # Utility functions
