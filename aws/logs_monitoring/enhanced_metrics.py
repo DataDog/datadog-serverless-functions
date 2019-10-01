@@ -1,5 +1,6 @@
 import re
 import os
+import logging
 
 from collections import defaultdict
 from time import time
@@ -11,7 +12,7 @@ from botocore.exceptions import ClientError
 from datadog_lambda.metric import lambda_metric
 
 
-ILLEGAL_CHARACTERS = {":", "/", "-"}
+ILLEGAL_TAG_CHARACTERS = {":", "/", "-"}
 REPLACEMENT_CHARACTER = "_"
 ENHANCED_METRICS_NAMESPACE_PREFIX = "aws.lambda.enhanced"
 
@@ -24,8 +25,27 @@ ESTIMATED_COST_METRIC_NAME = "estimated_cost"
 GET_RESOURCES_LAMBDA_FILTER = "lambda"
 
 FETCH_CUSTOM_TAGS_ENV_VAR_NAME = "DD_FETCH_CUSTOM_TAGS"
+LOG_LEVEL_ENV_VAR_NAME = "DD_LOG_LEVEL"
 
 resource_tagging_client = boto3.client("resourcegroupstaggingapi")
+
+log = logging.getLogger()
+log.setLevel(logging.INFO)
+
+def set_log_level_to_env_var:
+    """Reads the log level env var and sets the log level according to its value
+
+    Defaults to INFO level
+    """
+    env_var_log_level = os.environ.get(LOG_LEVEL_ENV_VAR_NAME, "").lower()
+    if env_var_log_level == "debug":
+        log.setLevel(logging.DEBUG)
+    if env_var_log_level == "error":
+        log.setLevel(logging.ERROR)
+    if env_var_log_level == "warn" or env_var_log_level == "warning":
+        log.setLevel(logging.WARN)
+
+set_log_level_to_env_var()
 
 
 def should_fetch_custom_tags():
@@ -40,7 +60,7 @@ def sanitize_aws_tag_string(raw_string):
     """
     sanitized_string = ""
     for character in raw_string:
-        if character in ILLEGAL_CHARACTERS:
+        if character in ILLEGAL_TAG_CHARACTERS:
             sanitized_string += REPLACEMENT_CHARACTER
             continue
         sanitized_string += character
@@ -91,10 +111,9 @@ def build_tags_by_arn_cache():
     """
     # If the custom tag fetch env var is not set to true do not fetch; return an empty dict
     if not should_fetch_custom_tags():
-        print(
-            "Not fetching custom tags because the environment variable {} is not set to true".format(
-                FETCH_CUSTOM_TAGS_ENV_VAR_NAME
-            )
+        log.debug(
+            "Not fetching custom tags because the environment variable %s is not set to true",
+            FETCH_CUSTOM_TAGS_ENV_VAR_NAME,
         )
         return {}
 
@@ -112,12 +131,15 @@ def build_tags_by_arn_cache():
             page_tags_by_arn = parse_get_resources_response_for_tags_by_arn(page)
             tags_by_arn_cache.update(page_tags_by_arn)
 
-    except ClientError as ce:
-        print(
-            "Encountered a ClientError when trying to fetch tags. "
-            "You may need to give this Lambda's role permission to use the Resource Groups Tagging "
-            "API GetResources method: {}".format(ce)
+    except ClientError:
+        log.exception(
+            "Encountered a ClientError when trying to fetch tags. You may need to give "
+            "this Lambda's role permission to use the Resource Groups Tagging API GetResources method"
         )
+
+    log.debug(
+        "Built this tags cache from GetResources API calls: %s", tags_by_arn_cache
+    )
 
     return tags_by_arn_cache
 
@@ -156,10 +178,10 @@ class LambdaTagsCache(object):
 
         function_tags = self.tags_by_arn.get(resource_arn, [])
 
-        print("Found these tags for {} ARN: {}".format(resource_arn, function_tags))
         return function_tags
 
-
+# Store the cache in the global scope so that it will be reused as long as
+# the log forwarder Lambda container is running
 account_lambda_tags_cache = LambdaTagsCache()
 
 
@@ -201,25 +223,28 @@ class DatadogMetricPoint(object):
         if not timestamp:
             timestamp = time()
 
-        print("Submitting metric {} {} {}".format(self.name, self.value, self.tags))
+        log.debug("Submitting metric {} {} {}".format(self.name, self.value, self.tags))
         lambda_metric(self.name, self.value, timestamp=timestamp, tags=self.tags)
 
 
-def parse_and_submit_enhanced_metrics(logs, custom_tags_by_arn):
+def parse_and_submit_enhanced_metrics(logs):
     """Parses enhanced metrics from REPORT logs and submits them to DD with tags
 
     Args:
         logs (dict<str, multiple types>[]): the logs parsed from the event in the split method
             See docstring below for an example.
-        custom_tags_by_arn (dict<str, str[]>): a mapping from Lambda ARNs to their list of string tags
     """
-    enhanced_metrics = generate_enhanced_lambda_metrics(logs, account_lambda_tags_cache)
-    for enhanced_metric in enhanced_metrics:
-        enhanced_metric.submit_to_dd()
+    # Wrap everything in try/catch to prevent failing the Lambda on enhanced metrics
+    try:
+        enhanced_metrics = generate_enhanced_lambda_metrics(logs, account_lambda_tags_cache)
+        for enhanced_metric in enhanced_metrics:
+            enhanced_metric.submit_to_dd()
+    except Exception:
+        log.exception("Encountered an error while trying to parse and submit enhanced metrics")
 
 
 def generate_enhanced_lambda_metrics(logs, tags_cache):
-    """Parses the logs for enhanced Lambda metrics and attaches their tags
+    """Parses Lambda logs for enhanced Lambda metrics and tags
 
     Args:
         logs (dict<str, multiple types>[]): the logs parsed from the event in the split method
@@ -252,14 +277,14 @@ def generate_enhanced_lambda_metrics(logs, tags_cache):
     """
     enhanced_metrics = []
     for log in logs:
-        logs_function_arn = log.get("lambda", {}).get("arn")
+        log_function_arn = log.get("lambda", {}).get("arn")
         log_message = log.get("message")
         timestamp = log.get("timestamp")
 
-        # If the log event is missing any of this data it's not a Lambda log and we move on
+        # If the log dict is missing any of this data it's not a Lambda REPORT log and we move on
         if not all(
             (
-                logs_function_arn,
+                log_function_arn,
                 log_message,
                 timestamp,
                 log_message.startswith("REPORT"),
@@ -272,8 +297,8 @@ def generate_enhanced_lambda_metrics(logs, tags_cache):
             continue
 
         # Add the tags from ARN, custom tags cache, and env var
-        tags_from_arn = parse_lambda_tags_from_arn(logs_function_arn)
-        lambda_custom_tags = tags_cache.get_lambda_tags(logs_function_arn)
+        tags_from_arn = parse_lambda_tags_from_arn(log_function_arn)
+        lambda_custom_tags = tags_cache.get_lambda_tags(log_function_arn)
         # "ddtags" is the name of the key in the log event dict
         tags_from_env_var = log.get("ddtags").split(",") if log.get("ddtags") else []
 
@@ -288,14 +313,14 @@ def generate_enhanced_lambda_metrics(logs, tags_cache):
 
     return enhanced_metrics
 
-
+# Names to use for metrics and for the named regex groups
 REQUEST_ID_FIELD_NAME = "request_id"
 DURATION_METRIC_NAME = "duration"
 BILLED_DURATION_METRIC_NAME = "billed_duration"
 MEMORY_ALLOCATED_FIELD_NAME = "memorysize"
 MAX_MEMORY_USED_METRIC_NAME = "max_memory_used"
 
-# Create named groups (?P<{}>) for each of the metrics and tags so that we can access them by name
+# Create named groups for each metric and tag so that we can access from the search result by name
 REPORT_LOG_REGEX_SEARCH = (
     r"REPORT\s+"
     + r"RequestId:\s+(?P<{}>[\w-]+)\s+".format(REQUEST_ID_FIELD_NAME)
@@ -339,9 +364,9 @@ def parse_lambda_tags_from_arn(arn):
     _, _, _, region, account_id, _, function_name = split_arn
 
     return [
-        "region:{}".format(region),
-        "account_id:{}".format(account_id),
         "functionname:{}".format(function_name),
+        "account_id:{}".format(account_id),
+        "region:{}".format(region),
     ]
 
 
@@ -396,7 +421,7 @@ def parse_metrics_from_report_log(report_log_line):
     return metrics
 
 
-def calculate_estimated_cost(billed_duration, memory_allocated):
+def calculate_estimated_cost(billed_duration_ms, memory_allocated):
     """Returns the estimated cost in USD of a Lambda invocation
 
     Args:
@@ -405,6 +430,7 @@ def calculate_estimated_cost(billed_duration, memory_allocated):
 
     See https://aws.amazon.com/lambda/pricing/ for latest pricing
     """
-    gb_seconds = (billed_duration / 1000.0) * (memory_allocated / 1024.0)
+    # Divide milliseconds by 1000 to get seconds
+    gb_seconds = (billed_duration_ms / 1000.0) * (memory_allocated / 1024.0)
 
     return BASE_LAMBDA_INVOCATION_PRICE + gb_seconds * LAMBDA_PRICE_PER_GB_SECOND

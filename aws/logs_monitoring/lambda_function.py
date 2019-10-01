@@ -26,7 +26,7 @@ import boto3
 try:
     # Datadog Lambda layer is required to forward metrics
     from datadog_lambda.wrapper import datadog_lambda_wrapper
-    from datadog_lambda.metric import lambda_stats, lambda_metric
+    from datadog_lambda.metric import lambda_stats
 
     DD_FORWARD_METRIC = True
 except ImportError:
@@ -387,47 +387,6 @@ class DatadogScrubber(object):
         return payload
 
 
-
-def log_debug_info(event, context, logs):
-    """swf - Logs some info that will help test the new Lambda integration metrics
-    """
-    try:
-        lambda_metric(
-            "dd.log_forwarder_container_age",
-            time.time() - container_start_time,
-            tags=["lambda_container_uuid:{}".format(lambda_container_uuid)],
-        )
-
-        print("Forwarder with context {} extracted these logs: {}".format(context, logs))
-
-
-        print("This is the event the forwarder was invoked with " + str(event))
-        print("This is the context the forwarder was invoked with " + str(context))
-        print("Executed in container " + str(lambda_container_uuid))
-        if not event.get("awslogs"):
-            print("Not a logs event, returning")
-            return
-        with gzip.GzipFile(
-            fileobj=BytesIO(base64.b64decode(event.get("awslogs", {}).get("data", "")))
-        ) as decompress_stream:
-            # Reading line by line avoid a bug where gzip would take a very long
-            # time (>5min) for file around 60MB gzipped
-            data = b"".join(BufferedReader(decompress_stream))
-        logs_data = json.loads(data)
-        print("These are the logs sent to the forwarder " + str(logs_data))
-        log_group = logs_data.get("logGroup")
-        uuid_and_log_group = {
-            "lambda_container_uuid": lambda_container_uuid,
-            "log_group": log_group,
-        }
-        print(uuid_and_log_group)
-        tags = ["{}:{}".format(k, v) for k, v in uuid_and_log_group.items()]
-
-        lambda_metric("dd.log_forwarder_invoked", 1, tags=tags)
-    except Exception as e:
-        print("Encountered exception in debug logging: " + str(e))
-
-
 def datadog_forwarder(event, context):
     """The actual lambda function entry point"""
     events = parse(event, context)
@@ -438,10 +397,8 @@ def datadog_forwarder(event, context):
         forward_logs(filtered_logs)
     if DD_FORWARD_METRIC:
         forward_metrics(metrics)
-    log_debug_info(event, context, logs)
-    # TODO
-    lambda_tags_by_arn = {}
-    parse_and_submit_enhanced_metrics(logs, lambda_tags_by_arn)
+
+    parse_and_submit_enhanced_metrics(logs)
 
 
 if DD_FORWARD_METRIC:
