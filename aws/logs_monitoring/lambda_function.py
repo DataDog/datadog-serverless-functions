@@ -16,7 +16,7 @@ import time
 import ssl
 import six.moves.urllib as urllib  # for for Python 2.7 urllib.unquote_plus
 import itertools
-import uuid
+
 from io import BytesIO, BufferedReader
 
 from enhanced_metrics import parse_and_submit_enhanced_metrics
@@ -57,11 +57,6 @@ if DD_USE_TCP:
         DD_PORT = 10516
 else:
     DD_URL = os.getenv("DD_URL", default="lambda-http-intake.logs." + DD_SITE)
-
-
-lambda_container_uuid = uuid.uuid4()
-container_start_time = time.time()
-
 
 
 class ScrubbingRuleConfig(object):

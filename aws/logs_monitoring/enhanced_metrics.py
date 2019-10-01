@@ -1,14 +1,12 @@
-import re
-import os
 import logging
+import os
+import re
 
 from collections import defaultdict
 from time import time
 
-
 import boto3
 from botocore.exceptions import ClientError
-
 from datadog_lambda.metric import lambda_metric
 
 
@@ -32,7 +30,8 @@ resource_tagging_client = boto3.client("resourcegroupstaggingapi")
 log = logging.getLogger()
 log.setLevel(logging.INFO)
 
-def set_log_level_to_env_var:
+
+def set_log_level_to_env_var():
     """Reads the log level env var and sets the log level according to its value
 
     Defaults to INFO level
@@ -44,6 +43,7 @@ def set_log_level_to_env_var:
         log.setLevel(logging.ERROR)
     if env_var_log_level == "warn" or env_var_log_level == "warning":
         log.setLevel(logging.WARN)
+
 
 set_log_level_to_env_var()
 
@@ -86,7 +86,15 @@ def get_dd_tag_string_from_aws_dict(aws_key_value_tag_dict):
 def parse_get_resources_response_for_tags_by_arn(get_resources_page):
     """Parses a page of GetResources response for the mapping from ARN to tags
 
+    Args:
+        get_resources_page (dict<str, multiple types>): one page of the GetResources response. Ex:
+            [{
+                'ResourceARN': 'arn:aws:lambda:us-east-1:123497598159:function:my-test-lambda',
+                'Tags': [{'Key': 'stage', 'Value': 'dev'}, {'Key': 'team', 'Value': 'serverless'}]
+            }]
 
+    Returns:
+        tags_by_arn (dict<str, str[]>): Lambda tag lists keyed by ARN
     """
     tags_by_arn = defaultdict(list)
 
@@ -180,6 +188,7 @@ class LambdaTagsCache(object):
 
         return function_tags
 
+
 # Store the cache in the global scope so that it will be reused as long as
 # the log forwarder Lambda container is running
 account_lambda_tags_cache = LambdaTagsCache()
@@ -236,11 +245,15 @@ def parse_and_submit_enhanced_metrics(logs):
     """
     # Wrap everything in try/catch to prevent failing the Lambda on enhanced metrics
     try:
-        enhanced_metrics = generate_enhanced_lambda_metrics(logs, account_lambda_tags_cache)
+        enhanced_metrics = generate_enhanced_lambda_metrics(
+            logs, account_lambda_tags_cache
+        )
         for enhanced_metric in enhanced_metrics:
             enhanced_metric.submit_to_dd()
     except Exception:
-        log.exception("Encountered an error while trying to parse and submit enhanced metrics")
+        log.exception(
+            "Encountered an error while trying to parse and submit enhanced metrics"
+        )
 
 
 def generate_enhanced_lambda_metrics(logs, tags_cache):
@@ -283,12 +296,7 @@ def generate_enhanced_lambda_metrics(logs, tags_cache):
 
         # If the log dict is missing any of this data it's not a Lambda REPORT log and we move on
         if not all(
-            (
-                log_function_arn,
-                log_message,
-                timestamp,
-                log_message.startswith("REPORT"),
-            )
+            (log_function_arn, log_message, timestamp, log_message.startswith("REPORT"))
         ):
             continue
 
@@ -312,6 +320,7 @@ def generate_enhanced_lambda_metrics(logs, tags_cache):
         enhanced_metrics += parsed_metrics
 
     return enhanced_metrics
+
 
 # Names to use for metrics and for the named regex groups
 REQUEST_ID_FIELD_NAME = "request_id"
@@ -364,9 +373,9 @@ def parse_lambda_tags_from_arn(arn):
     _, _, _, region, account_id, _, function_name = split_arn
 
     return [
-        "functionname:{}".format(function_name),
-        "account_id:{}".format(account_id),
         "region:{}".format(region),
+        "account_id:{}".format(account_id),
+        "functionname:{}".format(function_name),
     ]
 
 

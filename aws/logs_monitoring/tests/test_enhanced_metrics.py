@@ -8,10 +8,10 @@ from enhanced_metrics import (
     parse_lambda_tags_from_arn,
     generate_enhanced_lambda_metrics,
     LambdaTagsCache,
+    parse_get_resources_response_for_tags_by_arn,
 )
 
 
-# python -m unittest tests.test_enhanced_metrics from parent dir
 class TestEnhancedMetrics(unittest.TestCase):
 
     maxDiff = None
@@ -45,6 +45,42 @@ class TestEnhancedMetrics(unittest.TestCase):
                 "account_id:1234597598159",
                 "functionname:swf-hello-test",
             ],
+        )
+
+    def test_generate_custom_tags_cache(self):
+        self.assertEqual(
+            parse_get_resources_response_for_tags_by_arn(
+                {
+                    "ResourceTagMappingList": [
+                        {
+                            "ResourceARN": "arn:aws:lambda:us-east-1:123497598159:function:my-test-lambda-dev",
+                            "Tags": [
+                                {"Key": "stage", "Value": "dev"},
+                                {"Key": "team", "Value": "serverless"},
+                            ],
+                        },
+                        {
+                            "ResourceARN": "arn:aws:lambda:us-east-1:123497598159:function:my-test-lambda-prod",
+                            "Tags": [
+                                {"Key": "stage", "Value": "prod"},
+                                {"Key": "team", "Value": "serverless"},
+                                {"Key": "datacenter", "Value": "eu"},
+                            ],
+                        },
+                    ]
+                }
+            ),
+            {
+                "arn:aws:lambda:us-east-1:123497598159:function:my-test-lambda-dev": [
+                    "stage:dev",
+                    "team:serverless",
+                ],
+                "arn:aws:lambda:us-east-1:123497598159:function:my-test-lambda-prod": [
+                    "stage:prod",
+                    "team:serverless",
+                    "datacenter:eu",
+                ],
+            },
         )
 
     def test_parse_metrics_from_report_log(self):
@@ -115,7 +151,7 @@ class TestEnhancedMetrics(unittest.TestCase):
             ],
         )
 
-    @patch("enhanced_metrics.build_arn_to_lambda_tags_cache")
+    @patch("enhanced_metrics.build_tags_by_arn_cache")
     def test_generate_enhanced_lambda_metrics(self, mock_build_cache):
         mock_build_cache.return_value = {}
         tags_cache = LambdaTagsCache()
