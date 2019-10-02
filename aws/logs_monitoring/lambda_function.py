@@ -9,16 +9,16 @@ import base64
 import gzip
 import json
 import os
-import re
-import socket
-from botocore.vendored import requests
-import time
-import ssl
-import six.moves.urllib as urllib  # for for Python 2.7 urllib.unquote_plus
-import itertools
-from io import BytesIO, BufferedReader
 
 import boto3
+import itertools
+import re
+import six.moves.urllib as urllib  # for for Python 2.7 urllib.unquote_plus
+import socket
+import ssl
+import time
+from botocore.vendored import requests
+from io import BytesIO, BufferedReader
 
 try:
     # Datadog Lambda layer is required to forward metrics
@@ -39,6 +39,11 @@ except ImportError:
     # For backward-compatibility
     DD_FORWARD_TRACES = False
 
+
+# Return the boolean environment variable corresponding to envvar
+def get_bool_env_var(envvar, default):
+    return os.getenv(envvar, default=default).lower() == "true"
+
 #####################################
 ############# PARAMETERS ############
 #####################################
@@ -56,13 +61,19 @@ DD_API_KEY = "<YOUR_DATADOG_API_KEY>"
 ## Set this variable to `False` to disable log forwarding.
 ## E.g., when you only want to forward metrics from logs.
 #
-DD_FORWARD_LOG = os.getenv("DD_FORWARD_LOG", default="true").lower() == "true"
+DD_FORWARD_LOG = get_bool_env_var("DD_FORWARD_LOG", "true")
 
 ## @param DD_USE_TCP - boolean - optional -default: false
 ## Change this value to `true` to send your logs and metrics using the HTTP network client
-## By default, it use the TCP client.
+## By default, it uses the HTTP client.
 #
-DD_USE_TCP = os.getenv("DD_USE_TCP", default="false").lower() == "true"
+DD_USE_TCP = get_bool_env_var("DD_USE_TCP", "false")
+
+## @param DD_USE_SSL - boolean - optional -default: false
+## Change this value to `true` to disable SSL
+## Useful when you are forwarding your logs to a proxy.
+#
+DD_NO_SSL = get_bool_env_var("DD_NO_SSL", "false")
 
 ## @param DD_SITE - String - optional -default: datadoghq.com
 ## Define the Datadog Site to send your logs and metrics to.
@@ -80,13 +91,14 @@ if DD_USE_TCP:
     DD_URL = os.getenv("DD_URL", default="lambda-intake.logs." + DD_SITE)
     try:
         if "DD_SITE" in os.environ and DD_SITE == "datadoghq.eu":
-            DD_PORT = int(os.environ.get("DD_PORT", 443))
+            DD_PORT = int(os.getenv("DD_PORT", default="443"))
         else:
-            DD_PORT = int(os.environ.get("DD_PORT", 10516))
+            DD_PORT = int(os.getenv("DD_PORT", default="10516"))
     except Exception:
         DD_PORT = 10516
 else:
     DD_URL = os.getenv("DD_URL", default="lambda-http-intake.logs." + DD_SITE)
+    DD_PORT = int(os.getenv("DD_PORT", default="443"))
 
 
 class ScrubbingRuleConfig(object):
@@ -113,6 +125,7 @@ SCRUBBING_RULE_CONFIGS = [
         os.getenv("DD_SCRUBBING_RULE_REPLACEMENT", default="xxxxx")
     )
 ]
+
 
 # Use for include, exclude, and scrubbing rules
 def compileRegex(rule, pattern):
@@ -188,7 +201,7 @@ DD_SOURCE = "ddsource"
 DD_CUSTOM_TAGS = "ddtags"
 DD_SERVICE = "service"
 DD_HOST = "host"
-DD_FORWARDER_VERSION = "2.0.0"
+DD_FORWARDER_VERSION = "2.1.0"
 
 class RetriableException(Exception):
     pass
@@ -232,16 +245,18 @@ class DatadogTCPClient(object):
     Client that sends a batch of logs over TCP.
     """
 
-    def __init__(self, host, port, api_key, scrubber):
+    def __init__(self, host, port, no_ssl, api_key, scrubber):
         self.host = host
         self.port = port
+        self._use_ssl = not no_ssl
         self._api_key = api_key
         self._scrubber = scrubber
         self._sock = None
 
     def _connect(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock = ssl.wrap_socket(sock)
+        if self._use_ssl:
+            sock = ssl.wrap_socket(sock)
         sock.connect((self.host, self.port))
         self._sock = sock
 
@@ -284,8 +299,9 @@ class DatadogHTTPClient(object):
     _POST = "POST"
     _HEADERS = {"Content-type": "application/json"}
 
-    def __init__(self, host, api_key, scrubber, timeout=10):
-        self._url = "https://{}/v1/input/{}".format(host, api_key)
+    def __init__(self, host, port, no_ssl, api_key, scrubber, timeout=10):
+        protocol = "http" if no_ssl else "https"
+        self._url = "{}://{}:{}/v1/input/{}".format(protocol, host, port, api_key)
         self._scrubber = scrubber
         self._timeout = timeout
         self._session = None
@@ -357,8 +373,8 @@ class DatadogBatcher(object):
         for log in logs:
             log_size_bytes = self._sizeof_bytes(log)
             if size_count > 0 and (
-                size_count >= self._max_size_count
-                or size_bytes + log_size_bytes > self._max_size_bytes
+                    size_count >= self._max_size_count
+                    or size_bytes + log_size_bytes > self._max_size_bytes
             ):
                 batches.append(batch)
                 batch = []
@@ -426,10 +442,10 @@ def forward_logs(logs):
     scrubber = DatadogScrubber(SCRUBBING_RULE_CONFIGS)
     if DD_USE_TCP:
         batcher = DatadogBatcher(256 * 1000, 256 * 1000, 1)
-        cli = DatadogTCPClient(DD_URL, DD_PORT, DD_API_KEY, scrubber)
+        cli = DatadogTCPClient(DD_URL, DD_PORT, DD_NO_SSL, DD_API_KEY, scrubber)
     else:
         batcher = DatadogBatcher(256 * 1000, 2 * 1000 * 1000, 200)
-        cli = DatadogHTTPClient(DD_URL, DD_API_KEY, scrubber)
+        cli = DatadogHTTPClient(DD_URL, DD_PORT, DD_NO_SSL, DD_API_KEY, scrubber)
 
     with DatadogClient(cli) as client:
         for batch in batcher.batch(logs):
@@ -691,7 +707,7 @@ def kinesis_awslogs_handler(event, context, metadata):
 def awslogs_handler(event, context, metadata):
     # Get logs
     with gzip.GzipFile(
-        fileobj=BytesIO(base64.b64decode(event["awslogs"]["data"]))
+            fileobj=BytesIO(base64.b64decode(event["awslogs"]["data"]))
     ) as decompress_stream:
         # Reading line by line avoid a bug where gzip would take a very long
         # time (>5min) for file around 60MB gzipped
@@ -765,7 +781,6 @@ def awslogs_handler(event, context, metadata):
 
 # Handle Cloudwatch Events
 def cwevent_handler(event, metadata):
-
     data = event
 
     # Set the source on the log
@@ -783,7 +798,6 @@ def cwevent_handler(event, metadata):
 
 # Handle Sns events
 def sns_handler(event, metadata):
-
     data = event
     # Set the source on the log
     metadata[DD_SOURCE] = parse_event_source(event, "sns")
