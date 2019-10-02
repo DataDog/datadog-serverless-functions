@@ -133,13 +133,13 @@ Process a RDS enhanced monitoring DATA_MESSAGE, coming from CLOUDWATCH LOGS
 
 # Setup
 
-1. Create a KMS key for the datadog api key and app key
-   - Create a KMS key - http://docs.aws.amazon.com/kms/latest/developerguide/create-keys.html
-   - Encrypt the token using the AWS CLI.`aws kms encrypt --key-id alias/<KMS key name> --plaintext '{"api_key":"<dd_api_key>", "app_key":"<dd_app_key>"}'`
-   - Make sure to save the base-64 encoded, encrypted key (CiphertextBlob). This will be used for the `KMS_ENCRYPTED_KEYS` variable in all lambda functions.
-   - Optional: set the environment variable `DD_SITE` to `datadoghq.eu` and data is automatically forwarded to your EU platform.
+1. Create a KMS key for the Datadog API key and app key
+   - Create a KMS key. Refer to the [AWS KMS Creating Keys][1] documentation for step by step instructions.
+   - Encrypt the token using the AWS CLI. `aws kms encrypt --key-id alias/<KMS key name> --plaintext '{"api_key":"<dd_api_key>", "app_key":"<dd_app_key>"}'`
+   - Make sure to save the base-64 encoded, encrypted key (`CiphertextBlob`). This is used for the `KMS_ENCRYPTED_KEYS` variable in all lambda functions.
+   - Optional: set the environment variable `DD_SITE` to `datadoghq.eu` to automatically forward data to your EU platform.
 
-1. Create and configure a lambda function
+2. Create and configure a lambda function
    - In the AWS Console, create a `lambda_execution` policy, with the following policy:
      ```
      {
@@ -167,19 +167,21 @@ Process a RDS enhanced monitoring DATA_MESSAGE, coming from CLOUDWATCH LOGS
      }
      ```
 
-   - Create a `lambda_execution` role and attach this policy
+   - Create a `lambda_execution` role and attach this policy.
 
-   - Create a lambda function: Skip the blueprint, name it `functionname`, set the Runtime to `Python 2.7`, the handle to `lambda_function.lambda_handler`, and the role to `lambda_execution`.
+   - Create a lambda function: skip the blueprint, name it `functionname`, set the runtime to `Python 2.7`, the handle to `lambda_function.lambda_handler`, and the role to `lambda_execution`.
 
-   - Copy the content of `functionname/lambda_function.py` in the code section, make sure to update the `KMS_ENCRYPTED_KEYS` environment variable with the encrypted key generated in step 1
+   - Copy the content of `functionname/lambda_function.py` in the code section, and make sure to update the `KMS_ENCRYPTED_KEYS` environment variable with the encrypted key generated in step 1.
 
-1. Subscribe to the appropriate log stream
+3. Subscribe to the appropriate log stream.
 
 
 # How to update the zip file for the AWS Serverless Apps
 
-1. After modifying the files that you want inside the respective lambda app directory, run
+1. After modifying the files that you want inside the respective lambda app directory, run:
+
 ```
 aws cloudformation package --template-file rds-enhanced-sam-template.yaml --output-template-file rds-enhanced-serverless-output.yaml --s3-bucket BUCKET_NAME
 ```
 
+[1]: http://docs.aws.amazon.com/kms/latest/developerguide/create-keys.html
