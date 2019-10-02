@@ -61,7 +61,7 @@ DD_API_KEY = "<YOUR_DATADOG_API_KEY>"
 ## Set this variable to `False` to disable log forwarding.
 ## E.g., when you only want to forward metrics from logs.
 #
-DD_FORWARD_LOG = get_bool_env_var("DD_FORWARD_LOG", "false")
+DD_FORWARD_LOG = get_bool_env_var("DD_FORWARD_LOG", "true")
 
 ## @param DD_USE_TCP - boolean - optional -default: false
 ## Change this value to `true` to send your logs and metrics using the HTTP network client
