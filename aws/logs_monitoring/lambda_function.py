@@ -65,7 +65,7 @@ DD_FORWARD_LOG = get_bool_env_var("DD_FORWARD_LOG", "true")
 
 ## @param DD_USE_TCP - boolean - optional -default: false
 ## Change this value to `true` to send your logs and metrics using the HTTP network client
-## By default, it use the TCP client.
+## By default, it uses the HTTP client.
 #
 DD_USE_TCP = get_bool_env_var("DD_USE_TCP", "false")
 
