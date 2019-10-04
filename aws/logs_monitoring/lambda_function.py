@@ -16,12 +16,24 @@ import time
 import ssl
 import six.moves.urllib as urllib  # for for Python 2.7 urllib.unquote_plus
 import itertools
-
+import logging
 from io import BytesIO, BufferedReader
-
-from enhanced_metrics import parse_and_submit_enhanced_metrics
-
 import boto3
+
+log = logging.getLogger()
+log.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
+
+try:
+    from enhanced_lambda_metrics import parse_and_submit_enhanced_metrics
+
+    DD_ENHANCED_LAMBDA_METRICS = True
+except ImportError:
+    DD_ENHANCED_LAMBDA_METRICS = False
+    log.warn(
+        "Could not import from enhanced_lambda_metrics so enhanced metrics will not "
+        "be submitted. Ensure you've included the enhanced_lambda_metrics file in your Lambda project"
+    )
+
 
 try:
     # Datadog Lambda layer is required to forward metrics
@@ -30,6 +42,9 @@ try:
 
     DD_FORWARD_METRIC = True
 except ImportError:
+    log.debug(
+        "Could not import from the Datadog Lambda layer, metrics can't be forwarded"
+    )
     # For backward-compatibility
     DD_FORWARD_METRIC = False
 
@@ -174,7 +189,9 @@ if not validation_res.ok:
 
 trace_connection = None
 if DD_FORWARD_TRACES:
-    trace_connection = TraceConnection("https://trace.agent.{}".format(DD_SITE), DD_API_KEY)
+    trace_connection = TraceConnection(
+        "https://trace.agent.{}".format(DD_SITE), DD_API_KEY
+    )
 
 # DD_MULTILINE_LOG_REGEX_PATTERN: Datadog Multiline Log Regular Expression Pattern
 DD_MULTILINE_LOG_REGEX_PATTERN = None
@@ -200,7 +217,8 @@ DD_SOURCE = "ddsource"
 DD_CUSTOM_TAGS = "ddtags"
 DD_SERVICE = "service"
 DD_HOST = "host"
-DD_FORWARDER_VERSION = "2.0.0"
+DD_FORWARDER_VERSION = "2.1.0"
+
 
 class RetriableException(Exception):
     pass
@@ -415,16 +433,21 @@ def datadog_forwarder(event, context):
     """The actual lambda function entry point"""
     events = parse(event, context)
     metrics, logs, traces = split(events)
+
     if DD_FORWARD_LOG:
-        log_event_strings = map(json.dumps, logs)
-        filtered_logs = filter_logs(log_event_strings)
-        forward_logs(filtered_logs)
+        forward_logs(filter_logs(map(json.dumps, logs)))
+
     if DD_FORWARD_METRIC:
         forward_metrics(metrics)
+
     if DD_FORWARD_TRACES and len(traces) > 0:
         forward_traces(traces)
 
-    parse_and_submit_enhanced_metrics(logs)
+    if DD_ENHANCED_LAMBDA_METRICS:
+        report_logs = filter(
+            lambda log: log.get("message", "").startswith("REPORT"), logs
+        )
+        parse_and_submit_enhanced_metrics(report_logs)
 
 
 if DD_FORWARD_METRIC or DD_FORWARD_TRACES:
@@ -448,8 +471,8 @@ def forward_logs(logs):
         for batch in batcher.batch(logs):
             try:
                 client.send(batch)
-            except Exception as e:
-                print("Unexpected exception: {}, batch: {}".format(str(e), batch))
+            except Exception:
+                log.exception("Exception while forwarding logs in batch %s", batch)
 
 
 def parse(event, context):
@@ -510,7 +533,7 @@ def extract_trace(event):
     """Extract traces from an event if possible"""
     try:
         message = event["message"]
-        obj = json.loads(event['message'])
+        obj = json.loads(event["message"])
         if not "traces" in obj or not isinstance(obj["traces"], list):
             return None
         return message
@@ -584,8 +607,8 @@ def forward_metrics(metrics):
             lambda_stats.distribution(
                 metric["m"], metric["v"], timestamp=metric["e"], tags=metric["t"]
             )
-        except Exception as e:
-            print("Unexpected exception: {}, metric: {}".format(str(e), metric))
+        except Exception:
+            log.exception("Exception while forwarding metric %s", metric)
 
 
 def forward_traces(traces):
