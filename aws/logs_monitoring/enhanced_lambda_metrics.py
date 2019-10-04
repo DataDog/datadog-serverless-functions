@@ -10,6 +10,8 @@ from botocore.exceptions import ClientError
 
 ENHANCED_METRICS_NAMESPACE_PREFIX = "aws.lambda.enhanced"
 
+TAGS_CACHE_TTL_SECONDS = 3600
+
 # Latest Lambda pricing per https://aws.amazon.com/lambda/pricing/
 BASE_LAMBDA_INVOCATION_PRICE = 0.0000002
 LAMBDA_PRICE_PER_GB_SECOND = 0.0000166667
@@ -70,7 +72,7 @@ except ImportError:
 
 
 class LambdaTagsCache(object):
-    def __init__(self, tags_ttl_seconds=3600):
+    def __init__(self, tags_ttl_seconds=TAGS_CACHE_TTL_SECONDS):
         self.tags_ttl_seconds = tags_ttl_seconds
 
         self.tags_by_arn = {}
