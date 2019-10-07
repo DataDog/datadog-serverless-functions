@@ -15,6 +15,7 @@ AWS Lambda function to ship logs and metrics from ELB, S3, CloudTrail, VPC, Clou
 - Filtering rules (`INCLUDE_AT_MATCH` and `EXCLUDE_AT_MATCH`)
 - Multiline Log Support (S3 Only)
 - Forward custom metrics from logs
+- Submit `aws.lambda.enhanced.*` Lambda metrics parsed from the AWS REPORT log: duration, billed_duration, max_memory_used, estimated_cost
 
 ## Quick Start
 
@@ -114,6 +115,10 @@ Two environment variables can be used to forward logs through a proxy:
 
 * `DD_URL`: Define the proxy endpoint to forward the logs to.
 * `DD_PORT`: Define the proxy port to forward the logs to.
+
+#### DD_FETCH_LAMBDA_TAGS
+
+If the `DD_FETCH_LAMBDA_TAGS` env variable is set to `true` then the log forwarder will fetch Lambda tags using [GetResources](https://docs.aws.amazon.com/resourcegroupstagging/latest/APIReference/API_GetResources.html) API calls and apply them to the `aws.lambda.enhanced.*` metrics parsed from the REPORT log. For this to work the log forwarder function needs to be given the `tag:GetResources` permission. The tags are cached in memory so that they'll only be fetched when the function cold starts or when the TTL (1 hour) expires. The log forwarder increments the `aws.lambda.enhanced.get_resources_api_calls` metric for each API call made.
 
 ## 3. Configure your function
 

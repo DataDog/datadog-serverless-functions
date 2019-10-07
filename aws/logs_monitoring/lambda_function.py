@@ -16,9 +16,25 @@ import re
 import six.moves.urllib as urllib  # for for Python 2.7 urllib.unquote_plus
 import socket
 import ssl
+import logging
+from io import BytesIO, BufferedReader
 import time
 from botocore.vendored import requests
-from io import BytesIO, BufferedReader
+
+log = logging.getLogger()
+log.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
+
+try:
+    from enhanced_lambda_metrics import parse_and_submit_enhanced_metrics
+
+    DD_ENHANCED_LAMBDA_METRICS = True
+except ImportError:
+    DD_ENHANCED_LAMBDA_METRICS = False
+    log.warn(
+        "Could not import from enhanced_lambda_metrics so enhanced metrics will not "
+        "be submitted. Ensure you've included the enhanced_lambda_metrics file in your Lambda project"
+    )
+
 
 try:
     # Datadog Lambda layer is required to forward metrics
@@ -27,6 +43,9 @@ try:
 
     DD_FORWARD_METRIC = True
 except ImportError:
+    log.debug(
+        "Could not import from the Datadog Lambda layer, metrics can't be forwarded"
+    )
     # For backward-compatibility
     DD_FORWARD_METRIC = False
 
@@ -122,8 +141,8 @@ SCRUBBING_RULE_CONFIGS = [
     ScrubbingRuleConfig(
         "DD_SCRUBBING_RULE",
         os.getenv("DD_SCRUBBING_RULE", default=None),
-        os.getenv("DD_SCRUBBING_RULE_REPLACEMENT", default="xxxxx")
-    )
+        os.getenv("DD_SCRUBBING_RULE_REPLACEMENT", default="xxxxx"),
+    ),
 ]
 
 
@@ -132,11 +151,17 @@ def compileRegex(rule, pattern):
     if pattern is not None:
         if pattern == "":
             # If pattern is an empty string, raise exception
-            raise Exception("No pattern provided:\nAdd pattern or remove {} environment variable".format(rule))
+            raise Exception(
+                "No pattern provided:\nAdd pattern or remove {} environment variable".format(
+                    rule
+                )
+            )
         try:
             return re.compile(pattern)
         except Exception:
-            raise Exception("could not compile {} regex with pattern: {}".format(rule, pattern))
+            raise Exception(
+                "could not compile {} regex with pattern: {}".format(rule, pattern)
+            )
 
 
 # Filtering logs
@@ -161,8 +186,7 @@ DD_API_KEY = DD_API_KEY.strip()
 # DD_API_KEY must be set
 if DD_API_KEY == "<YOUR_DATADOG_API_KEY>" or DD_API_KEY == "":
     raise Exception(
-        "You must configure your Datadog API key using "
-        "DD_KMS_API_KEY or DD_API_KEY"
+        "You must configure your Datadog API key using " "DD_KMS_API_KEY or DD_API_KEY"
     )
 # Check if the API key is the correct number of characters
 if len(DD_API_KEY) != 32:
@@ -179,7 +203,9 @@ if not validation_res.ok:
 
 trace_connection = None
 if DD_FORWARD_TRACES:
-    trace_connection = TraceConnection("https://trace.agent.{}".format(DD_SITE), DD_API_KEY)
+    trace_connection = TraceConnection(
+        "https://trace.agent.{}".format(DD_SITE), DD_API_KEY
+    )
 
 # DD_MULTILINE_LOG_REGEX_PATTERN: Datadog Multiline Log Regular Expression Pattern
 DD_MULTILINE_LOG_REGEX_PATTERN = None
@@ -190,7 +216,11 @@ if "DD_MULTILINE_LOG_REGEX_PATTERN" in os.environ:
             "[\n\r\f]+(?={})".format(DD_MULTILINE_LOG_REGEX_PATTERN)
         )
     except Exception:
-        raise Exception("could not compile multiline regex with pattern: {}".format(DD_MULTILINE_LOG_REGEX_PATTERN))
+        raise Exception(
+            "could not compile multiline regex with pattern: {}".format(
+                DD_MULTILINE_LOG_REGEX_PATTERN
+            )
+        )
     multiline_regex_start_pattern = re.compile(
         "^{}".format(DD_MULTILINE_LOG_REGEX_PATTERN)
     )
@@ -271,9 +301,7 @@ class DatadogTCPClient(object):
     def send(self, logs):
         try:
             frame = self._scrubber.scrub(
-                "".join(
-                    ["{} {}\n".format(self._api_key, log) for log in logs]
-                )
+                "".join(["{} {}\n".format(self._api_key, log) for log in logs])
             )
             self._sock.sendall(frame.encode("UTF-8"))
         except ScrubbingException:
@@ -403,8 +431,7 @@ class DatadogScrubber(object):
             if config.name in os.environ:
                 rules.append(
                     ScrubbingRule(
-                        compileRegex(config.name, config.pattern),
-                        config.placeholder
+                        compileRegex(config.name, config.pattern), config.placeholder
                     )
                 )
         self._rules = rules
@@ -422,12 +449,21 @@ def datadog_forwarder(event, context):
     """The actual lambda function entry point"""
     events = parse(event, context)
     metrics, logs, traces = split(events)
+
     if DD_FORWARD_LOG:
-        forward_logs(filter_logs(logs))
+        forward_logs(filter_logs(map(json.dumps, logs)))
+
     if DD_FORWARD_METRIC:
         forward_metrics(metrics)
+
     if DD_FORWARD_TRACES and len(traces) > 0:
         forward_traces(traces)
+
+    if DD_ENHANCED_LAMBDA_METRICS:
+        report_logs = filter(
+            lambda log: log.get("message", "").startswith("REPORT"), logs
+        )
+        parse_and_submit_enhanced_metrics(report_logs)
 
 
 if DD_FORWARD_METRIC or DD_FORWARD_TRACES:
@@ -451,8 +487,8 @@ def forward_logs(logs):
         for batch in batcher.batch(logs):
             try:
                 client.send(batch)
-            except Exception as e:
-                print("Unexpected exception: {}, batch: {}".format(str(e), batch))
+            except Exception:
+                log.exception("Exception while forwarding logs in batch %s", batch)
 
 
 def parse(event, context):
@@ -513,7 +549,7 @@ def extract_trace(event):
     """Extract traces from an event if possible"""
     try:
         message = event["message"]
-        obj = json.loads(event['message'])
+        obj = json.loads(event["message"])
         if not "traces" in obj or not isinstance(obj["traces"], list):
             return None
         return message
@@ -524,8 +560,8 @@ def extract_trace(event):
 def extract_metric(event):
     """Extract metric from an event if possible"""
     try:
-        metric = json.loads(event['message'])
-        required_attrs = {'m', 'v', 'e', 't'}
+        metric = json.loads(event["message"])
+        required_attrs = {"m", "v", "e", "t"}
         if all(attr in metric for attr in required_attrs):
             return metric
         else:
@@ -545,7 +581,7 @@ def split(events):
         elif trace and DD_FORWARD_TRACES:
             traces.append(trace)
         else:
-            logs.append(json.dumps(event))
+            logs.append(event)
     return metrics, logs, traces
 
 
@@ -585,13 +621,10 @@ def forward_metrics(metrics):
     for metric in metrics:
         try:
             lambda_stats.distribution(
-                metric['m'],
-                metric['v'],
-                timestamp=metric['e'],
-                tags=metric['t']
+                metric["m"], metric["v"], timestamp=metric["e"], tags=metric["t"]
             )
-        except Exception as e:
-            print("Unexpected exception: {}, metric: {}".format(str(e), metric))
+        except Exception:
+            log.exception("Exception while forwarding metric %s", metric)
 
 
 def forward_traces(traces):
@@ -694,13 +727,11 @@ def s3_handler(event, context, metadata):
 # Handle CloudWatch logs from Kinesis
 def kinesis_awslogs_handler(event, context, metadata):
     def reformat_record(record):
-        return {
-            "awslogs": {
-                "data": record["kinesis"]["data"]
-            }
-        }
+        return {"awslogs": {"data": record["kinesis"]["data"]}}
 
-    return itertools.chain.from_iterable(awslogs_handler(reformat_record(r), context, metadata) for r in event["Records"])
+    return itertools.chain.from_iterable(
+        awslogs_handler(reformat_record(r), context, metadata) for r in event["Records"]
+    )
 
 
 # Handle CloudWatch logs
@@ -743,7 +774,7 @@ def awslogs_handler(event, context, metadata):
         if match is not None:
             metadata[DD_HOST] = match.group("host")
             metadata[DD_CUSTOM_TAGS] = (
-                    metadata[DD_CUSTOM_TAGS] + ",logname:" + match.group("name")
+                metadata[DD_CUSTOM_TAGS] + ",logname:" + match.group("name")
             )
             # We can intuit the sourcecategory in some cases
             if match.group("name") == "postgresql":
@@ -854,13 +885,15 @@ def parse_event_source(event, key):
         "sns",
         "waf",
         "docdb",
-        "fargate"
+        "fargate",
     ]:
         if source in key:
             return source
     if "API-Gateway" in key or "ApiGateway" in key:
         return "apigateway"
-    if is_cloudtrail(str(key)) or ('logGroup' in event and event['logGroup'] == 'CloudTrail'):
+    if is_cloudtrail(str(key)) or (
+        "logGroup" in event and event["logGroup"] == "CloudTrail"
+    ):
         return "cloudtrail"
     if "awslogs" in event:
         return "cloudwatch"
