@@ -109,6 +109,8 @@ By default, the forwarder sends logs using HTTPS through the port `443`. To send
 
 #### Proxy
 
+Ensure that you disable SSL between the lambda and your proxy by setting `DD_NO_SSL` to `true`
+ 
 Two environment variables can be used to forward logs through a proxy:
 
 * `DD_URL`: Define the proxy endpoint to forward the logs to.
