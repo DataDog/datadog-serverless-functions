@@ -1,10 +1,18 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: Pushes logs and metrics from AWS to Datadog.
+Parameters:
+  FunctionName:
+    Default: ''
+    Description: 'Define custom function name, if needed'
+    Type: 'String'
+Conditions:
+  CustomFunctionName: !Not [!Equals [!Ref 'FunctionName', '']]
 Resources:
   loglambdaddfunction:
     Type: 'AWS::Serverless::Function'
     Properties:
+      FunctionName: !If ['CustomFunctionName', !Ref 'FunctionName', !Ref 'AWS::NoValue']
       Description: Pushes logs and metrics from AWS to Datadog.
       Handler: lambda_function.lambda_handler
       MemorySize: 1024
