@@ -1,6 +1,13 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: Pushes logs and metrics from AWS to Datadog.
+Parameters:
+  RetentionInDays:
+    Type: String
+    AllowedPattern: ^[0-9]*$
+    Description: Retention of logs in the log group in days
+Conditions:
+  RetentionActivated: !Not [ !Equals [ !Ref RetentionInDays, '' ] ]
 Resources:
   loglambdaddfunction:
     Type: 'AWS::Serverless::Function'
@@ -13,5 +20,11 @@ Resources:
       Layers:
         - !Sub 'arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Python27:3'
         - !Sub 'arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Trace-Forwarder-Python27:1'
+  loggroup:
+    Type: 'AWS::Logs::LogGroup'
+    Condition: RetentionActivated
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${loglambdaddfunction}'
+      RetentionInDays: !Ref RetentionInDays
 
     Type: AWS::Serverless::Function
