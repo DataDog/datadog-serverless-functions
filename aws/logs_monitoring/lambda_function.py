@@ -74,7 +74,7 @@ def get_bool_env_var(envvar, default):
 ##   * Datadog US Site: https://app.datadoghq.com/account/settings#api
 ##   * Datadog EU Site: https://app.datadoghq.eu/account/settings#api
 #
-DD_API_KEY = "<YOUR_DATADOG_API_KEY>"
+DD_API_KEY = os.getenv("DD_API_KEY", default="<YOUR_DATADOG_API_KEY>")
 
 ## @param DD_FORWARD_LOG - boolean - optional - default: true
 ## Set this variable to `False` to disable log forwarding.

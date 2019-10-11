@@ -1,6 +1,16 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: Pushes logs and metrics from AWS to Datadog.
+Parameters:
+  DatadogApiKey:
+    Type: 'String'
+    NoEcho: true
+    MinLength: 32
+    MaxLength: 32
+    AllowedPattern: ^[a-fA-F0-9]*$
+  DatadogSite:
+    Type: 'String'
+    Default: 'datadoghq.com'
 Resources:
   loglambdaddfunction:
     Type: 'AWS::Serverless::Function'
@@ -13,5 +23,9 @@ Resources:
       Layers:
         - !Sub 'arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Python27:3'
         - !Sub 'arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Trace-Forwarder-Python27:1'
+      Environment:
+        Variables:
+          DD_API_KEY: !Ref 'DatadogApiKey'
+          DD_SITE: !Ref 'DatadogSite'
 
     Type: AWS::Serverless::Function
