@@ -19,7 +19,7 @@ import ssl
 import logging
 from io import BytesIO, BufferedReader
 import time
-from botocore.vendored import requests
+import requests
 
 log = logging.getLogger()
 log.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
