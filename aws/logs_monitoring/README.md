@@ -34,7 +34,14 @@ The provided Python script must be deployed into your AWS Lambda service to coll
 2. Set the runtime to `Python 2.7`, `Python 3.6`, or `Python 3.7`
 3. Set the handler to `lambda_function.lambda_handler`
 
-### 3. Set your Parameters
+### 3. Add the Datadog Lambda Layer
+The [Datadog Lambda Layer]((https://github.com/DataDog/datadog-lambda-layer-python)) **MUST** be added to the log forwarder Lambda function. Use the Lambda layer ARN below, and replace `<AWS_REGION>` with the actual region (e.g., `us-east-1`), `<PYTHON_RUNTIME>` with the runtime of your forwarder (e.g., `Python27`), and `<VERSION>` with the latest version from the [CHANGELOG](https://github.com/DataDog/datadog-lambda-layer-python/blob/master/CHANGELOG.md).
+
+```
+arn:aws:lambda:<AWS_REGION>:464622532012:layer:Datadog-<PYTHON_RUNTIME>:<VERSION>
+```
+
+### 4. Set your Parameters
 
 At the top of the script you'll find a section called `PARAMETERS`, that's where you want to edit your code, available paramters are:
 
@@ -120,21 +127,21 @@ Two environment variables can be used to forward logs through a proxy:
 
 If the `DD_FETCH_LAMBDA_TAGS` env variable is set to `true` then the log forwarder will fetch Lambda tags using [GetResources](https://docs.aws.amazon.com/resourcegroupstagging/latest/APIReference/API_GetResources.html) API calls and apply them to the `aws.lambda.enhanced.*` metrics parsed from the REPORT log. For this to work the log forwarder function needs to be given the `tag:GetResources` permission. The tags are cached in memory so that they'll only be fetched when the function cold starts or when the TTL (1 hour) expires. The log forwarder increments the `aws.lambda.enhanced.get_resources_api_calls` metric for each API call made.
 
-## 3. Configure your function
+### 5. Configure your function
 
 To configure your function:
 
-1. Set the memory to the highest possible value.
+1. Set the memory to 1024 MB.s
 2. Also set the timeout limit. 120 seconds is recommended to deal with big files.
 3. Hit the `Save and Test` button.
 
-## 4. Test it
+### 6. Test it
 
 If the test "succeeded", you are all set! The test log doesn't show up in the platform.
 
 **Note**: For S3 logs, there may be some latency between the time a first S3 log file is posted and the Lambda function wakes up.
 
-## 5. (optional) Scrubbing / Redaction rules
+### 7. (optional) Scrubbing / Redaction rules
 
 Multiple scrubbing options are available.  `REDACT_IP` and `REDACT_EMAIL` match against hard-coded patterns, while `DD_SCRUBBING_RULE` allows users to supply a regular expression.
 - To use `REDACT_IP`, add it as an environment variable and set the value to `true`.
@@ -147,7 +154,7 @@ Multiple scrubbing options are available.  `REDACT_IP` and `REDACT_EMAIL` match 
 - Scrubbing rules are applied to the full JSON-formatted log, including any metadata that is automatically added by the Lambda function.
 - Each instance of a pattern match is replaced until no more matches are found in each log.
 
-## 6. (optional) Filtering rules
+### 8. (optional) Filtering rules
 
 Use the `EXCLUDE_AT_MATCH` OR `INCLUDE_AT_MATCH` environment variables to filter logs based on a regular expression match:
 
@@ -156,22 +163,12 @@ Use the `EXCLUDE_AT_MATCH` OR `INCLUDE_AT_MATCH` environment variables to filter
 - If a log matches both the inclusion and exclusion criteria, it is excluded.
 - Filtering rules are applied to the full JSON-formatted log, including any metadata that is automatically added by the function.
 
-## 7. (optional) Multiline Log support for s3
+### 9. (optional) Multiline Log support for s3
 
 If there are multiline logs in s3, set `DD_MULTILINE_LOG_REGEX_PATTERN` environment variable to the specified regex pattern to detect for a new log line.
 
 - Example: for multiline logs beginning with pattern `11/10/2014`: `DD_MULTILINE_LOG_REGEX_PATTERN="\d{2}\/\d{2}\/\d{4}"`
 
-## 8. (optional) Forward Metrics from Logs
+### 10. (optional) Disable log forwarding
 
-For example, if you have a Lambda function that powers a performance-critical task (e.g., a consumer-facing API), you can avoid the added latencies of submitting metric via API calls, by writing custom metrics to CloudWatch Logs using the appropriate Datadog Lambda Layer (e.g., [Lambda Layer for Python](https://github.com/DataDog/datadog-lambda-layer-python)). The log forwarder automatically detects log entries that contain metrics and forward them to Datadog metric intake.
-
-The [Datadog Lambda Layer for Python 2.7, 3.6, or 3.7]((https://github.com/DataDog/datadog-lambda-layer-python)) **MUST** be added to the log forwarder Lambda function, to enable metric forwarding. Use the Lambda layer ARN below, and replace `us-east-1` with the actual AWS region where your log forwarder operates and replace `Python27` with the Python runtime your function uses (`Python27`, `Python36`, or `Python37`).
-
-```
-arn:aws:lambda:us-east-1:464622532012:layer:Datadog-Python27:5
-```
-
-**IMPORTANT**
-
-The log forwarder **ALWAYS** forwards logs by default. If you do NOT use the Datadog log management product, you **MUST** set environment variable `DD_FORWARD_LOG` to `False`, to avoid sending logs to Datadog. The log forwarder will then only forward metrics.
+The datadog forwarder **ALWAYS** forwards logs by default. If you do NOT use the Datadog log management product, you **MUST** set environment variable `DD_FORWARD_LOG` to `False`, to avoid sending logs to Datadog. The forwarder will then only forward other observability data, such as metrics.

@@ -19,7 +19,7 @@ import ssl
 import logging
 from io import BytesIO, BufferedReader
 import time
-from botocore.vendored import requests
+import requests
 
 log = logging.getLogger()
 log.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
@@ -31,8 +31,9 @@ try:
 except ImportError:
     DD_ENHANCED_LAMBDA_METRICS = False
     log.warn(
-        "Could not import from enhanced_lambda_metrics so enhanced metrics will not "
-        "be submitted. Ensure you've included the enhanced_lambda_metrics file in your Lambda project"
+        "Could not import from enhanced_lambda_metrics so enhanced metrics "
+        "will not be submitted. Ensure you've included the enhanced_lambda_metrics "
+        "file in your Lambda project."
     )
 
 
@@ -231,7 +232,7 @@ DD_SOURCE = "ddsource"
 DD_CUSTOM_TAGS = "ddtags"
 DD_SERVICE = "service"
 DD_HOST = "host"
-DD_FORWARDER_VERSION = "2.2.0"
+DD_FORWARDER_VERSION = "2.3.0"
 
 class RetriableException(Exception):
     pass
