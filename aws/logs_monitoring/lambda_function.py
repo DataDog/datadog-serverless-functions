@@ -24,10 +24,21 @@ import ssl
 import logging
 from io import BytesIO, BufferedReader
 import time
-import requests
 
 log = logging.getLogger()
 log.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
+
+try:
+    import requests
+except ImportError:
+    log.error(
+        "Could not import the 'requests' package, please ensure the Datadog "
+        "Lambda Layer is installed. https://dtdg.co/forwarder-layer"
+    )
+    # Fallback to the botocore vendored version of requests, while ensuring
+    # customers have the Datadog Lambda Layer installed. The vendored version
+    # of requests is removed in botocore 1.13.x.
+    from botocore.vendored import requests
 
 try:
     from enhanced_lambda_metrics import parse_and_submit_enhanced_metrics
