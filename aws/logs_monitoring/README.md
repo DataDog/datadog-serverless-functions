@@ -1,3 +1,5 @@
+**IMPORTANT NOTE: When upgrading, please ensure your forwarder Lambda function has [the latest Datadog Lambda Layer installed](https://github.com/DataDog/datadog-serverless-functions/tree/master/aws/logs_monitoring#3-add-the-datadog-lambda-layer).**
+
 # Datadog Forwarder
 
 AWS Lambda function to ship logs and metrics from ELB, S3, CloudTrail, VPC, CloudFront, and CloudWatch logs to Datadog
@@ -40,6 +42,13 @@ The [Datadog Lambda Layer]((https://github.com/DataDog/datadog-lambda-layer-pyth
 ```
 arn:aws:lambda:<AWS_REGION>:464622532012:layer:Datadog-<PYTHON_RUNTIME>:<VERSION>
 ```
+
+For example:
+
+```
+arn:aws:lambda:us-east-1:464622532012:layer:Datadog-Python37:8
+```
+
 
 ### 4. Set your Parameters
 

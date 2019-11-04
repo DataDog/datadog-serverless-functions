@@ -1,3 +1,8 @@
+# IMPORTANT NOTE: When upgrading, please ensure your forwarder Lambda function
+# has the latest Datadog Lambda Layer installed.
+# https://github.com/DataDog/datadog-serverless-functions/tree/master/aws/logs_monitoring#3-add-the-datadog-lambda-layer
+
+
 # Unless explicitly stated otherwise all files in this repository are licensed
 # under the Apache License Version 2.0.
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
