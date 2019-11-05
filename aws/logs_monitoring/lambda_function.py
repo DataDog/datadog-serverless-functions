@@ -111,6 +111,11 @@ DD_USE_TCP = get_bool_env_var("DD_USE_TCP", "false")
 #
 DD_NO_SSL = get_bool_env_var("DD_NO_SSL", "false")
 
+## @param DD_SKIP_SSL_VALIDATION - boolean - optional -default: false
+## Disable SSL certificate validation when forwarding logs via HTTP.
+#
+DD_SKIP_SSL_VALIDATION = get_bool_env_var("DD_SKIP_SSL_VALIDATION", "false")
+
 ## @param DD_SITE - String - optional -default: datadoghq.com
 ## Define the Datadog Site to send your logs and metrics to.
 ## Set it to `datadoghq.eu` to send your logs and metrics to Datadog EU site.
@@ -346,12 +351,13 @@ class DatadogHTTPClient(object):
     _POST = "POST"
     _HEADERS = {"Content-type": "application/json"}
 
-    def __init__(self, host, port, no_ssl, api_key, scrubber, timeout=10):
+    def __init__(self, host, port, no_ssl, skip_ssl_validation, api_key, scrubber, timeout=10):
         protocol = "http" if no_ssl else "https"
         self._url = "{}://{}:{}/v1/input/{}".format(protocol, host, port, api_key)
         self._scrubber = scrubber
         self._timeout = timeout
         self._session = None
+        self._ssl_validation = not skip_ssl_validation
 
     def _connect(self):
         self._session = requests.Session()
@@ -369,6 +375,7 @@ class DatadogHTTPClient(object):
                 self._url,
                 data=self._scrubber.scrub("[{}]".format(",".join(logs))),
                 timeout=self._timeout,
+                verify=self._ssl_validation
             )
         except ScrubbingException:
             raise Exception("could not scrub the payload")
@@ -500,7 +507,7 @@ def forward_logs(logs):
         cli = DatadogTCPClient(DD_URL, DD_PORT, DD_NO_SSL, DD_API_KEY, scrubber)
     else:
         batcher = DatadogBatcher(256 * 1000, 2 * 1000 * 1000, 200)
-        cli = DatadogHTTPClient(DD_URL, DD_PORT, DD_NO_SSL, DD_API_KEY, scrubber)
+        cli = DatadogHTTPClient(DD_URL, DD_PORT, DD_NO_SSL, DD_SKIP_SSL_VALIDATION, DD_API_KEY, scrubber)
 
     with DatadogClient(cli) as client:
         for batch in batcher.batch(logs):
