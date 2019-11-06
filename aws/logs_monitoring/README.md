@@ -140,13 +140,13 @@ If the `DD_FETCH_LAMBDA_TAGS` env variable is set to `true` then the log forward
 
 To configure your function:
 
-1. Set the memory to 1024 MB.s
+1. Set the memory to 1024 MB.
 2. Also set the timeout limit. 120 seconds is recommended to deal with big files.
-3. Hit the `Save and Test` button.
+3. Hit the `Save` button.
 
 ### 6. Test it
 
-If the test "succeeded", you are all set! The test log doesn't show up in the platform.
+Hit the `Test` button, and select `CloudWatch Logs` as the sample event. If the test "succeeded", you are all set! The test log doesn't show up in the platform.
 
 **Note**: For S3 logs, there may be some latency between the time a first S3 log file is posted and the Lambda function wakes up.
 
