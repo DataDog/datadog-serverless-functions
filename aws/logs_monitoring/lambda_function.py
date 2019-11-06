@@ -822,7 +822,11 @@ def awslogs_handler(event, context, metadata):
                 # Default `env` to `none` and `service` to the function name,
                 # for correlation with the APM env and service.
                 metadata[DD_SERVICE] = function_name
-                metadata[DD_CUSTOM_TAGS] += ",env:none"
+
+                env_tag_exists = metadata[DD_CUSTOM_TAGS].startswith('env:') or ',env:' in metadata[DD_CUSTOM_TAGS]
+                # If there is no env specified, default to env:none
+                if not env_tag_exists:
+                    metadata[DD_CUSTOM_TAGS] += ",env:none"
 
     # Create and send structured logs to Datadog
     for log in logs["logEvents"]:
