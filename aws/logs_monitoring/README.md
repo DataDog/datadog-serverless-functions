@@ -181,3 +181,8 @@ If there are multiline logs in s3, set `DD_MULTILINE_LOG_REGEX_PATTERN` environm
 ### 10. (optional) Disable log forwarding
 
 The datadog forwarder **ALWAYS** forwards logs by default. If you do NOT use the Datadog log management product, you **MUST** set environment variable `DD_FORWARD_LOG` to `False`, to avoid sending logs to Datadog. The forwarder will then only forward other observability data, such as metrics.
+
+### 11. (optional) Disable SSL validation
+
+If you need to ignore SSL certificate validation when forwarding logs using HTTPS, you can set the environment variable `DD_SKIP_SSL_VALIDATION` to `True`.
+This will still encrypt the traffic between the forwarder and the endpoint provided with `DD_URL` but will not check if the destination SSL certificate is valid. 
