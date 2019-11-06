@@ -250,7 +250,7 @@ DD_SOURCE = "ddsource"
 DD_CUSTOM_TAGS = "ddtags"
 DD_SERVICE = "service"
 DD_HOST = "host"
-DD_FORWARDER_VERSION = "2.3.0"
+DD_FORWARDER_VERSION = "2.3.1"
 
 class RetriableException(Exception):
     pass
