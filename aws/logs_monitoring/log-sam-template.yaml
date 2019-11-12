@@ -15,3 +15,9 @@ Resources:
         - !Sub 'arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Trace-Forwarder-Python27:1'
 
     Type: AWS::Serverless::Function
+Outputs:
+  LogFunctionArn:
+    Description: Datadog log AWS Lambda arn
+    Value: !GetAtt loglambdaddfunction.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-LogFunctionArn'
