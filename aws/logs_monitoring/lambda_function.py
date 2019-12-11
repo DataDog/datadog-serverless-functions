@@ -911,14 +911,14 @@ def parse_event_source(event, key):
         "apigateway",
         "route53",
         "vpc",
-        "rds",
+        "/aws/rds",
         "sns",
         "waf",
         "docdb",
         "fargate",
     ]:
         if source in key:
-            return source
+            return source.replace("/aws/", "")
     if "API-Gateway" in key or "ApiGateway" in key:
         return "apigateway"
     if is_cloudtrail(str(key)) or (
