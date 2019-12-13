@@ -835,6 +835,13 @@ def awslogs_handler(event, context, metadata):
                 if not env_tag_exists:
                     metadata[DD_CUSTOM_TAGS] += ",env:none"
 
+    # Check for excluded services
+    EXCLUDED_SERVICES = os.getenv("EXCLUDE_SERVICES", default=None)
+    # Convert to list and strip whitespaces
+    EXCLUDED_SERVICES = [x.strip() for x in EXCLUDED_SERVICES.split(',')]
+    # Check if service matches excluded services and returns if match, else continues
+    if (metadata[DD_SERVICE] is not None) and metadata[DD_SERVICE] in EXCLUDED_SERVICES:
+        return
     # Create and send structured logs to Datadog
     for log in logs["logEvents"]:
         yield merge_dicts(log, aws_attributes)

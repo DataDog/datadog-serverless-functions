@@ -172,6 +172,9 @@ Use the `EXCLUDE_AT_MATCH` OR `INCLUDE_AT_MATCH` environment variables to filter
 - If a log matches both the inclusion and exclusion criteria, it is excluded.
 - Filtering rules are applied to the full JSON-formatted log, including any metadata that is automatically added by the function.
 
+Use `EXCLUDE_SERVICES` to exclude and not send logs that match a particular lambda
+- To use `EXCLUDE_SERVICES`, add it as an environment variable and set to a list of comma separated strings of service or lambda names you which to exclude.
+
 ### 9. (optional) Multiline Log support for s3
 
 If there are multiline logs in s3, set `DD_MULTILINE_LOG_REGEX_PATTERN` environment variable to the specified regex pattern to detect for a new log line.
