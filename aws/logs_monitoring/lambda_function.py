@@ -255,7 +255,7 @@ DD_SOURCE = "ddsource"
 DD_CUSTOM_TAGS = "ddtags"
 DD_SERVICE = "service"
 DD_HOST = "host"
-DD_FORWARDER_VERSION = "2.3.2"
+DD_FORWARDER_VERSION = "2.3.3"
 
 class RetriableException(Exception):
     pass
@@ -596,8 +596,30 @@ def extract_metric(event):
         return None
 
 
+def add_metadata_to_lambda_log(log_event):
+    """Mutate log dict to add functionname tag, host, and service from the existing Lambda attribute
+
+    Args:
+        log_event (dict): the log event we are adding metadata to
+    """
+    lambda_log_metadata = log_event.get('lambda', {})
+    lambda_log_arn = lambda_log_metadata.get('arn')
+
+    # Do not mutate the log event if it's not from Lambda
+    if not lambda_log_arn:
+        return
+
+    # Function name is the sixth piece of the ARN
+    function_name = lambda_log_arn.split(':')[6]
+
+    log_event[DD_HOST] = lambda_log_arn
+    log_event[DD_CUSTOM_TAGS] = "{},functionname:{}".format(log_event[DD_CUSTOM_TAGS], function_name)
+    log_event[DD_SERVICE] = function_name
+
+
 def split(events):
-    """Split events to metrics and logs"""
+    """Split events to metrics, logs, and traces and do final processing into DD format
+    """
     metrics, logs, traces = [], [], []
     for event in events:
         metric = extract_metric(event)
@@ -607,8 +629,10 @@ def split(events):
         elif trace and DD_FORWARD_TRACES:
             traces.append(trace)
         else:
+            add_metadata_to_lambda_log(event)
             logs.append(event)
     return metrics, logs, traces
+
 
 
 # should only be called when INCLUDE_AT_MATCH and/or EXCLUDE_AT_MATCH exist
@@ -822,13 +846,6 @@ def awslogs_handler(event, context, metadata):
                 # Add the arn as a log attribute
                 arn_attributes = {"lambda": {"arn": arn}}
                 aws_attributes = merge_dicts(aws_attributes, arn_attributes)
-                # Add the function name as tag
-                metadata[DD_CUSTOM_TAGS] += ",functionname:" + function_name
-                # Set the arn as the hostname
-                metadata[DD_HOST] = arn
-                # Default `env` to `none` and `service` to the function name,
-                # for correlation with the APM env and service.
-                metadata[DD_SERVICE] = function_name
 
                 env_tag_exists = metadata[DD_CUSTOM_TAGS].startswith('env:') or ',env:' in metadata[DD_CUSTOM_TAGS]
                 # If there is no env specified, default to env:none
