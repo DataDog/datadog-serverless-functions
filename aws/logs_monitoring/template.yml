@@ -8,10 +8,8 @@ Resources:
       Description: Pushes logs and metrics from AWS to Datadog.
       Handler: lambda_function.lambda_handler
       MemorySize: 1024
-      Runtime: python2.7
+      Runtime: python3.8
       Timeout: 120
       Layers:
-        - !Sub 'arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Python27:3'
-        - !Sub 'arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Trace-Forwarder-Python27:1'
-
-    Type: AWS::Serverless::Function
+        - !Sub 'arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Python38:11'
+        - !Sub 'arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Trace-Forwarder-Python38:3'
