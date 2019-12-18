@@ -551,6 +551,8 @@ def enrich(events):
     for event in events:
         add_metadata_to_lambda_log(event)
 
+    return events
+
 
 def add_metadata_to_lambda_log(event):
     """Mutate log dict to add functionname tag, host, and service from the existing Lambda attribute
