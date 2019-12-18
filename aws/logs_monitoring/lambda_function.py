@@ -473,8 +473,7 @@ class DatadogScrubber(object):
 
 def datadog_forwarder(event, context):
     """The actual lambda function entry point"""
-    events = parse(event, context)
-    metrics, logs, traces = split(events)
+    metrics, logs, traces = split(enrich(parse(event, context)))
 
     if DD_FORWARD_LOG:
         forward_logs(filter_logs(map(json.dumps, logs)))
@@ -539,7 +538,41 @@ def parse(event, context):
             str(e), event
         )
         events = [err_message]
+
     return normalize_events(events, metadata)
+
+
+def enrich(events):
+    """Adds event-specific tags and attributes to each event
+
+    Args:
+        events (dict[]): the list of event dicts we want to enrich
+    """
+    for event in events:
+        add_metadata_to_lambda_log(event)
+
+
+def add_metadata_to_lambda_log(event):
+    """Mutate log dict to add functionname tag, host, and service from the existing Lambda attribute
+
+    If the event arg is not a Lambda log then this returns without doing anything
+
+    Args:
+        event (dict): the event we are adding Lambda metadata to
+    """
+    lambda_log_metadata = event.get('lambda', {})
+    lambda_log_arn = lambda_log_metadata.get('arn')
+
+    # Do not mutate the event if it's not from Lambda
+    if not lambda_log_arn:
+        return
+
+    # Function name is the sixth piece of the ARN
+    function_name = lambda_log_arn.split(':')[6]
+
+    event[DD_HOST] = lambda_log_arn
+    event[DD_CUSTOM_TAGS] = "{},functionname:{}".format(event[DD_CUSTOM_TAGS], function_name)
+    event[DD_SERVICE] = function_name
 
 
 def generate_metadata(context):
@@ -596,29 +629,8 @@ def extract_metric(event):
         return None
 
 
-def add_metadata_to_lambda_log(log_event):
-    """Mutate log dict to add functionname tag, host, and service from the existing Lambda attribute
-
-    Args:
-        log_event (dict): the log event we are adding metadata to
-    """
-    lambda_log_metadata = log_event.get('lambda', {})
-    lambda_log_arn = lambda_log_metadata.get('arn')
-
-    # Do not mutate the log event if it's not from Lambda
-    if not lambda_log_arn:
-        return
-
-    # Function name is the sixth piece of the ARN
-    function_name = lambda_log_arn.split(':')[6]
-
-    log_event[DD_HOST] = lambda_log_arn
-    log_event[DD_CUSTOM_TAGS] = "{},functionname:{}".format(log_event[DD_CUSTOM_TAGS], function_name)
-    log_event[DD_SERVICE] = function_name
-
-
 def split(events):
-    """Split events to metrics, logs, and traces and do final processing into DD format
+    """Split events into metrics, logs, and traces
     """
     metrics, logs, traces = [], [], []
     for event in events:
@@ -629,7 +641,6 @@ def split(events):
         elif trace and DD_FORWARD_TRACES:
             traces.append(trace)
         else:
-            add_metadata_to_lambda_log(event)
             logs.append(event)
     return metrics, logs, traces
 
