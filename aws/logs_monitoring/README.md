@@ -65,7 +65,8 @@ There are 3 possibilities to set your Datadog API key:
 
 1. **KMS Encrypted key (recommended)**: Use the `DD_KMS_API_KEY` environment variable to use a KMS encrypted key. Make sure that the Lambda execution role is listed in the KMS Key user in https://console.aws.amazon.com/iam/home#encryptionKeys.
 2. **Environment Variable**: Use the `DD_API_KEY` environment variable for the Lambda function.
-3. **Manual**: Replace `<YOUR_DATADOG_API_KEY>` in the code:
+3. **Secret Manager**: Use the `DD_API_KEY_SECRET_ARN` environment variable for the Lambda function.
+4. **Manual**: Replace `<YOUR_DATADOG_API_KEY>` in the code:
 
   ```python
   ## @param DD_API_KEY - String - required - default: none

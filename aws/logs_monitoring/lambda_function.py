@@ -203,6 +203,9 @@ if "DD_KMS_API_KEY" in os.environ:
         DD_API_KEY = DD_API_KEY.decode("utf-8")
 elif "DD_API_KEY" in os.environ:
     DD_API_KEY = os.environ["DD_API_KEY"]
+elif "DD_API_KEY_SECRET_ARN" in os.environ:
+    RESPONSE = boto3.client("secretsmanager")       
+    DD_API_KEY = RESPONSE.get_secret_value(SecretId=os.environ["DD_API_KEY_SECRET_ARN"]).get('SecretString')
 
 # Strip any trailing and leading whitespace from the API key
 DD_API_KEY = DD_API_KEY.strip()
