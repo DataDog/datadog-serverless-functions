@@ -255,7 +255,7 @@ DD_SOURCE = "ddsource"
 DD_CUSTOM_TAGS = "ddtags"
 DD_SERVICE = "service"
 DD_HOST = "host"
-DD_FORWARDER_VERSION = "2.3.2"
+DD_FORWARDER_VERSION = "2.3.3"
 
 class RetriableException(Exception):
     pass
@@ -473,8 +473,7 @@ class DatadogScrubber(object):
 
 def datadog_forwarder(event, context):
     """The actual lambda function entry point"""
-    events = parse(event, context)
-    metrics, logs, traces = split(events)
+    metrics, logs, traces = split(enrich(parse(event, context)))
 
     if DD_FORWARD_LOG:
         forward_logs(filter_logs(map(json.dumps, logs)))
@@ -539,7 +538,43 @@ def parse(event, context):
             str(e), event
         )
         events = [err_message]
+
     return normalize_events(events, metadata)
+
+
+def enrich(events):
+    """Adds event-specific tags and attributes to each event
+
+    Args:
+        events (dict[]): the list of event dicts we want to enrich
+    """
+    for event in events:
+        add_metadata_to_lambda_log(event)
+
+    return events
+
+
+def add_metadata_to_lambda_log(event):
+    """Mutate log dict to add functionname tag, host, and service from the existing Lambda attribute
+
+    If the event arg is not a Lambda log then this returns without doing anything
+
+    Args:
+        event (dict): the event we are adding Lambda metadata to
+    """
+    lambda_log_metadata = event.get('lambda', {})
+    lambda_log_arn = lambda_log_metadata.get('arn')
+
+    # Do not mutate the event if it's not from Lambda
+    if not lambda_log_arn:
+        return
+
+    # Function name is the sixth piece of the ARN
+    function_name = lambda_log_arn.split(':')[6]
+
+    event[DD_HOST] = lambda_log_arn
+    event[DD_CUSTOM_TAGS] = "{},functionname:{}".format(event[DD_CUSTOM_TAGS], function_name)
+    event[DD_SERVICE] = function_name
 
 
 def generate_metadata(context):
@@ -597,7 +632,8 @@ def extract_metric(event):
 
 
 def split(events):
-    """Split events to metrics and logs"""
+    """Split events into metrics, logs, and traces
+    """
     metrics, logs, traces = [], [], []
     for event in events:
         metric = extract_metric(event)
@@ -609,6 +645,7 @@ def split(events):
         else:
             logs.append(event)
     return metrics, logs, traces
+
 
 
 # should only be called when INCLUDE_AT_MATCH and/or EXCLUDE_AT_MATCH exist
@@ -822,13 +859,6 @@ def awslogs_handler(event, context, metadata):
                 # Add the arn as a log attribute
                 arn_attributes = {"lambda": {"arn": arn}}
                 aws_attributes = merge_dicts(aws_attributes, arn_attributes)
-                # Add the function name as tag
-                metadata[DD_CUSTOM_TAGS] += ",functionname:" + function_name
-                # Set the arn as the hostname
-                metadata[DD_HOST] = arn
-                # Default `env` to `none` and `service` to the function name,
-                # for correlation with the APM env and service.
-                metadata[DD_SERVICE] = function_name
 
                 env_tag_exists = metadata[DD_CUSTOM_TAGS].startswith('env:') or ',env:' in metadata[DD_CUSTOM_TAGS]
                 # If there is no env specified, default to env:none
