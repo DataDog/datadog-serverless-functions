@@ -249,13 +249,13 @@ if "DD_MULTILINE_LOG_REGEX_PATTERN" in os.environ:
         "^{}".format(DD_MULTILINE_LOG_REGEX_PATTERN)
     )
 
-rds_regex = re.compile("/aws/rds/instance/(?P<host>[^/]+)/(?P<name>[^/]+)")
+rds_regex = re.compile("/aws/rds/(instance|cluster)/(?P<host>[^/]+)/(?P<name>[^/]+)")
 
 DD_SOURCE = "ddsource"
 DD_CUSTOM_TAGS = "ddtags"
 DD_SERVICE = "service"
 DD_HOST = "host"
-DD_FORWARDER_VERSION = "2.3.3"
+DD_FORWARDER_VERSION = "2.3.4"
 
 class RetriableException(Exception):
     pass
