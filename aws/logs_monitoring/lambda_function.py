@@ -753,8 +753,8 @@ def s3_handler(event, context, metadata):
     body = response["Body"]
     data = body.read()
 
-    # If the name has a .gz extension, then decompress the data
-    if key[-3:] == ".gz":
+    # Decompress data that has a .gz extension or magic header http://www.onicos.com/staff/iz/formats/gzip.html
+    if key[-3:] == ".gz" or data[:2] == b"\x1f\x8b":
         with gzip.GzipFile(fileobj=BytesIO(data)) as decompress_stream:
             # Reading line by line avoid a bug where gzip would take a very long time (>5min) for
             # file around 60MB gzipped
