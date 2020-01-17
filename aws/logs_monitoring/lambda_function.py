@@ -100,10 +100,24 @@ DD_API_KEY = "<YOUR_DATADOG_API_KEY>"
 DD_FORWARD_LOG = get_bool_env_var("DD_FORWARD_LOG", "true")
 
 ## @param DD_USE_TCP - boolean - optional -default: false
-## Change this value to `true` to send your logs and metrics using the HTTP network client
+## Change this value to `true` to send your logs and metrics using the TCP network client
 ## By default, it uses the HTTP client.
 #
 DD_USE_TCP = get_bool_env_var("DD_USE_TCP", "false")
+
+## @param DD_USE_COMPRESSION - boolean - optional -default: true
+## Only valid when sending logs over HTTP
+## Change this value to `false` to send your logs without any compression applied
+## By default, compression is enabled.
+#
+DD_USE_COMPRESSION = get_bool_env_var("DD_USE_COMPRESSION", "true")
+
+## @param DD_USE_COMPRESSION - integer - optional -default: 6
+## Change this value to set the compression level.
+## Values range from 0 (no compression) to 9 (best compression).
+## By default, compression is set to level 6.
+#
+DD_COMPRESSION_LEVEL = int(os.getenv("DD_COMPRESSION_LEVEL", 6))
 
 ## @param DD_USE_SSL - boolean - optional -default: false
 ## Change this value to `true` to disable SSL
@@ -349,7 +363,10 @@ class DatadogHTTPClient(object):
     """
 
     _POST = "POST"
-    _HEADERS = {"Content-type": "application/json"}
+    if DD_USE_COMPRESSION:
+        _HEADERS = {"Content-type": "application/json", "Content-Encoding": "gzip"}
+    else:
+        _HEADERS = {"Content-type": "application/json"}
 
     def __init__(self, host, port, no_ssl, skip_ssl_validation, api_key, scrubber, timeout=10):
         protocol = "http" if no_ssl else "https"
@@ -371,14 +388,18 @@ class DatadogHTTPClient(object):
         Sends a batch of log, only retry on server and network errors.
         """
         try:
+            data=self._scrubber.scrub("[{}]".format(",".join(logs)))
+        except ScrubbingException:
+            raise Exception("could not scrub the payload")
+        if DD_USE_COMPRESSION:
+            data = compress_logs(data, DD_COMPRESSION_LEVEL)
+        try:
             resp = self._session.post(
                 self._url,
-                data=self._scrubber.scrub("[{}]".format(",".join(logs))),
+                data,
                 timeout=self._timeout,
                 verify=self._ssl_validation
             )
-        except ScrubbingException:
-            raise Exception("could not scrub the payload")
         except Exception:
             # most likely a network error
             raise RetriableException()
@@ -402,7 +423,6 @@ class DatadogHTTPClient(object):
 
     def __exit__(self, ex_type, ex_value, traceback):
         self._close()
-
 
 class DatadogBatcher(object):
     def __init__(self, max_log_size_bytes, max_size_bytes, max_size_count):
@@ -443,6 +463,16 @@ class DatadogBatcher(object):
             batches.append(batch)
         return batches
 
+
+def compress_logs(batch, level):
+    if level < 0:
+        compression_level = 0
+    elif level > 9:
+        compression_level = 9
+    else:
+        compression_level = level
+
+    return gzip.compress(bytes(batch, 'utf-8'), compression_level)
 
 class ScrubbingRule(object):
     def __init__(self, regex, placeholder):
