@@ -1,8 +1,3 @@
-# IMPORTANT NOTE: When upgrading, please ensure your forwarder Lambda function
-# has the latest Datadog Lambda Layer installed.
-# https://github.com/DataDog/datadog-serverless-functions/tree/master/aws/logs_monitoring#3-add-the-datadog-lambda-layer
-
-
 # Unless explicitly stated otherwise all files in this repository are licensed
 # under the Apache License Version 2.0.
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
@@ -42,7 +37,6 @@ except ImportError:
 
 try:
     from enhanced_lambda_metrics import parse_and_submit_enhanced_metrics
-
     DD_ENHANCED_LAMBDA_METRICS = True
 except ImportError:
     DD_ENHANCED_LAMBDA_METRICS = False
@@ -51,13 +45,14 @@ except ImportError:
         "will not be submitted. Ensure you've included the enhanced_lambda_metrics "
         "file in your Lambda project."
     )
+finally:
+    log.debug(f"DD_ENHANCED_LAMBDA_METRICS: {DD_ENHANCED_LAMBDA_METRICS}")
 
 
 try:
     # Datadog Lambda layer is required to forward metrics
     from datadog_lambda.wrapper import datadog_lambda_wrapper
     from datadog_lambda.metric import lambda_stats
-
     DD_FORWARD_METRIC = True
 except ImportError:
     log.debug(
@@ -65,20 +60,30 @@ except ImportError:
     )
     # For backward-compatibility
     DD_FORWARD_METRIC = False
+finally:
+    log.debug(f"DD_FORWARD_METRIC: {DD_FORWARD_METRIC}")
 
 try:
     # Datadog Trace Layer is required to forward traces
     from trace_forwarder.connection import TraceConnection
-
     DD_FORWARD_TRACES = True
 except ImportError:
     # For backward-compatibility
     DD_FORWARD_TRACES = False
+finally:
+    log.debug(f"DD_FORWARD_TRACES: {DD_FORWARD_TRACES}")
 
 
-# Return the boolean environment variable corresponding to envvar
-def get_bool_env_var(envvar, default):
-    return os.getenv(envvar, default=default).lower() == "true"
+def get_env_var(envvar, default, boolean=False):
+    """
+        Return the value of the given environment variable with debug logging.
+        When boolean=True, parse the value as a boolean case-insensitively.
+    """
+    value = os.getenv(envvar, default=default)
+    if boolean:
+        value = value.lower() == "true"
+    log.debug(f"{envvar}: {value}")
+    return value
 
 #####################################
 ############# PARAMETERS ############
@@ -97,20 +102,20 @@ DD_API_KEY = "<YOUR_DATADOG_API_KEY>"
 ## Set this variable to `False` to disable log forwarding.
 ## E.g., when you only want to forward metrics from logs.
 #
-DD_FORWARD_LOG = get_bool_env_var("DD_FORWARD_LOG", "true")
+DD_FORWARD_LOG = get_env_var("DD_FORWARD_LOG", "true", boolean=True)
 
 ## @param DD_USE_TCP - boolean - optional -default: false
 ## Change this value to `true` to send your logs and metrics using the TCP network client
 ## By default, it uses the HTTP client.
 #
-DD_USE_TCP = get_bool_env_var("DD_USE_TCP", "false")
+DD_USE_TCP = get_env_var("DD_USE_TCP", "false", boolean=True)
 
 ## @param DD_USE_COMPRESSION - boolean - optional -default: true
 ## Only valid when sending logs over HTTP
 ## Change this value to `false` to send your logs without any compression applied
 ## By default, compression is enabled.
 #
-DD_USE_COMPRESSION = get_bool_env_var("DD_USE_COMPRESSION", "true")
+DD_USE_COMPRESSION = get_env_var("DD_USE_COMPRESSION", "true", boolean=True)
 
 ## @param DD_USE_COMPRESSION - integer - optional -default: 6
 ## Change this value to set the compression level.
@@ -123,37 +128,39 @@ DD_COMPRESSION_LEVEL = int(os.getenv("DD_COMPRESSION_LEVEL", 6))
 ## Change this value to `true` to disable SSL
 ## Useful when you are forwarding your logs to a proxy.
 #
-DD_NO_SSL = get_bool_env_var("DD_NO_SSL", "false")
+DD_NO_SSL = get_env_var("DD_NO_SSL", "false", boolean=True)
 
 ## @param DD_SKIP_SSL_VALIDATION - boolean - optional -default: false
 ## Disable SSL certificate validation when forwarding logs via HTTP.
 #
-DD_SKIP_SSL_VALIDATION = get_bool_env_var("DD_SKIP_SSL_VALIDATION", "false")
+DD_SKIP_SSL_VALIDATION = get_env_var(
+    "DD_SKIP_SSL_VALIDATION", "false", boolean=True
+)
 
 ## @param DD_SITE - String - optional -default: datadoghq.com
 ## Define the Datadog Site to send your logs and metrics to.
 ## Set it to `datadoghq.eu` to send your logs and metrics to Datadog EU site.
 #
-DD_SITE = os.getenv("DD_SITE", default="datadoghq.com")
+DD_SITE = get_env_var("DD_SITE", default="datadoghq.com")
 
 ## @param DD_TAGS - list of comma separated strings - optional -default: none
 ## Pass custom tags as environment variable or through this variable.
 ## Ensure your tags are a comma separated list of strings with no trailing comma in the envvar!
 #
-DD_TAGS = os.environ.get("DD_TAGS", "")
+DD_TAGS = get_env_var("DD_TAGS", "")
 
 if DD_USE_TCP:
-    DD_URL = os.getenv("DD_URL", default="lambda-intake.logs." + DD_SITE)
+    DD_URL = get_env_var("DD_URL", default="lambda-intake.logs." + DD_SITE)
     try:
         if "DD_SITE" in os.environ and DD_SITE == "datadoghq.eu":
-            DD_PORT = int(os.getenv("DD_PORT", default="443"))
+            DD_PORT = int(get_env_var("DD_PORT", default="443"))
         else:
-            DD_PORT = int(os.getenv("DD_PORT", default="10516"))
+            DD_PORT = int(get_env_var("DD_PORT", default="10516"))
     except Exception:
         DD_PORT = 10516
 else:
-    DD_URL = os.getenv("DD_URL", default="lambda-http-intake.logs." + DD_SITE)
-    DD_PORT = int(os.getenv("DD_PORT", default="443"))
+    DD_URL = get_env_var("DD_URL", default="lambda-http-intake.logs." + DD_SITE)
+    DD_PORT = int(get_env_var("DD_PORT", default="443"))
 
 
 class ScrubbingRuleConfig(object):
@@ -176,8 +183,8 @@ SCRUBBING_RULE_CONFIGS = [
     ),
     ScrubbingRuleConfig(
         "DD_SCRUBBING_RULE",
-        os.getenv("DD_SCRUBBING_RULE", default=None),
-        os.getenv("DD_SCRUBBING_RULE_REPLACEMENT", default="xxxxx"),
+        get_env_var("DD_SCRUBBING_RULE", default=None),
+        get_env_var("DD_SCRUBBING_RULE_REPLACEMENT", default="xxxxx"),
     ),
 ]
 
@@ -202,13 +209,18 @@ def compileRegex(rule, pattern):
 
 # Filtering logs
 # Option to include or exclude logs based on a pattern match
-INCLUDE_AT_MATCH = os.getenv("INCLUDE_AT_MATCH", default=None)
+INCLUDE_AT_MATCH = get_env_var("INCLUDE_AT_MATCH", default=None)
 include_regex = compileRegex("INCLUDE_AT_MATCH", INCLUDE_AT_MATCH)
 
-EXCLUDE_AT_MATCH = os.getenv("EXCLUDE_AT_MATCH", default=None)
+EXCLUDE_AT_MATCH = get_env_var("EXCLUDE_AT_MATCH", default=None)
 exclude_regex = compileRegex("EXCLUDE_AT_MATCH", EXCLUDE_AT_MATCH)
 
-if "DD_KMS_API_KEY" in os.environ:
+if "DD_API_KEY_SECRET_ARN" in os.environ:
+    SECRET_ARN = os.environ["DD_API_KEY_SECRET_ARN"]
+    DD_API_KEY = boto3.client("secretsmanager").get_secret_value(
+        SecretId=SECRET_ARN
+    )["SecretString"]
+elif "DD_KMS_API_KEY" in os.environ:
     ENCRYPTED = os.environ["DD_KMS_API_KEY"]
     DD_API_KEY = boto3.client("kms").decrypt(
         CiphertextBlob=base64.b64decode(ENCRYPTED)
@@ -224,7 +236,7 @@ DD_API_KEY = DD_API_KEY.strip()
 # DD_API_KEY must be set
 if DD_API_KEY == "<YOUR_DATADOG_API_KEY>" or DD_API_KEY == "":
     raise Exception(
-        "You must configure your Datadog API key using " "DD_KMS_API_KEY or DD_API_KEY"
+        "Missing Datadog API key"
     )
 # Check if the API key is the correct number of characters
 if len(DD_API_KEY) != 32:
@@ -245,10 +257,11 @@ if DD_FORWARD_TRACES:
         "https://trace.agent.{}".format(DD_SITE), DD_API_KEY
     )
 
-# DD_MULTILINE_LOG_REGEX_PATTERN: Datadog Multiline Log Regular Expression Pattern
-DD_MULTILINE_LOG_REGEX_PATTERN = None
-if "DD_MULTILINE_LOG_REGEX_PATTERN" in os.environ:
-    DD_MULTILINE_LOG_REGEX_PATTERN = os.environ["DD_MULTILINE_LOG_REGEX_PATTERN"]
+# DD_MULTILINE_LOG_REGEX_PATTERN: Multiline Log Regular Expression Pattern
+DD_MULTILINE_LOG_REGEX_PATTERN = get_env_var(
+    "DD_MULTILINE_LOG_REGEX_PATTERN", default=None
+)
+if DD_MULTILINE_LOG_REGEX_PATTERN:
     try:
         multiline_regex = re.compile(
             "[\n\r\f]+(?={})".format(DD_MULTILINE_LOG_REGEX_PATTERN)
@@ -269,7 +282,7 @@ DD_SOURCE = "ddsource"
 DD_CUSTOM_TAGS = "ddtags"
 DD_SERVICE = "service"
 DD_HOST = "host"
-DD_FORWARDER_VERSION = "2.4.0"
+DD_FORWARDER_VERSION = "3.0.0"
 
 class RetriableException(Exception):
     pass
@@ -533,17 +546,22 @@ def forward_logs(logs):
     scrubber = DatadogScrubber(SCRUBBING_RULE_CONFIGS)
     if DD_USE_TCP:
         batcher = DatadogBatcher(256 * 1000, 256 * 1000, 1)
-        cli = DatadogTCPClient(DD_URL, DD_PORT, DD_NO_SSL, DD_API_KEY, scrubber)
+        cli = DatadogTCPClient(
+            DD_URL, DD_PORT, DD_NO_SSL, DD_API_KEY, scrubber)
     else:
         batcher = DatadogBatcher(256 * 1000, 2 * 1000 * 1000, 200)
-        cli = DatadogHTTPClient(DD_URL, DD_PORT, DD_NO_SSL, DD_SKIP_SSL_VALIDATION, DD_API_KEY, scrubber)
+        cli = DatadogHTTPClient(
+            DD_URL, DD_PORT, DD_NO_SSL,
+            DD_SKIP_SSL_VALIDATION, DD_API_KEY, scrubber)
 
     with DatadogClient(cli) as client:
         for batch in batcher.batch(logs):
             try:
                 client.send(batch)
             except Exception:
-                log.exception("Exception while forwarding logs in batch %s", batch)
+                log.exception(f"Exception while forwarding log batch {batch}")
+            else:
+                log.debug(f"Forwarded {len(batch)} logs")
 
 
 def parse(event, context):
@@ -717,15 +735,19 @@ def forward_metrics(metrics):
                 metric["m"], metric["v"], timestamp=metric["e"], tags=metric["t"]
             )
         except Exception:
-            log.exception("Exception while forwarding metric %s", metric)
+            log.exception(f"Exception while forwarding metric {metric}")
+        else:
+            log.debug(f"Forwarded metric: {metric}")
 
 
 def forward_traces(traces):
-    try:
-        for trace in traces:
+    for trace in traces:
+        try:   
             trace_connection.send_trace(trace)
-    except Exception as e:
-        print(e)
+        except Exception:
+            log.exception(f"Exception while forwarding trace {trace}")
+        else:
+            log.debug(f"Forwarded trace: {trace}")
 
 
 # Utility functions
