@@ -13,10 +13,8 @@ AWS Lambda function to ship logs from S3 and CloudWatch, custom metrics and trac
 
 ## Install
 
-[![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home#/stacks/new?stackName=datadog-serverless&templateURL=https://dd-log-sam.s3.amazonaws.com/templates/3.0.0.yaml)
 
-1. Login AWS using a user/role with admin permissions.
-1. Deploy the [datadog-serverless](https://console.aws.amazon.com/cloudformation/home#/stacks/new?stackName=datadog-serverless&templateURL=https://dd-log-sam.s3.amazonaws.com/templates/3.0.0.yaml) CloudFormation stack.
+1. [![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home#/stacks/new?stackName=datadog-serverless&templateURL=https://dd-log-sam.s3.amazonaws.com/templates/3.0.0.yaml)
 1. Fill in `DdApiKey` and select the appropriate `DdSite`.
 1. All other parameters are optional, leave them as default.
 1. You can find the installed Forwarder under the stack's "Resources" tab.
