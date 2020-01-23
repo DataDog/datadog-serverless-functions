@@ -979,7 +979,7 @@ def parse_event_source(event, key):
     ]:
         if source in key:
             return source.replace("/aws/", "")
-    if "API-Gateway" in key or "ApiGateway" in key:
+    if "api-gateway" in key.lower() or "apigateway" in key.lower():
         return "apigateway"
     if is_cloudtrail(str(key)) or (
         "logGroup" in event and event["logGroup"] == "CloudTrail"
