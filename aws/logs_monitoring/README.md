@@ -19,9 +19,11 @@ AWS Lambda function to ship logs from S3 and CloudWatch, custom metrics and trac
 1. Fill in `DdApiKey` and select the appropriate `DdSite`.
 1. All other parameters are optional, feel free to leave them as default.
 1. Click **Create stack.**
-1. Set up triggers to the installed Forwarder either [automatically](https://docs.datadoghq.com/integrations/amazon_web_services/?tab=allpermissions#automatically-setup-triggers) or [manually](https://docs.datadoghq.com/integrations/amazon_web_services/?tab=allpermissions#manually-setup-triggers). Note: you can find the installed Forwarder under the stack's "Resources" tab.
+1. Set up triggers to the installed Forwarder either [automatically](https://docs.datadoghq.com/integrations/amazon_web_services/?tab=allpermissions#automatically-setup-triggers) or [manually](https://docs.datadoghq.com/integrations/amazon_web_services/?tab=allpermissions#manually-setup-triggers).
 
 Repeat the above steps in another region if you operate in multiple AWS regions. 
+
+Note: you can find the installed Forwarder under the stack's "Resources" tab.
 
 ## Updating
 
