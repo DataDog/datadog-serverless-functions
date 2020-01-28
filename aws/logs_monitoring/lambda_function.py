@@ -255,6 +255,12 @@ elif "DD_API_KEY" in os.environ:
 
 # Strip any trailing and leading whitespace from the API key
 DD_API_KEY = DD_API_KEY.strip()
+os.environ["DD_API_KEY"] = DD_API_KEY
+
+# Force the layer to use the exact same API key as the forwarder
+if DD_FORWARD_METRIC:
+    from datadog import api
+    api._api_key = DD_API_KEY
 
 # DD_API_KEY must be set
 if DD_API_KEY == "<YOUR_DATADOG_API_KEY>" or DD_API_KEY == "":
