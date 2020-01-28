@@ -232,6 +232,7 @@ elif "DD_API_KEY" in os.environ:
 
 # Strip any trailing and leading whitespace from the API key
 DD_API_KEY = DD_API_KEY.strip()
+os.environ["DD_API_KEY"] = DD_API_KEY
 
 # DD_API_KEY must be set
 if DD_API_KEY == "<YOUR_DATADOG_API_KEY>" or DD_API_KEY == "":
