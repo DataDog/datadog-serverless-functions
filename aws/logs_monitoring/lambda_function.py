@@ -89,14 +89,31 @@ def get_env_var(envvar, default, boolean=False):
 ############# PARAMETERS ############
 #####################################
 
-## @param DD_API_KEY - String - required - default: none
+## @param DD_API_KEY - String - conditional - default: none
 ## The Datadog API key associated with your Datadog Account
 ## It can be found here:
 ##
 ##   * Datadog US Site: https://app.datadoghq.com/account/settings#api
 ##   * Datadog EU Site: https://app.datadoghq.eu/account/settings#api
+##
+## Must be set if one of the following is not set: DD_API_KEY_SECRET_ARN, DD_API_KEY_SSM_NAME, DD_KMS_API_KEY
 #
 DD_API_KEY = "<YOUR_DATADOG_API_KEY>"
+
+## @param DD_API_KEY_SECRET_ARN - String - optional - default: none
+## ARN of Datadog API key stored in AWS Secrets Manager
+##
+## Supercedes: DD_API_KEY_SSM_NAME, DD_KMS_API_KEY, DD_API_KEY
+
+## @param DD_API_KEY_SSM_NAME - String - optional - default: none
+## Name of parameter containing Datadog API key in AWS SSM Parameter Store
+##
+## Supercedes: DD_KMS_API_KEY, DD_API_KEY
+
+## @param DD_KMS_API_KEY - String - optional - default: none
+## AWS KMS encrypted Datadog API key
+##
+## Supercedes: DD_API_KEY
 
 ## @param DD_FORWARD_LOG - boolean - optional - default: true
 ## Set this variable to `False` to disable log forwarding.
@@ -220,6 +237,12 @@ if "DD_API_KEY_SECRET_ARN" in os.environ:
     DD_API_KEY = boto3.client("secretsmanager").get_secret_value(
         SecretId=SECRET_ARN
     )["SecretString"]
+elif "DD_API_KEY_SSM_NAME" in os.environ:
+    SECRET_NAME = os.environ["DD_API_KEY_SSM_NAME"]
+    DD_API_KEY = boto3.client("ssm").get_parameter(
+        Name=SECRET_NAME,
+        WithDecryption=True
+    )["Parameter"]["Value"]
 elif "DD_KMS_API_KEY" in os.environ:
     ENCRYPTED = os.environ["DD_KMS_API_KEY"]
     DD_API_KEY = boto3.client("kms").decrypt(
