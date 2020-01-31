@@ -97,7 +97,11 @@ def _process_rds_enhanced_monitoring_message(ts, message, account, region):
         fs_tag = []
         for tag_key in ["name", "mountPoint"]:
             if tag_key in fs_stats:
-                fs_tag.append("%s:%s" % (tag_key, fs_stats.pop(tag_key)))
+                tag_value = fs_stats.pop(tag_key)
+                if tag_value == '':
+                    continue
+                else: 
+                    fs_tag.append("%s:%s" % (tag_key, tag_value))
         for key, value in fs_stats.iteritems():
             stats.gauge(
                 'aws.rds.filesystem.%s' % key, value,
