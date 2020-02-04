@@ -19,8 +19,7 @@ AWS Lambda function to ship logs from S3 and CloudWatch, custom metrics and trac
 1. Fill in `DdApiKey` and select the appropriate `DdSite`. All other parameters are optional.
 1. Click **Create stack.**
 1. Set up triggers to the installed Forwarder either [automatically](https://docs.datadoghq.com/integrations/amazon_web_services/?tab=allpermissions#automatically-setup-triggers) or [manually](https://docs.datadoghq.com/integrations/amazon_web_services/?tab=allpermissions#manually-setup-triggers).
-
-Repeat the above steps in another region if you operate in multiple AWS regions. 
+1. Repeat the above steps in another region if you operate in multiple AWS regions. 
 
 Note: you can find the installed Forwarder under the stack's "Resources" tab.
 
@@ -31,6 +30,16 @@ Note: you can find the installed Forwarder under the stack's "Resources" tab.
 1. Find the [datadog-serverless (if you didn't rename it)](https://console.aws.amazon.com/cloudformation/home#/stacks?filteringText=datadog) CloudFormation stack.
 1. Update the stack using template `https://dd-log-sam.s3.amazonaws.com/templates/<VERSION>.yaml`. The latest version can be found in the [template.yaml](template.yaml).
 
+### Upgrade an older version to +3.0.0
+
+Since version 3.0.0, the forwarder Lambda function is managed by CloudFormation. To upgrade an older forwarder installation to 3.0.0 and above, follow the steps below.
+
+1. Install a new forwarder following the [installation](#installation) steps.
+1. Manually migrate a few triggers on the old forwarder to the new one.
+1. Ensure the new forwarder is working as expected.
+1. Update all the triggers on the old forwarder to the new one, following these [steps](https://docs.datadoghq.com/integrations/amazon_web_services/?tab=allpermissions#send-aws-service-logs-to-datadog).
+1. Delete the old forwarder Lambda function when you feel comfortable.
+
 ### Adjusting forwarder settings
 
 1. Find the [datadog-serverless (if you didn't rename it)](https://console.aws.amazon.com/cloudformation/home#/stacks?filteringText=datadog) CloudFormation stack.
@@ -38,6 +47,12 @@ Note: you can find the installed Forwarder under the stack's "Resources" tab.
 1. Adjust parameter values.
 
 Note: It's recommended to adjust forwarder settings through CloudFormation rather than directly editing the Lambda function. The description of settings can be found in the [template.yaml](template.yaml) and the CloudFormation stack creation user interface when you launch the stack. Feel free to submit a pull request to make additional settings adjustable through the template.
+
+## Settings
+
+To view all the adjustable settings of the forwarder, click "Launch Stack" from the [Installation](#installation) section and you will be prompted with a CloudFormation user interface with all the adjustable settings (you do not have to complete the installation).
+
+The technical definition of the settings can be found in the "Parameters" section of [template.yaml](template.yaml).
 
 ## Troubleshooting
 
