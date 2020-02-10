@@ -771,7 +771,7 @@ def forward_metrics(metrics):
 
 def forward_traces(traces):
     for trace in traces:
-        try:   
+        try:
             trace_connection.send_trace(trace)
         except Exception:
             log.exception(f"Exception while forwarding trace {trace}")
@@ -1013,6 +1013,7 @@ def parse_event_source(event, key):
     if "elasticloadbalancing" in key:
         return "elb"
     for source in [
+        "codebuild",
         "lambda",
         "redshift",
         "cloudfront",
