@@ -36,7 +36,7 @@ except ImportError:
     from botocore.vendored import requests
 
 try:
-    from enhanced_lambda_metrics import parse_and_submit_enhanced_metrics
+    from enhanced_lambda_metrics import get_enriched_lambda_log_tags,parse_and_submit_enhanced_metrics
     DD_ENHANCED_LAMBDA_METRICS = True
 except ImportError:
     DD_ENHANCED_LAMBDA_METRICS = False
@@ -653,6 +653,10 @@ def add_metadata_to_lambda_log(event):
     event[DD_CUSTOM_TAGS] = "{},functionname:{}".format(event[DD_CUSTOM_TAGS], function_name)
     event[DD_SERVICE] = function_name
 
+    # Add any enhanced tags from metadata
+    if DD_ENHANCED_LAMBDA_METRICS:
+        event[DD_CUSTOM_TAGS] += ','+','.join(get_enriched_lambda_log_tags(event))
+
 
 def generate_metadata(context):
     metadata = {
@@ -665,7 +669,7 @@ def generate_metadata(context):
     # Add custom tags here by adding new value with the following format "key1:value1, key2:value2"  - might be subject to modifications
     dd_custom_tags_data = {
         "forwardername": context.function_name.lower(),
-        "memorysize": context.memory_limit_in_mb,
+        "forwarder_memorysize": context.memory_limit_in_mb,
         "forwarder_version": DD_FORWARDER_VERSION,
     }
     metadata[DD_CUSTOM_TAGS] = ",".join(
@@ -690,7 +694,7 @@ def extract_trace(event):
         obj = json.loads(event["message"])
         if not "traces" in obj or not isinstance(obj["traces"], list):
             return None
-        return message
+        return { "message": message, "tags": event[DD_CUSTOM_TAGS] }
     except Exception:
         return None
 
@@ -700,10 +704,13 @@ def extract_metric(event):
     try:
         metric = json.loads(event["message"])
         required_attrs = {"m", "v", "e", "t"}
-        if all(attr in metric for attr in required_attrs):
-            return metric
-        else:
+        if not all(attr in metric for attr in required_attrs):
             return None
+        if not isinstance(metric["t"], list):
+            return None
+
+        metric["t"] += event[DD_CUSTOM_TAGS].split(',')
+        return metric
     except Exception:
         return None
 
@@ -772,7 +779,8 @@ def forward_metrics(metrics):
 def forward_traces(traces):
     for trace in traces:
         try:
-            trace_connection.send_trace(trace)
+            log.debug("Trace tags are" + trace["tags"])
+            trace_connection.send_trace(trace["message"], trace["tags"])
         except Exception:
             log.exception(f"Exception while forwarding trace {trace}")
         else:

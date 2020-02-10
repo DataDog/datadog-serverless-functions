@@ -420,3 +420,14 @@ def calculate_estimated_cost(billed_duration_ms, memory_allocated):
     gb_seconds = (billed_duration_ms / 1000.0) * (memory_allocated / 1024.0)
 
     return BASE_LAMBDA_INVOCATION_PRICE + gb_seconds * LAMBDA_PRICE_PER_GB_SECOND
+
+def get_enriched_lambda_log_tags(log):
+    '''
+    Retrieves extra tags from lambda, either read from the function arn, or by fetching lambda tags from the function itself.
+    '''
+    log_function_arn = log.get("lambda", {}).get("arn")
+    if not log_function_arn:
+        return []
+    tags_from_arn = parse_lambda_tags_from_arn(log_function_arn)
+    lambda_custom_tags = account_lambda_tags_cache.get(log_function_arn)
+    return tags_from_arn + lambda_custom_tags 
