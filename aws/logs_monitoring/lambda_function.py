@@ -665,7 +665,6 @@ def add_metadata_to_lambda_log(event):
     event[DD_CUSTOM_TAGS] = ",".join([event[DD_CUSTOM_TAGS]] + tags)
 
 
-
 def generate_metadata(context):
     metadata = {
         "ddsourcecategory": "aws",
@@ -787,7 +786,6 @@ def forward_metrics(metrics):
 def forward_traces(traces):
     for trace in traces:
         try:
-            log.debug("Trace tags are" + trace["tags"])
             trace_connection.send_trace(trace["message"], trace["tags"])
         except Exception:
             log.exception(f"Exception while forwarding trace {trace}")
