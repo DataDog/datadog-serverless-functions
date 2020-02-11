@@ -36,17 +36,17 @@ except ImportError:
     from botocore.vendored import requests
 
 try:
-    from enhanced_lambda_metrics import parse_and_submit_enhanced_metrics
-    DD_ENHANCED_LAMBDA_METRICS = True
+    from enhanced_lambda_metrics import get_enriched_lambda_log_tags,parse_and_submit_enhanced_metrics
+    IS_ENHANCED_METRICS_FILE_PRESENT = True
 except ImportError:
-    DD_ENHANCED_LAMBDA_METRICS = False
+    IS_ENHANCED_METRICS_FILE_PRESENT = False
     log.warn(
         "Could not import from enhanced_lambda_metrics so enhanced metrics "
         "will not be submitted. Ensure you've included the enhanced_lambda_metrics "
         "file in your Lambda project."
     )
 finally:
-    log.debug(f"DD_ENHANCED_LAMBDA_METRICS: {DD_ENHANCED_LAMBDA_METRICS}")
+    log.debug(f"IS_ENHANCED_METRICS_FILE_PRESENT: {IS_ENHANCED_METRICS_FILE_PRESENT}")
 
 
 try:
@@ -556,7 +556,7 @@ def datadog_forwarder(event, context):
     if DD_FORWARD_TRACES and len(traces) > 0:
         forward_traces(traces)
 
-    if DD_ENHANCED_LAMBDA_METRICS:
+    if IS_ENHANCED_METRICS_FILE_PRESENT:
         report_logs = filter(
             lambda log: log.get("message", "").startswith("REPORT"), logs
         )
@@ -650,8 +650,19 @@ def add_metadata_to_lambda_log(event):
     function_name = lambda_log_arn.split(':')[6]
 
     event[DD_HOST] = lambda_log_arn
-    event[DD_CUSTOM_TAGS] = "{},functionname:{}".format(event[DD_CUSTOM_TAGS], function_name)
     event[DD_SERVICE] = function_name
+
+    tags = ['functionname:{}'.format(function_name)]
+
+
+    # Add any enhanced tags from metadata
+    if IS_ENHANCED_METRICS_FILE_PRESENT:
+        tags += get_enriched_lambda_log_tags(event)
+    
+    # Dedup tags, so we don't end up with functionname twice
+    tags = list(set(tags))
+
+    event[DD_CUSTOM_TAGS] = ",".join([event[DD_CUSTOM_TAGS]] + tags)
 
 
 def generate_metadata(context):
@@ -665,7 +676,7 @@ def generate_metadata(context):
     # Add custom tags here by adding new value with the following format "key1:value1, key2:value2"  - might be subject to modifications
     dd_custom_tags_data = {
         "forwardername": context.function_name.lower(),
-        "memorysize": context.memory_limit_in_mb,
+        "forwarder_memorysize": context.memory_limit_in_mb,
         "forwarder_version": DD_FORWARDER_VERSION,
     }
     metadata[DD_CUSTOM_TAGS] = ",".join(
@@ -690,7 +701,7 @@ def extract_trace(event):
         obj = json.loads(event["message"])
         if not "traces" in obj or not isinstance(obj["traces"], list):
             return None
-        return message
+        return { "message": message, "tags": event[DD_CUSTOM_TAGS] }
     except Exception:
         return None
 
@@ -700,10 +711,13 @@ def extract_metric(event):
     try:
         metric = json.loads(event["message"])
         required_attrs = {"m", "v", "e", "t"}
-        if all(attr in metric for attr in required_attrs):
-            return metric
-        else:
+        if not all(attr in metric for attr in required_attrs):
             return None
+        if not isinstance(metric["t"], list):
+            return None
+
+        metric["t"] += event[DD_CUSTOM_TAGS].split(',')
+        return metric
     except Exception:
         return None
 
@@ -772,7 +786,7 @@ def forward_metrics(metrics):
 def forward_traces(traces):
     for trace in traces:
         try:
-            trace_connection.send_trace(trace)
+            trace_connection.send_trace(trace["message"], trace["tags"])
         except Exception:
             log.exception(f"Exception while forwarding trace {trace}")
         else:
