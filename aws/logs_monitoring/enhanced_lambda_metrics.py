@@ -422,9 +422,11 @@ def calculate_estimated_cost(billed_duration_ms, memory_allocated):
     return BASE_LAMBDA_INVOCATION_PRICE + gb_seconds * LAMBDA_PRICE_PER_GB_SECOND
 
 def get_enriched_lambda_log_tags(log):
-    '''
-    Retrieves extra tags from lambda, either read from the function arn, or by fetching lambda tags from the function itself.
-    '''
+    """ Retrieves extra tags from lambda, either read from the function arn, or by fetching lambda tags from the function itself.
+
+    Args:
+        log (dict<str, str | dict | int>): a log parsed from the event in the split method
+    """
     log_function_arn = log.get("lambda", {}).get("arn")
     if not log_function_arn:
         return []

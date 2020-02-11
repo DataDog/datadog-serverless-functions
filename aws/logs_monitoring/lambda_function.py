@@ -37,16 +37,16 @@ except ImportError:
 
 try:
     from enhanced_lambda_metrics import get_enriched_lambda_log_tags,parse_and_submit_enhanced_metrics
-    DD_ENHANCED_LAMBDA_METRICS = True
+    IS_ENHANCED_METRICS_FILE_PRESENT = True
 except ImportError:
-    DD_ENHANCED_LAMBDA_METRICS = False
+    IS_ENHANCED_METRICS_FILE_PRESENT = False
     log.warn(
         "Could not import from enhanced_lambda_metrics so enhanced metrics "
         "will not be submitted. Ensure you've included the enhanced_lambda_metrics "
         "file in your Lambda project."
     )
 finally:
-    log.debug(f"DD_ENHANCED_LAMBDA_METRICS: {DD_ENHANCED_LAMBDA_METRICS}")
+    log.debug(f"IS_ENHANCED_METRICS_FILE_PRESENT: {IS_ENHANCED_METRICS_FILE_PRESENT}")
 
 
 try:
@@ -556,7 +556,7 @@ def datadog_forwarder(event, context):
     if DD_FORWARD_TRACES and len(traces) > 0:
         forward_traces(traces)
 
-    if DD_ENHANCED_LAMBDA_METRICS:
+    if IS_ENHANCED_METRICS_FILE_PRESENT:
         report_logs = filter(
             lambda log: log.get("message", "").startswith("REPORT"), logs
         )
@@ -656,7 +656,7 @@ def add_metadata_to_lambda_log(event):
 
 
     # Add any enhanced tags from metadata
-    if DD_ENHANCED_LAMBDA_METRICS:
+    if IS_ENHANCED_METRICS_FILE_PRESENT:
         tags += get_enriched_lambda_log_tags(event)
     
     # Dedup tags, so we don't end up with functionname twice
