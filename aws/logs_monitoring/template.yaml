@@ -52,7 +52,7 @@ Parameters:
     AllowedValues:
       - true
       - false
-    Description: Let the forwarder fetch Lambda tags using GetResources API calls and apply them to the aws.lambda.enhanced.* metrics parsed from the REPORT log. If set to true, permission tag:GetResources will be automatically added to the Lambda execution IAM role. The tags are cached in memory so that they'll only be fetched when the function cold starts or when the TTL (1 hour) expires. The forwarder increments the aws.lambda.enhanced.get_resources_api_calls metric for each API call made.
+    Description: Let the forwarder fetch Lambda tags using GetResources API calls and apply them to logs, metrics and traces. If set to true, permission tag:GetResources will be automatically added to the Lambda execution IAM role. The tags are cached in memory so that they'll only be fetched when the function cold starts or when the TTL (1 hour) expires. The forwarder increments the aws.lambda.enhanced.get_resources_api_calls metric for each API call made.
   DdUseTcp:
     Type: String
     Default: false
