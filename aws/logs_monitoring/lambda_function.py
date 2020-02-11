@@ -650,12 +650,20 @@ def add_metadata_to_lambda_log(event):
     function_name = lambda_log_arn.split(':')[6]
 
     event[DD_HOST] = lambda_log_arn
-    event[DD_CUSTOM_TAGS] = "{},functionname:{}".format(event[DD_CUSTOM_TAGS], function_name)
     event[DD_SERVICE] = function_name
+
+    tags = ['functionname:{}'.format(function_name)]
+
 
     # Add any enhanced tags from metadata
     if DD_ENHANCED_LAMBDA_METRICS:
-        event[DD_CUSTOM_TAGS] += ','+','.join(get_enriched_lambda_log_tags(event))
+        tags += get_enriched_lambda_log_tags(event)
+    
+    # Dedup tags, so we don't end up with functionname twice
+    tags = list(set(tags))
+
+    event[DD_CUSTOM_TAGS] = ",".join([event[DD_CUSTOM_TAGS]] + tags)
+
 
 
 def generate_metadata(context):

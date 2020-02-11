@@ -248,7 +248,7 @@ Resources:
             - { DdForwarderVersion: !FindInMap [Constants, DdForwarder, Version] }
       Layers:
       - Fn::Sub: arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Python37:11
-      - Fn::Sub: arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Trace-Forwarder-Python37:4
+      - Fn::Sub: arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Trace-Forwarder-Python37:5
       Tags:
         dd_forwarder_version: !FindInMap [Constants, DdForwarder, Version]
       Environment:
