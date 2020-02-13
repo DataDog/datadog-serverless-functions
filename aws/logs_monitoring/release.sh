@@ -55,7 +55,6 @@ fi
 echo "Bumping the current version number to the desired"
 perl -pi -e "s/DD_FORWARDER_VERSION = \"${CURRENT_VERSION}/DD_FORWARDER_VERSION = \"${VERSION}/g" lambda_function.py
 perl -pi -e "s/Version: ${CURRENT_VERSION}/Version: ${VERSION}/g" template.yaml
-perl -pi -e "s/templates\/${CURRENT_VERSION}/templates\/${VERSION}/g" README.md
 
 # Commit version number changes to git
 git add lambda_function.py template.yaml README.md
@@ -73,10 +72,14 @@ hub release create -a aws-dd-forwarder-${VERSION}.zip -m "aws-dd-forwarder-${VER
 echo "Uploading template.yaml to s3://${BUCKET}/templates/${VERSION}.yaml"
 if [ "$PRIVATE_TEMPLATE" = true ] ; then
     aws s3 cp template.yaml s3://${BUCKET}/templates/${VERSION}.yaml
+    aws s3 cp template.yaml s3://${BUCKET}/templates/latest.yaml
 else
-    aws s3 cp template.yaml s3://${BUCKET}/templates/${VERSION}.yaml --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers
+    aws s3 cp template.yaml s3://${BUCKET}/templates/${VERSION}.yaml \
+        --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers
+    aws s3 cp template.yaml s3://${BUCKET}/templates/latest.yaml \
+        --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers
 fi
 echo "Done uploading the template, and here is the CloudFormation quick launch URL"
-echo "https://console.aws.amazon.com/cloudformation/home#/stacks/new?stackName=datadog-serverless&templateURL=https://${BUCKET}.s3.amazonaws.com/templates/${VERSION}.yaml"
+echo "https://console.aws.amazon.com/cloudformation/home#/stacks/new?stackName=datadog-serverless&templateURL=https://${BUCKET}.s3.amazonaws.com/templates/latest.yaml"
 
 echo "Done!"
