@@ -13,7 +13,7 @@ AWS Lambda function to ship logs from S3 and CloudWatch, custom metrics and trac
 
 ## Installation
 
-[![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home#/stacks/create/review?stackName=datadog-serverless&templateURL=https://dd-log-sam.s3.amazonaws.com/templates/latest.yaml)
+[![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home#/stacks/create/review?stackName=datadog-serverless&templateURL=https://datadog-cloudformation-template.s3.amazonaws.com/aws/forwarder/latest.yaml)
 
 1. Log into your admin AWS account/role and deploy the CloudFormation Stack with the button above.
 1. Fill in `DdApiKey` and select the appropriate `DdSite`. All other parameters are optional.
@@ -28,7 +28,7 @@ Note: you can find the installed Forwarder under the stack's "Resources" tab.
 ### Upgrade to a new version
 
 1. Find the [datadog-serverless (if you didn't rename it)](https://console.aws.amazon.com/cloudformation/home#/stacks?filteringText=datadog) CloudFormation stack.
-1. Update the stack using template `https://dd-log-sam.s3.amazonaws.com/templates/<VERSION>.yaml`. The latest version can be found in the [template.yaml](template.yaml).
+1. Update the stack using template `https://datadog-cloudformation-template.s3.amazonaws.com/aws/forwarder/latest.yaml`. You can also replace `latest` with a specific version, e.g., `3.0.2.yaml`, if needed.
 
 ### Upgrade an older version to +3.0.0
 
