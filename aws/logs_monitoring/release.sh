@@ -45,7 +45,7 @@ echo "Validating template.yaml"
 aws cloudformation validate-template --template-body file://template.yaml
 
 # Confirm to proceed
-read -p "About to bump the version from ${CURRENT_VERSION} to ${VERSION}, create a release aws-dd-forwarder-${VERSION} on Github and upload the template.yaml to s3://${BUCKET}/templates/${VERSION}.yaml. Continue (y/n)?" CONT
+read -p "About to bump the version from ${CURRENT_VERSION} to ${VERSION}, create a release aws-dd-forwarder-${VERSION} on Github and upload the template.yaml to s3://${BUCKET}/aws/forwarder/${VERSION}.yaml. Continue (y/n)?" CONT
 if [ "$CONT" != "y" ]; then
   echo "Exiting"
   exit 1
@@ -69,17 +69,17 @@ zip -r aws-dd-forwarder-${VERSION}.zip .
 hub release create -a aws-dd-forwarder-${VERSION}.zip -m "aws-dd-forwarder-${VERSION}" aws-dd-forwarder-${VERSION}
 
 # Upload the template to the S3 bucket
-echo "Uploading template.yaml to s3://${BUCKET}/templates/${VERSION}.yaml"
+echo "Uploading template.yaml to s3://${BUCKET}/aws/forwarder/${VERSION}.yaml"
 if [ "$PRIVATE_TEMPLATE" = true ] ; then
-    aws s3 cp template.yaml s3://${BUCKET}/templates/${VERSION}.yaml
-    aws s3 cp template.yaml s3://${BUCKET}/templates/latest.yaml
+    aws s3 cp template.yaml s3://${BUCKET}/aws/forwarder/${VERSION}.yaml
+    aws s3 cp template.yaml s3://${BUCKET}/aws/forwarder/latest.yaml
 else
-    aws s3 cp template.yaml s3://${BUCKET}/templates/${VERSION}.yaml \
+    aws s3 cp template.yaml s3://${BUCKET}/aws/forwarder/${VERSION}.yaml \
         --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers
-    aws s3 cp template.yaml s3://${BUCKET}/templates/latest.yaml \
+    aws s3 cp template.yaml s3://${BUCKET}/aws/forwarder/latest.yaml \
         --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers
 fi
 echo "Done uploading the template, and here is the CloudFormation quick launch URL"
-echo "https://console.aws.amazon.com/cloudformation/home#/stacks/new?stackName=datadog-serverless&templateURL=https://${BUCKET}.s3.amazonaws.com/templates/latest.yaml"
+echo "https://console.aws.amazon.com/cloudformation/home#/stacks/new?stackName=datadog-serverless&templateURL=https://${BUCKET}.s3.amazonaws.com/aws/forwarder/latest.yaml"
 
 echo "Done!"
