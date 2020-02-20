@@ -477,12 +477,12 @@ class DatadogBatcher(object):
 
     def batch(self, logs):
         """
-        Returns an array of batches.
+        Generates batches of logs.
+
         Each batch contains at most max_size_count logs and
         is not strictly greater than max_size_bytes.
         All logs strictly greater than max_log_size_bytes are dropped.
         """
-        batches = []
         batch = []
         size_bytes = 0
         size_count = 0
@@ -492,7 +492,7 @@ class DatadogBatcher(object):
                     size_count >= self._max_size_count
                     or size_bytes + log_size_bytes > self._max_size_bytes
             ):
-                batches.append(batch)
+                yield batch
                 batch = []
                 size_bytes = 0
                 size_count = 0
@@ -502,8 +502,10 @@ class DatadogBatcher(object):
                 size_bytes += log_size_bytes
                 size_count += 1
         if size_count > 0:
-            batches.append(batch)
-        return batches
+            # yield the final batch, which wasn't quite full...
+            # We keep as a yield here, since "return <foo>" is illegal in python 2.x.
+            # The docs for this lambda state 2.7 support...
+            yield batch
 
 
 def compress_logs(batch, level):
@@ -745,11 +747,6 @@ def filter_logs(logs):
     Applies log filtering rules.
     If no filtering rules exist, return all the logs.
     """
-    if INCLUDE_AT_MATCH is None and EXCLUDE_AT_MATCH is None:
-        # convert to strings
-        return logs
-    # Add logs that should be sent to logs_to_send
-    logs_to_send = []
     # Test each log for exclusion and inclusion, if the criteria exist
     for log in logs:
         try:
@@ -761,11 +758,9 @@ def filter_logs(logs):
                 # if no include match is found, do not add log to logs_to_send
                 if not re.search(include_regex, log):
                     continue
-            logs_to_send.append(log)
+            yield log
         except ScrubbingException:
             raise Exception("could not filter the payload")
-    return logs_to_send
-
 
 def forward_metrics(metrics):
     """
@@ -797,16 +792,14 @@ def forward_traces(traces):
 
 
 def normalize_events(events, metadata):
-    normalized = []
     for event in events:
         if isinstance(event, dict):
-            normalized.append(merge_dicts(event, metadata))
+            yield merge_dicts(event, metadata)
         elif isinstance(event, str):
-            normalized.append(merge_dicts({"message": event}, metadata))
+            yield merge_dicts({"message": event}, metadata)
         else:
             # drop this log
             continue
-    return normalized
 
 
 def parse_event_type(event):
@@ -834,6 +827,25 @@ def s3_handler(event, context, metadata):
     bucket = event["Records"][0]["s3"]["bucket"]["name"]
     key = urllib.parse.unquote_plus(event["Records"][0]["s3"]["object"]["key"])
 
+    # Common attributes for the events we find
+    aws_attributes = {
+        "aws": {
+            "s3": {
+                "bucket": bucket, 
+                "key": key
+            }
+        }
+    }
+
+    # Build a structured message out of the s3 event data.
+    def build_message(record):
+        # We can be fed either strings, or event dictionaries here.
+        # Checking against dict type here, to avoid the python 2 vs 3 thing
+        # with checking for basestring, str, bytes...  
+        if not isinstance(record, dict):
+            record = {"message": record}
+        return merge_dicts(record, aws_attributes)
+
     source = parse_event_source(event, key)
     metadata[DD_SOURCE] = source
     ##default service to source value
@@ -853,16 +865,22 @@ def s3_handler(event, context, metadata):
         with gzip.GzipFile(fileobj=BytesIO(data)) as decompress_stream:
             # Reading line by line avoid a bug where gzip would take a very long time (>5min) for
             # file around 60MB gzipped
-            data = b"".join(BufferedReader(decompress_stream))
+
+            # Only make another copy of our log data if we're performing some operation
+            # against the entire block of data. Need to conserve memory in lambda land.
+            if DD_MULTILINE_LOG_REGEX_PATTERN or is_cloudtrail(str(key)):
+                data = b"".join(BufferedReader(decompress_stream))
+            else:
+                # Send decompressed lines to Datadog. Stream iter is line-by-line already.
+                for line in decompress_stream:
+                    yield build_message(line)
+                return
 
     if is_cloudtrail(str(key)):
         cloud_trail = json.loads(data)
         for event in cloud_trail["Records"]:
             # Create structured object and send it
-            structured_line = merge_dicts(
-                event, {"aws": {"s3": {"bucket": bucket, "key": key}}}
-            )
-            yield structured_line
+            yield build_message(event)
     else:
         # Check if using multiline log regex pattern
         # and determine whether line or pattern separated logs
@@ -875,11 +893,7 @@ def s3_handler(event, context, metadata):
         # Send lines to Datadog
         for line in split_data:
             # Create structured object and send it
-            structured_line = {
-                "aws": {"s3": {"bucket": bucket, "key": key}},
-                "message": line,
-            }
-            yield structured_line
+            yield build_message(line)
 
 
 # Handle CloudWatch logs from Kinesis
