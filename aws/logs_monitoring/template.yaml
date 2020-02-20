@@ -135,6 +135,10 @@ Parameters:
     Default: 6
     AllowedValues: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
     Description: Set the compression level from 0 (no compression) to 9 (best compression).
+  PermissionBoundaryArn:
+    Type: String
+    Default: ''
+    Description: ARN for the Permission Boundary Policy
 Conditions:
   SetFunctionName:
     Fn::Not:
@@ -344,6 +348,8 @@ Resources:
               - Ref: AWS::NoValue
       ReservedConcurrentExecutions:
         Ref: ReservedConcurrency
+      PermissionsBoundary:
+        Ref: PermissionBoundaryArn
       Policies:
       - Version: '2012-10-17'
         Statement:
@@ -450,6 +456,8 @@ Resources:
                   send_cfn_resp(event, context, 'SUCCESS')
               finally:
                   timer.cancel()
+      PermissionsBoundary:
+        Ref: PermissionBoundaryArn
       Policies:
         - Version: '2012-10-17'
           Statement:
@@ -526,3 +534,4 @@ Metadata:
         default: Advanced (Optional)
       Parameters:
         - SourceZipUrl
+        - PermissionBoundaryArn
