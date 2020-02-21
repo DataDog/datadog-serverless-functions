@@ -96,8 +96,9 @@ if [ "$PROD_RELEASE" = true ] ; then
 else
     echo "About to release non-public staging version of forwarder, upload aws-dd-forwarder-${VERSION} to s3, and upload the template.yaml to s3://${BUCKET}/aws/forwarder-staging/${VERSION}.yaml"
     # Upload to s3 instead of github
+    rm -f aws-dd-forwarder-*.zip
     zip -r aws-dd-forwarder-${VERSION}.zip .
-    aws s3 cp aws-dd-forwarder-${VERSION}.zip s3://${BUCKET}/aws/forwarder-staging-zip/aws-dd-forwarder-${VERSION}.zip
+    aws s3 cp aws-dd-forwarder-${VERSION}.zip s3://${BUCKET}/aws/forwarder-staging-zip/aws-dd-forwarder-${VERSION}.zip --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers
     TEMPLATE_URL="https://${BUCKET}.s3.amazonaws.com/aws/forwarder-staging/latest.yaml"
     FORWARDER_SOURCE_URL="https://${BUCKET}.s3.amazonaws.com/aws/forwarder-staging-zip/aws-dd-forwarder-${VERSION}.zip"
 fi
@@ -114,7 +115,7 @@ else
     aws s3 cp template.yaml s3://${BUCKET}/aws/forwarder-staging/${VERSION}.yaml
     aws s3 cp template.yaml s3://${BUCKET}/aws/forwarder-staging/latest.yaml
 fi
-git checkout master -- .
+
 echo "Done uploading the template, and here is the CloudFormation quick launch URL"
 echo "https://console.aws.amazon.com/cloudformation/home#/stacks/new?stackName=datadog-serverless&templateURL=${TEMPLATE_URL}"
 
