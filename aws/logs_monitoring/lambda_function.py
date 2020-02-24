@@ -606,7 +606,7 @@ def parse(event, context):
         elif event_type == "events":
             events = cwevent_handler(event, metadata)
         elif event_type == "sns":
-            events = sns_handler(event, metadata)
+            events = sns_handler(event, context, metadata)
         elif event_type == "kinesis":
             events = kinesis_awslogs_handler(event, context, metadata)
     except Exception as e:
@@ -983,7 +983,17 @@ def cwevent_handler(event, metadata):
 
 
 # Handle Sns events
-def sns_handler(event, metadata):
+def sns_handler(event, context, metadata):
+    # test if sns payload contains an s3 event
+    try:
+        event = json.loads(event['Records'][0]['Sns']['Message'])
+        if isinstance(event, dict) and "Records" in event and hasattr(event["Records"], '__len__'):
+            nested_event_type = parse_event_type(event)
+            if nested_event_type == "s3":
+                return s3_handler(event, context, metadata) # delegate to s3 handler
+    except json.decoder.JSONDecodeError:
+        pass
+
     data = event
     # Set the source on the log
     metadata[DD_SOURCE] = parse_event_source(event, "sns")
