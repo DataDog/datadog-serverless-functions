@@ -984,6 +984,7 @@ def cwevent_handler(event, metadata):
 
 # Handle Sns events
 def sns_handler(event, context, metadata):
+    data = event
     # test if sns payload contains an s3 event
     try:
         event = json.loads(event['Records'][0]['Sns']['Message'])
@@ -994,7 +995,6 @@ def sns_handler(event, context, metadata):
     except json.decoder.JSONDecodeError:
         pass
 
-    data = event
     # Set the source on the log
     metadata[DD_SOURCE] = parse_event_source(event, "sns")
 
