@@ -996,7 +996,7 @@ def sns_handler(event, context, metadata):
         pass
 
     # Set the source on the log
-    metadata[DD_SOURCE] = parse_event_source(event, "sns")
+    metadata[DD_SOURCE] = parse_event_source(data, "sns")
 
     for ev in data["Records"]:
         # Create structured object and send it
