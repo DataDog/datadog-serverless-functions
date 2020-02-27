@@ -1027,6 +1027,7 @@ def parse_event_source(event, key):
     if "elasticloadbalancing" in key:
         return "elb"
     for source in [
+        "dms",
         "codebuild",
         "lambda",
         "redshift",
