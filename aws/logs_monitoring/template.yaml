@@ -135,10 +135,10 @@ Parameters:
     Default: 6
     AllowedValues: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
     Description: Set the compression level from 0 (no compression) to 9 (best compression).
-  PermissionBoundaryArn:
+  PermissionsBoundaryArn:
     Type: String
     Default: ''
-    Description: ARN for the Permission Boundary Policy
+    Description: ARN for the Permissions Boundary Policy
 Conditions:
   SetFunctionName:
     Fn::Not:
@@ -227,6 +227,11 @@ Conditions:
       - Fn::Equals:
         - Ref: DdCompressionLevel
         - 6
+  SetPermissionsBoundary:
+    Fn::Not:
+      - Fn::Equals:
+        - Ref: PermissionsBoundaryArn
+        - ''
 Resources:
   Forwarder:
     Type: AWS::Serverless::Function
@@ -349,7 +354,10 @@ Resources:
       ReservedConcurrentExecutions:
         Ref: ReservedConcurrency
       PermissionsBoundary:
-        Ref: PermissionBoundaryArn
+        Fn::If:
+          - SetPermissionsBoundary
+          - Ref: PermissionsBoundaryArn
+          - Ref: AWS::NoValue
       Policies:
       - Version: '2012-10-17'
         Statement:
@@ -457,7 +465,10 @@ Resources:
               finally:
                   timer.cancel()
       PermissionsBoundary:
-        Ref: PermissionBoundaryArn
+        Fn::If:
+          - SetPermissionsBoundary
+          - Ref: PermissionsBoundaryArn
+          - Ref: AWS::NoValue
       Policies:
         - Version: '2012-10-17'
           Statement:
@@ -534,4 +545,4 @@ Metadata:
         default: Advanced (Optional)
       Parameters:
         - SourceZipUrl
-        - PermissionBoundaryArn
+        - PermissionsBoundaryArn
