@@ -98,9 +98,9 @@ else
     # Upload to s3 instead of github
     rm -f aws-dd-forwarder-*.zip
     zip -r aws-dd-forwarder-${VERSION}.zip .
-    aws s3 cp aws-dd-forwarder-${VERSION}.zip s3://${BUCKET}/aws/forwarder-staging-zip/aws-dd-forwarder-${VERSION}.zip --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers
+    aws s3 cp aws-dd-forwarder-${VERSION}.zip s3://${BUCKET}/aws/forwarder-staging-zip/aws-dd-forwarder-${VERSION}.zip
     TEMPLATE_URL="https://${BUCKET}.s3.amazonaws.com/aws/forwarder-staging/latest.yaml"
-    FORWARDER_SOURCE_URL="https://${BUCKET}.s3.amazonaws.com/aws/forwarder-staging-zip/aws-dd-forwarder-${VERSION}.zip"
+    FORWARDER_SOURCE_URL="s3://${BUCKET}/aws/forwarder-staging-zip/aws-dd-forwarder-${VERSION}.zip"
 fi
 
 # Upload the template to the S3 bucket
