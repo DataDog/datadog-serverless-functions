@@ -4,7 +4,7 @@ Description: Pushes logs, metrics and traces from AWS to Datadog.
 Mappings:
   Constants:
     DdForwarder:
-      Version: 3.2.0
+      Version: 3.3.0
 Parameters:
   DdApiKey:
     Type: String
@@ -14,10 +14,7 @@ Parameters:
   DdSite:
     Type: String
     Default: datadoghq.com
-    AllowedValues:
-      - datadoghq.com
-      - datadoghq.eu
-    Description: Define your Datadog Site to send data to -- select datadoghq.com for the Datadog US site or datadoghq.eu for the Datadog EU site.
+    Description: Define your Datadog Site to send data to. For the Datadog EU site, set to datadoghq.eu
   FunctionName:
     Type: String
     Default: DatadogForwarder
@@ -135,6 +132,10 @@ Parameters:
     Default: 6
     AllowedValues: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
     Description: Set the compression level from 0 (no compression) to 9 (best compression).
+  PermissionsBoundaryArn:
+    Type: String
+    Default: ""
+    Description: ARN for the Permissions Boundary Policy
 Conditions:
   SetFunctionName:
     Fn::Not:
@@ -146,10 +147,13 @@ Conditions:
       - Fn::Equals:
           - Ref: SourceZipUrl
           - ""
+<<<<<<< HEAD
   SetS3SourceZip:
     Fn::Equals:
       - !Select [0, !Split ["/", !Ref SourceZipUrl]]
       - "s3:"
+=======
+>>>>>>> darcy.rayner/fix-template-formatting
   SetDdTags:
     Fn::Not:
       - Fn::Equals:
@@ -227,6 +231,14 @@ Conditions:
       - Fn::Equals:
           - Ref: DdCompressionLevel
           - 6
+<<<<<<< HEAD
+=======
+  SetPermissionsBoundary:
+    Fn::Not:
+      - Fn::Equals:
+          - Ref: PermissionsBoundaryArn
+          - ""
+>>>>>>> darcy.rayner/fix-template-formatting
 Resources:
   Forwarder:
     Type: AWS::Serverless::Function
@@ -351,6 +363,14 @@ Resources:
               - Ref: AWS::NoValue
       ReservedConcurrentExecutions:
         Ref: ReservedConcurrency
+<<<<<<< HEAD
+=======
+      PermissionsBoundary:
+        Fn::If:
+          - SetPermissionsBoundary
+          - Ref: PermissionsBoundaryArn
+          - Ref: AWS::NoValue
+>>>>>>> darcy.rayner/fix-template-formatting
       Policies:
         - Version: "2012-10-17"
           Statement:
@@ -413,8 +433,11 @@ Resources:
         import threading
         import boto3
         import urllib.request
+<<<<<<< HEAD
         import os
 
+=======
+>>>>>>> darcy.rayner/fix-template-formatting
         def send_cfn_resp(event, context, response_status):
             resp_body = json.dumps({
                 'Status': response_status,
@@ -434,6 +457,7 @@ Resources:
             bucket.objects.all().delete()
         def copy_zip(source_zip_url, dest_zips_bucket):
             s3 = boto3.client('s3')
+<<<<<<< HEAD
             s3_prelude = "s3://"
             filename = "aws-dd-forwarder-{}.zip".format(os.environ.get("DD_FORWARDER_VERSION"))
             if source_zip_url.startswith(s3_prelude):
@@ -446,6 +470,11 @@ Resources:
             else:
                 with urllib.request.urlopen(source_zip_url) as data:
                     s3.upload_fileobj(data, dest_zips_bucket, filename)
+=======
+            filename = source_zip_url.split('/')[-1]
+            with urllib.request.urlopen(source_zip_url) as data:
+                s3.upload_fileobj(data, dest_zips_bucket, filename)
+>>>>>>> darcy.rayner/fix-template-formatting
         def timeout(event, context):
             logging.error('Execution is about to time out, sending failure response to CloudFormation')
             send_cfn_resp(event, context, 'FAILED')
@@ -470,6 +499,14 @@ Resources:
                 send_cfn_resp(event, context, 'SUCCESS')
             finally:
                 timer.cancel()
+<<<<<<< HEAD
+=======
+      PermissionsBoundary:
+        Fn::If:
+          - SetPermissionsBoundary
+          - Ref: PermissionsBoundaryArn
+          - Ref: AWS::NoValue
+>>>>>>> darcy.rayner/fix-template-formatting
       Policies:
         - Version: "2012-10-17"
           Statement:
@@ -487,6 +524,7 @@ Resources:
                 - s3:ListBucket
               Resource:
                 - Fn::GetAtt: "ForwarderZipsBucket.Arn"
+<<<<<<< HEAD
             - !If
               - SetS3SourceZip
               - Effect: Allow
@@ -501,6 +539,8 @@ Resources:
       Environment:
         Variables:
           DD_FORWARDER_VERSION: !FindInMap [Constants, DdForwarder, Version]
+=======
+>>>>>>> darcy.rayner/fix-template-formatting
 Outputs:
   DatadogForwarderArn:
     Description: Datadog Forwarder Lambda Function ARN
@@ -560,3 +600,7 @@ Metadata:
           default: Advanced (Optional)
         Parameters:
           - SourceZipUrl
+<<<<<<< HEAD
+=======
+          - PermissionsBoundaryArn
+>>>>>>> darcy.rayner/fix-template-formatting
