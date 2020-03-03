@@ -5,7 +5,7 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2019 Datadog, Inc.
 
-# Builds Datadogpy layers for lambda functions, using Docker
+# Tests installation and deployment process of forwarder, and that CloudFormation template works.
 set -e
 
 if [ -z "$DD_API_KEY" ]; then
@@ -48,4 +48,5 @@ aws cloudformation wait stack-create-complete --stack-name $STACK_NAME
 
 echo "Completed stack creation"
 
-
+echo "Cleaning up stack"
+aws cloudformation delete-stack --stack-name $STACK_NAME 
