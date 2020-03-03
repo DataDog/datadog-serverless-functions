@@ -8,12 +8,10 @@
 # Tests installation and deployment process of forwarder, and that CloudFormation template works.
 set -e
 
-if [ -z "$DD_API_KEY" ]; then
-    echo 'DD_API_KEY not set. Unable to set up forwarder.'
-    exit 1
-fi
-
 RUN_ID=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c10)
+
+# Since we never run the log forwarder, api key can be anything.
+DD_API_KEY=RUN_ID
 
 CURRENT_VERSION="$(grep -o 'Version: \d\+\.\d\+\.\d\+' template.yaml | cut -d' ' -f2)-staging-${RUN_ID}"
 
