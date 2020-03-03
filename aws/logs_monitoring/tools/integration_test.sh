@@ -7,7 +7,7 @@
 
 set -e
 
-# Move into the scripts directory
+# Move into the tools directory
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 cd $DIR
 
@@ -52,9 +52,9 @@ do
 
     echo "Building Docker Image"
     echo "${DIR}/layers/${dd_layer_name}.tar.gz"
-    docker build -t "datadog-log-forwarder:$python_version" . --no-cache \
-        --build-arg dd_py_layer_zip="layers/${dd_layer_name}.tar.gz" \
-        --build-arg dd_tracer_layer_zip="layers/${trace_forwarder_name}.tar.gz" \
+    docker build --file "${DIR}/Dockerfile" -t "datadog-log-forwarder:$python_version" .. --no-cache \
+        --build-arg dd_py_layer_zip="tools/layers/${dd_layer_name}.tar.gz" \
+        --build-arg dd_tracer_layer_zip="tools/layers/${trace_forwarder_name}.tar.gz" \
         --build-arg image="lambci/lambda:${python_version}"
     i=$(expr $i + 1)
 done
