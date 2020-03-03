@@ -8,6 +8,10 @@
 # Tests installation and deployment process of forwarder, and that CloudFormation template works.
 set -e
 
+# Move into the root directory, so this script can be called from any directory
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+cd $DIR/..
+
 RUN_ID=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c10)
 
 # Since we never run the log forwarder, api key can be anything.
