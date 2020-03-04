@@ -6,13 +6,17 @@ services:
     command: lambda_function.datadog_forwarder
     environment:
       DOCKER_LAMBDA_STAY_OPEN: 1
-      DD_API_KEY: abc12345
-      DD_URL: forwarder-tests # Used for logs intake
+      #DD_FORWARD_LOG: "false"
+      DD_LOG_LEVEL: info
+      DD_API_KEY: abcdefghijklmnopqrstuvwxyz012345 # Must be 32 characters exactly
+      DD_URL: forwarder-recorder # Used for logs intake
       DD_PORT: 8080 # API port to use
-      DD_API_URL: forwarder-recorder:8080
+      DD_API_URL: http://forwarder-recorder:8080
       DD_LOGS_INTAKE_URL: forwarder-recorder:8080
       DD_NO_SSL: "true"
       DD_SKIP_SSL_VALIDATION: "true"
+      DD_USE_TCP: "false"
+      DD_USE_COMPRESSION: "false"
     expose:
       - 9001
 
@@ -29,7 +33,7 @@ services:
     command: python -m unittest discover
     environment:
       RECORDER_URL: http://forwarder-recorder:8080/recording
-      FORWARDER_URL: http://forwarder:9001/2015-03-31/datadog_forwarder/invocations
+      FORWARDER_URL: http://forwarder:9001/2015-03-31/functions/myfunction/invocations
     depends_on:
       - forwarder
       - forwarder-recorder

@@ -173,10 +173,11 @@ DD_TAGS = get_env_var("DD_TAGS", "")
 
 ## @param DD_API_URL - Url to use for  validating the the api key. Used for validating api key.
 DD_API_URL = get_env_var("DD_API_URL", default="https://api.{}".format(DD_SITE))
+log.debug(f"DD_API_URL: {DD_API_URL}")
 
-## @param DD_API_URL - Url to use for  validating the the api key. Used for validating api key.
+## @param DD_TRACE_INTAKE_URL - Url to use for  validating the the api key. Used for validating api key.
 DD_TRACE_INTAKE_URL = get_env_var(
-    "DD_API_URL", default="https://trace.agent.{}".format(DD_SITE)
+    "DD_TRACE_INTAKE_URL", default="https://trace.agent.{}".format(DD_SITE)
 )
 
 if DD_USE_TCP:

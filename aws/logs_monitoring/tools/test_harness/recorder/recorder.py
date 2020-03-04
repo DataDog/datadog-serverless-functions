@@ -14,8 +14,7 @@ class RecorderHandler(BaseHTTPRequestHandler):
     def __init__(self, request, client_address, server):
         super().__init__(request, client_address, server)()
 
-    # Handler for the GET requests
-    def do_GET(self):
+    def handle_request(self):
         global events
         response = '{"status":200}'
         response_type = "text/json"
@@ -26,9 +25,13 @@ class RecorderHandler(BaseHTTPRequestHandler):
         else:
             print("Recorded: {} {}".format(self.command, self.path), flush=True)
             # Record the event to logs
-            data = self.rfile.read()
+            data = None
+            if self.headers["Content-Length"] != None:
+                data = self.rfile.read(int(self.headers["Content-Length"])).decode()
+                print(data, flush=True)
+
             event = {"path": self.path, "verb": self.command, "data": data}
-            self.events.append(event)
+            events.append(event)
 
         # Send an OK response
         self.send_response(200)
@@ -38,6 +41,13 @@ class RecorderHandler(BaseHTTPRequestHandler):
         # Send the html message
         self.wfile.write(response.encode("utf-8"))
         return
+
+    # Handler for the GET requests
+    def do_GET(self):
+        self.handle_request()
+
+    def do_POST(self):
+        self.handle_request()
 
 
 port = int(os.environ.get("SERVER_PORT", default=PORT_NUMBER))

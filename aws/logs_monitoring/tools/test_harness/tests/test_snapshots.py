@@ -12,8 +12,22 @@ class TestForwarderSnapshots(unittest.TestCase):
             data = json.loads(url.read().decode())
         return data
 
+    def send_log_event(self, event):
+        request = urllib.request.Request(forwarder_url, data=event.encode("utf-8"))
+        urllib.request.urlopen(request)
+
+    def setup(self):
+        # Clear the recording before each test
+        self.get_recording()
+
+    def test_initialization(self):
+        # We run this step before the snapshots, to capture startup http calls like validate
+        self.send_log_event("{}")
+        recording = self.get_recording()
+        self.assertEqual(
+            recording["events"][0]["path"],
+            "/api/v1/validate?api_key=abcdefghijklmnopqrstuvwxyz012345",
+        )
+
     def test_snapshots(self):
-        print(recorder_url, flush=True)
-        self.get_recording()
-        self.get_recording()
-        self.assertEqual(True, False)
+        pass
