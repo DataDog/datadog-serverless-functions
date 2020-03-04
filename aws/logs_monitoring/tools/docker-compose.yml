@@ -1,0 +1,35 @@
+version: "3.1"
+
+services:
+  forwarder:
+    image: datadog-log-forwarder:python3.8
+    command: lambda_function.datadog_forwarder
+    environment:
+      DOCKER_LAMBDA_STAY_OPEN: 1
+      DD_API_KEY: abc12345
+      DD_URL: forwarder-tests # Used for logs intake
+      DD_PORT: 8080 # API port to use
+      DD_API_URL: forwarder-recorder:8080
+      DD_LOGS_INTAKE_URL: forwarder-recorder:8080
+      DD_NO_SSL: "true"
+      DD_SKIP_SSL_VALIDATION: "true"
+    expose:
+      - 9001
+
+  forwarder-recorder:
+    build: test_harness/recorder
+    command: ./recorder.py
+    environment:
+      SERVER_PORT: 8080
+    expose:
+      - 8080
+
+  forwarder-tester:
+    build: test_harness/tests
+    command: python -m unittest discover
+    environment:
+      RECORDER_URL: http://forwarder-recorder:8080/recording
+      FORWARDER_URL: http://forwarder:9001/2015-03-31/datadog_forwarder/invocations
+    depends_on:
+      - forwarder
+      - forwarder-recorder
