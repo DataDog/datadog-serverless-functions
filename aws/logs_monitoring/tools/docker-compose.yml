@@ -1,10 +1,11 @@
-version: "3.1"
+version: "3.7"
 
 services:
   forwarder:
     image: datadog-log-forwarder:python3.8
     command: lambda_function.datadog_forwarder
     environment:
+      AWS_ACCOUNT_ID: 0000000000
       DOCKER_LAMBDA_STAY_OPEN: 1
       #DD_FORWARD_LOG: "false"
       DD_LOG_LEVEL: info
@@ -31,9 +32,13 @@ services:
   forwarder-tester:
     build: test_harness/tests
     command: python -m unittest discover
+    volumes:
+      - ../tests/snapshots:/tests/snapshots
     environment:
       RECORDER_URL: http://forwarder-recorder:8080/recording
       FORWARDER_URL: http://forwarder:9001/2015-03-31/functions/myfunction/invocations
+      UPDATE_SNAPSHOTS: "false"
+
     depends_on:
       - forwarder
       - forwarder-recorder
