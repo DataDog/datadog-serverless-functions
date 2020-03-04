@@ -39,7 +39,8 @@ class TestForwarderSnapshots(unittest.TestCase):
             with open(snapshot_filename, "w") as snapshot_file:
                 snapshot_file.write(json.dumps(output_data, indent=2))
         else:
-            self.assertEqual(output_data, snapshot_data)
+            message = f"Snapshot's didn't match for {input_filename}. To update run `UPDATE_SNAPSHOTS=true ./tools/integration_test.sh"
+            self.assertEqual(output_data, snapshot_data, message)
             pass
 
     def setup(self):
