@@ -28,7 +28,6 @@ class RecorderHandler(BaseHTTPRequestHandler):
             data = None
             if self.headers["Content-Length"] != None:
                 data = self.rfile.read(int(self.headers["Content-Length"])).decode()
-                print(data, flush=True)
 
             event = {"path": self.path, "verb": self.command, "data": data}
             events.append(event)

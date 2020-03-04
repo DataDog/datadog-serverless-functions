@@ -2,7 +2,7 @@ version: "3.7"
 
 services:
   forwarder:
-    image: datadog-log-forwarder:python3.8
+    image: datadog-log-forwarder:${PYTHON_RUNTIME:-python3.8}
     command: lambda_function.datadog_forwarder
     environment:
       AWS_ACCOUNT_ID: 0000000000
@@ -35,9 +35,9 @@ services:
     volumes:
       - ../tests/snapshots:/tests/snapshots
     environment:
-      RECORDER_URL: http://forwarder-recorder:8080/recording
-      FORWARDER_URL: http://forwarder:9001/2015-03-31/functions/myfunction/invocations
-      UPDATE_SNAPSHOTS: "false"
+      - RECORDER_URL=http://forwarder-recorder:8080/recording
+      - FORWARDER_URL=http://forwarder:9001/2015-03-31/functions/myfunction/invocations
+      - UPDATE_SNAPSHOTS
 
     depends_on:
       - forwarder

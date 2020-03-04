@@ -19,9 +19,9 @@ DD_PY_LAYER_VERSION=$(grep "464622532012:layer:Datadog-Python37:" ../template.ya
 TRACE_FORWARDER_LAYER_VERSION=$(grep "464622532012:layer:Datadog-Trace-Forwarder-Python37:" ../template.yaml  | sed 's/^.*://')
 
 # Download layers
-PYTHON_VERSIONS=("python2.7" "python3.6" "python3.7" "python3.8")
+PYTHON_VERSIONS=("python3.8")
 
-LAYER_SUFFIXES=("27" "36" "37" "38")
+LAYER_SUFFIXES=("38")
 
 function download_layer {
     LAYER_ARN="arn:aws:lambda:us-east-1:464622532012:layer:${2}"
@@ -56,5 +56,8 @@ do
         --build-arg dd_py_layer_zip="tools/layers/${dd_layer_name}.tar.gz" \
         --build-arg dd_tracer_layer_zip="tools/layers/${trace_forwarder_name}.tar.gz" \
         --build-arg image="lambci/lambda:${python_version}"
+
+    echo "Running integration tests for ${python_version}"
+    PYTHON_RUNTIME=${python_version} docker-compose up --build --abort-on-container-exit
     i=$(expr $i + 1)
 done
