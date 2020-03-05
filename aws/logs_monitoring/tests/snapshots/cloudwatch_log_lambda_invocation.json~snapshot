@@ -1,0 +1,375 @@
+{
+  "events": [
+    {
+      "path": "/v1/input/abcdefghijklmnopqrstuvwxyz012345",
+      "verb": "POST",
+      "content-type": "application/json",
+      "data": [
+        {
+          "id": "35311576111948622874033876462979853992919938886093242368",
+          "timestamp": 1583425836114,
+          "message": "2020-03-05T16:30:36.113Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tDEBUG\t[dd.trace_id=3172564172058669914 dd.span_id=14292093692483532556] {\"status\":\"debug\",\"message\":\"datadog:Patched console output with trace context\"}\n",
+          "aws": {
+            "awslogs": {
+              "logGroup": "/aws/lambda/hello-dog-node-dev-hello12x",
+              "logStream": "2020/03/05/[$LATEST]20bddfd5a2dc4c6b97ac02800eae90d0",
+              "owner": "601427279990"
+            },
+            "function_version": "$LATEST",
+            "invoked_function_arn": "arn:aws:lambda:us-east-1:0:function:test"
+          },
+          "lambda": {
+            "arn": "arn:aws:lambda:us-east-1:0:function:hello-dog-node-dev-hello12x"
+          },
+          "ddsourcecategory": "aws",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:3.2.0,env:none,account_id:0,functionname:hello-dog-node-dev-hello12x,region:us-east-1",
+          "ddsource": "lambda",
+          "service": "hello-dog-node-dev-hello12x",
+          "host": "arn:aws:lambda:us-east-1:0:function:hello-dog-node-dev-hello12x"
+        },
+        {
+          "id": "35311576111948622874033876462979853992919938886093242369",
+          "timestamp": 1583425836114,
+          "message": "2020-03-05T16:30:36.114Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tDEBUG\t[dd.trace_id=3172564172058669914 dd.span_id=14292093692483532556] {\"autoPatchHTTP\":true,\"tracerInitialized\":true,\"status\":\"debug\",\"message\":\"datadog:Not patching HTTP libraries\"}\n",
+          "aws": {
+            "awslogs": {
+              "logGroup": "/aws/lambda/hello-dog-node-dev-hello12x",
+              "logStream": "2020/03/05/[$LATEST]20bddfd5a2dc4c6b97ac02800eae90d0",
+              "owner": "601427279990"
+            },
+            "function_version": "$LATEST",
+            "invoked_function_arn": "arn:aws:lambda:us-east-1:0:function:test"
+          },
+          "lambda": {
+            "arn": "arn:aws:lambda:us-east-1:0:function:hello-dog-node-dev-hello12x"
+          },
+          "ddsourcecategory": "aws",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:3.2.0,env:none,account_id:0,functionname:hello-dog-node-dev-hello12x,region:us-east-1",
+          "ddsource": "lambda",
+          "service": "hello-dog-node-dev-hello12x",
+          "host": "arn:aws:lambda:us-east-1:0:function:hello-dog-node-dev-hello12x"
+        },
+        {
+          "id": "35311576111948622874033876462979853992919938886093242370",
+          "timestamp": 1583425836114,
+          "message": "2020-03-05T16:30:36.114Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tDEBUG\t[dd.trace_id=3172564172058669914 dd.span_id=14292093692483532556] {\"status\":\"debug\",\"message\":\"datadog:Reading trace context from env var Root=1-5e61292c-cc1229a4dfbeae1043928548;Parent=c657b77d9514f70c;Sampled=1\"}\n",
+          "aws": {
+            "awslogs": {
+              "logGroup": "/aws/lambda/hello-dog-node-dev-hello12x",
+              "logStream": "2020/03/05/[$LATEST]20bddfd5a2dc4c6b97ac02800eae90d0",
+              "owner": "601427279990"
+            },
+            "function_version": "$LATEST",
+            "invoked_function_arn": "arn:aws:lambda:us-east-1:0:function:test"
+          },
+          "lambda": {
+            "arn": "arn:aws:lambda:us-east-1:0:function:hello-dog-node-dev-hello12x"
+          },
+          "ddsourcecategory": "aws",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:3.2.0,env:none,account_id:0,functionname:hello-dog-node-dev-hello12x,region:us-east-1",
+          "ddsource": "lambda",
+          "service": "hello-dog-node-dev-hello12x",
+          "host": "arn:aws:lambda:us-east-1:0:function:hello-dog-node-dev-hello12x"
+        },
+        {
+          "id": "35311576111948622874033876462979853992919938886093242371",
+          "timestamp": 1583425836114,
+          "message": "2020-03-05T16:30:36.114Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tDEBUG\t[dd.trace_id=3172564172058669914 dd.span_id=14292093692483532556] {\"parentID\":\"14292093692483532556\",\"sampleMode\":2,\"source\":\"xray\",\"traceID\":\"6899143064054564168\",\"status\":\"debug\",\"message\":\"datadog:read trace context from environment\"}\n",
+          "aws": {
+            "awslogs": {
+              "logGroup": "/aws/lambda/hello-dog-node-dev-hello12x",
+              "logStream": "2020/03/05/[$LATEST]20bddfd5a2dc4c6b97ac02800eae90d0",
+              "owner": "601427279990"
+            },
+            "function_version": "$LATEST",
+            "invoked_function_arn": "arn:aws:lambda:us-east-1:0:function:test"
+          },
+          "lambda": {
+            "arn": "arn:aws:lambda:us-east-1:0:function:hello-dog-node-dev-hello12x"
+          },
+          "ddsourcecategory": "aws",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:3.2.0,env:none,account_id:0,functionname:hello-dog-node-dev-hello12x,region:us-east-1",
+          "ddsource": "lambda",
+          "service": "hello-dog-node-dev-hello12x",
+          "host": "arn:aws:lambda:us-east-1:0:function:hello-dog-node-dev-hello12x"
+        },
+        {
+          "id": "35311576112305434797210366433244425485282312670188929029",
+          "timestamp": 1583425836130,
+          "message": "2020-03-05T16:30:36.130Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tDEBUG\t[dd.trace_id=6899143064054564168 dd.span_id=14292093692483532556] {\"status\":\"debug\",\"message\":\"datadog:set trace context from xray with parent 14292093692483532556 from segment\"}\n",
+          "aws": {
+            "awslogs": {
+              "logGroup": "/aws/lambda/hello-dog-node-dev-hello12x",
+              "logStream": "2020/03/05/[$LATEST]20bddfd5a2dc4c6b97ac02800eae90d0",
+              "owner": "601427279990"
+            },
+            "function_version": "$LATEST",
+            "invoked_function_arn": "arn:aws:lambda:us-east-1:0:function:test"
+          },
+          "lambda": {
+            "arn": "arn:aws:lambda:us-east-1:0:function:hello-dog-node-dev-hello12x"
+          },
+          "ddsourcecategory": "aws",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:3.2.0,env:none,account_id:0,functionname:hello-dog-node-dev-hello12x,region:us-east-1",
+          "ddsource": "lambda",
+          "service": "hello-dog-node-dev-hello12x",
+          "host": "arn:aws:lambda:us-east-1:0:function:hello-dog-node-dev-hello12x"
+        },
+        {
+          "id": "35311576113197464605151591358905854216188247130428145670",
+          "timestamp": 1583425836170,
+          "message": "2020-03-05T16:30:36.131Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tDEBUG\t[dd.trace_id=6899143064054564168 dd.span_id=14292093692483532556] {\"status\":\"debug\",\"message\":\"datadog:set trace context from xray with parent 14292093692483532556 from segment\"}\n",
+          "aws": {
+            "awslogs": {
+              "logGroup": "/aws/lambda/hello-dog-node-dev-hello12x",
+              "logStream": "2020/03/05/[$LATEST]20bddfd5a2dc4c6b97ac02800eae90d0",
+              "owner": "601427279990"
+            },
+            "function_version": "$LATEST",
+            "invoked_function_arn": "arn:aws:lambda:us-east-1:0:function:test"
+          },
+          "lambda": {
+            "arn": "arn:aws:lambda:us-east-1:0:function:hello-dog-node-dev-hello12x"
+          },
+          "ddsourcecategory": "aws",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:3.2.0,env:none,account_id:0,functionname:hello-dog-node-dev-hello12x,region:us-east-1",
+          "ddsource": "lambda",
+          "service": "hello-dog-node-dev-hello12x",
+          "host": "arn:aws:lambda:us-east-1:0:function:hello-dog-node-dev-hello12x"
+        },
+        {
+          "id": "35311576113197464605151591358905854216188247130428145671",
+          "timestamp": 1583425836170,
+          "message": "2020-03-05T16:30:36.131Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tDEBUG\t[dd.trace_id=6899143064054564168 dd.span_id=14292093692483532556] {\"status\":\"debug\",\"message\":\"datadog:set trace context from xray with parent 14292093692483532556 from segment\"}\n",
+          "aws": {
+            "awslogs": {
+              "logGroup": "/aws/lambda/hello-dog-node-dev-hello12x",
+              "logStream": "2020/03/05/[$LATEST]20bddfd5a2dc4c6b97ac02800eae90d0",
+              "owner": "601427279990"
+            },
+            "function_version": "$LATEST",
+            "invoked_function_arn": "arn:aws:lambda:us-east-1:0:function:test"
+          },
+          "lambda": {
+            "arn": "arn:aws:lambda:us-east-1:0:function:hello-dog-node-dev-hello12x"
+          },
+          "ddsourcecategory": "aws",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:3.2.0,env:none,account_id:0,functionname:hello-dog-node-dev-hello12x,region:us-east-1",
+          "ddsource": "lambda",
+          "service": "hello-dog-node-dev-hello12x",
+          "host": "arn:aws:lambda:us-east-1:0:function:hello-dog-node-dev-hello12x"
+        },
+        {
+          "id": "35311576113197464605151591358905854216188247130428145672",
+          "timestamp": 1583425836170,
+          "message": "2020-03-05T16:30:36.131Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tDEBUG\t[dd.trace_id=6899143064054564168 dd.span_id=14292093692483532556] {\"status\":\"debug\",\"message\":\"datadog:set trace context from xray with parent 14292093692483532556 from segment\"}\n",
+          "aws": {
+            "awslogs": {
+              "logGroup": "/aws/lambda/hello-dog-node-dev-hello12x",
+              "logStream": "2020/03/05/[$LATEST]20bddfd5a2dc4c6b97ac02800eae90d0",
+              "owner": "601427279990"
+            },
+            "function_version": "$LATEST",
+            "invoked_function_arn": "arn:aws:lambda:us-east-1:0:function:test"
+          },
+          "lambda": {
+            "arn": "arn:aws:lambda:us-east-1:0:function:hello-dog-node-dev-hello12x"
+          },
+          "ddsourcecategory": "aws",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:3.2.0,env:none,account_id:0,functionname:hello-dog-node-dev-hello12x,region:us-east-1",
+          "ddsource": "lambda",
+          "service": "hello-dog-node-dev-hello12x",
+          "host": "arn:aws:lambda:us-east-1:0:function:hello-dog-node-dev-hello12x"
+        },
+        {
+          "id": "35311576113197464605151591358905854216188247130428145673",
+          "timestamp": 1583425836170,
+          "message": "2020-03-05T16:30:36.131Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tDEBUG\t[dd.trace_id=6899143064054564168 dd.span_id=14292093692483532556] {\"status\":\"debug\",\"message\":\"datadog:Attempting to find parent for datadog trace trace\"}\n",
+          "aws": {
+            "awslogs": {
+              "logGroup": "/aws/lambda/hello-dog-node-dev-hello12x",
+              "logStream": "2020/03/05/[$LATEST]20bddfd5a2dc4c6b97ac02800eae90d0",
+              "owner": "601427279990"
+            },
+            "function_version": "$LATEST",
+            "invoked_function_arn": "arn:aws:lambda:us-east-1:0:function:test"
+          },
+          "lambda": {
+            "arn": "arn:aws:lambda:us-east-1:0:function:hello-dog-node-dev-hello12x"
+          },
+          "ddsourcecategory": "aws",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:3.2.0,env:none,account_id:0,functionname:hello-dog-node-dev-hello12x,region:us-east-1",
+          "ddsource": "lambda",
+          "service": "hello-dog-node-dev-hello12x",
+          "host": "arn:aws:lambda:us-east-1:0:function:hello-dog-node-dev-hello12x"
+        },
+        {
+          "id": "35311576113197464605151591358905854216188247130428145674",
+          "timestamp": 1583425836170,
+          "message": "2020-03-05T16:30:36.131Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tDEBUG\t[dd.trace_id=6899143064054564168 dd.span_id=14292093692483532556] {\"status\":\"debug\",\"message\":\"datadog:Applying lambda context to datadog traces\"}\n",
+          "aws": {
+            "awslogs": {
+              "logGroup": "/aws/lambda/hello-dog-node-dev-hello12x",
+              "logStream": "2020/03/05/[$LATEST]20bddfd5a2dc4c6b97ac02800eae90d0",
+              "owner": "601427279990"
+            },
+            "function_version": "$LATEST",
+            "invoked_function_arn": "arn:aws:lambda:us-east-1:0:function:test"
+          },
+          "lambda": {
+            "arn": "arn:aws:lambda:us-east-1:0:function:hello-dog-node-dev-hello12x"
+          },
+          "ddsourcecategory": "aws",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:3.2.0,env:none,account_id:0,functionname:hello-dog-node-dev-hello12x,region:us-east-1",
+          "ddsource": "lambda",
+          "service": "hello-dog-node-dev-hello12x",
+          "host": "arn:aws:lambda:us-east-1:0:function:hello-dog-node-dev-hello12x"
+        },
+        {
+          "id": "35311576113643479509122203821736568581641214360547753995",
+          "timestamp": 1583425836190,
+          "message": "2020-03-05T16:30:36.172Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tINFO\t[dd.trace_id=6899143064054564168 dd.span_id=2927617725217152879] Request Headers undefined\n",
+          "aws": {
+            "awslogs": {
+              "logGroup": "/aws/lambda/hello-dog-node-dev-hello12x",
+              "logStream": "2020/03/05/[$LATEST]20bddfd5a2dc4c6b97ac02800eae90d0",
+              "owner": "601427279990"
+            },
+            "function_version": "$LATEST",
+            "invoked_function_arn": "arn:aws:lambda:us-east-1:0:function:test"
+          },
+          "lambda": {
+            "arn": "arn:aws:lambda:us-east-1:0:function:hello-dog-node-dev-hello12x"
+          },
+          "ddsourcecategory": "aws",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:3.2.0,env:none,account_id:0,functionname:hello-dog-node-dev-hello12x,region:us-east-1",
+          "ddsource": "lambda",
+          "service": "hello-dog-node-dev-hello12x",
+          "host": "arn:aws:lambda:us-east-1:0:function:hello-dog-node-dev-hello12x"
+        },
+        {
+          "id": "35311576113643479509122203821736568581641214360547753996",
+          "timestamp": 1583425836190,
+          "message": "2020-03-05T16:30:36.172Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tINFO\t[dd.trace_id=6899143064054564168 dd.span_id=2927617725217152879] Root=1-5e61292c-cc1229a4dfbeae1043928548;Parent=c657b77d9514f70c;Sampled=1\n",
+          "aws": {
+            "awslogs": {
+              "logGroup": "/aws/lambda/hello-dog-node-dev-hello12x",
+              "logStream": "2020/03/05/[$LATEST]20bddfd5a2dc4c6b97ac02800eae90d0",
+              "owner": "601427279990"
+            },
+            "function_version": "$LATEST",
+            "invoked_function_arn": "arn:aws:lambda:us-east-1:0:function:test"
+          },
+          "lambda": {
+            "arn": "arn:aws:lambda:us-east-1:0:function:hello-dog-node-dev-hello12x"
+          },
+          "ddsourcecategory": "aws",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:3.2.0,env:none,account_id:0,functionname:hello-dog-node-dev-hello12x,region:us-east-1",
+          "ddsource": "lambda",
+          "service": "hello-dog-node-dev-hello12x",
+          "host": "arn:aws:lambda:us-east-1:0:function:hello-dog-node-dev-hello12x"
+        },
+        {
+          "id": "35311576123455807396475678004012284621606493423179137038",
+          "timestamp": 1583425836630,
+          "message": "2020-03-05T16:30:36.592Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tINFO\t[dd.trace_id=6899143064054564168 dd.span_id=3694123456155101779] 8103.047457805628\n",
+          "aws": {
+            "awslogs": {
+              "logGroup": "/aws/lambda/hello-dog-node-dev-hello12x",
+              "logStream": "2020/03/05/[$LATEST]20bddfd5a2dc4c6b97ac02800eae90d0",
+              "owner": "601427279990"
+            },
+            "function_version": "$LATEST",
+            "invoked_function_arn": "arn:aws:lambda:us-east-1:0:function:test"
+          },
+          "lambda": {
+            "arn": "arn:aws:lambda:us-east-1:0:function:hello-dog-node-dev-hello12x"
+          },
+          "ddsourcecategory": "aws",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:3.2.0,env:none,account_id:0,functionname:hello-dog-node-dev-hello12x,region:us-east-1",
+          "ddsource": "lambda",
+          "service": "hello-dog-node-dev-hello12x",
+          "host": "arn:aws:lambda:us-east-1:0:function:hello-dog-node-dev-hello12x"
+        },
+        {
+          "id": "35311576123478108141674208627153820339879141784685117455",
+          "timestamp": 1583425836631,
+          "message": "2020-03-05T16:30:36.631Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tINFO\t[dd.trace_id=6899143064054564168 dd.span_id=2927617725217152879] Finishing Span\n",
+          "aws": {
+            "awslogs": {
+              "logGroup": "/aws/lambda/hello-dog-node-dev-hello12x",
+              "logStream": "2020/03/05/[$LATEST]20bddfd5a2dc4c6b97ac02800eae90d0",
+              "owner": "601427279990"
+            },
+            "function_version": "$LATEST",
+            "invoked_function_arn": "arn:aws:lambda:us-east-1:0:function:test"
+          },
+          "lambda": {
+            "arn": "arn:aws:lambda:us-east-1:0:function:hello-dog-node-dev-hello12x"
+          },
+          "ddsourcecategory": "aws",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:3.2.0,env:none,account_id:0,functionname:hello-dog-node-dev-hello12x,region:us-east-1",
+          "ddsource": "lambda",
+          "service": "hello-dog-node-dev-hello12x",
+          "host": "arn:aws:lambda:us-east-1:0:function:hello-dog-node-dev-hello12x"
+        },
+        {
+          "id": "35311576126131896820299352780996570814324296803896786961",
+          "timestamp": 1583425836750,
+          "message": "END RequestId: f08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\n",
+          "aws": {
+            "awslogs": {
+              "logGroup": "/aws/lambda/hello-dog-node-dev-hello12x",
+              "logStream": "2020/03/05/[$LATEST]20bddfd5a2dc4c6b97ac02800eae90d0",
+              "owner": "601427279990"
+            },
+            "function_version": "$LATEST",
+            "invoked_function_arn": "arn:aws:lambda:us-east-1:0:function:test"
+          },
+          "lambda": {
+            "arn": "arn:aws:lambda:us-east-1:0:function:hello-dog-node-dev-hello12x"
+          },
+          "ddsourcecategory": "aws",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:3.2.0,env:none,account_id:0,functionname:hello-dog-node-dev-hello12x,region:us-east-1",
+          "ddsource": "lambda",
+          "service": "hello-dog-node-dev-hello12x",
+          "host": "arn:aws:lambda:us-east-1:0:function:hello-dog-node-dev-hello12x"
+        },
+        {
+          "id": "35311576126131896820299352780996570814324296803896786962",
+          "timestamp": 1583425836750,
+          "message": "REPORT RequestId: f08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tDuration: 619.31 ms\tBilled Duration: 700 ms\tMemory Size: 128 MB\tMax Memory Used: 118 MB\t\nXRAY TraceId: 1-5e61292c-cc1229a4dfbeae1043928548\tSegmentId: 07a85e713f6302b2\tSampled: true\t\n",
+          "aws": {
+            "awslogs": {
+              "logGroup": "/aws/lambda/hello-dog-node-dev-hello12x",
+              "logStream": "2020/03/05/[$LATEST]20bddfd5a2dc4c6b97ac02800eae90d0",
+              "owner": "601427279990"
+            },
+            "function_version": "$LATEST",
+            "invoked_function_arn": "arn:aws:lambda:us-east-1:0:function:test"
+          },
+          "lambda": {
+            "arn": "arn:aws:lambda:us-east-1:0:function:hello-dog-node-dev-hello12x"
+          },
+          "ddsourcecategory": "aws",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:3.2.0,env:none,account_id:0,functionname:hello-dog-node-dev-hello12x,region:us-east-1",
+          "ddsource": "lambda",
+          "service": "hello-dog-node-dev-hello12x",
+          "host": "arn:aws:lambda:us-east-1:0:function:hello-dog-node-dev-hello12x"
+        }
+      ]
+    },
+    {
+      "path": "/api/v0.2/traces",
+      "verb": "POST",
+      "content-type": "application/x-protobuf",
+      "data": null
+    },
+    {
+      "path": "/api/v0.2/stats",
+      "verb": "POST",
+      "content-type": "application/json",
+      "data": null
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+version: "3.7"
+
+services:
+  forwarder:
+    image: datadog-log-forwarder:${PYTHON_RUNTIME:-python3.8}
+    command: lambda_function.datadog_forwarder
+    environment:
+      AWS_ACCOUNT_ID: 0000000000
+      DOCKER_LAMBDA_STAY_OPEN: 1
+      #DD_FORWARD_LOG: "false"
+      DD_LOG_LEVEL: info
+      DD_API_KEY: abcdefghijklmnopqrstuvwxyz012345 # Must be 32 characters exactly
+      DD_URL: forwarder-recorder # Used for logs intake
+      DD_PORT: 8080 # API port to use
+      DD_API_URL: http://forwarder-recorder:8080
+      DD_LOGS_INTAKE_URL: forwarder-recorder:8080
+      DD_TRACE_INTAKE_URL: http://forwarder-recorder:8080
+      DD_NO_SSL: "true"
+      DD_SKIP_SSL_VALIDATION: "true"
+      DD_USE_TCP: "false"
+      DD_USE_COMPRESSION: "false"
+    expose:
+      - 9001
+
+  forwarder-recorder:
+    build: test_harness/recorder
+    command: ./recorder.py
+    environment:
+      SERVER_PORT: 8080
+    expose:
+      - 8080
+
+  forwarder-tester:
+    build: test_harness/tests
+    command: python -m unittest discover
+    volumes:
+      - ../tests/snapshots:/tests/snapshots
+    environment:
+      - RECORDER_URL=http://forwarder-recorder:8080/recording
+      - FORWARDER_URL=http://forwarder:9001/2015-03-31/functions/myfunction/invocations
+      - UPDATE_SNAPSHOTS
+
+    depends_on:
+      - forwarder
+      - forwarder-recorder

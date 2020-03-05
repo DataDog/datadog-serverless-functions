@@ -36,7 +36,11 @@ except ImportError:
     from botocore.vendored import requests
 
 try:
-    from enhanced_lambda_metrics import get_enriched_lambda_log_tags,parse_and_submit_enhanced_metrics
+    from enhanced_lambda_metrics import (
+        get_enriched_lambda_log_tags,
+        parse_and_submit_enhanced_metrics,
+    )
+
     IS_ENHANCED_METRICS_FILE_PRESENT = True
 except ImportError:
     IS_ENHANCED_METRICS_FILE_PRESENT = False
@@ -53,6 +57,7 @@ try:
     # Datadog Lambda layer is required to forward metrics
     from datadog_lambda.wrapper import datadog_lambda_wrapper
     from datadog_lambda.metric import lambda_stats
+
     DD_FORWARD_METRIC = True
 except ImportError:
     log.debug(
@@ -66,6 +71,7 @@ finally:
 try:
     # Datadog Trace Layer is required to forward traces
     from trace_forwarder.connection import TraceConnection
+
     DD_FORWARD_TRACES = True
 except ImportError:
     # For backward-compatibility
@@ -84,6 +90,7 @@ def get_env_var(envvar, default, boolean=False):
         value = value.lower() == "true"
     log.debug(f"{envvar}: {value}")
     return value
+
 
 #####################################
 ############# PARAMETERS ############
@@ -150,9 +157,7 @@ DD_NO_SSL = get_env_var("DD_NO_SSL", "false", boolean=True)
 ## @param DD_SKIP_SSL_VALIDATION - boolean - optional -default: false
 ## Disable SSL certificate validation when forwarding logs via HTTP.
 #
-DD_SKIP_SSL_VALIDATION = get_env_var(
-    "DD_SKIP_SSL_VALIDATION", "false", boolean=True
-)
+DD_SKIP_SSL_VALIDATION = get_env_var("DD_SKIP_SSL_VALIDATION", "false", boolean=True)
 
 ## @param DD_SITE - String - optional -default: datadoghq.com
 ## Define the Datadog Site to send your logs and metrics to.
@@ -165,6 +170,15 @@ DD_SITE = get_env_var("DD_SITE", default="datadoghq.com")
 ## Ensure your tags are a comma separated list of strings with no trailing comma in the envvar!
 #
 DD_TAGS = get_env_var("DD_TAGS", "")
+
+## @param DD_API_URL - Url to use for  validating the the api key. Used for validating api key.
+DD_API_URL = get_env_var("DD_API_URL", default="https://api.{}".format(DD_SITE))
+log.debug(f"DD_API_URL: {DD_API_URL}")
+
+## @param DD_TRACE_INTAKE_URL - Url to use for  validating the the api key. Used for validating api key.
+DD_TRACE_INTAKE_URL = get_env_var(
+    "DD_TRACE_INTAKE_URL", default="https://trace.agent.{}".format(DD_SITE)
+)
 
 if DD_USE_TCP:
     DD_URL = get_env_var("DD_URL", default="lambda-intake.logs." + DD_SITE)
@@ -234,14 +248,13 @@ exclude_regex = compileRegex("EXCLUDE_AT_MATCH", EXCLUDE_AT_MATCH)
 
 if "DD_API_KEY_SECRET_ARN" in os.environ:
     SECRET_ARN = os.environ["DD_API_KEY_SECRET_ARN"]
-    DD_API_KEY = boto3.client("secretsmanager").get_secret_value(
-        SecretId=SECRET_ARN
-    )["SecretString"]
+    DD_API_KEY = boto3.client("secretsmanager").get_secret_value(SecretId=SECRET_ARN)[
+        "SecretString"
+    ]
 elif "DD_API_KEY_SSM_NAME" in os.environ:
     SECRET_NAME = os.environ["DD_API_KEY_SSM_NAME"]
     DD_API_KEY = boto3.client("ssm").get_parameter(
-        Name=SECRET_NAME,
-        WithDecryption=True
+        Name=SECRET_NAME, WithDecryption=True
     )["Parameter"]["Value"]
 elif "DD_KMS_API_KEY" in os.environ:
     ENCRYPTED = os.environ["DD_KMS_API_KEY"]
@@ -260,13 +273,12 @@ os.environ["DD_API_KEY"] = DD_API_KEY
 # Force the layer to use the exact same API key as the forwarder
 if DD_FORWARD_METRIC:
     from datadog import api
+
     api._api_key = DD_API_KEY
 
 # DD_API_KEY must be set
 if DD_API_KEY == "<YOUR_DATADOG_API_KEY>" or DD_API_KEY == "":
-    raise Exception(
-        "Missing Datadog API key"
-    )
+    raise Exception("Missing Datadog API key")
 # Check if the API key is the correct number of characters
 if len(DD_API_KEY) != 32:
     raise Exception(
@@ -275,16 +287,14 @@ if len(DD_API_KEY) != 32:
     )
 # Validate the API key
 validation_res = requests.get(
-    "https://api.{}/api/v1/validate?api_key={}".format(DD_SITE, DD_API_KEY)
+    "{}/api/v1/validate?api_key={}".format(DD_API_URL, DD_API_KEY)
 )
 if not validation_res.ok:
     raise Exception("The API key is not valid.")
 
 trace_connection = None
 if DD_FORWARD_TRACES:
-    trace_connection = TraceConnection(
-        "https://trace.agent.{}".format(DD_SITE), DD_API_KEY
-    )
+    trace_connection = TraceConnection(DD_TRACE_INTAKE_URL, DD_API_KEY)
 
 # DD_MULTILINE_LOG_REGEX_PATTERN: Multiline Log Regular Expression Pattern
 DD_MULTILINE_LOG_REGEX_PATTERN = get_env_var(
@@ -312,6 +322,7 @@ DD_CUSTOM_TAGS = "ddtags"
 DD_SERVICE = "service"
 DD_HOST = "host"
 DD_FORWARDER_VERSION = "3.3.0"
+
 
 class RetriableException(Exception):
     pass
@@ -366,7 +377,9 @@ class DatadogTCPClient(object):
     def _connect(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         if self._use_ssl:
-            sock = ssl.create_default_context().wrap_socket(sock, server_hostname=self.host)
+            sock = ssl.create_default_context().wrap_socket(
+                sock, server_hostname=self.host
+            )
         sock.connect((self.host, self.port))
         self._sock = sock
 
@@ -410,7 +423,9 @@ class DatadogHTTPClient(object):
     else:
         _HEADERS = {"Content-type": "application/json"}
 
-    def __init__(self, host, port, no_ssl, skip_ssl_validation, api_key, scrubber, timeout=10):
+    def __init__(
+        self, host, port, no_ssl, skip_ssl_validation, api_key, scrubber, timeout=10
+    ):
         protocol = "http" if no_ssl else "https"
         self._url = "{}://{}:{}/v1/input/{}".format(protocol, host, port, api_key)
         self._scrubber = scrubber
@@ -430,17 +445,14 @@ class DatadogHTTPClient(object):
         Sends a batch of log, only retry on server and network errors.
         """
         try:
-            data=self._scrubber.scrub("[{}]".format(",".join(logs)))
+            data = self._scrubber.scrub("[{}]".format(",".join(logs)))
         except ScrubbingException:
             raise Exception("could not scrub the payload")
         if DD_USE_COMPRESSION:
             data = compress_logs(data, DD_COMPRESSION_LEVEL)
         try:
             resp = self._session.post(
-                self._url,
-                data,
-                timeout=self._timeout,
-                verify=self._ssl_validation
+                self._url, data, timeout=self._timeout, verify=self._ssl_validation
             )
         except Exception:
             # most likely a network error
@@ -466,6 +478,7 @@ class DatadogHTTPClient(object):
     def __exit__(self, ex_type, ex_value, traceback):
         self._close()
 
+
 class DatadogBatcher(object):
     def __init__(self, max_log_size_bytes, max_size_bytes, max_size_count):
         self._max_log_size_bytes = max_log_size_bytes
@@ -489,8 +502,8 @@ class DatadogBatcher(object):
         for log in logs:
             log_size_bytes = self._sizeof_bytes(log)
             if size_count > 0 and (
-                    size_count >= self._max_size_count
-                    or size_bytes + log_size_bytes > self._max_size_bytes
+                size_count >= self._max_size_count
+                or size_bytes + log_size_bytes > self._max_size_bytes
             ):
                 batches.append(batch)
                 batch = []
@@ -514,7 +527,8 @@ def compress_logs(batch, level):
     else:
         compression_level = level
 
-    return gzip.compress(bytes(batch, 'utf-8'), compression_level)
+    return gzip.compress(bytes(batch, "utf-8"), compression_level)
+
 
 class ScrubbingRule(object):
     def __init__(self, regex, placeholder):
@@ -575,13 +589,12 @@ def forward_logs(logs):
     scrubber = DatadogScrubber(SCRUBBING_RULE_CONFIGS)
     if DD_USE_TCP:
         batcher = DatadogBatcher(256 * 1000, 256 * 1000, 1)
-        cli = DatadogTCPClient(
-            DD_URL, DD_PORT, DD_NO_SSL, DD_API_KEY, scrubber)
+        cli = DatadogTCPClient(DD_URL, DD_PORT, DD_NO_SSL, DD_API_KEY, scrubber)
     else:
         batcher = DatadogBatcher(256 * 1000, 2 * 1000 * 1000, 200)
         cli = DatadogHTTPClient(
-            DD_URL, DD_PORT, DD_NO_SSL,
-            DD_SKIP_SSL_VALIDATION, DD_API_KEY, scrubber)
+            DD_URL, DD_PORT, DD_NO_SSL, DD_SKIP_SSL_VALIDATION, DD_API_KEY, scrubber
+        )
 
     with DatadogClient(cli) as client:
         for batch in batcher.batch(logs):
@@ -639,21 +652,20 @@ def add_metadata_to_lambda_log(event):
     Args:
         event (dict): the event we are adding Lambda metadata to
     """
-    lambda_log_metadata = event.get('lambda', {})
-    lambda_log_arn = lambda_log_metadata.get('arn')
+    lambda_log_metadata = event.get("lambda", {})
+    lambda_log_arn = lambda_log_metadata.get("arn")
 
     # Do not mutate the event if it's not from Lambda
     if not lambda_log_arn:
         return
 
     # Function name is the sixth piece of the ARN
-    function_name = lambda_log_arn.split(':')[6]
+    function_name = lambda_log_arn.split(":")[6]
 
     event[DD_HOST] = lambda_log_arn
     event[DD_SERVICE] = function_name
 
-    tags = ['functionname:{}'.format(function_name)]
-
+    tags = ["functionname:{}".format(function_name)]
 
     # Add any enhanced tags from metadata
     if IS_ENHANCED_METRICS_FILE_PRESENT:
@@ -661,6 +673,7 @@ def add_metadata_to_lambda_log(event):
 
     # Dedup tags, so we don't end up with functionname twice
     tags = list(set(tags))
+    tags.sort()  # Keep order deterministic
 
     event[DD_CUSTOM_TAGS] = ",".join([event[DD_CUSTOM_TAGS]] + tags)
 
@@ -701,7 +714,7 @@ def extract_trace(event):
         obj = json.loads(event["message"])
         if not "traces" in obj or not isinstance(obj["traces"], list):
             return None
-        return { "message": message, "tags": event[DD_CUSTOM_TAGS] }
+        return {"message": message, "tags": event[DD_CUSTOM_TAGS]}
     except Exception:
         return None
 
@@ -716,7 +729,7 @@ def extract_metric(event):
         if not isinstance(metric["t"], list):
             return None
 
-        metric["t"] += event[DD_CUSTOM_TAGS].split(',')
+        metric["t"] += event[DD_CUSTOM_TAGS].split(",")
         return metric
     except Exception:
         return None
@@ -736,7 +749,6 @@ def split(events):
         else:
             logs.append(event)
     return metrics, logs, traces
-
 
 
 # should only be called when INCLUDE_AT_MATCH and/or EXCLUDE_AT_MATCH exist
@@ -896,7 +908,7 @@ def kinesis_awslogs_handler(event, context, metadata):
 def awslogs_handler(event, context, metadata):
     # Get logs
     with gzip.GzipFile(
-            fileobj=BytesIO(base64.b64decode(event["awslogs"]["data"]))
+        fileobj=BytesIO(base64.b64decode(event["awslogs"]["data"]))
     ) as decompress_stream:
         # Reading line by line avoid a bug where gzip would take a very long
         # time (>5min) for file around 60MB gzipped
@@ -955,7 +967,10 @@ def awslogs_handler(event, context, metadata):
                 arn_attributes = {"lambda": {"arn": arn}}
                 aws_attributes = merge_dicts(aws_attributes, arn_attributes)
 
-                env_tag_exists = metadata[DD_CUSTOM_TAGS].startswith('env:') or ',env:' in metadata[DD_CUSTOM_TAGS]
+                env_tag_exists = (
+                    metadata[DD_CUSTOM_TAGS].startswith("env:")
+                    or ",env:" in metadata[DD_CUSTOM_TAGS]
+                )
                 # If there is no env specified, default to env:none
                 if not env_tag_exists:
                     metadata[DD_CUSTOM_TAGS] += ",env:none"
