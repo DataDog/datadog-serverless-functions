@@ -294,9 +294,7 @@ if not validation_res.ok:
 
 trace_connection = None
 if DD_FORWARD_TRACES:
-    trace_connection = TraceConnection(
-        "https://trace.agent.{}".format(DD_SITE), DD_API_KEY
-    )
+    trace_connection = TraceConnection(DD_TRACE_INTAKE_URL, DD_API_KEY)
 
 # DD_MULTILINE_LOG_REGEX_PATTERN: Multiline Log Regular Expression Pattern
 DD_MULTILINE_LOG_REGEX_PATTERN = get_env_var(

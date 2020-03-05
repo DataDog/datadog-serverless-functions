@@ -3,6 +3,7 @@
     {
       "path": "/v1/input/abcdefghijklmnopqrstuvwxyz012345",
       "verb": "POST",
+      "content-type": "application/json",
       "data": [
         {
           "id": "eventId1",

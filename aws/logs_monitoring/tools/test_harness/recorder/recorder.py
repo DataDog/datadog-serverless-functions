@@ -27,14 +27,20 @@ class RecorderHandler(BaseHTTPRequestHandler):
             # Record the event to logs
             data = None
             if self.headers["Content-Length"] != None:
-                data = self.rfile.read(int(self.headers["Content-Length"])).decode()
-            # If the input is json, decode it and add to the event directly
-            try:
-                data = json.loads(data)
-            except:
-                pass
+                contents = self.rfile.read(int(self.headers["Content-Length"]))
+                if self.headers["Content-Type"] == "application/json":
+                    # If the input is json, decode it and add to the event directly
+                    try:
+                        data = json.loads(contents.decode())
+                    except:
+                        pass
 
-            event = {"path": self.path, "verb": self.command, "data": data}
+            event = {
+                "path": self.path,
+                "verb": self.command,
+                "content-type": self.headers["Content-Type"],
+                "data": data,
+            }
             events.append(event)
 
         # Send an OK response
