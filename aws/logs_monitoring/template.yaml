@@ -259,6 +259,7 @@ Resources:
         dd_forwarder_version: !FindInMap [Constants, DdForwarder, Version]
       Environment:
         Variables:
+          DD_ENHANCED_METRICS: false
           DD_API_KEY_SECRET_ARN:
             Ref: DdApiKeySecret
           DD_SITE:
