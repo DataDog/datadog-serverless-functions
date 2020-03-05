@@ -38,7 +38,9 @@ Since version 3.0.0, the forwarder Lambda function is managed by CloudFormation.
 1. Manually migrate a few triggers on the old forwarder to the new one.
 1. Ensure the new forwarder is working as expected.
 1. Update all the triggers on the old forwarder to the new one, following these [steps](https://docs.datadoghq.com/integrations/amazon_web_services/?tab=allpermissions#send-aws-service-logs-to-datadog).
+1. Ensure the old forwarder Lambda function's invocations metric drops to zero.
 1. Delete the old forwarder Lambda function when you feel comfortable.
+1. If you have old forwarder Lambda functions installed in multiple AWS accounts and regions, repeat the steps above in every account and region combination.
 
 ### Adjusting forwarder settings
 
