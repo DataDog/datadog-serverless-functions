@@ -28,6 +28,11 @@ class RecorderHandler(BaseHTTPRequestHandler):
             data = None
             if self.headers["Content-Length"] != None:
                 data = self.rfile.read(int(self.headers["Content-Length"])).decode()
+            # If the input is json, decode it and add to the event directly
+            try:
+                data = json.loads(data)
+            except:
+                pass
 
             event = {"path": self.path, "verb": self.command, "data": data}
             events.append(event)
