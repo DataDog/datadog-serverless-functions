@@ -63,4 +63,3 @@ try:
 finally:
     print("Shutting down server", flush=True)
     server.socket.close()
-
