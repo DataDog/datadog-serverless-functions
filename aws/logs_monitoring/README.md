@@ -35,10 +35,13 @@ Note: you can find the installed Forwarder under the stack's "Resources" tab.
 Since version 3.0.0, the forwarder Lambda function is managed by CloudFormation. To upgrade an older forwarder installation to 3.0.0 and above, follow the steps below.
 
 1. Install a new forwarder following the [installation](#installation) steps.
-1. Manually migrate a few triggers on the old forwarder to the new one.
-1. Ensure the new forwarder is working as expected.
+1. Manually migrate a few triggers (CloudWatch log group subscription filter and S3 bucket event notification) on the old forwarder to the new one.
+1. Ensure the new forwarder is working as expected, i.e., being invoked regularly without errors.
+1. Ensure the logs from the migrated triggers (sources) are showing up in Datadog log explorer and look right to you.
 1. Update all the triggers on the old forwarder to the new one, following these [steps](https://docs.datadoghq.com/integrations/amazon_web_services/?tab=allpermissions#send-aws-service-logs-to-datadog).
+1. Ensure the old forwarder Lambda function's invocations count drops to zero.
 1. Delete the old forwarder Lambda function when you feel comfortable.
+1. If you have old forwarder Lambda functions installed in multiple AWS accounts and regions, repeat the steps above in every account and region combination.
 
 ### Adjusting forwarder settings
 
