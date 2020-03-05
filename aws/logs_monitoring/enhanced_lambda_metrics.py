@@ -433,4 +433,7 @@ def get_enriched_lambda_log_tags(log):
         return []
     tags_from_arn = parse_lambda_tags_from_arn(log_function_arn)
     lambda_custom_tags = account_lambda_tags_cache.get(log_function_arn)
-    return list(set(tags_from_arn + lambda_custom_tags))
+    # Combine and dedup tags
+    tags = list(set(tags_from_arn + lambda_custom_tags))
+    tags.sort()
+    return tags

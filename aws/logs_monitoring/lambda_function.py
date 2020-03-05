@@ -675,6 +675,7 @@ def add_metadata_to_lambda_log(event):
 
     # Dedup tags, so we don't end up with functionname twice
     tags = list(set(tags))
+    tags.sort()  # Keep order deterministic
 
     event[DD_CUSTOM_TAGS] = ",".join([event[DD_CUSTOM_TAGS]] + tags)
 
