@@ -2,7 +2,7 @@ FROM tmaier/docker-compose:latest
 
 # Install bash
 RUN apk add --no-cache --virtual .build-deps
-RUN apk add bash
+RUN apk add bash curl
 
 # Install aws-cli and python
 RUN apk -Uuv add python py-pip

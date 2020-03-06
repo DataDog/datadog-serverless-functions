@@ -1,9 +1,6 @@
 variables:
   CURRENT_CI_IMAGE: 1
 
-services:
-  - docker:dind
-
 stages:
   - ci-image
   - test
