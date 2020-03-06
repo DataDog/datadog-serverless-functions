@@ -1,0 +1,26 @@
+variables:
+  CURRENT_CI_IMAGE: 1
+
+services:
+  - docker:dind
+
+stages:
+  - ci-image
+  - test
+
+ci-image:
+  stage: ci-image
+  when: manual
+  except: [tags, schedules]
+  tags: ["runner:docker", "size:large"]
+  image: 486234852809.dkr.ecr.us-east-1.amazonaws.com/docker:18.03.1
+  script:
+    - docker build --tag 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/datadog-serverless-functions:$CURRENT_CI_IMAGE .
+    - docker push 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/datadog-serverless-functions:$CURRENT_CI_IMAGE
+
+aws-log-forwarder:integration-test:
+  stage: test
+  image: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/datadog-serverless-functions:$CURRENT_CI_IMAGE
+  tags: ["runner:main", "size:large"]
+  script:
+    - ./aws/logs_monitoring/tools/integration_test.sh
