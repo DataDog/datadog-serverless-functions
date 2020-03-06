@@ -20,4 +20,5 @@ aws-log-forwarder:integration-test:
   image: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/datadog-serverless-functions:$CURRENT_CI_IMAGE
   tags: ["runner:main", "size:large"]
   script:
+    - export AWS_REGION=us-east-1
     - ./aws/logs_monitoring/tools/integration_test.sh
