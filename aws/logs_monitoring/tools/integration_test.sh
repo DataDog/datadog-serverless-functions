@@ -27,7 +27,7 @@ function download_layer {
     LAYER_ARN="arn:aws:lambda:us-east-1:464622532012:layer:${2}"
     VERSION=$3
     echo "Downloading layer ${LAYER_ARN} with version ${VERSION}\n"
-    URL=$(aws lambda get-layer-version --layer-name ${LAYER_ARN} --version-number ${VERSION} --query Content.Location --output text)
+    URL=$(aws lambda get-layer-version --region us-east-1 --layer-name ${LAYER_ARN} --version-number ${VERSION} --query Content.Location --output text)
     # Convert to a gzip file, since that can be added as a docker layer
     tmpdir=`mktemp -d`
 
