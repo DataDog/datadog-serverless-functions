@@ -50,7 +50,7 @@ except ImportError:
         "file in your Lambda project."
     )
 finally:
-    log.debug(f"IS_ENHANCED_METRICS_FILE_PRESENT: {IS_ENHANCED_METRICS_FILE_PRESENT}")
+    log.debug("IS_ENHANCED_METRICS_FILE_PRESENT: {IS_ENHANCED_METRICS_FILE_PRESENT}")
 
 
 try:
