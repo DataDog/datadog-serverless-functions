@@ -17,11 +17,10 @@ AWS Lambda function to ship logs from S3 and CloudWatch, custom metrics and trac
 
 1. Log into your admin AWS account/role and deploy the CloudFormation Stack with the button above.
 1. Fill in `DdApiKey` and select the appropriate `DdSite`. All other parameters are optional.
-1. Click **Create stack.**
+1. Click **Create stack**, and wait for the creation to complete.
+1. Find the installed forwarder Lambda function under the stack's "Resources" tab with logical ID `Forwarder`.
 1. Set up triggers to the installed Forwarder either [automatically](https://docs.datadoghq.com/integrations/amazon_web_services/?tab=allpermissions#automatically-setup-triggers) or [manually](https://docs.datadoghq.com/integrations/amazon_web_services/?tab=allpermissions#manually-setup-triggers).
 1. Repeat the above steps in another region if you operate in multiple AWS regions. 
-
-Note: you can find the installed Forwarder under the stack's "Resources" tab.
 
 ## Updating
 
@@ -35,6 +34,7 @@ Note: you can find the installed Forwarder under the stack's "Resources" tab.
 Since version 3.0.0, the forwarder Lambda function is managed by CloudFormation. To upgrade an older forwarder installation to 3.0.0 and above, follow the steps below.
 
 1. Install a new forwarder following the [installation](#installation) steps.
+1. Find the installed forwarder Lambda function under the stack's "Resources" tab with logical ID `Forwarder`.
 1. Manually migrate a few triggers (CloudWatch log group subscription filter and S3 bucket event notification) on the old forwarder to the new one.
 1. Ensure the new forwarder is working as expected, i.e., being invoked regularly without errors.
 1. Ensure the logs from the migrated triggers (sources) are showing up in Datadog log explorer and look right to you.
