@@ -382,6 +382,20 @@ Resources:
                   - tag:GetResources
                 Resource: "*"
               - Ref: AWS::NoValue
+  CloudWatchLogsPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref "Forwarder"
+      Action: lambda:InvokeFunction
+      Principal: !Sub "logs.${AWS::Region}.amazonaws.com"
+      SourceAccount: !Ref "AWS::AccountId"
+  S3Permission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref "Forwarder"
+      Action: lambda:InvokeFunction
+      Principal: "s3.amazonaws.com"
+      SourceAccount: !Ref "AWS::AccountId"
   LogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
