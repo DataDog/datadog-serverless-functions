@@ -360,6 +360,8 @@ def parse_lambda_tags_from_arn(arn):
     return [
         "region:{}".format(region),
         "account_id:{}".format(account_id),
+        # Include the aws_account tag to match the aws.lambda CloudWatch metrics
+        "aws_account:{}".format(account_id),
         "functionname:{}".format(function_name),
     ]
 
@@ -435,5 +437,4 @@ def get_enriched_lambda_log_tags(log):
     lambda_custom_tags = account_lambda_tags_cache.get(log_function_arn)
     # Combine and dedup tags
     tags = list(set(tags_from_arn + lambda_custom_tags))
-    tags.sort()
     return tags
