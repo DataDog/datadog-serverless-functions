@@ -341,7 +341,7 @@ def generate_enhanced_lambda_metrics(log, tags_cache):
     return parsed_metrics
 
 
-def parse_lambda_tags_from_arn(arn, aws_account_tag=False):
+def parse_lambda_tags_from_arn(arn):
     """Generate the list of lambda tags based on the data in the arn
 
     Args:
