@@ -645,7 +645,11 @@ def enrich(events):
 
 
 def add_metadata_to_lambda_log(event):
-    """Mutate log dict to add functionname tag, host, and service from the existing Lambda attribute
+    """Mutate log dict to add tags, host, and service metadata
+
+    * tags for functionname, aws_account, region
+    * host from the Lambda ARN
+    * service from the Lambda name
 
     If the event arg is not a Lambda log then this returns without doing anything
 
