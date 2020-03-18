@@ -22,6 +22,8 @@ Parameters:
   MemorySize:
     Type: Number
     Default: 1024
+    MinValue: 128
+    MaxValue: 3008
     Description: Memory size for the Datadog Forwarder Lambda function
   Timeout:
     Type: Number
@@ -266,7 +268,7 @@ Resources:
         dd_forwarder_version: !FindInMap [Constants, DdForwarder, Version]
       Environment:
         Variables:
-          DD_ENHANCED_METRICS: false
+          DD_ENHANCED_METRICS: "false"
           DD_API_KEY_SECRET_ARN:
             Ref: DdApiKeySecret
           DD_SITE:
