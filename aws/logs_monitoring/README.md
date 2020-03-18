@@ -38,7 +38,9 @@ Since version 3.0.0, the forwarder Lambda function is managed by CloudFormation.
 1. Manually migrate a few triggers (CloudWatch log group subscription filter and S3 bucket event notification) on the old forwarder to the new one.
 1. Ensure the new forwarder is working as expected, i.e., being invoked regularly without errors.
 1. Ensure the logs from the migrated triggers (sources) are showing up in Datadog log explorer and look right to you.
-1. Update all the triggers on the old forwarder to the new one, following these [steps](https://docs.datadoghq.com/integrations/amazon_web_services/?tab=allpermissions#send-aws-service-logs-to-datadog).
+1. Migrate all triggers to the new forwarder.
+   1. If you have been letting Datadog manage triggers [automatically](https://docs.datadoghq.com/integrations/amazon_web_services/?tab=allpermissions#automatically-setup-triggers) for you, update the forwarder Lambda ARN in AWS integration tile "Collect Logs" tab.
+   1. If you have been manage the triggers [manually](https://docs.datadoghq.com/integrations/amazon_web_services/?tab=allpermissions#manually-setup-triggers), then you have to migrate them manually (or using a script).
 1. Ensure the old forwarder Lambda function's invocations count drops to zero.
 1. Delete the old forwarder Lambda function when you feel comfortable.
 1. If you have old forwarder Lambda functions installed in multiple AWS accounts and regions, repeat the steps above in every account and region combination.
