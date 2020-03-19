@@ -19,7 +19,7 @@
             "invoked_function_arn": "arn:aws:lambda:us-east-1:0:function:test"
           },
           "ddsourcecategory": "aws",
-          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:3.3.0",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:3.4.0",
           "ddsource": "cloudwatch",
           "service": "cloudwatch",
           "host": "testLogGroup"
@@ -38,7 +38,7 @@
             "invoked_function_arn": "arn:aws:lambda:us-east-1:0:function:test"
           },
           "ddsourcecategory": "aws",
-          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:3.3.0",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:3.4.0",
           "ddsource": "cloudwatch",
           "service": "cloudwatch",
           "host": "testLogGroup"
