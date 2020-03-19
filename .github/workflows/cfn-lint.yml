@@ -1,0 +1,16 @@
+name: cfn-lint
+
+on: [pull_request]
+
+jobs:
+  cfn-lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: cfn-lint
+      uses: docker://scottbrenner/cfn-lint-action:latest
+      with:
+        args: "aws/logs_monitoring/template.yaml"
