@@ -53,6 +53,13 @@ Since version 3.0.0, the forwarder Lambda function is managed by CloudFormation.
 
 Note: It's recommended to adjust forwarder settings through CloudFormation rather than directly editing the Lambda function. The description of settings can be found in the [template.yaml](template.yaml) and the CloudFormation stack creation user interface when you launch the stack. Feel free to submit a pull request to make additional settings adjustable through the template.
 
+## Deletion
+
+To safely delete the forwarder and other AWS resources created by the forwarder CloudFormation stack, follow the steps below.
+
+1. Find the [datadog-forwarder (if you didn't rename it)](https://console.aws.amazon.com/cloudformation/home#/stacks?filteringText=datadog) CloudFormation stack. Or you can find the stack from the forwarder Lambda function's management console by clicking the link from the message "This function belongs to an application. Click here to manage it.", and then click the "Deployments" tab on the application page.
+1. "Delete" the CloudFormation stack.
+
 ## Settings
 
 To view all the adjustable settings of the forwarder, click "Launch Stack" from the [Installation](#installation) section and you will be prompted with a CloudFormation user interface with all the adjustable settings (you do not have to complete the installation).
