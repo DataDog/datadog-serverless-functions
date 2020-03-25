@@ -174,7 +174,7 @@ def should_fetch_custom_tags():
 def sanitize_aws_tag_string(raw_string):
     """Convert characters banned from DD but allowed in AWS tags to underscores
     """
-    return re.sub(r"[\+\-=\.:/@]", "_", raw_string)
+    return re.sub(r"[\+=\.:/@]", "_", raw_string)
 
 
 def get_dd_tag_string_from_aws_dict(aws_key_value_tag_dict):
