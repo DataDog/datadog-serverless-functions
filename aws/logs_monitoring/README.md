@@ -90,7 +90,7 @@ If for some reason you cannot install the forwarder using the provided CloudForm
 
 ## Terraform Installation
 
-The forwarder can be installed using Terraform resource [aws_cloudformation_stack](https://www.terraform.io/docs/providers/aws/r/cloudformation_stack.html) as a wrapper on top of the provided CloudFormation template.
+The Forwarder can be installed using Terraform resource [aws_cloudformation_stack](https://www.terraform.io/docs/providers/aws/r/cloudformation_stack.html) as a wrapper on top of the provided CloudFormation template.
 
 <details><summary>Sample Configuration</summary>
 
@@ -115,7 +115,7 @@ resource "aws_cloudformation_stack" "datadog-forwarder" {
 
 ## Permissions
 
-To deploy the CloudFormation stack with the default options, you need to have the permissions below to save Datadog API key as a secret, create a S3 bucket to store the forwarder's zip (source code), and create Lambda functions (including execution roles and log groups).
+To deploy the CloudFormation Stack with the default options, you need to have the permissions below to save your Datadog API key as a secret, create a S3 bucket to store the Forwarder's code (zip file), and create Lambda functions (including execution roles and log groups).
 
 <details><summary>IAM Statements</summary>
 
@@ -150,9 +150,9 @@ To deploy the CloudFormation stack with the default options, you need to have th
 
 </details>
 
-The CloudFormation stack creates following IAM roles:
+The CloudFormation Stack creates following IAM roles:
 
-- ForwarderRole: The execution role for the Forwarder Lambda function to read logs from S3, fetch Datadog API key from Secrets Manager and write its own logs.
+- ForwarderRole: The execution role for the Forwarder Lambda function to read logs from S3, fetch your Datadog API key from Secrets Manager, and write its own logs.
   <details><summary>IAM Statements</summary>
 
   ```json
