@@ -70,10 +70,17 @@ The technical definition of the settings can be found in the "Parameters" sectio
 
 Set the environment variable `DD_LOG_LEVEL` to `debug` on the Forwarder Lambda function to enable detailed logging temporarily (don't forget to remove it). If the debug logs don't help, please contact [Datadog support](https://www.datadoghq.com/support/).
 
+## Manual Installation
+
+If for some reason you cannot install the forwarder using the provided CloudFormation template (e.g., AWS China or GovCloud), you can install the forwarder manually following the steps below. Feel free to open an issue or pull request to let us know if there is anything we can improve to make the template work for you.
+
+1. Create a Python3.7 Lambda function using `aws-dd-forwarder-<VERSION>.zip` from the latest [releases](https://github.com/DataDog/datadog-serverless-functions/releases).
+1. Save your Datadog API key in AWS Secrets Manager, set environment variable `DD_API_KEY_SECRET_ARN` with the secret ARN on the Lambda function, and add the `secretsmanager:GetSecretValue` permission to the Lambda execution role.
+1. If you need to forward logs from S3 buckets, add the `s3:GetObject` permission to the Lambda execution role.
+1. If you need to forward custom metrics and traces from your Lambda functions' logs for serverless monitoring, attach these [layers](https://github.com/DataDog/datadog-serverless-functions/blob/3639499bf602ea3d04493028aa08d1076cc02234/aws/logs_monitoring/template.yaml#L264) (switch to master branch for the latest layer versions) to the forwarder, and set environment variable `DD_ENHANCED_METRICS` to `false` on the forwarder.
+1. Configure [triggers](https://docs.datadoghq.com/integrations/amazon_web_services/?tab=allpermissions#send-aws-service-logs-to-datadog).
+
 ## Notes
 
 * For S3 logs, there may be some latency between the time a first S3 log file is posted and the Lambda function wakes up.
-* Currently, the forwarder has to be deployed manually to GovCloud and China, and supports only log forwarding.
-  1. Create a Lambda function using `aws-dd-forwarder-<VERSION>.zip` from the latest [releases](https://github.com/DataDog/datadog-serverless-functions/releases).
-  1. Save your Datadog API key in AWS Secrets Manager, and set environment variable `DD_API_KEY_SECRET_ARN` with the secret ARN on the Lambda function.
-  1. Configure [triggers](https://docs.datadoghq.com/integrations/amazon_web_services/?tab=allpermissions#send-aws-service-logs-to-datadog).
+* Currently, the forwarder has to be deployed [manually](#manual-installation) to GovCloud and China, and supports only log forwarding.
