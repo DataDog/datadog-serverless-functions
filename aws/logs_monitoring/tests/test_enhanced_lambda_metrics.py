@@ -44,6 +44,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
             [
                 "region:us-east-1",
                 "account_id:1234597598159",
+                "aws_account:1234597598159",
                 "functionname:swf-hello-test",
             ],
         )
@@ -192,6 +193,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
                     "tags": [
                         "region:us-east-1",
                         "account_id:172597598159",
+                        "aws_account:172597598159",
                         "functionname:post-coupon-prod-us",
                     ],
                     "timestamp": 10000,
@@ -202,6 +204,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
                     "tags": [
                         "region:us-east-1",
                         "account_id:172597598159",
+                        "aws_account:172597598159",
                         "functionname:post-coupon-prod-us",
                     ],
                     "timestamp": 10000,
@@ -212,6 +215,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
                     "tags": [
                         "region:us-east-1",
                         "account_id:172597598159",
+                        "aws_account:172597598159",
                         "functionname:post-coupon-prod-us",
                     ],
                     "timestamp": 10000,
@@ -222,6 +226,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
                     "tags": [
                         "region:us-east-1",
                         "account_id:172597598159",
+                        "aws_account:172597598159",
                         "functionname:post-coupon-prod-us",
                     ],
                     "timestamp": 10000,
@@ -272,6 +277,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
                     "tags": [
                         "region:us-east-1",
                         "account_id:172597598159",
+                        "aws_account:172597598159",
                         "functionname:post-coupon-prod-us",
                         "team:metrics",
                         "monitor:datadog",
@@ -286,6 +292,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
                     "tags": [
                         "region:us-east-1",
                         "account_id:172597598159",
+                        "aws_account:172597598159",
                         "functionname:post-coupon-prod-us",
                         "team:metrics",
                         "monitor:datadog",
@@ -300,6 +307,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
                     "tags": [
                         "region:us-east-1",
                         "account_id:172597598159",
+                        "aws_account:172597598159",
                         "functionname:post-coupon-prod-us",
                         "team:metrics",
                         "monitor:datadog",
@@ -314,6 +322,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
                     "tags": [
                         "region:us-east-1",
                         "account_id:172597598159",
+                        "aws_account:172597598159",
                         "functionname:post-coupon-prod-us",
                         "team:metrics",
                         "monitor:datadog",
