@@ -171,10 +171,46 @@ def should_fetch_custom_tags():
     return os.environ.get("DD_FETCH_LAMBDA_TAGS", "false").lower() == "true"
 
 
-def sanitize_aws_tag_string(raw_string):
+_other_chars = r"\w:\-\.\/"
+Sanitize = re.compile(r"[^%s]" % _other_chars, re.UNICODE).sub
+Dedupe = re.compile(r"_+", re.UNICODE).sub
+FixInit = re.compile(r"^[_\d]*", re.UNICODE).sub
+FirstCapRe = re.compile("(.)([A-Z][a-z]+)")
+AllCapRe = re.compile("([a-z0-9])([A-Z])")
+
+
+def convert_camel_case_to_underscore(string):
+    """
+    Convert from CamelCase to camel_case
+    """
+    global FirstCapRe, AllCapRe
+    string = FirstCapRe.sub(r"\1_\2", string)
+    return AllCapRe.sub(r"\1_\2", string).lower()
+
+
+def sanitize_aws_tag_string(tag):
     """Convert characters banned from DD but allowed in AWS tags to underscores
     """
-    return re.sub(r"[\+\-=\.:/@]", "_", raw_string)
+    global Sanitize, Dedupe, FixInit
+
+    # 1. Convert to all lowercase unicode string
+    # 2. Convert bad characters to underscores
+    # 3. Dedupe contiguous underscores
+    # 4. Remove initial underscores/digits such that the string
+    #    starts with an alpha char
+    #    FIXME: tag normalization incorrectly supports tags starting
+    #    with a ':', but this behavior should be phased out in future
+    #    as it results in unqueryable data.  See dogweb/#11193
+    # 5. Truncate to 200 characters
+    # 6. Strip trailing underscores
+    tag = convert_camel_case_to_underscore(tag)
+    tag = tag.replace(":", "_")
+    tag = Dedupe(u"_", Sanitize(u"_", tag.lower()))
+    first_char = tag[0]
+    if first_char == u"_" or u"0" <= first_char <= "9":
+        tag = FixInit(u"", tag)
+    tag = tag[0:200].rstrip("_")
+    return tag
 
 
 def get_dd_tag_string_from_aws_dict(aws_key_value_tag_dict):
