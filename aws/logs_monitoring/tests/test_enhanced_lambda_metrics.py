@@ -39,8 +39,12 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
         self.assertEqual(sanitize_aws_tag_string("s+e@rv_erl_ess"), "s_e_rv_erl_ess")
         # Dedup underscores
         self.assertEqual(sanitize_aws_tag_string("serverl___ess"), "serverl_ess")
-        # Tag value cannot have a colon
-        self.assertEqual(sanitize_aws_tag_string("serv:erless:"), "serv_erless")
+        # Keep colons when remove_colons=False
+        self.assertEqual(sanitize_aws_tag_string("serv:erless:"), "serv:erless:")
+        # Substiture colon when remove_colons=True
+        self.assertEqual(
+            sanitize_aws_tag_string("serv:erless:", remove_colons=True), "serv_erless"
+        )
         # Convert camel case
         self.assertEqual(sanitize_aws_tag_string("serVerLess"), "ser_ver_less")
 

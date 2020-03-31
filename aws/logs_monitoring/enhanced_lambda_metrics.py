@@ -188,7 +188,7 @@ def convert_camel_case_to_underscore(string):
     return AllCapRe.sub(r"\1_\2", string).lower()
 
 
-def sanitize_aws_tag_string(tag):
+def sanitize_aws_tag_string(tag, remove_colons=False):
     """Convert characters banned from DD but allowed in AWS tags to underscores
     """
     global Sanitize, Dedupe, FixInit
@@ -206,7 +206,8 @@ def sanitize_aws_tag_string(tag):
     # 7. Truncate to 200 characters
     # 8. Strip trailing underscores
     tag = convert_camel_case_to_underscore(tag)
-    tag = tag.replace(":", "_")
+    if remove_colons:
+        tag = tag.replace(":", "_")
     tag = Dedupe(u"_", Sanitize(u"_", tag.lower()))
     first_char = tag[0]
     if first_char == u"_" or u"0" <= first_char <= "9":
@@ -226,7 +227,7 @@ def get_dd_tag_string_from_aws_dict(aws_key_value_tag_dict):
         key:value colon-separated string built from the dict
             ex: "creator:swf"
     """
-    key = sanitize_aws_tag_string(aws_key_value_tag_dict["Key"])
+    key = sanitize_aws_tag_string(aws_key_value_tag_dict["Key"], remove_colons=True)
     value = sanitize_aws_tag_string(aws_key_value_tag_dict.get("Value"))
     # Value is optional in DD and AWS
     if not value:
