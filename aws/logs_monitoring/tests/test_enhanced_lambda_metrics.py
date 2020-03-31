@@ -41,7 +41,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
         self.assertEqual(sanitize_aws_tag_string("serverl___ess"), "serverl_ess")
         # Keep colons when remove_colons=False
         self.assertEqual(sanitize_aws_tag_string("serv:erless:"), "serv:erless:")
-        # Substiture colon when remove_colons=True
+        # Substitute colon when remove_colons=True
         self.assertEqual(
             sanitize_aws_tag_string("serv:erless:", remove_colons=True), "serv_erless"
         )
