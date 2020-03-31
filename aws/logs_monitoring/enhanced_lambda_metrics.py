@@ -193,16 +193,18 @@ def sanitize_aws_tag_string(tag):
     """
     global Sanitize, Dedupe, FixInit
 
-    # 1. Convert to all lowercase unicode string
-    # 2. Convert bad characters to underscores
-    # 3. Dedupe contiguous underscores
-    # 4. Remove initial underscores/digits such that the string
+    # 1. Convert camel case to underscores
+    # 2. Replaces colons with _
+    # 3. Convert to all lowercase unicode string
+    # 4. Convert bad characters to underscores
+    # 5. Dedupe contiguous underscores
+    # 6. Remove initial underscores/digits such that the string
     #    starts with an alpha char
     #    FIXME: tag normalization incorrectly supports tags starting
     #    with a ':', but this behavior should be phased out in future
     #    as it results in unqueryable data.  See dogweb/#11193
-    # 5. Truncate to 200 characters
-    # 6. Strip trailing underscores
+    # 7. Truncate to 200 characters
+    # 8. Strip trailing underscores
     tag = convert_camel_case_to_underscore(tag)
     tag = tag.replace(":", "_")
     tag = Dedupe(u"_", Sanitize(u"_", tag.lower()))
