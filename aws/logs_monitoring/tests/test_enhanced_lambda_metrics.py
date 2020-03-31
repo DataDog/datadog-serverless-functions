@@ -33,8 +33,20 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
 
     def test_sanitize_tag_string(self):
         self.assertEqual(sanitize_aws_tag_string("serverless"), "serverless")
-        self.assertEqual(sanitize_aws_tag_string("ser:ver_less"), "ser_ver_less")
-        self.assertEqual(sanitize_aws_tag_string("s-erv:erl_ess"), "s_erv_erl_ess")
+        # Don't replace : \ / . in middle of string
+        self.assertEqual(sanitize_aws_tag_string("ser-/.ver_less"), "ser-/.ver_less")
+        # Remove invalid characters
+        self.assertEqual(sanitize_aws_tag_string("s+e@rv_erl_ess"), "s_e_rv_erl_ess")
+        # Dedup underscores
+        self.assertEqual(sanitize_aws_tag_string("serverl___ess"), "serverl_ess")
+        # Keep colons when remove_colons=False
+        self.assertEqual(sanitize_aws_tag_string("serv:erless:"), "serv:erless:")
+        # Substitute colon when remove_colons=True
+        self.assertEqual(
+            sanitize_aws_tag_string("serv:erless:", remove_colons=True), "serv_erless"
+        )
+        # Convert camel case
+        self.assertEqual(sanitize_aws_tag_string("serVerLess"), "ser_ver_less")
 
     def test_parse_lambda_tags_from_arn(self):
         self.assertListEqual(
@@ -44,6 +56,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
             [
                 "region:us-east-1",
                 "account_id:1234597598159",
+                "aws_account:1234597598159",
                 "functionname:swf-hello-test",
             ],
         )
@@ -192,6 +205,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
                     "tags": [
                         "region:us-east-1",
                         "account_id:172597598159",
+                        "aws_account:172597598159",
                         "functionname:post-coupon-prod-us",
                     ],
                     "timestamp": 10000,
@@ -202,6 +216,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
                     "tags": [
                         "region:us-east-1",
                         "account_id:172597598159",
+                        "aws_account:172597598159",
                         "functionname:post-coupon-prod-us",
                     ],
                     "timestamp": 10000,
@@ -212,6 +227,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
                     "tags": [
                         "region:us-east-1",
                         "account_id:172597598159",
+                        "aws_account:172597598159",
                         "functionname:post-coupon-prod-us",
                     ],
                     "timestamp": 10000,
@@ -222,6 +238,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
                     "tags": [
                         "region:us-east-1",
                         "account_id:172597598159",
+                        "aws_account:172597598159",
                         "functionname:post-coupon-prod-us",
                     ],
                     "timestamp": 10000,
@@ -272,6 +289,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
                     "tags": [
                         "region:us-east-1",
                         "account_id:172597598159",
+                        "aws_account:172597598159",
                         "functionname:post-coupon-prod-us",
                         "team:metrics",
                         "monitor:datadog",
@@ -286,6 +304,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
                     "tags": [
                         "region:us-east-1",
                         "account_id:172597598159",
+                        "aws_account:172597598159",
                         "functionname:post-coupon-prod-us",
                         "team:metrics",
                         "monitor:datadog",
@@ -300,6 +319,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
                     "tags": [
                         "region:us-east-1",
                         "account_id:172597598159",
+                        "aws_account:172597598159",
                         "functionname:post-coupon-prod-us",
                         "team:metrics",
                         "monitor:datadog",
@@ -314,6 +334,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
                     "tags": [
                         "region:us-east-1",
                         "account_id:172597598159",
+                        "aws_account:172597598159",
                         "functionname:post-coupon-prod-us",
                         "team:metrics",
                         "monitor:datadog",
