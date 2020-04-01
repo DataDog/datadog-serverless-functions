@@ -45,8 +45,8 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
         self.assertEqual(
             sanitize_aws_tag_string("serv:erless:", remove_colons=True), "serv_erless"
         )
-        # Convert camel case
-        self.assertEqual(sanitize_aws_tag_string("serVerLess"), "ser_ver_less")
+        # Convert to lower
+        self.assertEqual(sanitize_aws_tag_string("serVerLess"), "serverless")
 
     def test_parse_lambda_tags_from_arn(self):
         self.assertListEqual(
