@@ -175,17 +175,6 @@ _other_chars = r"\w:\-\.\/"
 Sanitize = re.compile(r"[^%s]" % _other_chars, re.UNICODE).sub
 Dedupe = re.compile(r"_+", re.UNICODE).sub
 FixInit = re.compile(r"^[_\d]*", re.UNICODE).sub
-FirstCapRe = re.compile("(.)([A-Z][a-z]+)")
-AllCapRe = re.compile("([a-z0-9])([A-Z])")
-
-
-def convert_camel_case_to_underscore(string):
-    """
-    Convert from CamelCase to camel_case
-    """
-    global FirstCapRe, AllCapRe
-    string = FirstCapRe.sub(r"\1_\2", string)
-    return AllCapRe.sub(r"\1_\2", string).lower()
 
 
 def sanitize_aws_tag_string(tag, remove_colons=False):
@@ -193,19 +182,17 @@ def sanitize_aws_tag_string(tag, remove_colons=False):
     """
     global Sanitize, Dedupe, FixInit
 
-    # 1. Convert camel case to underscores
-    # 2. Replaces colons with _
-    # 3. Convert to all lowercase unicode string
-    # 4. Convert bad characters to underscores
-    # 5. Dedupe contiguous underscores
-    # 6. Remove initial underscores/digits such that the string
+    # 1. Replaces colons with _
+    # 2. Convert to all lowercase unicode string
+    # 3. Convert bad characters to underscores
+    # 4. Dedupe contiguous underscores
+    # 5. Remove initial underscores/digits such that the string
     #    starts with an alpha char
     #    FIXME: tag normalization incorrectly supports tags starting
     #    with a ':', but this behavior should be phased out in future
     #    as it results in unqueryable data.  See dogweb/#11193
-    # 7. Truncate to 200 characters
-    # 8. Strip trailing underscores
-    tag = convert_camel_case_to_underscore(tag)
+    # 6. Truncate to 200 characters
+    # 7. Strip trailing underscores
     if remove_colons:
         tag = tag.replace(":", "_")
     tag = Dedupe(u"_", Sanitize(u"_", tag.lower()))
