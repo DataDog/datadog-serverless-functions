@@ -34,9 +34,9 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
     def test_sanitize_tag_string(self):
         self.assertEqual(sanitize_aws_tag_string("serverless"), "serverless")
         # Don't replace : \ / . in middle of string
-        self.assertEqual(sanitize_aws_tag_string("ser-/.ver_less"), "ser-/.ver_less")  #
+        self.assertEqual(sanitize_aws_tag_string("ser-/.ver_less"), "ser-/.ver_less")
         # Remove invalid characters
-        self.assertEqual(sanitize_aws_tag_string("s+e@rv_erl_ess"), "s_e_rv_erl_ess")  #
+        self.assertEqual(sanitize_aws_tag_string("s+e@rv_erl_ess"), "s_e_rv_erl_ess")
         # Dedup underscores
         self.assertEqual(sanitize_aws_tag_string("serverl___ess"), "serverl_ess")
         # Keep colons when remove_colons=False
