@@ -100,11 +100,21 @@ variable "dd_api_key" {
   description = "Datadog API key"
 }
 
+resource "aws_secretsmanager_secret" "dd_api_key" {
+  name        = "datadog_api_key"
+  description = "Datadog API Key"
+}
+
+resource "aws_secretsmanager_secret_version" "dd_api_key" {
+  secret_id     = aws_secretsmanager_secret.dd_api_key.id
+  secret_string = var.dd_api_key
+}
+
 resource "aws_cloudformation_stack" "datadog-forwarder" {
   name         = "datadog-forwarder"
   capabilities = ["CAPABILITY_IAM", "CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND"]
   parameters   = {
-    DdApiKey        = var.dd_api_key
+    DdApiKeySecret  = aws_secretsmanager_secret.dd_api_key.arn
     FunctionName    = "datadog-forwarder"
   }
   template_url = "https://datadog-cloudformation-template.s3.amazonaws.com/aws/forwarder/latest.yaml"
