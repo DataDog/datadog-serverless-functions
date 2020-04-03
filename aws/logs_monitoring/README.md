@@ -114,8 +114,9 @@ resource "aws_cloudformation_stack" "datadog-forwarder" {
   name         = "datadog-forwarder"
   capabilities = ["CAPABILITY_IAM", "CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND"]
   parameters   = {
-    DdApiKeySecret  = aws_secretsmanager_secret.dd_api_key.arn
-    FunctionName    = "datadog-forwarder"
+    DdApiKey           = "value_will_be_overwritten_by_DdApiKeySecretArn"
+    DdApiKeySecretArn  = aws_secretsmanager_secret.dd_api_key.arn
+    FunctionName       = "datadog-forwarder"
   }
   template_url = "https://datadog-cloudformation-template.s3.amazonaws.com/aws/forwarder/latest.yaml"
 }
