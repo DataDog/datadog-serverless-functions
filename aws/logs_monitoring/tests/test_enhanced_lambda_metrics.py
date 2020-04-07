@@ -1,7 +1,7 @@
 import unittest
 import os
 
-from mock import patch
+from unittest.mock import patch
 
 from enhanced_lambda_metrics import (
     sanitize_aws_tag_string,
@@ -47,6 +47,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
         )
         # Convert to lower
         self.assertEqual(sanitize_aws_tag_string("serVerLess"), "serverless")
+        self.assertEqual(sanitize_aws_tag_string(""), "")
 
     def test_parse_lambda_tags_from_arn(self):
         self.assertListEqual(
@@ -71,6 +72,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
                             "Tags": [
                                 {"Key": "stage", "Value": "dev"},
                                 {"Key": "team", "Value": "serverless"},
+                                {"Key": "empty", "Value": ""},
                             ],
                         },
                         {
@@ -79,6 +81,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
                                 {"Key": "stage", "Value": "prod"},
                                 {"Key": "team", "Value": "serverless"},
                                 {"Key": "datacenter", "Value": "eu"},
+                                {"Key": "empty", "Value": ""},
                             ],
                         },
                     ]
@@ -88,11 +91,13 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
                 "arn:aws:lambda:us-east-1:123497598159:function:my-test-lambda-dev": [
                     "stage:dev",
                     "team:serverless",
+                    "empty",
                 ],
                 "arn:aws:lambda:us-east-1:123497598159:function:my-test-lambda-prod": [
                     "stage:prod",
                     "team:serverless",
                     "datacenter:eu",
+                    "empty",
                 ],
             },
         )

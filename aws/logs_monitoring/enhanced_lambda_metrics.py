@@ -193,6 +193,11 @@ def sanitize_aws_tag_string(tag, remove_colons=False):
     #    as it results in unqueryable data.  See dogweb/#11193
     # 6. Truncate to 200 characters
     # 7. Strip trailing underscores
+
+    if len(tag) == 0:
+        # if tag is empty, nothing to do
+        return tag
+
     if remove_colons:
         tag = tag.replace(":", "_")
     tag = Dedupe(u"_", Sanitize(u"_", tag.lower()))
