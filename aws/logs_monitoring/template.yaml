@@ -4,7 +4,7 @@ Description: Pushes logs, metrics and traces from AWS to Datadog.
 Mappings:
   Constants:
     DdForwarder:
-      Version: 3.6.0
+      Version: 3.7.0
 Parameters:
   DdApiKey:
     Type: String
@@ -148,8 +148,8 @@ Parameters:
 Conditions:
   CreateDdApiKeySecret:
     Fn::Equals:
-       - Ref: DdApiKeySecretArn
-       - "arn:aws:secretsmanager:DEFAULT"
+      - Ref: DdApiKeySecretArn
+      - "arn:aws:secretsmanager:DEFAULT"
   SetFunctionName:
     Fn::Not:
       - Fn::Equals:
@@ -273,8 +273,8 @@ Resources:
                   !FindInMap [Constants, DdForwarder, Version],
               }
       Layers:
-        - Fn::Sub: arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Python37:11
-        - Fn::Sub: arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Trace-Forwarder-Python37:5
+        - Fn::Sub: arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Python37:16
+        - Fn::Sub: arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Trace-Forwarder-Python37:6
       Tags:
         dd_forwarder_version: !FindInMap [Constants, DdForwarder, Version]
       Environment:
