@@ -76,6 +76,7 @@ class LambdaTagsCache(object):
         self.tags_ttl_seconds = tags_ttl_seconds
 
         self.tags_by_arn = {}
+        self.missing_arns = set()
         self.last_tags_fetch_time = 0
 
     def _refresh(self):
@@ -91,6 +92,7 @@ class LambdaTagsCache(object):
             return
 
         self.tags_by_arn = build_tags_by_arn_cache()
+        self.missing_arns -= set(self.tags_by_arn.keys())
 
     def _is_expired(self):
         """Returns bool for whether the tag fetch TTL has expired
@@ -100,18 +102,33 @@ class LambdaTagsCache(object):
         )
         return time() > earliest_time_to_refetch_tags
 
+    def _should_refresh_if_missing_arn(self, resource_arn):
+        """ Determines whether to try and fetch a missing lambda arn.
+        We only refresh if we encounter an arn that we haven't seen
+        since the last refresh. This prevents refreshing on every call when
+        tags can't be found for an arn.
+        """
+        if resource_arn in self.missing_arns:
+            return False
+        return self.tags_by_arn.get(resource_arn) is None
+
     def get(self, resource_arn):
         """Get the tags for the Lambda function from the cache
 
-        Will refetch the tags if they are out of date
+        Will refetch the tags if they are out of date, or a lambda arn is encountered
+        which isn't in the tag list
 
         Returns:
             lambda_tags (str[]): the list of "key:value" Datadog tag strings
         """
-        if self._is_expired():
+        if self._is_expired() or self._should_refresh_if_missing_arn(resource_arn):
             self._refresh()
 
-        function_tags = self.tags_by_arn.get(resource_arn, [])
+        function_tags = self.tags_by_arn.get(resource_arn, None)
+
+        if function_tags is None:
+            self.missing_arns.add(resource_arn)
+            return []
 
         return function_tags
 
@@ -180,7 +197,7 @@ FixInit = re.compile(r"^[_\d]*", re.UNICODE).sub
 def sanitize_aws_tag_string(tag, remove_colons=False):
     """Convert characters banned from DD but allowed in AWS tags to underscores
     """
-    global Sanitize, Dedupe, FixInit
+    global Sanitize, Dedupe, FixInit1677
 
     # 1. Replaces colons with _
     # 2. Convert to all lowercase unicode string
