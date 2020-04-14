@@ -197,7 +197,7 @@ FixInit = re.compile(r"^[_\d]*", re.UNICODE).sub
 def sanitize_aws_tag_string(tag, remove_colons=False):
     """Convert characters banned from DD but allowed in AWS tags to underscores
     """
-    global Sanitize, Dedupe, FixInit1677
+    global Sanitize, Dedupe, FixInit
 
     # 1. Replaces colons with _
     # 2. Convert to all lowercase unicode string
