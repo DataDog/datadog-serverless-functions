@@ -354,6 +354,87 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
 
         del os.environ["DD_FETCH_LAMBDA_TAGS"]
 
+    @patch("enhanced_lambda_metrics.build_tags_by_arn_cache")
+    def test_generate_enhanced_lambda_metrics_once_with_missing_arn(
+        self, mock_build_cache
+    ):
+        mock_build_cache.return_value = {}
+        tags_cache = LambdaTagsCache()
+
+        logs_input = {
+            "message": "REPORT RequestId: fe1467d6-1458-4e20-8e40-9aaa4be7a0f4\tDuration: 3470.65 ms\tBilled Duration: 3500 ms\tMemory Size: 128 MB\tMax Memory Used: 89 MB\t\nXRAY TraceId: 1-5d8bba5a-dc2932496a65bab91d2d42d4\tSegmentId: 5ff79d2a06b82ad6\tSampled: true\t\n",
+            "aws": {
+                "awslogs": {
+                    "logGroup": "/aws/lambda/post-coupon-prod-us",
+                    "logStream": "2019/09/25/[$LATEST]d6c10ebbd9cb48dba94a7d9b874b49bb",
+                    "owner": "172597598159",
+                },
+                "function_version": "$LATEST",
+                "invoked_function_arn": "arn:aws:lambda:us-east-1:172597598159:function:collect_logs_datadog_demo",
+            },
+            "lambda": {
+                "arn": "arn:aws:lambda:us-east-1:172597598159:function:post-coupon-prod-us"
+            },
+            "timestamp": 10000,
+        }
+
+        os.environ["DD_FETCH_LAMBDA_TAGS"] = "True"
+
+        generated_metrics = generate_enhanced_lambda_metrics(logs_input, tags_cache)
+        mock_build_cache.assert_called_once()
+        mock_build_cache.reset_mock()
+
+        generated_metrics = generate_enhanced_lambda_metrics(logs_input, tags_cache)
+        mock_build_cache.assert_not_called()
+
+        del os.environ["DD_FETCH_LAMBDA_TAGS"]
+
+    @patch("enhanced_lambda_metrics.build_tags_by_arn_cache")
+    def test_generate_enhanced_lambda_metrics_refresh_on_new_arn(
+        self, mock_build_cache
+    ):
+        mock_build_cache.return_value = {
+            "arn:aws:lambda:us-east-1:172597598159:function:post-coupon-prod-us": [
+                "team:metrics",
+                "monitor:datadog",
+                "env:prod",
+                "creator:swf",
+            ]
+        }
+        tags_cache = LambdaTagsCache()
+
+        logs_input = {
+            "message": "REPORT RequestId: fe1467d6-1458-4e20-8e40-9aaa4be7a0f4\tDuration: 3470.65 ms\tBilled Duration: 3500 ms\tMemory Size: 128 MB\tMax Memory Used: 89 MB\t\nXRAY TraceId: 1-5d8bba5a-dc2932496a65bab91d2d42d4\tSegmentId: 5ff79d2a06b82ad6\tSampled: true\t\n",
+            "aws": {
+                "awslogs": {
+                    "logGroup": "/aws/lambda/post-coupon-prod-us",
+                    "logStream": "2019/09/25/[$LATEST]d6c10ebbd9cb48dba94a7d9b874b49bb",
+                    "owner": "172597598159",
+                },
+                "function_version": "$LATEST",
+                "invoked_function_arn": "arn:aws:lambda:us-east-1:172597598159:function:collect_logs_datadog_demo",
+            },
+            "lambda": {
+                "arn": "arn:aws:lambda:us-east-1:172597598159:function:post-coupon-prod-us"
+            },
+            "timestamp": 10000,
+        }
+
+        os.environ["DD_FETCH_LAMBDA_TAGS"] = "True"
+
+        generated_metrics = generate_enhanced_lambda_metrics(logs_input, tags_cache)
+        mock_build_cache.assert_called_once()
+        mock_build_cache.reset_mock()
+
+        # Creat a new
+        logs_input["lambda"][
+            "arn"
+        ] = "arn:aws:lambda:us-east-1:172597598159:function:post-coupon-eu"
+        generated_metrics = generate_enhanced_lambda_metrics(logs_input, tags_cache)
+        mock_build_cache.assert_called_once()
+
+        del os.environ["DD_FETCH_LAMBDA_TAGS"]
+
 
 if __name__ == "__main__":
     unittest.main()
