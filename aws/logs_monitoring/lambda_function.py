@@ -52,7 +52,6 @@ except ImportError:
 finally:
     log.debug(f"IS_ENHANCED_METRICS_FILE_PRESENT: {IS_ENHANCED_METRICS_FILE_PRESENT}")
 
-
 try:
     # Datadog Lambda layer is required to forward metrics
     from datadog_lambda.wrapper import datadog_lambda_wrapper
@@ -557,6 +556,13 @@ class DatadogScrubber(object):
         return payload
 
 
+def log_has_report_msg(log):
+    msg = log.get("message", "")
+    if isinstance(msg, str) and msg.startswith("REPORT"):
+        return True
+    return False
+
+
 def datadog_forwarder(event, context):
     """The actual lambda function entry point"""
     metrics, logs, traces = split(enrich(parse(event, context)))
@@ -571,9 +577,7 @@ def datadog_forwarder(event, context):
         forward_traces(traces)
 
     if IS_ENHANCED_METRICS_FILE_PRESENT:
-        report_logs = filter(
-            lambda log: log.get("message", "").startswith("REPORT"), logs
-        )
+        report_logs = filter(log_has_report_msg, logs)
         parse_and_submit_enhanced_metrics(report_logs)
 
 
