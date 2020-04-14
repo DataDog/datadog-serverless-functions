@@ -5,3 +5,4 @@ base.zip
 */env
 .vscode
 **/node_modules
+.idea
