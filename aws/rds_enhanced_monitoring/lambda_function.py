@@ -2,27 +2,31 @@
 # under the Apache License Version 2.0.
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2019 Datadog, Inc.
-from datadog_lambda.wrapper import datadog_lambda_wrapper
-from datadog_lambda.metric import lambda_stats
 import gzip
 import json
 import os
 import re
+import time
 import base64
 import logging
 from io import BufferedReader, BytesIO
+from urllib.request import Request, urlopen
+from urllib.parse import urlencode
+
+import boto3
+
+DD_SITE = os.getenv("DD_SITE", default="datadoghq.com")
+
+# retrieve datadog options from KMS
+KMS_ENCRYPTED_KEYS = os.environ['kmsEncryptedKeys']
+kms = boto3.client('kms')
+datadog_keys = json.loads(kms.decrypt(CiphertextBlob=base64.b64decode(KMS_ENCRYPTED_KEYS))['Plaintext'])
+
 
 log = logging.getLogger()
 log.setLevel(logging.getLevelName(
     os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
 
-
-def _lambda_distribution_metric(name, value, timestamp, tags, host):
-    # Some rds metrics give non-numeric values and datadog doesn't handle those
-    if type(value) != str:
-        lambda_stats.distribution(
-            name, value, timestamp=timestamp, tags=tags, host=host
-        )
 
 def _process_rds_enhanced_monitoring_message(ts, message, account, region):
     instance_id = message["instanceID"]
@@ -45,31 +49,31 @@ def _process_rds_enhanced_monitoring_message(ts, message, account, region):
     uptime += 60 * int(uptime_day[1])
     uptime += int(uptime_day[2])
 
-    _lambda_distribution_metric(
+    stats.gauge(
         'aws.rds.uptime', uptime, timestamp=ts, tags=tags, host=host_id
     )
 
-    _lambda_distribution_metric(
+    stats.gauge(
         'aws.rds.virtual_cpus', message["numVCPUs"], timestamp=ts, tags=tags, host=host_id
     )
 
     if "loadAverageMinute" in message:
-        _lambda_distribution_metric(
+        stats.gauge(
             'aws.rds.load.1', message["loadAverageMinute"]["one"],
             timestamp=ts, tags=tags, host=host_id
         )
-        _lambda_distribution_metric(
+        stats.gauge(
             'aws.rds.load.5', message["loadAverageMinute"]["five"],
             timestamp=ts, tags=tags, host=host_id
         )
-        _lambda_distribution_metric(
+        stats.gauge(
             'aws.rds.load.15', message["loadAverageMinute"]["fifteen"],
             timestamp=ts, tags=tags, host=host_id
         )
 
     for namespace in ["cpuUtilization", "memory", "tasks", "swap"]:
         for key, value in message.get(namespace, {}).items():
-            _lambda_distribution_metric(
+            stats.gauge(
                 'aws.rds.%s.%s' % (namespace.lower(), key), value,
                 timestamp=ts, tags=tags, host=host_id
             )
@@ -81,7 +85,7 @@ def _process_rds_enhanced_monitoring_message(ts, message, account, region):
         else:
             network_tag = []
         for key, value in network_stats.items():
-            _lambda_distribution_metric(
+            stats.gauge(
                 'aws.rds.network.%s' % key, value,
                 timestamp=ts, tags=tags + network_tag, host=host_id
             )
@@ -89,7 +93,7 @@ def _process_rds_enhanced_monitoring_message(ts, message, account, region):
 
     disk_stats = message.get("diskIO", [{}])[0]  # we never expect to have more than one disk
     for key, value in disk_stats.items():
-        _lambda_distribution_metric(
+        stats.gauge(
             'aws.rds.diskio.%s' % key, value,
             timestamp=ts, tags=tags, host=host_id
         )
@@ -101,7 +105,7 @@ def _process_rds_enhanced_monitoring_message(ts, message, account, region):
             if tag_key in fs_stats:
                 fs_tag.append("%s:%s" % (tag_key, fs_stats.pop(tag_key)))
         for key, value in fs_stats.items():
-            _lambda_distribution_metric(
+            stats.gauge(
                 'aws.rds.filesystem.%s' % key, value,
                 timestamp=ts, tags=tags + fs_tag, host=host_id
             )
@@ -113,7 +117,7 @@ def _process_rds_enhanced_monitoring_message(ts, message, account, region):
             if tag_key in process_stats:
                 process_tag.append("%s:%s" % (tag_key, process_stats.pop(tag_key)))
         for key, value in process_stats.items():
-            _lambda_distribution_metric(
+            stats.gauge(
                 'aws.rds.process.%s' % key, value,
                 timestamp=ts, tags=tags + process_tag, host=host_id
             )
@@ -143,4 +147,38 @@ def lambda_handler(event, context):
         ts = log_event['timestamp'] / 1000
         _process_rds_enhanced_monitoring_message(ts, message, account, region)
 
+    stats.flush()
     return {'Status': 'OK'}
+
+# Helpers to send data to Datadog, inspired from https://github.com/DataDog/datadogpy
+
+class Stats(object):
+
+    def __init__(self):
+        self.series = []
+
+    def gauge(self, metric, value, timestamp=None, tags=None, host=None):
+        base_dict = {
+            'metric': metric,
+            'points': [(int(timestamp or time.time()), value)],
+            'type': 'gauge',
+            'tags': tags,
+        }
+        if host:
+            base_dict.update({'host': host})
+        self.series.append(base_dict)
+
+    def flush(self):
+        metrics_dict = {
+            'series': self.series,
+        }
+        self.series = []
+
+        creds = urlencode(datadog_keys)
+        data = json.dumps(metrics_dict).encode('ascii')
+        url = '%s?%s' % (datadog_keys.get('api_host', 'https://app.%s/api/v1/series' % DD_SITE), creds)
+        req = Request(url, data, {'Content-Type': 'application/json'})
+        response = urlopen(req)
+        print('INFO Submitted data with status%s' % response.getcode())
+
+stats = Stats()
