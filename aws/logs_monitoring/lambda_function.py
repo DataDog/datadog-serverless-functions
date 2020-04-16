@@ -35,6 +35,7 @@ except ImportError:
     # of requests is removed in botocore 1.13.x.
     from botocore.vendored import requests
 
+IS_ENHANCED_METRICS_FILE_PRESENT = False
 try:
     from enhanced_lambda_metrics import (
         get_enriched_lambda_log_tags,
