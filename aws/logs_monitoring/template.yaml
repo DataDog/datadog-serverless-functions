@@ -260,7 +260,7 @@ Resources:
       Handler: lambda_function.lambda_handler
       MemorySize:
         Ref: MemorySize
-      Runtime: python3.7
+      Runtime: python3.8
       Timeout:
         Ref: Timeout
       CodeUri:
@@ -273,8 +273,7 @@ Resources:
                   !FindInMap [Constants, DdForwarder, Version],
               }
       Layers:
-        - Fn::Sub: arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Python37:16
-        - Fn::Sub: arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Trace-Forwarder-Python37:6
+        - Fn::Sub: arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Trace-Forwarder-Python38:6
       Tags:
         dd_forwarder_version: !FindInMap [Constants, DdForwarder, Version]
       Environment:
@@ -451,7 +450,7 @@ Resources:
     Properties:
       Description: Copies Datadog Forwarder zip to the destination S3 bucket
       Handler: index.handler
-      Runtime: python3.7
+      Runtime: python3.8
       Timeout: 300
       InlineCode: |
         import json
