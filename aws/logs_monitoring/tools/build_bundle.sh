@@ -11,7 +11,18 @@ set -e
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 cd $DIR
 
-PYTHON_VERSIONS=("3.8.0")
+# Read the desired version
+if [ -z "$1" ]; then
+    echo "Must specify a desired version number"
+    exit 1
+elif [[ ! $1 =~ [0-9]+\.[0-9]+\.[0-9]+ ]]; then
+    echo "Must use a semantic version, e.g., 3.1.4"
+    exit 1
+else
+    VERSION=$1
+fi
+
+PYTHON_VERSION="3.7"
 FORWARDER_PREFIX="aws-dd-forwarder"
 FORWARDER_DIR="../.forwarder"
 
@@ -44,11 +55,8 @@ function docker_build_zip {
 rm -rf $FORWARDER_DIR
 mkdir $FORWARDER_DIR
 
-for python_version in "${PYTHON_VERSIONS[@]}"
-do
-    echo "Building layer for python${python_version}"
-    docker_build_zip ${python_version} ${FORWARDER_DIR}/${FORWARDER_PREFIX}${python_version}.zip
-done
+echo "Building layer for python${python_version}"
+docker_build_zip ${PYTHON_VERSION} ${FORWARDER_DIR}/${FORWARDER_PREFIX}-${VERSION}.zip
 
 
 echo "Done creating forwarder:"
