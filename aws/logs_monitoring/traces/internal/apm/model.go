@@ -298,7 +298,7 @@ func computeSublayerMetrics(t pb.Trace) {
 	root := traceutil.GetRoot(t)
 	traceutil.ComputeTopLevel(t)
 
-	subtraces := stats.ExtractTopLevelSubtraces(t, root)
+	subtraces := stats.ExtractSubtraces(t, root)
 	sublayers := make(map[*pb.Span][]stats.SublayerValue)
 	for _, subtrace := range subtraces {
 		subtraceSublayers := stats.ComputeSublayers(subtrace.Trace)
