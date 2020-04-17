@@ -2,18 +2,20 @@
 # under the Apache License Version 2.0.
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2019 Datadog, Inc.
+from datadog_lambda.wrapper import datadog_lambda_wrapper
+from datadog_lambda.metric import lambda_stats
 import gzip
 import json
 import os
 import re
 import time
 import base64
-import logging
 from io import BufferedReader, BytesIO
 from urllib.request import Request, urlopen
 from urllib.parse import urlencode
 
 import boto3
+
 
 DD_SITE = os.getenv("DD_SITE", default="datadoghq.com")
 
@@ -22,10 +24,7 @@ KMS_ENCRYPTED_KEYS = os.environ['kmsEncryptedKeys']
 kms = boto3.client('kms')
 datadog_keys = json.loads(kms.decrypt(CiphertextBlob=base64.b64decode(KMS_ENCRYPTED_KEYS))['Plaintext'])
 
-
-log = logging.getLogger()
-log.setLevel(logging.getLevelName(
-    os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
+print('INFO Lambda function initialized, ready to send metrics')
 
 
 def _process_rds_enhanced_monitoring_message(ts, message, account, region):
@@ -48,7 +47,6 @@ def _process_rds_enhanced_monitoring_message(ts, message, account, region):
     uptime += 3600 * int(uptime_day[0])
     uptime += 60 * int(uptime_day[1])
     uptime += int(uptime_day[2])
-
     stats.gauge(
         'aws.rds.uptime', uptime, timestamp=ts, tags=tags, host=host_id
     )
@@ -77,7 +75,6 @@ def _process_rds_enhanced_monitoring_message(ts, message, account, region):
                 'aws.rds.%s.%s' % (namespace.lower(), key), value,
                 timestamp=ts, tags=tags, host=host_id
             )
-            
 
     for network_stats in message.get("network", []):
         if "interface" in network_stats:
@@ -89,7 +86,6 @@ def _process_rds_enhanced_monitoring_message(ts, message, account, region):
                 'aws.rds.network.%s' % key, value,
                 timestamp=ts, tags=tags + network_tag, host=host_id
             )
-    
 
     disk_stats = message.get("diskIO", [{}])[0]  # we never expect to have more than one disk
     for key, value in disk_stats.items():
@@ -97,7 +93,6 @@ def _process_rds_enhanced_monitoring_message(ts, message, account, region):
             'aws.rds.diskio.%s' % key, value,
             timestamp=ts, tags=tags, host=host_id
         )
-        
 
     for fs_stats in message.get("fileSys", []):
         fs_tag = []
@@ -109,7 +104,6 @@ def _process_rds_enhanced_monitoring_message(ts, message, account, region):
                 'aws.rds.filesystem.%s' % key, value,
                 timestamp=ts, tags=tags + fs_tag, host=host_id
             )
-            
 
     for process_stats in message.get("processList", []):
         process_tag = []
@@ -121,7 +115,6 @@ def _process_rds_enhanced_monitoring_message(ts, message, account, region):
                 'aws.rds.process.%s' % key, value,
                 timestamp=ts, tags=tags + process_tag, host=host_id
             )
-            
 
 
 @datadog_lambda_wrapper
@@ -149,6 +142,7 @@ def lambda_handler(event, context):
 
     stats.flush()
     return {'Status': 'OK'}
+
 
 # Helpers to send data to Datadog, inspired from https://github.com/DataDog/datadogpy
 
