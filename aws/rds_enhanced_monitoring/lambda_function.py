@@ -2,8 +2,6 @@
 # under the Apache License Version 2.0.
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2019 Datadog, Inc.
-from datadog_lambda.wrapper import datadog_lambda_wrapper
-from datadog_lambda.metric import lambda_stats
 import gzip
 import json
 import os
