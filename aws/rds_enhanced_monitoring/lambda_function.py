@@ -115,7 +115,6 @@ def _process_rds_enhanced_monitoring_message(ts, message, account, region):
             )
 
 
-@datadog_lambda_wrapper
 def lambda_handler(event, context):
     ''' Process a RDS enhenced monitoring DATA_MESSAGE,
         coming from CLOUDWATCH LOGS
