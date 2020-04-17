@@ -1,0 +1,45 @@
+{
+  "traces": [
+    [
+      {
+        "trace_id": "75BCD15",
+        "span_id": "657CE98223D7F307",
+        "parent_id": "248B0C57D64F053",
+        "name": "calculation-long-number",
+        "resource": "calculation-long-number",
+        "error": 0,
+        "meta": {
+          "language": "javascript"
+        },
+        "metrics": {
+          "_sample_rate": 1,
+          "_sampling_priority_v1": 2
+        },
+        "start": 1565381107232644000,
+        "duration": 260664063,
+        "service": "node"
+      },
+      {
+        "trace_id": "75BCD15",
+        "span_id": "248B0C57D64F053",
+        "parent_id": "B853ABB94CFE745C",
+        "name": "aws.lambda",
+        "type": "web",
+        "resource": "aws.lambda",
+
+        "error": 0,
+        "meta": {
+          "language": "javascript",
+          "http.url": "https://www.google.com?api_key=12AB45DEWF"
+        },
+        "metrics": {
+          "_sample_rate": 1,
+          "_sampling_priority_v1": 2
+        },
+        "start": 1565381107070475300,
+        "duration": 539684570,
+        "service": "node"
+      }
+    ]
+  ]
+}
