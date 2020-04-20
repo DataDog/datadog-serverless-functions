@@ -20,6 +20,8 @@ class TraceConnection:
         self.lib.Configure(make_go_string(root_url), make_go_string(api_key))
 
     def send_trace(self, trace_str, tags=""):
-        had_error = self.lib.ForwardTrace(make_go_string(trace_str), make_go_string(tags)) != 0
+        had_error = (
+            self.lib.ForwardTrace(make_go_string(trace_str), make_go_string(tags)) != 0
+        )
         if had_error:
             raise Exception("Failed to send to trace intake")
