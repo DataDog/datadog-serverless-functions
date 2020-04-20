@@ -83,6 +83,7 @@ If for some reason you cannot install the forwarder using the provided CloudForm
 1. Create a Python3.7 Lambda function using `aws-dd-forwarder-<VERSION>.zip` from the latest [releases](https://github.com/DataDog/datadog-serverless-functions/releases).
 1. Save your Datadog API key in AWS Secrets Manager, set environment variable `DD_API_KEY_SECRET_ARN` with the secret ARN on the Lambda function, and add the `secretsmanager:GetSecretValue` permission to the Lambda execution role.
 1. If you need to forward logs from S3 buckets, add the `s3:GetObject` permission to the Lambda execution role.
+1. Set environment variable `DD_ENHANCED_METRICS` to `false` on the forwarder. This stops the forwarder from generating enhanced metrics itself, (it will still forward custom metrics from other lambdas).
 1. Configure [triggers](https://docs.datadoghq.com/integrations/amazon_web_services/?tab=allpermissions#send-aws-service-logs-to-datadog).
 
 </details>
