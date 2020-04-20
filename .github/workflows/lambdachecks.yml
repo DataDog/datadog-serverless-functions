@@ -26,3 +26,6 @@ jobs:
         run: |
           pip install black
           black --check ./aws/logs_monitoring
+      - name: Run integration tests
+        run: |
+          ./aws/logs_monitoring/tools/integration_test.sh
