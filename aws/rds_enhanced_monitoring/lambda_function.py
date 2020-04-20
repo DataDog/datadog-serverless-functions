@@ -1,17 +1,16 @@
 # Unless explicitly stated otherwise all files in this repository are licensed
 # under the Apache License Version 2.0.
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
-# Copyright 2018 Datadog, Inc.
-
+# Copyright 2019 Datadog, Inc.
 import gzip
 import json
 import os
 import re
 import time
-import urllib
-import urllib2
-from base64 import b64decode
-from StringIO import StringIO
+import base64
+from io import BufferedReader, BytesIO
+from urllib.request import Request, urlopen
+from urllib.parse import urlencode
 
 import boto3
 
@@ -21,9 +20,9 @@ DD_SITE = os.getenv("DD_SITE", default="datadoghq.com")
 # retrieve datadog options from KMS
 KMS_ENCRYPTED_KEYS = os.environ['kmsEncryptedKeys']
 kms = boto3.client('kms')
-datadog_keys = json.loads(kms.decrypt(CiphertextBlob=b64decode(KMS_ENCRYPTED_KEYS))['Plaintext'])
+datadog_keys = json.loads(kms.decrypt(CiphertextBlob=base64.b64decode(KMS_ENCRYPTED_KEYS))['Plaintext'])
 
-print 'INFO Lambda function initialized, ready to send metrics'
+print('INFO Lambda function initialized, ready to send metrics')
 
 
 def _process_rds_enhanced_monitoring_message(ts, message, account, region):
@@ -69,7 +68,7 @@ def _process_rds_enhanced_monitoring_message(ts, message, account, region):
         )
 
     for namespace in ["cpuUtilization", "memory", "tasks", "swap"]:
-        for key, value in message.get(namespace, {}).iteritems():
+        for key, value in message.get(namespace, {}).items():
             stats.gauge(
                 'aws.rds.%s.%s' % (namespace.lower(), key), value,
                 timestamp=ts, tags=tags, host=host_id
@@ -80,14 +79,14 @@ def _process_rds_enhanced_monitoring_message(ts, message, account, region):
             network_tag = ["interface:%s" % network_stats.pop("interface")]
         else:
             network_tag = []
-        for key, value in network_stats.iteritems():
+        for key, value in network_stats.items():
             stats.gauge(
                 'aws.rds.network.%s' % key, value,
                 timestamp=ts, tags=tags + network_tag, host=host_id
             )
 
     disk_stats = message.get("diskIO", [{}])[0]  # we never expect to have more than one disk
-    for key, value in disk_stats.iteritems():
+    for key, value in disk_stats.items():
         stats.gauge(
             'aws.rds.diskio.%s' % key, value,
             timestamp=ts, tags=tags, host=host_id
@@ -98,7 +97,7 @@ def _process_rds_enhanced_monitoring_message(ts, message, account, region):
         for tag_key in ["name", "mountPoint"]:
             if tag_key in fs_stats:
                 fs_tag.append("%s:%s" % (tag_key, fs_stats.pop(tag_key)))
-        for key, value in fs_stats.iteritems():
+        for key, value in fs_stats.items():
             stats.gauge(
                 'aws.rds.filesystem.%s' % key, value,
                 timestamp=ts, tags=tags + fs_tag, host=host_id
@@ -109,7 +108,7 @@ def _process_rds_enhanced_monitoring_message(ts, message, account, region):
         for tag_key in ["name", "id"]:
             if tag_key in process_stats:
                 process_tag.append("%s:%s" % (tag_key, process_stats.pop(tag_key)))
-        for key, value in process_stats.iteritems():
+        for key, value in process_stats.items():
             stats.gauge(
                 'aws.rds.process.%s' % key, value,
                 timestamp=ts, tags=tags + process_tag, host=host_id
@@ -121,10 +120,12 @@ def lambda_handler(event, context):
         coming from CLOUDWATCH LOGS
     '''
     # event is a dict containing a base64 string gzipped
-    event = event['awslogs']['data']
-    event = json.loads(
-        gzip.GzipFile(fileobj=StringIO(event.decode('base64'))).read()
-    )
+    with gzip.GzipFile(
+        fileobj=BytesIO(base64.b64decode(event["awslogs"]["data"]))
+    ) as decompress_stream:
+        data = b"".join(BufferedReader(decompress_stream))
+
+    event = json.loads(data)
 
     account = event['owner']
     region = context.invoked_function_arn.split(':', 4)[3]
@@ -164,11 +165,11 @@ class Stats(object):
         }
         self.series = []
 
-        creds = urllib.urlencode(datadog_keys)
-        data = json.dumps(metrics_dict)
+        creds = urlencode(datadog_keys)
+        data = json.dumps(metrics_dict).encode('ascii')
         url = '%s?%s' % (datadog_keys.get('api_host', 'https://app.%s/api/v1/series' % DD_SITE), creds)
-        req = urllib2.Request(url, data, {'Content-Type': 'application/json'})
-        response = urllib2.urlopen(req)
-        print 'INFO Submitted data with status', response.getcode()
+        req = Request(url, data, {'Content-Type': 'application/json'})
+        response = urlopen(req)
+        print('INFO Submitted data with status%s' % response.getcode())
 
 stats = Stats()
