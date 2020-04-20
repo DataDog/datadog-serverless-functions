@@ -30,6 +30,8 @@ function make_path_absolute {
     echo "$(cd "$(dirname "$1")"; pwd)/$(basename "$1")"
 }
 
+../trace_forwarder/scripts/build_linux_go_bin.sh
+
 function docker_build_zip {
     # Args: [python version] [zip destination]
 

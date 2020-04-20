@@ -8,13 +8,17 @@
 # Builds Datadogpy layers for lambda functions, using Docker
 set -e
 
-rm -rf bin
+# Change to the parent of the directory this script is in
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+cd $DIR/..
+
+rm -rf ./bin
 
 # Install datadogpy in a docker container to avoid the mess from switching
 # between different python runtimes.
 docker build -t datadog-go-layer . --no-cache --build-arg runtime=python:3.7
 
 id=$(docker create datadog-go-layer)
-docker cp $id:/go/src/github.com/DataDog/datadog-trace-forwarder/bin .
+docker cp $id:/go/src/github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring/trace_forwarder/bin .
 docker rm -v $id
 echo "Done creating archive bin"

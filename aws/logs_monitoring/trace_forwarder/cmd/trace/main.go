@@ -5,7 +5,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring/traces/internal/apm"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring/trace_forwarder/internal/apm"
 )
 import "github.com/DataDog/datadog-agent/pkg/trace/obfuscate"
 
