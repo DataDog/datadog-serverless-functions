@@ -1,0 +1,8 @@
+*
+!lambda_function.py
+!enhanced_lambda_metrics.py
+!setup.py
+!template.yaml
+!trace_forwarder/bin
+!trace_forwarder/__init__.py
+!trace_forwarder/connection.py
