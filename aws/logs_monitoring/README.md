@@ -20,7 +20,7 @@ AWS Lambda function to ship logs from S3 and CloudWatch, custom metrics and trac
 1. Click **Create stack**, and wait for the creation to complete.
 1. Find the installed forwarder Lambda function under the stack's "Resources" tab with logical ID `Forwarder`.
 1. Set up triggers to the installed Forwarder either [automatically](https://docs.datadoghq.com/integrations/amazon_web_services/?tab=allpermissions#automatically-setup-triggers) or [manually](https://docs.datadoghq.com/integrations/amazon_web_services/?tab=allpermissions#manually-setup-triggers).
-1. Repeat the above steps in another region if you operate in multiple AWS regions. 
+1. Repeat the above steps in another region if you operate in multiple AWS regions.
 
 ## Updating
 
@@ -76,14 +76,13 @@ Set the environment variable `DD_LOG_LEVEL` to `debug` on the Forwarder Lambda f
 
 ## Manual Installation
 
-If for some reason you cannot install the forwarder using the provided CloudFormation template (e.g., AWS China or GovCloud), you can install the forwarder manually following the steps below. Feel free to open an issue or pull request to let us know if there is anything we can improve to make the template work for you.
+If for some reason you cannot install the forwarder using the provided CloudFormation template, you can install the forwarder manually following the steps below. Feel free to open an issue or pull request to let us know if there is anything we can improve to make the template work for you.
 
 <details><summary>Steps</summary>
 
 1. Create a Python3.7 Lambda function using `aws-dd-forwarder-<VERSION>.zip` from the latest [releases](https://github.com/DataDog/datadog-serverless-functions/releases).
 1. Save your Datadog API key in AWS Secrets Manager, set environment variable `DD_API_KEY_SECRET_ARN` with the secret ARN on the Lambda function, and add the `secretsmanager:GetSecretValue` permission to the Lambda execution role.
 1. If you need to forward logs from S3 buckets, add the `s3:GetObject` permission to the Lambda execution role.
-1. If you need to forward custom metrics and traces from your Lambda functions' logs for serverless monitoring (not yet supported in AWS China and GovCloud), attach these [layers](https://github.com/DataDog/datadog-serverless-functions/blob/3639499bf602ea3d04493028aa08d1076cc02234/aws/logs_monitoring/template.yaml#L264) (switch to master branch for the latest layer versions) to the forwarder, and set environment variable `DD_ENHANCED_METRICS` to `false` on the forwarder.
 1. Configure [triggers](https://docs.datadoghq.com/integrations/amazon_web_services/?tab=allpermissions#send-aws-service-logs-to-datadog).
 
 </details>
@@ -132,30 +131,30 @@ To deploy the CloudFormation Stack with the default options, you need to have th
 
 ```json
 {
-   "Effect": "Allow",
-   "Action": [
-         "cloudformation:*",
-         "secretsmanager:CreateSecret",
-         "secretsmanager:TagResource",
-         "s3:CreateBucket",
-         "s3:GetObject",
-         "iam:CreateRole",
-         "iam:GetRole",
-         "iam:PassRole",
-         "iam:PutRolePolicy",
-         "iam:AttachRolePolicy",
-         "lambda:CreateFunction",
-         "lambda:GetFunction",
-         "lambda:GetFunctionConfiguration",
-         "lambda:GetLayerVersion",
-         "lambda:InvokeFunction",
-         "lambda:PutFunctionConcurrency",
-         "lambda:AddPermission",
-         "logs:CreateLogGroup",
-         "logs:DescribeLogGroups",
-         "logs:PutRetentionPolicy"
-   ],
-   "Resource": "*"
+  "Effect": "Allow",
+  "Action": [
+    "cloudformation:*",
+    "secretsmanager:CreateSecret",
+    "secretsmanager:TagResource",
+    "s3:CreateBucket",
+    "s3:GetObject",
+    "iam:CreateRole",
+    "iam:GetRole",
+    "iam:PassRole",
+    "iam:PutRolePolicy",
+    "iam:AttachRolePolicy",
+    "lambda:CreateFunction",
+    "lambda:GetFunction",
+    "lambda:GetFunctionConfiguration",
+    "lambda:GetLayerVersion",
+    "lambda:InvokeFunction",
+    "lambda:PutFunctionConcurrency",
+    "lambda:AddPermission",
+    "logs:CreateLogGroup",
+    "logs:DescribeLogGroups",
+    "logs:PutRetentionPolicy"
+  ],
+  "Resource": "*"
 }
 ```
 
@@ -167,70 +166,60 @@ The CloudFormation Stack creates following IAM roles:
   <details><summary>IAM Statements</summary>
 
   ```json
-   [
-      {
-         "Effect": "Allow",
-         "Action": [
-               "logs:CreateLogGroup",
-               "logs:CreateLogStream",
-               "logs:PutLogEvents"
-         ],
-         "Resource": "*"
-      },
-      {
-         "Action": [
-               "s3:GetObject"
-         ],
-         "Resource": "arn:aws:s3:::*",
-         "Effect": "Allow"
-      },
-      {
-         "Action": [
-               "secretsmanager:GetSecretValue"
-         ],
-         "Resource": "<ARN of DdApiKeySecret>",
-         "Effect": "Allow"
-      }
-   ]
+  [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Action": ["s3:GetObject"],
+      "Resource": "arn:aws:s3:::*",
+      "Effect": "Allow"
+    },
+    {
+      "Action": ["secretsmanager:GetSecretValue"],
+      "Resource": "<ARN of DdApiKeySecret>",
+      "Effect": "Allow"
+    }
+  ]
   ```
 
   </details>
+
 - ForwarderZipCopierRole: The execution role for the ForwarderZipCopier Lambda function to download the Forwarder deployment zip file to a S3 bucket.
   <details><summary>IAM Statements</summary>
 
   ```json
-   [
-      {
-         "Effect": "Allow",
-         "Action": [
-               "logs:CreateLogGroup",
-               "logs:CreateLogStream",
-               "logs:PutLogEvents"
-         ],
-         "Resource": "*"
-      },
-      {
-         "Action": [
-               "s3:PutObject",
-               "s3:DeleteObject"
-         ],
-         "Resource": "<S3Bucket to Store the Forwarder Zip>",
-         "Effect": "Allow"
-      },
-      {
-         "Action": [
-               "s3:ListBucket"
-         ],
-         "Resource": "<S3Bucket to Store the Forwarder Zip>",
-         "Effect": "Allow"
-      }
-   ]
+  [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Action": ["s3:PutObject", "s3:DeleteObject"],
+      "Resource": "<S3Bucket to Store the Forwarder Zip>",
+      "Effect": "Allow"
+    },
+    {
+      "Action": ["s3:ListBucket"],
+      "Resource": "<S3Bucket to Store the Forwarder Zip>",
+      "Effect": "Allow"
+    }
+  ]
   ```
 
   </details>
 
-
 ## Notes
 
-* For S3 logs, there may be some latency between the time a first S3 log file is posted and the Lambda function wakes up.
-* Currently, the forwarder has to be deployed [manually](#manual-installation) to GovCloud and China, and supports only log forwarding.
+- For S3 logs, there may be some latency between the time a first S3 log file is posted and the Lambda function wakes up.
