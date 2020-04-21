@@ -169,7 +169,7 @@ Process a RDS enhanced monitoring DATA_MESSAGE, coming from CLOUDWATCH LOGS
 
    - Create a `lambda_execution` role and attach this policy.
 
-   - Create a lambda function: skip the blueprint, name it `functionname`, set the runtime to `Python 2.7`, the handle to `lambda_function.lambda_handler`, and the role to `lambda_execution`.
+   - Create a lambda function: skip the blueprint, name it `functionname`, set the runtime to `Python 3.7`, the handle to `lambda_function.lambda_handler`, and the role to `lambda_execution`.
 
    - Copy the content of `functionname/lambda_function.py` in the code section, and make sure to update the `KMS_ENCRYPTED_KEYS` environment variable with the encrypted key generated in step 1.
 
