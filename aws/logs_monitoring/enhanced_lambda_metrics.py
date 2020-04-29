@@ -118,6 +118,11 @@ class LambdaTagsCache(object):
         Will refetch the tags if they are out of date, or a lambda arn is encountered
         which isn't in the tag list
 
+        Note: the ARNs in the cache have been lowercased, so resource_arn must be lowercased
+
+        Args:
+            resource_arn (str): the arn we're getting tags from the cache for
+
         Returns:
             lambda_tags (str[]): the list of "key:value" Datadog tag strings
         """
@@ -263,10 +268,12 @@ def parse_get_resources_response_for_tags_by_arn(get_resources_page):
     aws_resouce_tag_mappings = get_resources_page["ResourceTagMappingList"]
     for aws_resource_tag_mapping in aws_resouce_tag_mappings:
         function_arn = aws_resource_tag_mapping["ResourceARN"]
+        lowercase_function_arn = function_arn.lower()
+
         raw_aws_tags = aws_resource_tag_mapping["Tags"]
         tags = map(get_dd_tag_string_from_aws_dict, raw_aws_tags)
 
-        tags_by_arn[function_arn] += tags
+        tags_by_arn[lowercase_function_arn] += tags
 
     return tags_by_arn
 
@@ -363,6 +370,7 @@ def generate_enhanced_lambda_metrics(log, tags_cache):
     Returns:
         DatadogMetricPoint[], where each metric has all of its tags
     """
+    # Note: this arn attribute is always lowercased when it's created
     log_function_arn = log.get("lambda", {}).get("arn")
     log_message = log.get("message")
     timestamp = log.get("timestamp")
@@ -472,17 +480,20 @@ def calculate_estimated_cost(billed_duration_ms, memory_allocated):
     return BASE_LAMBDA_INVOCATION_PRICE + gb_seconds * LAMBDA_PRICE_PER_GB_SECOND
 
 
-def get_enriched_lambda_log_tags(log):
+def get_enriched_lambda_log_tags(log_event):
     """ Retrieves extra tags from lambda, either read from the function arn, or by fetching lambda tags from the function itself.
 
     Args:
         log (dict<str, str | dict | int>): a log parsed from the event in the split method
     """
-    log_function_arn = log.get("lambda", {}).get("arn")
+    # Note that this arn attribute has been lowercased already
+    log_function_arn = log_event.get("lambda", {}).get("arn")
+
     if not log_function_arn:
         return []
     tags_from_arn = parse_lambda_tags_from_arn(log_function_arn)
     lambda_custom_tags = account_lambda_tags_cache.get(log_function_arn)
+
     # Combine and dedup tags
     tags = list(set(tags_from_arn + lambda_custom_tags))
     return tags
