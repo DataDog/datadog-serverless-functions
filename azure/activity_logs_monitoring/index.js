@@ -156,7 +156,7 @@ function extractResourceId(record) {
       var resourceId = record.resourceId.toLowerCase().split('/');
       if (resourceId.length > 2 && resourceId[4]) {
           metadata.tags.push('tenant:' + resourceId[2]);
-          metadata.source = resourceId[4].replace('microsoft.', 'azure.').replace('aadiam', 'active_directory');
+          metadata.source = resourceId[4].replace('microsoft.', 'azure.').replace('aadiam', 'activedirectory');
       }
       return metadata;
     }
