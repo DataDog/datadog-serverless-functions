@@ -146,11 +146,11 @@ Parameters:
   VPCSecurityGroupIds:
     Type: CommaDelimitedList
     Default: ""
-    Description: List of VPC Security Group Ids. Used when AWS Private Link is enabled.
+    Description: Comma separated list of VPC Security Group Ids. Used when AWS Private Link is enabled.
   VPCSubnetIds:
     Type: CommaDelimitedList
     Default: ""
-    Description: List of VPC Subnet Ids. Used when AWS Private Link is enabled.
+    Description: Comma separated list of VPC Subnet Ids. Used when AWS Private Link is enabled.
   DdCompressionLevel:
     Type: Number
     Default: 6
