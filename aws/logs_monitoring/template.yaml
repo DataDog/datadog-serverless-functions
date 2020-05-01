@@ -388,7 +388,7 @@ Resources:
               - SetDdCompressionLevel
               - Ref: DdCompressionLevel
               - Ref: AWS::NoValue
-          DD_PRIVATE_LINK:
+          DD_USE_PRIVATE_LINK:
             Fn::If:
               - SetDdUsePrivateLink
               - true
@@ -435,6 +435,7 @@ Resources:
                   - ec2:CreateNetworkInterface
                   - ec2:DescribeNetworkInterfaces
                   - ec2:DeleteNetworkInterface
+                Resource: "*"
               - Ref: AWS::NoValue
   CloudWatchLogsPermission:
     Type: AWS::Lambda::Permission
