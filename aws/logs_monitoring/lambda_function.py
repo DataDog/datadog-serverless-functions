@@ -677,7 +677,17 @@ def add_metadata_to_lambda_log(event):
 
     # Add any enhanced tags from metadata
     if IS_ENHANCED_METRICS_FILE_PRESENT:
-        tags += get_enriched_lambda_log_tags(event)
+        custom_lambda_tags = get_enriched_lambda_log_tags(event)
+
+        # Check if one of the Lambda's custom tags is env
+        # If an env tag exists, remove the env:none placeholder
+        custom_env_tag = next(
+            (tag for tag in custom_lambda_tags if tag.startswith("env:")), None
+        )
+        if custom_env_tag is not None:
+            event[DD_CUSTOM_TAGS] = event[DD_CUSTOM_TAGS].replace("env:none", "")
+
+        tags += custom_lambda_tags
 
     # Dedup tags, so we don't end up with functionname twice
     tags = list(set(tags))
@@ -964,15 +974,15 @@ def awslogs_handler(event, context, metadata):
     if metadata[DD_SOURCE] == "lambda":
         log_group_parts = logs["logGroup"].split("/lambda/")
         if len(log_group_parts) > 1:
-            function_name = log_group_parts[1].lower()
+            lowercase_function_name = log_group_parts[1].lower()
             # Split the arn of the forwarder to extract the prefix
             arn_parts = context.invoked_function_arn.split("function:")
             if len(arn_parts) > 0:
                 arn_prefix = arn_parts[0]
-                # Rebuild the arn by replacing the function name
-                arn = arn_prefix + "function:" + function_name
-                # Add the arn as a log attribute
-                arn_attributes = {"lambda": {"arn": arn}}
+                # Rebuild the arn with the lowercased function name
+                lowercase_arn = arn_prefix + "function:" + lowercase_function_name
+                # Add the lowercased arn as a log attribute
+                arn_attributes = {"lambda": {"arn": lowercase_arn}}
                 aws_attributes = merge_dicts(aws_attributes, arn_attributes)
 
                 env_tag_exists = (
