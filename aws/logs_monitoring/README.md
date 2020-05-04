@@ -26,8 +26,8 @@ AWS Lambda function to ship logs from S3 and CloudWatch, custom metrics and trac
 
 ### Upgrade to a new version
 
-1. Find the [datadog-forwarder (if you didn't rename it)](https://console.aws.amazon.com/cloudformation/home#/stacks?filteringText=datadog) CloudFormation stack.
-1. Update the stack using template `https://datadog-cloudformation-template.s3.amazonaws.com/aws/forwarder/latest.yaml`. You can also replace `latest` with a specific version, e.g., `3.0.2.yaml`, if needed.
+1. Find the [datadog-forwarder (if you didn't rename it)](https://console.aws.amazon.com/cloudformation/home#/stacks?filteringText=forwarder) CloudFormation stack. If you installed the forwarder as part of the [Datadog AWS integration stack](https://github.com/DataDog/cloudformation-template/tree/master/aws), make sure to update the nested forwarder stack instead of the root stack.
+1. Update the stack using template `https://datadog-cloudformation-template.s3.amazonaws.com/aws/forwarder/latest.yaml`. You can also replace `latest` with a specific version, e.g., `3.0.2.yaml`, if needed. Make sure to reivew the change sets before applying the update.
 
 ### Upgrade an older version to +3.0.0
 
@@ -51,7 +51,7 @@ Since version 3.0.0, the forwarder Lambda function is managed by CloudFormation.
 
 ### Adjusting forwarder settings
 
-1. Find the [datadog-forwarder (if you didn't rename it)](https://console.aws.amazon.com/cloudformation/home#/stacks?filteringText=datadog) CloudFormation stack.
+1. Find the [datadog-forwarder (if you didn't rename it)](https://console.aws.amazon.com/cloudformation/home#/stacks?filteringText=forwarder) CloudFormation stack.
 1. Update the stack using the current template.
 1. Adjust parameter values.
 
@@ -61,7 +61,7 @@ Note: It's recommended to adjust forwarder settings through CloudFormation rathe
 
 To safely delete the forwarder and other AWS resources created by the forwarder CloudFormation stack, follow the steps below.
 
-1. Find the [datadog-forwarder (if you didn't rename it)](https://console.aws.amazon.com/cloudformation/home#/stacks?filteringText=datadog) CloudFormation stack. Or you can find the stack from the forwarder Lambda function's management console by clicking the link from the message "This function belongs to an application. Click here to manage it.", and then click the "Deployments" tab on the application page.
+1. Find the [datadog-forwarder (if you didn't rename it)](https://console.aws.amazon.com/cloudformation/home#/stacks?filteringText=forwarder) CloudFormation stack. Or you can find the stack from the forwarder Lambda function's management console by clicking the link from the message "This function belongs to an application. Click here to manage it.", and then click the "Deployments" tab on the application page.
 1. "Delete" the CloudFormation stack.
 
 ## Settings
