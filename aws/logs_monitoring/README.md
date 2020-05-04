@@ -221,6 +221,18 @@ The CloudFormation Stack creates following IAM roles:
 
   </details>
 
+## AWS Private Link Support
+
+The forwarder can be configured using AWS Private Link to run in a VPC.
+
+1. Follow the [setup instructions](https://docs.datadoghq.com/agent/guide/private-link/?tab=logs#create-your-vpc-endpoint) for adding datadog's endpoints to your VPC.
+1. By default, the forwarder's API key will be stored in Secrets Manager. The secrets manager endpoint will need to be added to the VPC. You can follow the instructions [here for adding AWS services to a VPC](https://docs.aws.amazon.com/vpc/latest/userguide/vpce-interface.html#create-interface-endpoint).
+1. When in installing the forwarder via the cloudformation template, enable 'DdUsePrivateLink' and set at least one Subnet Id and Security Group.
+
+### AWS Private Link Limitations
+
+Currently AWS Private Link can only be configured with datadog organizations on the datadoghq.com site. Trace forwarding is also currently unsupported.
+
 ## Notes
 
 - For S3 logs, there may be some latency between the time a first S3 log file is posted and the Lambda function wakes up.

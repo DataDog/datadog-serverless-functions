@@ -19,9 +19,16 @@ import ssl
 import logging
 from io import BytesIO, BufferedReader
 import time
+from datadog_lambda.wrapper import datadog_lambda_wrapper
+from datadog_lambda.metric import lambda_stats
+from datadog import api
+from trace_forwarder.connection import TraceConnection
 
 log = logging.getLogger()
 log.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
+
+DD_FORWARD_TRACES = True
+DD_FORWARD_METRIC = True
 
 try:
     import requests
@@ -51,32 +58,6 @@ except ImportError:
     )
 finally:
     log.debug(f"IS_ENHANCED_METRICS_FILE_PRESENT: {IS_ENHANCED_METRICS_FILE_PRESENT}")
-
-try:
-    # Datadog Lambda layer is required to forward metrics
-    from datadog_lambda.wrapper import datadog_lambda_wrapper
-    from datadog_lambda.metric import lambda_stats
-
-    DD_FORWARD_METRIC = True
-except ImportError:
-    log.debug(
-        "Could not import from the Datadog Lambda layer, metrics can't be forwarded"
-    )
-    # For backward-compatibility
-    DD_FORWARD_METRIC = False
-finally:
-    log.debug(f"DD_FORWARD_METRIC: {DD_FORWARD_METRIC}")
-
-try:
-    # Datadog Trace Layer is required to forward traces
-    from trace_forwarder.connection import TraceConnection
-
-    DD_FORWARD_TRACES = True
-except ImportError:
-    # For backward-compatibility
-    DD_FORWARD_TRACES = False
-finally:
-    log.debug(f"DD_FORWARD_TRACES: {DD_FORWARD_TRACES}")
 
 
 def get_env_var(envvar, default, boolean=False):
@@ -192,6 +173,22 @@ else:
     DD_URL = get_env_var("DD_URL", default="lambda-http-intake.logs." + DD_SITE)
     DD_PORT = int(get_env_var("DD_PORT", default="443"))
 
+## @param DD_USE_PRIVATE_LINK - whether to forward logs via private link
+## Overrides incompatible settings
+#
+DD_USE_PRIVATE_LINK = get_env_var("DD_USE_PRIVATE_LINK", "false", boolean=True)
+if DD_USE_PRIVATE_LINK:
+    log.debug("Private link enabled, overriding configuration settings")
+    # TCP isn't supported when private link is enabled
+    DD_USE_TCP = False
+    DD_NO_SSL = False
+    DD_PORT = 443
+    # Traces aren't supported via private link yet
+    DD_FORWARD_TRACES = False
+    # Override urls to use the private link url
+    DD_URL = "pvtlink.logs.datadoghq.com"
+    DD_API_URL = "https://pvtlink.api.datadoghq.com"
+
 
 class ScrubbingRuleConfig(object):
     def __init__(self, name, pattern, placeholder):
@@ -269,11 +266,9 @@ elif "DD_API_KEY" in os.environ:
 DD_API_KEY = DD_API_KEY.strip()
 os.environ["DD_API_KEY"] = DD_API_KEY
 
-# Force the layer to use the exact same API key as the forwarder
-if DD_FORWARD_METRIC:
-    from datadog import api
-
-    api._api_key = DD_API_KEY
+# Force the layer to use the exact same API key and host as the forwarder
+api._api_key = DD_API_KEY
+api._api_host = DD_API_URL
 
 # DD_API_KEY must be set
 if DD_API_KEY == "<YOUR_DATADOG_API_KEY>" or DD_API_KEY == "":
@@ -576,7 +571,7 @@ def datadog_forwarder(event, context):
     if DD_FORWARD_TRACES and len(traces) > 0:
         forward_traces(traces)
 
-    if IS_ENHANCED_METRICS_FILE_PRESENT:
+    if IS_ENHANCED_METRICS_FILE_PRESENT and DD_FORWARD_METRIC:
         report_logs = filter(log_has_report_msg, logs)
         parse_and_submit_enhanced_metrics(report_logs)
 
@@ -762,7 +757,7 @@ def split(events):
         trace = extract_trace(event)
         if metric and DD_FORWARD_METRIC:
             metrics.append(metric)
-        elif trace and DD_FORWARD_TRACES:
+        elif trace:
             traces.append(trace)
         else:
             logs.append(event)

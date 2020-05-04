@@ -136,6 +136,21 @@ Parameters:
       - true
       - false
     Description: Set to false to disable log compression. Only valid when sending logs over HTTP.
+  DdUsePrivateLink:
+    Type: String
+    Default: false
+    AllowedValues:
+      - true
+      - false
+    Description: Set to true to enable sending logs and metrics via AWS Private Link. See https://dtdg.co/private-link .
+  VPCSecurityGroupIds:
+    Type: CommaDelimitedList
+    Default: ""
+    Description: Comma separated list of VPC Security Group Ids. Used when AWS Private Link is enabled.
+  VPCSubnetIds:
+    Type: CommaDelimitedList
+    Default: ""
+    Description: Comma separated list of VPC Subnet Ids. Used when AWS Private Link is enabled.
   DdCompressionLevel:
     Type: Number
     Default: 6
@@ -227,6 +242,10 @@ Conditions:
   SetDdFetchLambdaTags:
     Fn::Equals:
       - Ref: DdFetchLambdaTags
+      - true
+  SetDdUsePrivateLink:
+    Fn::Equals:
+      - Ref: DdUsePrivateLink
       - true
   SetDdForwardLog:
     Fn::Equals:
@@ -369,12 +388,23 @@ Resources:
               - SetDdCompressionLevel
               - Ref: DdCompressionLevel
               - Ref: AWS::NoValue
+          DD_USE_PRIVATE_LINK:
+            Fn::If:
+              - SetDdUsePrivateLink
+              - true
+              - false
       ReservedConcurrentExecutions:
         Ref: ReservedConcurrency
       PermissionsBoundary:
         Fn::If:
           - SetPermissionsBoundary
           - Ref: PermissionsBoundaryArn
+          - Ref: AWS::NoValue
+      VpcConfig:
+        Fn::If:
+          - SetDdUsePrivateLink
+          - SecurityGroupIds: !Ref VPCSecurityGroupIds
+            SubnetIds: !Ref VPCSubnetIds
           - Ref: AWS::NoValue
       Policies:
         - Version: "2012-10-17"
@@ -396,6 +426,15 @@ Resources:
               - Effect: Allow
                 Action:
                   - tag:GetResources
+                Resource: "*"
+              - Ref: AWS::NoValue
+            - !If
+              - SetDdUsePrivateLink
+              - Effect: Allow
+                Action:
+                  - ec2:CreateNetworkInterface
+                  - ec2:DescribeNetworkInterfaces
+                  - ec2:DeleteNetworkInterface
                 Resource: "*"
               - Ref: AWS::NoValue
   CloudWatchLogsPermission:
@@ -610,6 +649,9 @@ Metadata:
           - SourceZipUrl
           - PermissionsBoundaryArn
           - DdApiKeySecretArn
+          - DdUsePrivateLink
+          - VPCSecurityGroupIds
+          - VPCSubnetIds
     ParameterLabels:
       DdApiKey:
         default: "DdApiKey *"
