@@ -135,22 +135,31 @@ function extractResourceId(record) {
     metadata = { tags: [], source: '' };
     if (
         record.resourceId === undefined ||
-        typeof record.resourceId !== 'string' ||
-        !record.resourceId.toLowerCase().startsWith('/subscriptions/')
+        typeof record.resourceId !== 'string'
     ) {
         return metadata;
     }
-    var resourceId = record.resourceId.toLowerCase().split('/');
-    if (resourceId.length > 2) {
-        metadata.tags.push('subscription_id:' + resourceId[2]);
+    else if(record.resourceId.toLowerCase().startsWith('/subscriptions/')){
+      var resourceId = record.resourceId.toLowerCase().split('/');
+      if (resourceId.length > 2) {
+          metadata.tags.push('subscription_id:' + resourceId[2]);
+      }
+      if (resourceId.length > 4) {
+          metadata.tags.push('resource_group:' + resourceId[4]);
+      }
+      if (resourceId.length > 6 && resourceId[6]) {
+          metadata.source = resourceId[6].replace('microsoft.', 'azure.');
+      }
+      return metadata;
     }
-    if (resourceId.length > 4) {
-        metadata.tags.push('resource_group:' + resourceId[4]);
+    else if(record.resourceId.toLowerCase().startsWith('/tenants/')){
+      var resourceId = record.resourceId.toLowerCase().split('/');
+      if (resourceId.length > 4 && resourceId[4]) {
+          metadata.tags.push('tenant:' + resourceId[2]);
+          metadata.source = resourceId[4].replace('microsoft.', 'azure.').replace('aadiam', 'activedirectory');
+      }
+      return metadata;
     }
-    if (resourceId.length > 6 && resourceId[6]) {
-        metadata.source = resourceId[6].replace('microsoft.', 'azure.');
-    }
-    return metadata;
 }
 
 module.exports.forTests = {
