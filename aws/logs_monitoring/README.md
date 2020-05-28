@@ -161,6 +161,11 @@ To deploy the CloudFormation Stack with the default options, you need to have th
 
 </details>
 
+The following capabilities are required when creating cloud formation stack:
+
+- CAPABILITY_AUTO_EXPAND, because the forwarder template uses macros, (in particular the [AWS SAM](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/transform-aws-serverless.html) macro).
+- CAPABILTY_IAM/NAMED_IAM, because the forwarder creates IAM roles
+
 The CloudFormation Stack creates following IAM roles:
 
 - ForwarderRole: The execution role for the Forwarder Lambda function to read logs from S3, fetch your Datadog API key from Secrets Manager, and write its own logs.
