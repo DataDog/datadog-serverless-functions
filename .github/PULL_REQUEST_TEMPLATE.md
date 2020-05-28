@@ -1,4 +1,4 @@
-<!--- Please remember to review the [contribution guidelines](https://github.com/DataDog/datadog-lambda-layer-python/blob/master/CONTRIBUTING.md) if you have not yet done so._  --->
+<!--- Please remember to review the [contribution guidelines](https://github.com/DataDog/datadog-serverless-functions/blob/master/CONTRIBUTING.md) if you have not yet done so._  --->
 
 ### What does this PR do?
 
@@ -23,7 +23,7 @@
 - [ ] Breaking change
 - [ ] Misc (docs, refactoring, dependency upgrade, etc.)
 
-### Checklist
+### Check all that apply
 
 - [ ] This PR's description is comprehensive
 - [ ] This PR contains breaking changes that are documented in the description
