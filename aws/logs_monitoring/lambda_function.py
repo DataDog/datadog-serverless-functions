@@ -560,6 +560,9 @@ def log_has_report_msg(log):
 
 def datadog_forwarder(event, context):
     """The actual lambda function entry point"""
+    if log.isEnabledFor(logging.DEBUG):
+        log.debug(f"Received Event:{json.dumps(event)}")
+
     metrics, logs, traces = split(enrich(parse(event, context)))
 
     if DD_FORWARD_LOG:
@@ -602,7 +605,8 @@ def forward_logs(logs):
             except Exception:
                 log.exception(f"Exception while forwarding log batch {batch}")
             else:
-                log.debug(f"Forwarded {len(batch)} logs")
+                if log.isEnabledFor(logging.DEBUG):
+                    log.debug(f"Forwarded log batch: {json.dumps(batch)}")
 
 
 def parse(event, context):
@@ -803,9 +807,10 @@ def forward_metrics(metrics):
                 metric["m"], metric["v"], timestamp=metric["e"], tags=metric["t"]
             )
         except Exception:
-            log.exception(f"Exception while forwarding metric {metric}")
+            log.exception(f"Exception while forwarding metric {json.dumps(metric)}")
         else:
-            log.debug(f"Forwarded metric: {metric}")
+            if log.isEnabledFor(logging.DEBUG):
+                log.debug(f"Forwarded metric: {json.dumps(metric)}")
 
 
 def forward_traces(traces):
@@ -813,9 +818,10 @@ def forward_traces(traces):
         try:
             trace_connection.send_trace(trace["message"], trace["tags"])
         except Exception:
-            log.exception(f"Exception while forwarding trace {trace}")
+            log.exception(f"Exception while forwarding trace {json.dumps(trace)}")
         else:
-            log.debug(f"Forwarded trace: {trace}")
+            if log.isEnabledFor(logging.DEBUG):
+                log.debug(f"Forwarded trace: {json.dumps(trace)}")
 
 
 # Utility functions
