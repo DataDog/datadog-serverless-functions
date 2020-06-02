@@ -41,6 +41,9 @@ REPORT_LOG_REGEX = re.compile(
     + r"Max\s+Memory\s+Used:\s+(?P<{}>\d+)\s+MB".format(MAX_MEMORY_USED_METRIC_NAME)
 )
 
+#Pull memorysize tag and cold start from report
+TAGS_TO_PARSE_FROM_REPORT = [MEMORY_ALLOCATED_FIELD_NAME]
+
 METRICS_TO_PARSE_FROM_REPORT = [
     DURATION_METRIC_NAME,
     BILLED_DURATION_METRIC_NAME,
@@ -440,6 +443,11 @@ def parse_metrics_from_report_log(report_log_line):
         return []
 
     metrics = []
+    tags = []
+
+    #loop is to account for adding cold start 
+    for tag in TAGS_TO_PARSE_FROM_REPORT:
+        tags.append(tag + ':' + regex_match.group(tag))
 
     for metric_name in METRICS_TO_PARSE_FROM_REPORT:
         metric_point_value = float(regex_match.group(metric_name))
@@ -451,6 +459,10 @@ def parse_metrics_from_report_log(report_log_line):
             "{}.{}".format(ENHANCED_METRICS_NAMESPACE_PREFIX, metric_name),
             metric_point_value,
         )
+
+        if tags:
+            dd_metric.add_tags(tags)
+
         metrics.append(dd_metric)
 
     estimated_cost_metric_point = DatadogMetricPoint(
@@ -460,6 +472,10 @@ def parse_metrics_from_report_log(report_log_line):
             float(regex_match.group(MEMORY_ALLOCATED_FIELD_NAME)),
         ),
     )
+    
+    if tags:
+        estimated_cost_metric_point.add_tags(tags)
+
     metrics.append(estimated_cost_metric_point)
 
     return metrics
