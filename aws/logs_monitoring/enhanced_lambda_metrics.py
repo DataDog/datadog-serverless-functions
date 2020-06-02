@@ -186,8 +186,7 @@ class DatadogMetricPoint(object):
         if not timestamp:
             timestamp = time()
 
-        log.debug("Submitting metric {} {} {}".format(
-            self.name, self.value, self.tags))
+        log.debug("Submitting metric {} {} {}".format(self.name, self.value, self.tags))
         lambda_stats.distribution(
             self.name, self.value, timestamp=timestamp, tags=self.tags
         )
@@ -247,8 +246,7 @@ def get_dd_tag_string_from_aws_dict(aws_key_value_tag_dict):
         key:value colon-separated string built from the dict
             ex: "creator:swf"
     """
-    key = sanitize_aws_tag_string(
-        aws_key_value_tag_dict["Key"], remove_colons=True)
+    key = sanitize_aws_tag_string(aws_key_value_tag_dict["Key"], remove_colons=True)
     value = sanitize_aws_tag_string(aws_key_value_tag_dict.get("Value"))
     # Value is optional in DD and AWS
     if not value:
@@ -294,21 +292,17 @@ def build_tags_by_arn_cache():
         tags_by_arn_cache (dict<str, str[]>): each Lambda's tags in a dict keyed by ARN
     """
     tags_by_arn_cache = {}
-    get_resources_paginator = resource_tagging_client.get_paginator(
-        "get_resources")
+    get_resources_paginator = resource_tagging_client.get_paginator("get_resources")
 
     try:
         for page in get_resources_paginator.paginate(
-            ResourceTypeFilters=[
-                GET_RESOURCES_LAMBDA_FILTER], ResourcesPerPage=100
+            ResourceTypeFilters=[GET_RESOURCES_LAMBDA_FILTER], ResourcesPerPage=100
         ):
             lambda_stats.distribution(
-                "{}.get_resources_api_calls".format(
-                    ENHANCED_METRICS_NAMESPACE_PREFIX),
+                "{}.get_resources_api_calls".format(ENHANCED_METRICS_NAMESPACE_PREFIX),
                 1,
             )
-            page_tags_by_arn = parse_get_resources_response_for_tags_by_arn(
-                page)
+            page_tags_by_arn = parse_get_resources_response_for_tags_by_arn(page)
             tags_by_arn_cache.update(page_tags_by_arn)
 
     except ClientError:
@@ -455,7 +449,7 @@ def parse_metrics_from_report_log(report_log_line):
 
     # loop is to account for adding cold start
     for tag in TAGS_TO_PARSE_FROM_REPORT:
-        tags.append(tag + ':' + regex_match.group(tag))
+        tags.append(tag + ":" + regex_match.group(tag))
 
     for metric_name in METRICS_TO_PARSE_FROM_REPORT:
         metric_point_value = float(regex_match.group(metric_name))
@@ -474,8 +468,7 @@ def parse_metrics_from_report_log(report_log_line):
         metrics.append(dd_metric)
 
     estimated_cost_metric_point = DatadogMetricPoint(
-        "{}.{}".format(ENHANCED_METRICS_NAMESPACE_PREFIX,
-                       ESTIMATED_COST_METRIC_NAME),
+        "{}.{}".format(ENHANCED_METRICS_NAMESPACE_PREFIX, ESTIMATED_COST_METRIC_NAME),
         calculate_estimated_cost(
             float(regex_match.group(BILLED_DURATION_METRIC_NAME)),
             float(regex_match.group(MEMORY_ALLOCATED_FIELD_NAME)),
