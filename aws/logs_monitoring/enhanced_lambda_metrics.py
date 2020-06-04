@@ -41,7 +41,7 @@ REPORT_LOG_REGEX = re.compile(
     + r"Memory\s+Size:\s+(?P<{}>\d+)\s+MB\s+".format(MEMORY_ALLOCATED_FIELD_NAME)
     + r"Max\s+Memory\s+Used:\s+(?P<{}>\d+)\s+MB".format(MAX_MEMORY_USED_METRIC_NAME)
 )
-
+# Make separate regex to account for cold start
 REPORT_LOG_REGEX_INIT = re.compile(
     r"REPORT\s+"
     + r"RequestId:\s+(?P<{}>[\w-]+)\s+".format(REQUEST_ID_FIELD_NAME)
