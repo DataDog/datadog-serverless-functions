@@ -34,5 +34,4 @@ jobs:
           ./aws/logs_monitoring/trace_forwarder/scripts/run_tests.sh
       - name: Run enhanced metric unittest
         run: |
-          pip install unittest
           python -m unittest
