@@ -40,18 +40,7 @@ REPORT_LOG_REGEX = re.compile(
     )
     + r"Memory\s+Size:\s+(?P<{}>\d+)\s+MB\s+".format(MEMORY_ALLOCATED_FIELD_NAME)
     + r"Max\s+Memory\s+Used:\s+(?P<{}>\d+)\s+MB".format(MAX_MEMORY_USED_METRIC_NAME)
-)
-# Make separate regex to account for cold start
-REPORT_LOG_REGEX_INIT = re.compile(
-    r"REPORT\s+"
-    + r"RequestId:\s+(?P<{}>[\w-]+)\s+".format(REQUEST_ID_FIELD_NAME)
-    + r"Duration:\s+(?P<{}>[\d\.]+)\s+ms\s+".format(DURATION_METRIC_NAME)
-    + r"Billed\s+Duration:\s+(?P<{}>[\d\.]+)\s+ms\s+".format(
-        BILLED_DURATION_METRIC_NAME
-    )
-    + r"Memory\s+Size:\s+(?P<{}>\d+)\s+MB\s+".format(MEMORY_ALLOCATED_FIELD_NAME)
-    + r"Max\s+Memory\s+Used:\s+(?P<{}>\d+)\s+MB\s+".format(MAX_MEMORY_USED_METRIC_NAME)
-    + r"Init\s+Duration:\s+(?P<{}>[\d\.]+)\s+ms".format(INIT_DURATION_METRIC_NAME)
+    + r"(\s+Init\s+Duration:\s+(?P<{}>[\d\.]+)\s+ms)?".format(INIT_DURATION_METRIC_NAME)
 )
 
 METRICS_TO_PARSE_FROM_REPORT = [
@@ -449,27 +438,19 @@ def parse_metrics_from_report_log(report_log_line):
         metrics - DatadogMetricPoint[]
     """
     metrics = []
-    tags = []
+    tags = ["cold_start:false"]
 
-    cold_start = False
+    regex_match = REPORT_LOG_REGEX.search(report_log_line)
 
-    # Make sure we get the right matches if not a cold start
-    if REPORT_LOG_REGEX_INIT.search(report_log_line):
-        regex_match = REPORT_LOG_REGEX_INIT.search(report_log_line)
-        tags.append("cold_start:true")
-        cold_start = True
-
-    elif REPORT_LOG_REGEX.search(report_log_line):
-        regex_match = REPORT_LOG_REGEX.search(report_log_line)
-        tags.append("cold_start:false")
-
-    else:
+    if not regex_match:
         return []
 
     # we always want coldstart and memorysize tags
     tags.append("memorysize:" + regex_match.group(MEMORY_ALLOCATED_FIELD_NAME))
 
-    if cold_start:
+    # if cold_start:
+    if regex_match.group(INIT_DURATION_METRIC_NAME):
+        tags[0] = "cold_start:true"
         metric_point_value = float(regex_match.group(INIT_DURATION_METRIC_NAME))
         # Multiply by 1/1000 to convert ms to seconds
         metric_point_value *= METRIC_ADJUSTMENT_FACTORS[INIT_DURATION_METRIC_NAME]
