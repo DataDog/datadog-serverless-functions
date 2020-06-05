@@ -437,20 +437,22 @@ def parse_metrics_from_report_log(report_log_line):
     Returns:
         metrics - DatadogMetricPoint[]
     """
-    metrics = []
-    tags = ["cold_start:false"]
 
     regex_match = REPORT_LOG_REGEX.search(report_log_line)
 
     if not regex_match:
         return []
 
-    # we always want coldstart and memorysize tags
-    tags.append("memorysize:" + regex_match.group(MEMORY_ALLOCATED_FIELD_NAME))
+    metrics = []
+
+    tags = ["memorysize:" + regex_match.group(MEMORY_ALLOCATED_FIELD_NAME)]
+    if regex_match.group(INIT_DURATION_METRIC_NAME):
+        tags.append("cold_start:true")
+    else:
+        tags.append("cold_start:false")
 
     # if cold_start:
     if regex_match.group(INIT_DURATION_METRIC_NAME):
-        tags[0] = "cold_start:true"
         metric_point_value = float(regex_match.group(INIT_DURATION_METRIC_NAME))
         # Multiply by 1/1000 to convert ms to seconds
         metric_point_value *= METRIC_ADJUSTMENT_FACTORS[INIT_DURATION_METRIC_NAME]
