@@ -24,6 +24,11 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
         "Duration: 0.62 ms	Billed Duration: 100 ms	Memory Size: 128 MB	Max Memory Used: 51 MB"
     )
 
+    cold_start_report = (
+        "REPORT RequestId: 8edab1f8-7d34-4a8e-a965-15ccbbb78d4c	"
+        "Duration: 0.81 ms	Billed Duration: 100 ms	Memory Size: 128 MB	Max Memory Used: 90 MB	Init Duration: 1234 ms"
+    )
+
     report_with_xray = (
         "REPORT RequestId: 814ba7cb-071e-4181-9a09-fa41db5bccad\tDuration: 1711.87 ms\t"
         "Billed Duration: 1800 ms\tMemory Size: 128 MB\tMax Memory Used: 98 MB\t\n"
@@ -114,56 +119,92 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
             [
                 {
                     "name": "aws.lambda.enhanced.duration",
-                    "tags": [],
+                    "tags": ["memorysize:128", "cold_start:false",],
                     "value": 0.00062,
                     "timestamp": None,
                 },
                 {
                     "name": "aws.lambda.enhanced.billed_duration",
-                    "tags": [],
+                    "tags": ["memorysize:128", "cold_start:false",],
                     "value": 0.1000,
                     "timestamp": None,
                 },
                 {
                     "name": "aws.lambda.enhanced.max_memory_used",
-                    "tags": [],
+                    "tags": ["memorysize:128", "cold_start:false",],
                     "value": 51.0,
                     "timestamp": None,
                 },
                 {
                     "name": "aws.lambda.enhanced.estimated_cost",
-                    "tags": [],
+                    "tags": ["memorysize:128", "cold_start:false",],
                     "timestamp": None,
                     "value": 4.0833375e-07,
                 },
             ],
         )
 
+        parsed_metrics = parse_metrics_from_report_log(self.cold_start_report)
+        self.assertEqual(
+            [metric.__dict__ for metric in parsed_metrics],
+            [
+                {
+                    "name": "aws.lambda.enhanced.init_duration",
+                    "tags": ["memorysize:128", "cold_start:true",],
+                    "value": 1.234,
+                    "timestamp": None,
+                },
+                {
+                    "name": "aws.lambda.enhanced.duration",
+                    "tags": ["memorysize:128", "cold_start:true",],
+                    "value": 0.0008100000000000001,
+                    "timestamp": None,
+                },
+                {
+                    "name": "aws.lambda.enhanced.billed_duration",
+                    "tags": ["memorysize:128", "cold_start:true",],
+                    "value": 0.1000,
+                    "timestamp": None,
+                },
+                {
+                    "name": "aws.lambda.enhanced.max_memory_used",
+                    "tags": ["memorysize:128", "cold_start:true",],
+                    "value": 90.0,
+                    "timestamp": None,
+                },
+                {
+                    "name": "aws.lambda.enhanced.estimated_cost",
+                    "tags": ["memorysize:128", "cold_start:true",],
+                    "timestamp": None,
+                    "value": 4.0833375e-07,
+                },
+            ],
+        )
         parsed_metrics = parse_metrics_from_report_log(self.report_with_xray)
         self.assertListEqual(
             [metric.__dict__ for metric in parsed_metrics],
             [
                 {
                     "name": "aws.lambda.enhanced.duration",
-                    "tags": [],
+                    "tags": ["memorysize:128", "cold_start:false",],
                     "timestamp": None,
                     "value": 1.71187,
                 },
                 {
                     "name": "aws.lambda.enhanced.billed_duration",
-                    "tags": [],
+                    "tags": ["memorysize:128", "cold_start:false",],
                     "timestamp": None,
                     "value": 1.8,
                 },
                 {
                     "name": "aws.lambda.enhanced.max_memory_used",
-                    "tags": [],
+                    "tags": ["memorysize:128", "cold_start:false",],
                     "timestamp": None,
                     "value": 98.0,
                 },
                 {
                     "name": "aws.lambda.enhanced.estimated_cost",
-                    "tags": [],
+                    "tags": ["memorysize:128", "cold_start:false",],
                     "timestamp": None,
                     "value": 3.9500075e-06,
                 },
@@ -208,6 +249,8 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
                 {
                     "name": "aws.lambda.enhanced.duration",
                     "tags": [
+                        "memorysize:128",
+                        "cold_start:false",
                         "region:us-east-1",
                         "account_id:172597598159",
                         "aws_account:172597598159",
@@ -219,6 +262,8 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
                 {
                     "name": "aws.lambda.enhanced.billed_duration",
                     "tags": [
+                        "memorysize:128",
+                        "cold_start:false",
                         "region:us-east-1",
                         "account_id:172597598159",
                         "aws_account:172597598159",
@@ -230,6 +275,8 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
                 {
                     "name": "aws.lambda.enhanced.max_memory_used",
                     "tags": [
+                        "memorysize:128",
+                        "cold_start:false",
                         "region:us-east-1",
                         "account_id:172597598159",
                         "aws_account:172597598159",
@@ -241,6 +288,8 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
                 {
                     "name": "aws.lambda.enhanced.estimated_cost",
                     "tags": [
+                        "memorysize:128",
+                        "cold_start:false",
                         "region:us-east-1",
                         "account_id:172597598159",
                         "aws_account:172597598159",
@@ -292,6 +341,8 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
                 {
                     "name": "aws.lambda.enhanced.duration",
                     "tags": [
+                        "memorysize:128",
+                        "cold_start:false",
                         "region:us-east-1",
                         "account_id:172597598159",
                         "aws_account:172597598159",
@@ -307,6 +358,8 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
                 {
                     "name": "aws.lambda.enhanced.billed_duration",
                     "tags": [
+                        "memorysize:128",
+                        "cold_start:false",
                         "region:us-east-1",
                         "account_id:172597598159",
                         "aws_account:172597598159",
@@ -322,6 +375,8 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
                 {
                     "name": "aws.lambda.enhanced.max_memory_used",
                     "tags": [
+                        "memorysize:128",
+                        "cold_start:false",
                         "region:us-east-1",
                         "account_id:172597598159",
                         "aws_account:172597598159",
@@ -337,6 +392,8 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
                 {
                     "name": "aws.lambda.enhanced.estimated_cost",
                     "tags": [
+                        "memorysize:128",
+                        "cold_start:false",
                         "region:us-east-1",
                         "account_id:172597598159",
                         "aws_account:172597598159",

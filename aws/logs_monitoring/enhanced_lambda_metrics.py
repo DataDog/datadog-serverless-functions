@@ -27,6 +27,7 @@ DURATION_METRIC_NAME = "duration"
 BILLED_DURATION_METRIC_NAME = "billed_duration"
 MEMORY_ALLOCATED_FIELD_NAME = "memorysize"
 MAX_MEMORY_USED_METRIC_NAME = "max_memory_used"
+INIT_DURATION_METRIC_NAME = "init_duration"
 
 # Create named groups for each metric and tag so that we can
 # access the values from the search result by name
@@ -39,12 +40,8 @@ REPORT_LOG_REGEX = re.compile(
     )
     + r"Memory\s+Size:\s+(?P<{}>\d+)\s+MB\s+".format(MEMORY_ALLOCATED_FIELD_NAME)
     + r"Max\s+Memory\s+Used:\s+(?P<{}>\d+)\s+MB".format(MAX_MEMORY_USED_METRIC_NAME)
+    + r"(\s+Init\s+Duration:\s+(?P<{}>[\d\.]+)\s+ms)?".format(INIT_DURATION_METRIC_NAME)
 )
-
-# Pull memorysize tag and cold start from report
-TAGS_TO_PARSE_FROM_REPORT = [
-    MEMORY_ALLOCATED_FIELD_NAME,
-]
 
 METRICS_TO_PARSE_FROM_REPORT = [
     DURATION_METRIC_NAME,
@@ -56,6 +53,7 @@ METRICS_TO_PARSE_FROM_REPORT = [
 METRIC_ADJUSTMENT_FACTORS = {
     DURATION_METRIC_NAME: 0.001,
     BILLED_DURATION_METRIC_NAME: 0.001,
+    INIT_DURATION_METRIC_NAME: 0.001,
 }
 
 
@@ -439,17 +437,36 @@ def parse_metrics_from_report_log(report_log_line):
     Returns:
         metrics - DatadogMetricPoint[]
     """
+
     regex_match = REPORT_LOG_REGEX.search(report_log_line)
 
     if not regex_match:
         return []
 
     metrics = []
-    tags = []
 
-    # loop is to account for adding cold start
-    for tag in TAGS_TO_PARSE_FROM_REPORT:
-        tags.append(tag + ":" + regex_match.group(tag))
+    tags = ["memorysize:" + regex_match.group(MEMORY_ALLOCATED_FIELD_NAME)]
+    if regex_match.group(INIT_DURATION_METRIC_NAME):
+        tags.append("cold_start:true")
+    else:
+        tags.append("cold_start:false")
+
+    # if cold_start:
+    if regex_match.group(INIT_DURATION_METRIC_NAME):
+        metric_point_value = float(regex_match.group(INIT_DURATION_METRIC_NAME))
+        # Multiply by 1/1000 to convert ms to seconds
+        metric_point_value *= METRIC_ADJUSTMENT_FACTORS[INIT_DURATION_METRIC_NAME]
+
+        initial_duration = DatadogMetricPoint(
+            "{}.{}".format(
+                ENHANCED_METRICS_NAMESPACE_PREFIX, INIT_DURATION_METRIC_NAME
+            ),
+            metric_point_value,
+        )
+
+        initial_duration.add_tags(tags)
+
+        metrics.append(initial_duration)
 
     for metric_name in METRICS_TO_PARSE_FROM_REPORT:
         metric_point_value = float(regex_match.group(metric_name))
@@ -462,8 +479,7 @@ def parse_metrics_from_report_log(report_log_line):
             metric_point_value,
         )
 
-        if tags:
-            dd_metric.add_tags(tags)
+        dd_metric.add_tags(tags)
 
         metrics.append(dd_metric)
 
@@ -475,8 +491,7 @@ def parse_metrics_from_report_log(report_log_line):
         ),
     )
 
-    if tags:
-        estimated_cost_metric_point.add_tags(tags)
+    estimated_cost_metric_point.add_tags(tags)
 
     metrics.append(estimated_cost_metric_point)
 
