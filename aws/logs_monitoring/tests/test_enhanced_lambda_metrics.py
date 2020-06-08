@@ -149,12 +149,6 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
             [metric.__dict__ for metric in parsed_metrics],
             [
                 {
-                    "name": "aws.lambda.enhanced.init_duration",
-                    "tags": ["memorysize:128", "cold_start:true",],
-                    "value": 1.234,
-                    "timestamp": None,
-                },
-                {
                     "name": "aws.lambda.enhanced.duration",
                     "tags": ["memorysize:128", "cold_start:true",],
                     "value": 0.0008100000000000001,
@@ -170,6 +164,12 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
                     "name": "aws.lambda.enhanced.max_memory_used",
                     "tags": ["memorysize:128", "cold_start:true",],
                     "value": 90.0,
+                    "timestamp": None,
+                },
+                {
+                    "name": "aws.lambda.enhanced.init_duration",
+                    "tags": ["memorysize:128", "cold_start:true",],
+                    "value": 1.234,
                     "timestamp": None,
                 },
                 {
