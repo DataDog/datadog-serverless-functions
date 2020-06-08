@@ -1,8 +1,6 @@
 import unittest
 import os
 
-os.environ["AWS_REGION"] = "us-east-1"
-
 from unittest.mock import patch
 
 from enhanced_lambda_metrics import (
