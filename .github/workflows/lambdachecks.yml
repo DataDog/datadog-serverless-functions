@@ -34,4 +34,5 @@ jobs:
           ./aws/logs_monitoring/trace_forwarder/scripts/run_tests.sh
       - name: Run enhanced metric unittest
         run: |
+          pip install boto3
           python -m unittest discover ./aws/logs_monitoring/
