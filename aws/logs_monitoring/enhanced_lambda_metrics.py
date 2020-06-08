@@ -47,6 +47,7 @@ METRICS_TO_PARSE_FROM_REPORT = [
     DURATION_METRIC_NAME,
     BILLED_DURATION_METRIC_NAME,
     MAX_MEMORY_USED_METRIC_NAME,
+    INIT_DURATION_METRIC_NAME,
 ]
 
 # Multiply the duration metrics by 1/1000 to convert ms to seconds
@@ -451,24 +452,11 @@ def parse_metrics_from_report_log(report_log_line):
     else:
         tags.append("cold_start:false")
 
-    # if cold_start:
-    if regex_match.group(INIT_DURATION_METRIC_NAME):
-        metric_point_value = float(regex_match.group(INIT_DURATION_METRIC_NAME))
-        # Multiply by 1/1000 to convert ms to seconds
-        metric_point_value *= METRIC_ADJUSTMENT_FACTORS[INIT_DURATION_METRIC_NAME]
-
-        initial_duration = DatadogMetricPoint(
-            "{}.{}".format(
-                ENHANCED_METRICS_NAMESPACE_PREFIX, INIT_DURATION_METRIC_NAME
-            ),
-            metric_point_value,
-        )
-
-        initial_duration.add_tags(tags)
-
-        metrics.append(initial_duration)
-
     for metric_name in METRICS_TO_PARSE_FROM_REPORT:
+        # check whether the metric, e.g., init duration, is present in the REPORT log
+        if not regex_match.group(metric_name):
+            continue
+
         metric_point_value = float(regex_match.group(metric_name))
         # Multiply the duration metrics by 1/1000 to convert ms to seconds
         if metric_name in METRIC_ADJUSTMENT_FACTORS:
