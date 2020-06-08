@@ -453,7 +453,7 @@ def parse_metrics_from_report_log(report_log_line):
         tags.append("cold_start:false")
 
     for metric_name in METRICS_TO_PARSE_FROM_REPORT:
-        # check if init duration is present
+        # check if init duration is present in REPORT log
         if not regex_match.group(metric_name):
             continue
 
