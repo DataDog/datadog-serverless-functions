@@ -454,7 +454,7 @@ def parse_metrics_from_report_log(report_log_line):
 
     for metric_name in METRICS_TO_PARSE_FROM_REPORT:
         # check if init duration is present
-        if not regex_match.gropu(metric_name):
+        if not regex_match.group(metric_name):
             continue
 
         metric_point_value = float(regex_match.group(metric_name))
