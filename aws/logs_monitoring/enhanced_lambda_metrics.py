@@ -47,6 +47,7 @@ METRICS_TO_PARSE_FROM_REPORT = [
     DURATION_METRIC_NAME,
     BILLED_DURATION_METRIC_NAME,
     MAX_MEMORY_USED_METRIC_NAME,
+    INIT_DURATION_METRIC_NAME,
 ]
 
 # Multiply the duration metrics by 1/1000 to convert ms to seconds
