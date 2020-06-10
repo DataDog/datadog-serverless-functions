@@ -527,7 +527,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
             [metric.__dict__ for metric in generated_metrics],
             [
                 {
-                    "name": "aws.lambda.enhanced.timed_out",
+                    "name": "aws.lambda.enhanced.timeout",
                     "tags": [
                         "region:us-east-1",
                         "account_id:0",

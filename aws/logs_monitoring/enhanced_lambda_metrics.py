@@ -28,7 +28,7 @@ BILLED_DURATION_METRIC_NAME = "billed_duration"
 MEMORY_ALLOCATED_FIELD_NAME = "memorysize"
 MAX_MEMORY_USED_METRIC_NAME = "max_memory_used"
 INIT_DURATION_METRIC_NAME = "init_duration"
-TIMED_OUT_DURATION_METRIC_NAME = "timed_out"
+TIMED_OUT_DURATION_METRIC_NAME = "timeout"
 
 # Create named groups for each metric and tag so that we can
 # access the values from the search result by name
