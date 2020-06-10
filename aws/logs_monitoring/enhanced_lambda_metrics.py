@@ -28,7 +28,7 @@ BILLED_DURATION_METRIC_NAME = "billed_duration"
 MEMORY_ALLOCATED_FIELD_NAME = "memorysize"
 MAX_MEMORY_USED_METRIC_NAME = "max_memory_used"
 INIT_DURATION_METRIC_NAME = "init_duration"
-TIMED_OUT_DURATION_METRIC_NAME = "timed_out"
+TIMEOUTS_METRIC_NAME = "timeouts"
 
 # Create named groups for each metric and tag so that we can
 # access the values from the search result by name
@@ -45,9 +45,7 @@ REPORT_LOG_REGEX = re.compile(
 )
 
 TIMED_OUT_REGEX = re.compile(
-    r"Task\stimed\sout\safter\s+(?P<{}>[\d\.]+)\s+seconds".format(
-        TIMED_OUT_DURATION_METRIC_NAME
-    )
+    r"Task\stimed\sout\safter\s+(?P<{}>[\d\.]+)\s+seconds".format(TIMEOUTS_METRIC_NAME)
 )
 
 METRICS_TO_PARSE_FROM_REPORT = [
@@ -530,7 +528,7 @@ def get_enriched_lambda_log_tags(log_event):
 
 
 def create_timeout_enhanced_metric(report_log_line):
-    """Parses and returns timed out metric from lambda log
+    """Parses and returns a value of 1 if a timeout occurred for the function
 
     Args:
         report_log_line (str): The timed out task log
@@ -546,9 +544,6 @@ def create_timeout_enhanced_metric(report_log_line):
         return []
 
     dd_metric = DatadogMetricPoint(
-        "{}.{}".format(
-            ENHANCED_METRICS_NAMESPACE_PREFIX, TIMED_OUT_DURATION_METRIC_NAME
-        ),
-        float(regex_match.group(TIMED_OUT_DURATION_METRIC_NAME)),
+        "{}.{}".format(ENHANCED_METRICS_NAMESPACE_PREFIX, TIMEOUTS_METRIC_NAME), 1.0,
     )
     return [dd_metric]

@@ -527,7 +527,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
             [metric.__dict__ for metric in generated_metrics],
             [
                 {
-                    "name": "aws.lambda.enhanced.timed_out",
+                    "name": "aws.lambda.enhanced.timeouts",
                     "tags": [
                         "region:us-east-1",
                         "account_id:0",
@@ -539,7 +539,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
                         "creator:swf",
                     ],
                     "timestamp": 1591714946151,
-                    "value": 3.0,
+                    "value": 1.0,
                 }
             ],
         )
