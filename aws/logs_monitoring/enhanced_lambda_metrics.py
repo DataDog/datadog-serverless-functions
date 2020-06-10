@@ -28,6 +28,7 @@ BILLED_DURATION_METRIC_NAME = "billed_duration"
 MEMORY_ALLOCATED_FIELD_NAME = "memorysize"
 MAX_MEMORY_USED_METRIC_NAME = "max_memory_used"
 INIT_DURATION_METRIC_NAME = "init_duration"
+TIMED_OUT_DURATION_METRIC_NAME = "timed_out"
 
 # Create named groups for each metric and tag so that we can
 # access the values from the search result by name
@@ -41,6 +42,12 @@ REPORT_LOG_REGEX = re.compile(
     + r"Memory\s+Size:\s+(?P<{}>\d+)\s+MB\s+".format(MEMORY_ALLOCATED_FIELD_NAME)
     + r"Max\s+Memory\s+Used:\s+(?P<{}>\d+)\s+MB".format(MAX_MEMORY_USED_METRIC_NAME)
     + r"(\s+Init\s+Duration:\s+(?P<{}>[\d\.]+)\s+ms)?".format(INIT_DURATION_METRIC_NAME)
+)
+
+TIMED_OUT_REGEX = re.compile(
+    r"Task\stimed\sout\safter\s+(?P<{}>[\d\.]+)\s+seconds".format(
+        TIMED_OUT_DURATION_METRIC_NAME
+    )
 )
 
 METRICS_TO_PARSE_FROM_REPORT = [
@@ -380,14 +387,16 @@ def generate_enhanced_lambda_metrics(log, tags_cache):
     timestamp = log.get("timestamp")
 
     # If the log dict is missing any of this data it's not a Lambda REPORT log and we move on
-    if not all(
-        (log_function_arn, log_message, timestamp, log_message.startswith("REPORT"))
-    ):
+    if not all((log_function_arn, log_message, timestamp)):
         return []
 
+    # Check if this is a report log, if not it will be returned empty
     parsed_metrics = parse_metrics_from_report_log(log_message)
     if not parsed_metrics:
-        return []
+        # if empty, check if this is a timed out task
+        parsed_metrics = create_timeout_enhanced_metric(log_message)
+        if not parsed_metrics:
+            return []
 
     # Add the tags from ARN, custom tags cache, and env var
     tags_from_arn = parse_lambda_tags_from_arn(log_function_arn)
@@ -518,3 +527,28 @@ def get_enriched_lambda_log_tags(log_event):
     # Combine and dedup tags
     tags = list(set(tags_from_arn + lambda_custom_tags))
     return tags
+
+
+def create_timeout_enhanced_metric(report_log_line):
+    """Parses and returns timed out metric from lambda log
+
+    Args:
+        report_log_line (str): The timed out task log
+        EX: "2019-07-18T18:58:22.286Z b5264ab7-2056-4f5b-bb0f-a06a70f6205d \
+             Task timed out after 30.03 seconds"
+
+    Returns:
+        DatadogMetricPoint[]
+    """
+
+    regex_match = TIMED_OUT_REGEX.search(report_log_line)
+    if not regex_match:
+        return []
+
+    dd_metric = DatadogMetricPoint(
+        "{}.{}".format(
+            ENHANCED_METRICS_NAMESPACE_PREFIX, TIMED_OUT_DURATION_METRIC_NAME
+        ),
+        float(regex_match.group(TIMED_OUT_DURATION_METRIC_NAME)),
+    )
+    return [dd_metric]

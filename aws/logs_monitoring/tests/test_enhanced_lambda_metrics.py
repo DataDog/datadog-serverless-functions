@@ -10,6 +10,7 @@ from enhanced_lambda_metrics import (
     generate_enhanced_lambda_metrics,
     LambdaTagsCache,
     parse_get_resources_response_for_tags_by_arn,
+    create_timeout_enhanced_metric,
 )
 
 
@@ -314,7 +315,6 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
             ]
         }
         tags_cache = LambdaTagsCache()
-
         logs_input = {
             "message": "REPORT RequestId: fe1467d6-1458-4e20-8e40-9aaa4be7a0f4\tDuration: 3470.65 ms\tBilled Duration: 3500 ms\tMemory Size: 128 MB\tMax Memory Used: 89 MB\t\nXRAY TraceId: 1-5d8bba5a-dc2932496a65bab91d2d42d4\tSegmentId: 5ff79d2a06b82ad6\tSampled: true\t\n",
             "aws": {
@@ -490,6 +490,59 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
         generated_metrics = generate_enhanced_lambda_metrics(logs_input, tags_cache)
         mock_build_cache.assert_called_once()
 
+        del os.environ["DD_FETCH_LAMBDA_TAGS"]
+
+    @patch("enhanced_lambda_metrics.build_tags_by_arn_cache")
+    def test_generate_enhanced_lambda_metrics_timeout(self, mock_build_cache):
+
+        mock_build_cache.return_value = {
+            "arn:aws:lambda:us-east-1:0:function:cloudwatch-event": [
+                "team:metrics",
+                "monitor:datadog",
+                "env:prod",
+                "creator:swf",
+            ]
+        }
+        tags_cache = LambdaTagsCache()
+
+        logs_input = {
+            "message": "2020-06-09T15:02:26.150Z 7c9567b5-107b-4a6c-8798-0157ac21db52 Task timed out after 3.00 seconds\n\n",
+            "aws": {
+                "awslogs": {
+                    "logGroup": "/aws/lambda/cloudwatch-event",
+                    "logStream": "2020/06/09/[$LATEST]b249865adaaf4fad80f95f8ad09725b8",
+                    "owner": "601427279990",
+                },
+                "function_version": "$LATEST",
+                "invoked_function_arn": "arn:aws:lambda:us-east-1:0:function:test",
+            },
+            "lambda": {"arn": "arn:aws:lambda:us-east-1:0:function:cloudwatch-event"},
+            "timestamp": 1591714946151,
+        }
+
+        os.environ["DD_FETCH_LAMBDA_TAGS"] = "True"
+
+        generated_metrics = generate_enhanced_lambda_metrics(logs_input, tags_cache)
+        self.assertEqual(
+            [metric.__dict__ for metric in generated_metrics],
+            [
+                {
+                    "name": "aws.lambda.enhanced.timed_out",
+                    "tags": [
+                        "region:us-east-1",
+                        "account_id:0",
+                        "aws_account:0",
+                        "functionname:cloudwatch-event",
+                        "team:metrics",
+                        "monitor:datadog",
+                        "env:prod",
+                        "creator:swf",
+                    ],
+                    "timestamp": 1591714946151,
+                    "value": 3.0,
+                }
+            ],
+        )
         del os.environ["DD_FETCH_LAMBDA_TAGS"]
 
 
