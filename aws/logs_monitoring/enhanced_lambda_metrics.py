@@ -530,7 +530,7 @@ def get_enriched_lambda_log_tags(log_event):
 
 
 def create_timeout_enhanced_metric(report_log_line):
-    """Parses and returns a value of 1 if a timeout occured for the function
+    """Parses and returns a value of 1 if a timeout occurred for the function
 
     Args:
         report_log_line (str): The timed out task log
