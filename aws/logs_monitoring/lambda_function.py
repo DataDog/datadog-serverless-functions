@@ -553,7 +553,7 @@ class DatadogScrubber(object):
 
 def log_has_report_msg(log):
     msg = log.get("message", "")
-    if isinstance(msg, str) and msg.startswith("REPORT"):
+    if isinstance(msg, str):
         return True
     return False
 

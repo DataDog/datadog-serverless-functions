@@ -8,7 +8,7 @@ services:
       AWS_ACCOUNT_ID: 0000000000
       DOCKER_LAMBDA_STAY_OPEN: 1
       #DD_FORWARD_LOG: "false"
-      DD_LOG_LEVEL: info
+      DD_LOG_LEVEL: debug
       DD_API_KEY: abcdefghijklmnopqrstuvwxyz012345 # Must be 32 characters exactly
       DD_URL: forwarder-recorder # Used for logs intake
       DD_PORT: 8080 # API port to use
