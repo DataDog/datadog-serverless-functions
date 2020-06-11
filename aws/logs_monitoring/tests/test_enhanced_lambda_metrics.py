@@ -66,7 +66,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
         self.assertEqual(get_dd_tag_string_from_aws_dict(test_dict), "region:us-east-1")
 
         # Truncate to 200 characters
-        long_string = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+        long_string = "a" * 300
 
         test_dict = {
             "Key": "too-long",
