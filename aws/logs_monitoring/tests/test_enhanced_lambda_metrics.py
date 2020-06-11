@@ -11,6 +11,7 @@ from enhanced_lambda_metrics import (
     LambdaTagsCache,
     parse_get_resources_response_for_tags_by_arn,
     create_timeout_enhanced_metric,
+    get_dd_tag_string_from_aws_dict,
 )
 
 
@@ -54,6 +55,25 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
         # Convert to lower
         self.assertEqual(sanitize_aws_tag_string("serVerLess"), "serverless")
         self.assertEqual(sanitize_aws_tag_string(""), "")
+
+    def test_get_dd_tag_string_from_aws_dict(self):
+        # Sanitize the key and value, combine them into a string
+        test_dict = {
+            "Key": "region",
+            "Value": "us-east-1",
+        }
+
+        self.assertEqual(get_dd_tag_string_from_aws_dict(test_dict), "region:us-east-1")
+
+        # Truncate to 200 characters
+        long_string = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+
+        test_dict = {
+            "Key": "too-long",
+            "Value": long_string,
+        }
+
+        self.assertEqual(get_dd_tag_string_from_aws_dict(test_dict), f"too-long:{long_string[0:191]}")
 
     def test_parse_lambda_tags_from_arn(self):
         self.assertListEqual(
