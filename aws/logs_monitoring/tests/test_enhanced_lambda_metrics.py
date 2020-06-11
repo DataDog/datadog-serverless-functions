@@ -73,7 +73,9 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
             "Value": long_string,
         }
 
-        self.assertEqual(get_dd_tag_string_from_aws_dict(test_dict), f"too-long:{long_string[0:191]}")
+        self.assertEqual(
+            get_dd_tag_string_from_aws_dict(test_dict), f"too-long:{long_string[0:191]}"
+        )
 
     def test_parse_lambda_tags_from_arn(self):
         self.assertListEqual(

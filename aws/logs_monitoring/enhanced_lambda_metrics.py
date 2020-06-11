@@ -230,10 +230,10 @@ def sanitize_aws_tag_string(tag, remove_colons=False):
 
     if remove_colons:
         tag = tag.replace(":", "_")
-    tag = Dedupe(u"_", Sanitize(u"_", tag.lower()))
+    tag = Dedupe("_", Sanitize("_", tag.lower()))
     first_char = tag[0]
-    if first_char == u"_" or u"0" <= first_char <= "9":
-        tag = FixInit(u"", tag)
+    if first_char == "_" or "0" <= first_char <= "9":
+        tag = FixInit("", tag)
     tag = tag.rstrip("_")
     return tag
 
