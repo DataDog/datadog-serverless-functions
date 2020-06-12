@@ -13,7 +13,7 @@ import os
 import boto3
 import itertools
 import re
-import six.moves.urllib as urllib  # for for Python 2.7 urllib.unquote_plus
+import six.moves.urllib as urllib  # for Python 2.7 urllib.unquote_plus
 import socket
 import ssl
 import logging
@@ -186,7 +186,7 @@ if DD_USE_PRIVATE_LINK:
     # Traces aren't supported via private link yet
     DD_FORWARD_TRACES = False
     # Override urls to use the private link url
-    DD_URL = "pvtlink.logs.datadoghq.com"
+    DD_URL = "api-pvtlink.logs.datadoghq.com"
     DD_API_URL = "https://pvtlink.api.datadoghq.com"
 
 
