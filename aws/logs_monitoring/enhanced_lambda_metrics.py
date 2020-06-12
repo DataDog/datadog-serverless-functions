@@ -213,7 +213,7 @@ def sanitize_aws_tag_string(tag, remove_colons=False):
     """
     global Sanitize, Dedupe, FixInit
 
-    # 1. Replaces colons with _
+    # 1. Replace colons with _
     # 2. Convert to all lowercase unicode string
     # 3. Convert bad characters to underscores
     # 4. Dedupe contiguous underscores
@@ -222,8 +222,7 @@ def sanitize_aws_tag_string(tag, remove_colons=False):
     #    FIXME: tag normalization incorrectly supports tags starting
     #    with a ':', but this behavior should be phased out in future
     #    as it results in unqueryable data.  See dogweb/#11193
-    # 6. Truncate to 200 characters
-    # 7. Strip trailing underscores
+    # 6. Strip trailing underscores
 
     if len(tag) == 0:
         # if tag is empty, nothing to do
@@ -231,16 +230,16 @@ def sanitize_aws_tag_string(tag, remove_colons=False):
 
     if remove_colons:
         tag = tag.replace(":", "_")
-    tag = Dedupe(u"_", Sanitize(u"_", tag.lower()))
+    tag = Dedupe("_", Sanitize("_", tag.lower()))
     first_char = tag[0]
-    if first_char == u"_" or u"0" <= first_char <= "9":
-        tag = FixInit(u"", tag)
-    tag = tag[0:200].rstrip("_")
+    if first_char == "_" or "0" <= first_char <= "9":
+        tag = FixInit("", tag)
+    tag = tag.rstrip("_")
     return tag
 
 
 def get_dd_tag_string_from_aws_dict(aws_key_value_tag_dict):
-    """Converts the AWS dict tag format to the dd key:value string format
+    """Converts the AWS dict tag format to the dd key:value string format and truncates to 200 characters
 
     Args:
         aws_key_value_tag_dict (dict): the dict the GetResources endpoint returns for a tag
@@ -255,7 +254,7 @@ def get_dd_tag_string_from_aws_dict(aws_key_value_tag_dict):
     # Value is optional in DD and AWS
     if not value:
         return key
-    return "{}:{}".format(key, value)
+    return f"{key}:{value}"[0:200]
 
 
 def parse_get_resources_response_for_tags_by_arn(get_resources_page):
