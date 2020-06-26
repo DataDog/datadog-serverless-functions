@@ -65,7 +65,7 @@ Parameters:
     AllowedValues:
       - true
       - false
-    Description: By default, the forwarder sends logs using HTTPS through the port 443. To send logs over an SSL encrypted TCP, set this parameter to true.
+    Description: By default, the forwarder sends logs using HTTPS through the port 443. To send logs over an SSL encrypted TCP connection, set this parameter to true.
   DdNoSsl:
     Type: String
     Default: false
