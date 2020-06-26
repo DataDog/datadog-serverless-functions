@@ -30,13 +30,13 @@ installation, please see [Installation Alternatives](installation_alternatives.m
 <details><summary>CloudFormation Parameters</summary>
 
 Required
-- `DdApiKey` - Your Datadog API Key. This can be found in DataDog, under Integrations > APIs > API Keys.
+- `DdApiKey` - Your Datadog API Key. This can be found in Datadog, under Integrations > APIs > API Keys.
     The API Key will be stored in AWS Secrets Manager.
 - `DdSite` - The Datadog site that your metrics and logs will be sent to. Should either be `datadoghq.com` 
     or `datadoghq.eu`
 
 Lambda Function (Optional)
-- `FunctionName` - The name of the DataDog Forwarder Lambda function. DO NOT change when updating an 
+- `FunctionName` - The name of the Datadog Forwarder Lambda function. DO NOT change when updating an 
     existing CloudFormation stack, otherwise the current forwarder function will be replaced and all the 
     triggers will be lost.
 - `MemorySize` - Memory size for the Datadog Forwarder Lambda function
@@ -52,7 +52,7 @@ Log Forwarding (Optional)
 - `DdMultilineLogRegexPattern` - Use the supplied regular expression to detect for a new log line for 
     multiline logs from S3, e.g., use expression `\d{2}\/\d{2}\/\d{4}` for multiline logs beginning 
     with pattern "11/10/2014".
-- `DdUseTcp` - By default, the forwarder sends logs using HTTPS through the port 443. To send logs over a 
+- `DdUseTcp` - By default, the forwarder sends logs using HTTPS through the port 443. To send logs over an 
     SSL encrypted TCP connection, set this parameter to true.
 - `DdNoSsl` - Disable SSL when forwarding logs, set to true when forwarding logs through a proxy.
 - `DdUrl` - The endpoint URL to forward the logs to, useful for forwarding logs through a proxy
@@ -61,8 +61,11 @@ Log Forwarding (Optional)
     endpoint. This will still encrypt the traffic between the forwarder and the log intake endpoint, 
     but will not verify if the destination SSL certificate is valid.
 - `DdUseCompression` - Set to false to disable log compression. Only valid when sending logs over HTTP.
-- `DdCompressionLevel` - Set the compression level from 0 (no compression) to 9 (best compression).
-- `DdForwardLog` - Set to false to disable log forwarding, while keep the forwarder forward other 
+- `DdCompressionLevel` - Set the compression level from 0 (no compression) to 9 (best compression). 
+    The default compression level is 6. You may see some benefit with regard to decreased outbound 
+    network traffic if you increase the compression level, at the expense of increased Forwarder execution 
+    duration.
+- `DdForwardLog` - Set to false to disable log forwarding, while continuing to forward other 
     observability data, such as metrics and traces from Lambda functions.
 
 Log Scrubbing (Optional)
@@ -96,11 +99,11 @@ Advanced (Optional)
 - `DdApiKeySecretArn` - The ARN of the secret storing the Datadog API key, if you already have it 
     stored in Secrets Manager. You still need to set a dummy value for "DdApiKey" to satisfy the 
     requirement, though that value won't be used.
-- `DdUsePrivateLink` - Set to true to enable sending logs and metrics via AWS Private Link. See 
+- `DdUsePrivateLink` - Set to true to enable sending logs and metrics via AWS PrivateLink. See 
     https://dtdg.co/private-link.
-- `VPCSecurityGroupIds` - Comma separated list of VPC Security Group Ids. Used when AWS Private Link is 
+- `VPCSecurityGroupIds` - Comma separated list of VPC Security Group Ids. Used when AWS PrivateLink is 
     enabled.
-- `VPCSubnetIds` - Comma separated list of VPC Subnet Ids. Used when AWS Private Link is enabled.
+- `VPCSubnetIds` - Comma separated list of VPC Subnet Ids. Used when AWS PrivateLink is enabled.
 
 </details>
 
@@ -108,7 +111,7 @@ Advanced (Optional)
 
 ### Upgrade to a new version
 
-1. Find the [datadog-forwarder (if you didn't rename it)](https://console.aws.amazon.com/cloudformation/home#/stacks?filteringText=forwarder) CloudFormation stack. If you installed the forwarder as part of the [Datadog AWS integration stack](https://github.com/DataDog/cloudformation-template/tree/master/aws), make sure to update the nested forwarder stack instead of the root stack.
+1. Find the [datadog-forwarder (if you didn't rename it)](https://console.aws.amazon.com/cloudformation/home#/stacks?filteringText=forwarder) CloudFormation stack. If you installed the forwarder as part of the [Datadog AWS integration stack](https://github.com/Datadog/cloudformation-template/tree/master/aws), make sure to update the nested forwarder stack instead of the root stack.
 1. Update the stack using template `https://datadog-cloudformation-template.s3.amazonaws.com/aws/forwarder/latest.yaml`. You can also replace `latest` with a specific version, e.g., `3.0.2.yaml`, if needed. Make sure to review the change sets before applying the update.
 
 ### Upgrade an older version to +3.0.0
