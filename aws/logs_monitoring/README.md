@@ -139,14 +139,6 @@ Since version 3.0.0, the forwarder Lambda function is managed by CloudFormation.
 
 Note: It's recommended to adjust forwarder settings through CloudFormation rather than directly editing the Lambda function. The description of settings can be found in the [template.yaml](template.yaml) and the CloudFormation stack creation user interface when you launch the stack. Feel free to submit a pull request to make additional settings adjustable through the template.
 
-### Settings
-
-To view all the adjustable settings of the forwarder, click "Launch Stack" from the [Installation](#installation) section and you will be prompted with a CloudFormation user interface with all the adjustable settings (you do not have to complete the installation).
-
-The technical definition of the settings can be found in the "Parameters" section of [template.yaml](template.yaml).
-
-# TODO: UPDATE SETTINGS
-
 ## Deletion
 
 To safely delete the forwarder and other AWS resources created by the forwarder CloudFormation stack, follow the steps below.
@@ -157,9 +149,10 @@ To safely delete the forwarder and other AWS resources created by the forwarder 
 
 ## Troubleshooting
 
-Set the environment variable `DD_LOG_LEVEL` to `debug` on the Forwarder Lambda function to enable detailed logging temporarily (don't forget to remove it). If the debug logs don't help, please contact [Datadog support](https://www.datadoghq.com/support/).
-
-# TODO: UPDATE TROUBLESHOOTING
+Set the environment variable `DD_LOG_LEVEL` to `debug` on the Forwarder Lambda function to enable 
+detailed logging temporarily (don't forget to remove it). If the debug logs don't help, please contact 
+[Datadog support](https://www.datadoghq.com/support/). It may help to update to the latest version of
+the forwarder if you haven't already.
 
 ## Permissions
 
