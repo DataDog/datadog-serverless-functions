@@ -29,6 +29,7 @@ MEMORY_ALLOCATED_FIELD_NAME = "memorysize"
 MAX_MEMORY_USED_METRIC_NAME = "max_memory_used"
 INIT_DURATION_METRIC_NAME = "init_duration"
 TIMEOUTS_METRIC_NAME = "timeouts"
+OUT_OF_MEMORY_METRIC_NAME = "out_of_memory"
 
 # Create named groups for each metric and tag so that we can
 # access the values from the search result by name
@@ -47,6 +48,14 @@ REPORT_LOG_REGEX = re.compile(
 TIMED_OUT_REGEX = re.compile(
     r"Task\stimed\sout\safter\s+(?P<{}>[\d\.]+)\s+seconds".format(TIMEOUTS_METRIC_NAME)
 )
+
+OUT_OF_MEMORY_ERROR_STRINGS = [
+    "fatal error: runtime: out of memory",  # Go
+    "java.lang.OutOfMemoryError",  # Java
+    "JavaScript heap out of memory",  # Node
+    "MemoryError",  # Python
+    "failed to allocate memory (NoMemoryError)",  # Ruby
+]
 
 METRICS_TO_PARSE_FROM_REPORT = [
     DURATION_METRIC_NAME,
@@ -383,17 +392,24 @@ def generate_enhanced_lambda_metrics(log, tags_cache):
     log_message = log.get("message")
     timestamp = log.get("timestamp")
 
-    # If the log dict is missing any of this data it's not a Lambda REPORT log and we move on
-    if not all((log_function_arn, log_message, timestamp)):
+    is_lambda_log = all((log_function_arn, log_message, timestamp))
+    if not is_lambda_log:
         return []
 
-    # Check if this is a report log, if not it will be returned empty
+    # Check if this is a REPORT log
     parsed_metrics = parse_metrics_from_report_log(log_message)
+
+    # Check if this is a timeout
     if not parsed_metrics:
-        # if empty, check if this is a timed out task
         parsed_metrics = create_timeout_enhanced_metric(log_message)
-        if not parsed_metrics:
-            return []
+
+    # Check if this is an out of memory error
+    if not parsed_metrics:
+        parsed_metrics = create_out_of_memory_enhanced_metric(log_message)
+
+    # If none of the above, move on
+    if not parsed_metrics:
+        return []
 
     # Add the tags from ARN, custom tags cache, and env var
     tags_from_arn = parse_lambda_tags_from_arn(log_function_arn)
@@ -526,11 +542,11 @@ def get_enriched_lambda_log_tags(log_event):
     return tags
 
 
-def create_timeout_enhanced_metric(report_log_line):
+def create_timeout_enhanced_metric(log_line):
     """Parses and returns a value of 1 if a timeout occurred for the function
 
     Args:
-        report_log_line (str): The timed out task log
+        log_line (str): The timed out task log
         EX: "2019-07-18T18:58:22.286Z b5264ab7-2056-4f5b-bb0f-a06a70f6205d \
              Task timed out after 30.03 seconds"
 
@@ -538,11 +554,34 @@ def create_timeout_enhanced_metric(report_log_line):
         DatadogMetricPoint[]
     """
 
-    regex_match = TIMED_OUT_REGEX.search(report_log_line)
+    regex_match = TIMED_OUT_REGEX.search(log_line)
     if not regex_match:
         return []
 
     dd_metric = DatadogMetricPoint(
-        "{}.{}".format(ENHANCED_METRICS_NAMESPACE_PREFIX, TIMEOUTS_METRIC_NAME), 1.0,
+        f"{ENHANCED_METRICS_NAMESPACE_PREFIX}.{TIMEOUTS_METRIC_NAME}", 1.0,
+    )
+    return [dd_metric]
+
+
+def create_out_of_memory_enhanced_metric(log_line):
+    """Parses and returns a value of 1 if an out of memory error occurred for the function
+
+    Args:
+        log_line (str): The out of memory task log
+
+    Returns:
+        DatadogMetricPoint[]
+    """
+
+    contains_out_of_memory_error = any(
+        s in log_line for s in OUT_OF_MEMORY_ERROR_STRINGS
+    )
+
+    if not contains_out_of_memory_error:
+        return []
+
+    dd_metric = DatadogMetricPoint(
+        f"{ENHANCED_METRICS_NAMESPACE_PREFIX}.{OUT_OF_MEMORY_METRIC_NAME}", 1.0,
     )
     return [dd_metric]
