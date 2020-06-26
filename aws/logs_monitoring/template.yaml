@@ -65,7 +65,7 @@ Parameters:
     AllowedValues:
       - true
       - false
-    Description: By default, the forwarder sends logs using HTTPS through the port 443. To send logs over a SSL encrypted TCP, set this parameter to true.
+    Description: By default, the forwarder sends logs using HTTPS through the port 443. To send logs over an SSL encrypted TCP, set this parameter to true.
   DdNoSsl:
     Type: String
     Default: false
@@ -128,7 +128,7 @@ Parameters:
     AllowedValues:
       - true
       - false
-    Description: Set to false to disable log forwarding, while keep the forwarder forward other observability data, such as metrics and traces from Lambda functions.
+    Description: Set to false to disable log forwarding, while continuing to forward other observability data, such as metrics and traces from Lambda functions.
   DdUseCompression:
     Type: String
     Default: true
@@ -142,15 +142,15 @@ Parameters:
     AllowedValues:
       - true
       - false
-    Description: Set to true to enable sending logs and metrics via AWS Private Link. See https://dtdg.co/private-link .
+    Description: Set to true to enable sending logs and metrics via AWS PrivateLink. See https://dtdg.co/private-link .
   VPCSecurityGroupIds:
     Type: CommaDelimitedList
     Default: ""
-    Description: Comma separated list of VPC Security Group Ids. Used when AWS Private Link is enabled.
+    Description: Comma separated list of VPC Security Group Ids. Used when AWS PrivateLink is enabled.
   VPCSubnetIds:
     Type: CommaDelimitedList
     Default: ""
-    Description: Comma separated list of VPC Subnet Ids. Used when AWS Private Link is enabled.
+    Description: Comma separated list of VPC Subnet Ids. Used when AWS PrivateLink is enabled.
   DdCompressionLevel:
     Type: Number
     Default: 6
