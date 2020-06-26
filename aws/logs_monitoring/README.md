@@ -119,12 +119,6 @@ resource "aws_cloudformation_stack" "datadog-forwarder" {
     FunctionName       = "datadog-forwarder"
   }
   template_url = "https://datadog-cloudformation-template.s3.amazonaws.com/aws/forwarder/latest.yaml"
-  
-  lifecycle {
-    ignore_changes = [
-      parameters["DdApiKey"],
-    ]
-  }
 }
 ```
 
