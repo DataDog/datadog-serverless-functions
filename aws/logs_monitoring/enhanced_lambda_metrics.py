@@ -331,7 +331,7 @@ def build_tags_by_arn_cache():
 
 
 def parse_and_submit_enhanced_metrics(logs):
-    """Parses enhanced metrics from REPORT logs and submits them to DD with tags
+    """Parses enhanced metrics from logs and submits them to DD with tags
 
     Args:
         logs (dict<str, str | dict | int>[]): the logs parsed from the event in the split method

@@ -551,13 +551,6 @@ class DatadogScrubber(object):
         return payload
 
 
-def log_has_report_msg(log):
-    msg = log.get("message", "")
-    if isinstance(msg, str):
-        return True
-    return False
-
-
 def datadog_forwarder(event, context):
     """The actual lambda function entry point"""
     if log.isEnabledFor(logging.DEBUG):
@@ -575,8 +568,7 @@ def datadog_forwarder(event, context):
         forward_traces(traces)
 
     if IS_ENHANCED_METRICS_FILE_PRESENT and DD_FORWARD_METRIC:
-        report_logs = filter(log_has_report_msg, logs)
-        parse_and_submit_enhanced_metrics(report_logs)
+        parse_and_submit_enhanced_metrics(logs)
 
 
 if DD_FORWARD_METRIC or DD_FORWARD_TRACES:
