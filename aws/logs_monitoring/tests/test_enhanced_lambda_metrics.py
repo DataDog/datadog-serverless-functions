@@ -11,6 +11,7 @@ from enhanced_lambda_metrics import (
     LambdaTagsCache,
     parse_get_resources_response_for_tags_by_arn,
     create_timeout_enhanced_metric,
+    create_out_of_memory_enhanced_metric,
     get_dd_tag_string_from_aws_dict,
 )
 
@@ -233,6 +234,37 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
                 },
             ],
         )
+
+    def test_create_out_of_memory_enhanced_metric(self):
+        go_out_of_memory_error = "fatal error: runtime: out of memory"
+        self.assertEqual(
+            len(create_out_of_memory_enhanced_metric(go_out_of_memory_error)), 1
+        )
+
+        java_out_of_memory_error = (
+            "Requested array size exceeds VM limit: java.lang.OutOfMemoryError"
+        )
+        self.assertEqual(
+            len(create_out_of_memory_enhanced_metric(java_out_of_memory_error)), 1
+        )
+
+        node_out_of_memory_error = "FATAL ERROR: CALL_AND_RETRY_LAST Allocation failed - JavaScript heap out of memory"
+        self.assertEqual(
+            len(create_out_of_memory_enhanced_metric(node_out_of_memory_error)), 1
+        )
+
+        python_out_of_memory_error = "fatal error: runtime: out of memory"
+        self.assertEqual(
+            len(create_out_of_memory_enhanced_metric(python_out_of_memory_error)), 1
+        )
+
+        ruby_out_of_memory_error = "failed to allocate memory (NoMemoryError)"
+        self.assertEqual(
+            len(create_out_of_memory_enhanced_metric(ruby_out_of_memory_error)), 1
+        )
+
+        success_message = "Success!"
+        self.assertEqual(len(create_out_of_memory_enhanced_metric(success_message)), 0)
 
     @patch("enhanced_lambda_metrics.build_tags_by_arn_cache")
     def test_generate_enhanced_lambda_metrics(self, mock_build_cache):
@@ -550,6 +582,59 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
             [
                 {
                     "name": "aws.lambda.enhanced.timeouts",
+                    "tags": [
+                        "region:us-east-1",
+                        "account_id:0",
+                        "aws_account:0",
+                        "functionname:cloudwatch-event",
+                        "team:metrics",
+                        "monitor:datadog",
+                        "env:prod",
+                        "creator:swf",
+                    ],
+                    "timestamp": 1591714946151,
+                    "value": 1.0,
+                }
+            ],
+        )
+        del os.environ["DD_FETCH_LAMBDA_TAGS"]
+
+    @patch("enhanced_lambda_metrics.build_tags_by_arn_cache")
+    def test_generate_enhanced_lambda_metrics_out_of_memory(self, mock_build_cache):
+
+        mock_build_cache.return_value = {
+            "arn:aws:lambda:us-east-1:0:function:cloudwatch-event": [
+                "team:metrics",
+                "monitor:datadog",
+                "env:prod",
+                "creator:swf",
+            ]
+        }
+        tags_cache = LambdaTagsCache()
+
+        logs_input = {
+            "message": "2020-06-09T15:02:26.150Z 7c9567b5-107b-4a6c-8798-0157ac21db52 FATAL ERROR: CALL_AND_RETRY_LAST Allocation failed - JavaScript heap out of memory\n\n",
+            "aws": {
+                "awslogs": {
+                    "logGroup": "/aws/lambda/cloudwatch-event",
+                    "logStream": "2020/06/09/[$LATEST]b249865adaaf4fad80f95f8ad09725b8",
+                    "owner": "601427279990",
+                },
+                "function_version": "$LATEST",
+                "invoked_function_arn": "arn:aws:lambda:us-east-1:0:function:test",
+            },
+            "lambda": {"arn": "arn:aws:lambda:us-east-1:0:function:cloudwatch-event"},
+            "timestamp": 1591714946151,
+        }
+
+        os.environ["DD_FETCH_LAMBDA_TAGS"] = "True"
+
+        generated_metrics = generate_enhanced_lambda_metrics(logs_input, tags_cache)
+        self.assertEqual(
+            [metric.__dict__ for metric in generated_metrics],
+            [
+                {
+                    "name": "aws.lambda.enhanced.out_of_memory",
                     "tags": [
                         "region:us-east-1",
                         "account_id:0",
