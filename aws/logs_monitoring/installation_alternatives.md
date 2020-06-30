@@ -33,6 +33,36 @@ resource "aws_cloudformation_stack" "datadog-forwarder" {
   template_url = "https://datadog-cloudformation-template.s3.amazonaws.com/aws/forwarder/latest.yaml"
   
 }
+
+# Example Cloudwatch Logs subscription for AWS Batch
+
+variable "aws_region" {
+  type        = string
+  description = "AWS Region"
+  default     = "us-east-1"
+}
+
+variable "account_id" {
+  type = string
+  description = "AWS Account Id"
+}
+
+resource "aws_cloudwatch_log_subscription_filter" "aws_batch" {
+  name                  = "aws_batch"
+  log_group_name        = "/aws/batch/job"
+  destination_arn       = aws_cloudformation_stack.datadog.outputs["DatadogForwarderArn"]
+  filter_pattern        = ""
+}
+
+resource "aws_lambda_permission" "datadog_forwarder" {
+    action         = "lambda:InvokeFunction"
+    function_name  = aws_cloudformation_stack.datadog.outputs["DatadogForwarderArn"]
+    principal      = "logs.${var.aws_region}.amazonaws.com"
+    source_account = var.account_id
+    source_arn     = "arn:aws:logs:${var.aws_region}:${var.account_id}:log-group:/aws/batch/job:*"
+}
+
+
 ```
 
 </details>
