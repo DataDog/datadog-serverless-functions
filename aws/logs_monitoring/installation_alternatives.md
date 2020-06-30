@@ -50,13 +50,13 @@ variable "account_id" {
 resource "aws_cloudwatch_log_subscription_filter" "aws_batch" {
   name                  = "aws_batch"
   log_group_name        = "/aws/batch/job"
-  destination_arn       = aws_cloudformation_stack.datadog.outputs["DatadogForwarderArn"]
+  destination_arn       = aws_cloudformation_stack.datadog-forwarder.outputs["DatadogForwarderArn"]
   filter_pattern        = ""
 }
 
 resource "aws_lambda_permission" "datadog_forwarder" {
     action         = "lambda:InvokeFunction"
-    function_name  = aws_cloudformation_stack.datadog.outputs["DatadogForwarderArn"]
+    function_name  = aws_cloudformation_stack.datadog-forwarder.outputs["DatadogForwarderArn"]
     principal      = "logs.${var.aws_region}.amazonaws.com"
     source_account = var.account_id
     source_arn     = "arn:aws:logs:${var.aws_region}:${var.account_id}:log-group:/aws/batch/job:*"
