@@ -836,7 +836,7 @@ def batch_trace_payloads(trace_payloads):
         batches = batcher.batch(traces)
         for batch in batches:
             batched_trace_payloads.append(
-                {tags: tags, message: json.dumps({"traces": batch})}
+                {"tags": tags, "message": json.dumps({"traces": batch})}
             )
 
     return batched_trace_payloads
