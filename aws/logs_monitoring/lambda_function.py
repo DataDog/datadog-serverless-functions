@@ -563,7 +563,7 @@ def datadog_forwarder(event, context):
         forward_metrics(metrics)
         xray_recorder.end_subsegment()
 
-    if DD_FORWARD_TRACES and len(trace_payloads > 0):
+    if DD_FORWARD_TRACES and len(trace_payloads) > 0:
         xray_recorder.begin_subsegment("forward traces")
         forward_traces(trace_payloads)
         xray_recorder.end_subsegment()
