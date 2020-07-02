@@ -24,6 +24,10 @@ from datadog_lambda.wrapper import datadog_lambda_wrapper
 from datadog_lambda.metric import lambda_stats
 from datadog import api
 from trace_forwarder.connection import TraceConnection
+from enhanced_lambda_metrics import (
+    get_enriched_lambda_log_tags,
+    parse_and_submit_enhanced_metrics,
+)
 
 from aws_xray_sdk.core import xray_recorder
 from aws_xray_sdk.core import patch_all
@@ -559,7 +563,7 @@ def datadog_forwarder(event, context):
         forward_metrics(metrics)
         xray_recorder.end_subsegment()
 
-    if DD_FORWARD_TRACES and len(traces) > 0:
+    if DD_FORWARD_TRACES and len(trace_payloads > 0):
         xray_recorder.begin_subsegment("forward traces")
         forward_traces(trace_payloads)
         xray_recorder.end_subsegment()
@@ -820,7 +824,7 @@ def batch_trace_payloads(trace_payloads):
     """
     To reduce the number of API calls, batch traces that have the same tags
     """
-    traces_grouped_by_tags = defaultdict(List)
+    traces_grouped_by_tags = defaultdict(list)
     for trace_payload in trace_payloads:
         tags = trace_payload["tags"]
         traces = json.parse(trace_payload["message"])["traces"]
