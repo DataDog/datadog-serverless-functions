@@ -2,6 +2,7 @@ import unittest
 
 from lambda_function import batch_trace_payloads
 
+
 class TestBatchTracePayloads(unittest.TestCase):
     def test_batch_trace_payloads(self):
         trace_payloads = [
