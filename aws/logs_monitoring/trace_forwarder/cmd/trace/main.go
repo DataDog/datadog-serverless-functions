@@ -48,7 +48,7 @@ func Configure(rootURL, apiKey string) {
 // ForwardTrace will perform filtering and log forwarding to the trace intake
 // returns 0 on success, 1 on error
 //export ForwardTrace
-func ForwardTrace(content string, tags string) int {
+func ForwardTraces(content string, tags string) int {
 	tracePayloads, err := apm.ProcessTrace(content, obfuscator, tags)
 	if err != nil {
 		fmt.Printf("Couldn't forward trace: %v", err)

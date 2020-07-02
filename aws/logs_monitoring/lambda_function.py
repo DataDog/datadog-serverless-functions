@@ -9,6 +9,7 @@ import base64
 import gzip
 import json
 import os
+from collections import defaultdict
 
 import boto3
 import itertools
@@ -26,6 +27,7 @@ from trace_forwarder.connection import TraceConnection
 
 from aws_xray_sdk.core import xray_recorder
 from aws_xray_sdk.core import patch_all
+
 patch_all()
 
 log = logging.getLogger()
@@ -45,23 +47,6 @@ except ImportError:
     # customers have the Datadog Lambda Layer installed. The vendored version
     # of requests is removed in botocore 1.13.x.
     from botocore.vendored import requests
-
-try:
-    from enhanced_lambda_metrics import (
-        get_enriched_lambda_log_tags,
-        parse_and_submit_enhanced_metrics,
-    )
-
-    IS_ENHANCED_METRICS_FILE_PRESENT = True
-except ImportError:
-    IS_ENHANCED_METRICS_FILE_PRESENT = False
-    log.warn(
-        "Could not import from enhanced_lambda_metrics so enhanced metrics "
-        "will not be submitted. Ensure you've included the enhanced_lambda_metrics "
-        "file in your Lambda project."
-    )
-finally:
-    log.debug(f"IS_ENHANCED_METRICS_FILE_PRESENT: {IS_ENHANCED_METRICS_FILE_PRESENT}")
 
 
 def get_env_var(envvar, default, boolean=False):
@@ -478,39 +463,39 @@ class DatadogHTTPClient(object):
 
 
 class DatadogBatcher(object):
-    def __init__(self, max_log_size_bytes, max_size_bytes, max_size_count):
-        self._max_log_size_bytes = max_log_size_bytes
-        self._max_size_bytes = max_size_bytes
-        self._max_size_count = max_size_count
+    def __init__(self, max_item_size_bytes, max_batch_size_bytes, max_items_count):
+        self._max_item_size_bytes = max_item_size_bytes
+        self._max_batch_size_bytes = max_batch_size_bytes
+        self._max_items_count = max_items_count
 
-    def _sizeof_bytes(self, log):
-        return len(log.encode("UTF-8"))
+    def _sizeof_bytes(self, item):
+        return len(item.encode("UTF-8"))
 
-    def batch(self, logs):
+    def batch(self, items):
         """
         Returns an array of batches.
-        Each batch contains at most max_size_count logs and
-        is not strictly greater than max_size_bytes.
-        All logs strictly greater than max_log_size_bytes are dropped.
+        Each batch contains at most max_items_count items and
+        is not strictly greater than max_batch_size_bytes.
+        All items strictly greater than max_item_size_bytes are dropped.
         """
         batches = []
         batch = []
         size_bytes = 0
         size_count = 0
-        for log in logs:
-            log_size_bytes = self._sizeof_bytes(log)
+        for item in items:
+            item_size_bytes = self._sizeof_bytes(item)
             if size_count > 0 and (
-                size_count >= self._max_size_count
-                or size_bytes + log_size_bytes > self._max_size_bytes
+                size_count >= self._max_items_count
+                or size_bytes + item_size_bytes > self._max_batch_size_bytes
             ):
                 batches.append(batch)
                 batch = []
                 size_bytes = 0
                 size_count = 0
-            # all logs exceeding max_log_size_bytes are dropped here
-            if log_size_bytes <= self._max_log_size_bytes:
-                batch.append(log)
-                size_bytes += log_size_bytes
+            # all items exceeding max_item_size_bytes are dropped here
+            if item_size_bytes <= self._max_item_size_bytes:
+                batch.append(item)
+                size_bytes += item_size_bytes
                 size_count += 1
         if size_count > 0:
             batches.append(batch)
@@ -560,27 +545,27 @@ def datadog_forwarder(event, context):
     if log.isEnabledFor(logging.DEBUG):
         log.debug(f"Received Event:{json.dumps(event)}")
 
-    xray_recorder.begin_subsegment('initial parsing')
-    metrics, logs, traces = split(enrich(parse(event, context)))
+    xray_recorder.begin_subsegment("initial parsing")
+    metrics, logs, trace_payloads = split(enrich(parse(event, context)))
     xray_recorder.end_subsegment()
 
     if DD_FORWARD_LOG:
-        xray_recorder.begin_subsegment('forward logs')
+        xray_recorder.begin_subsegment("forward logs")
         forward_logs(filter_logs(map(json.dumps, logs)))
         xray_recorder.end_subsegment()
 
     if DD_FORWARD_METRIC:
-        xray_recorder.begin_subsegment('forward metrics')
+        xray_recorder.begin_subsegment("forward metrics")
         forward_metrics(metrics)
         xray_recorder.end_subsegment()
 
     if DD_FORWARD_TRACES and len(traces) > 0:
-        xray_recorder.begin_subsegment('forward traces')
-        forward_traces(traces)
+        xray_recorder.begin_subsegment("forward traces")
+        forward_traces(trace_payloads)
         xray_recorder.end_subsegment()
 
-    if IS_ENHANCED_METRICS_FILE_PRESENT and DD_FORWARD_METRIC:
-        xray_recorder.begin_subsegment('enhanced metrics')
+    if DD_FORWARD_METRIC:
+        xray_recorder.begin_subsegment("enhanced metrics")
         parse_and_submit_enhanced_metrics(logs)
         xray_recorder.end_subsegment()
 
@@ -681,18 +666,17 @@ def add_metadata_to_lambda_log(event):
     tags = ["functionname:{}".format(function_name)]
 
     # Add any enhanced tags from metadata
-    if IS_ENHANCED_METRICS_FILE_PRESENT:
-        custom_lambda_tags = get_enriched_lambda_log_tags(event)
+    custom_lambda_tags = get_enriched_lambda_log_tags(event)
 
-        # Check if one of the Lambda's custom tags is env
-        # If an env tag exists, remove the env:none placeholder
-        custom_env_tag = next(
-            (tag for tag in custom_lambda_tags if tag.startswith("env:")), None
-        )
-        if custom_env_tag is not None:
-            event[DD_CUSTOM_TAGS] = event[DD_CUSTOM_TAGS].replace("env:none", "")
+    # Check if one of the Lambda's custom tags is env
+    # If an env tag exists, remove the env:none placeholder
+    custom_env_tag = next(
+        (tag for tag in custom_lambda_tags if tag.startswith("env:")), None
+    )
+    if custom_env_tag is not None:
+        event[DD_CUSTOM_TAGS] = event[DD_CUSTOM_TAGS].replace("env:none", "")
 
-        tags += custom_lambda_tags
+    tags += custom_lambda_tags
 
     # Dedup tags, so we don't end up with functionname twice
     tags = list(set(tags))
@@ -730,8 +714,8 @@ def generate_metadata(context):
     return metadata
 
 
-def extract_trace(event):
-    """Extract traces from an event if possible"""
+def extract_trace_payload(event):
+    """Extract trace payload from an event if possible"""
     try:
         message = event["message"]
         obj = json.loads(event["message"])
@@ -759,19 +743,19 @@ def extract_metric(event):
 
 
 def split(events):
-    """Split events into metrics, logs, and traces
+    """Split events into metrics, logs, and trace payloads
     """
-    metrics, logs, traces = [], [], []
+    metrics, logs, trace_payloads = [], [], []
     for event in events:
         metric = extract_metric(event)
-        trace = extract_trace(event)
+        trace_payload = extract_trace_payload(event)
         if metric and DD_FORWARD_METRIC:
             metrics.append(metric)
-        elif trace:
-            traces.append(trace)
+        elif trace_payload:
+            trace_payloads.append(trace_payload)
         else:
             logs.append(event)
-    return metrics, logs, traces
+    return metrics, logs, trace_payloads
 
 
 # should only be called when INCLUDE_AT_MATCH and/or EXCLUDE_AT_MATCH exist
@@ -819,15 +803,39 @@ def forward_metrics(metrics):
                 log.debug(f"Forwarded metric: {json.dumps(metric)}")
 
 
-def forward_traces(traces):
-    for trace in traces:
+def forward_traces(trace_payloads):
+    batched_payloads = batch_trace_payloads(trace_payloads)
+
+    for payload in batched_payloads:
         try:
-            trace_connection.send_trace(trace["message"], trace["tags"])
+            trace_connection.send_traces(payload["message"], payload["tags"])
         except Exception:
-            log.exception(f"Exception while forwarding trace {json.dumps(trace)}")
+            log.exception(f"Exception while forwarding traces {json.dumps(payload)}")
         else:
             if log.isEnabledFor(logging.DEBUG):
-                log.debug(f"Forwarded trace: {json.dumps(trace)}")
+                log.debug(f"Forwarded traces: {json.dumps(payload)}")
+
+
+def batch_trace_payloads(trace_payloads):
+    """
+    To reduce the number of API calls, batch traces that have the same tags
+    """
+    traces_grouped_by_tags = defaultdict(List)
+    for trace_payload in trace_payloads:
+        tags = trace_payload["tags"]
+        traces = json.parse(trace_payload["message"])["traces"]
+        traces_grouped_by_tags[tags] += traces
+
+    batched_trace_payloads = []
+    batcher = DatadogBatcher(256 * 1000, 2 * 1000 * 1000, 200)
+    for tags, traces in traces_grouped_by_tags.items():
+        batches = batcher.batch(traces)
+        for batch in batches:
+            batched_trace_payloads.append(
+                {tags: tags, message: json.dumps({"traces": batch})}
+            )
+
+    return batched_trace_payloads
 
 
 # Utility functions
