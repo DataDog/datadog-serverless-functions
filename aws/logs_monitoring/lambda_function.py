@@ -473,7 +473,7 @@ class DatadogBatcher(object):
         self._max_items_count = max_items_count
 
     def _sizeof_bytes(self, item):
-        return len(item.encode("UTF-8"))
+        return len(str(item).encode("UTF-8"))
 
     def batch(self, items):
         """
@@ -827,7 +827,7 @@ def batch_trace_payloads(trace_payloads):
     traces_grouped_by_tags = defaultdict(list)
     for trace_payload in trace_payloads:
         tags = trace_payload["tags"]
-        traces = json.parse(trace_payload["message"])["traces"]
+        traces = json.loads(trace_payload["message"])["traces"]
         traces_grouped_by_tags[tags] += traces
 
     batched_trace_payloads = []
