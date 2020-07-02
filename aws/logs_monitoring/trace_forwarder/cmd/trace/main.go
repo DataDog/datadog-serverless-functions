@@ -45,13 +45,13 @@ func Configure(rootURL, apiKey string) {
 	edgeConnection = apm.CreateTraceEdgeConnection(localRootURL, localAPIKey)
 }
 
-// ForwardTrace will perform filtering and log forwarding to the trace intake
+// ForwardTraces will perform filtering and log forwarding to the trace intake
 // returns 0 on success, 1 on error
-//export ForwardTrace
+//export ForwardTraces
 func ForwardTraces(content string, tags string) int {
 	tracePayloads, err := apm.ProcessTrace(content, obfuscator, tags)
 	if err != nil {
-		fmt.Printf("Couldn't forward trace: %v", err)
+		fmt.Printf("Couldn't forward traces: %v", err)
 		return 1
 	}
 	hadErr := false
