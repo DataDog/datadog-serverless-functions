@@ -79,10 +79,10 @@ function handleLogs(sender, logs, context) {
             logs.forEach(sender(addTagsToStringLog));
             break;
         case JSON_ARRAY:
-            handleJSONArrayLogs(sender, logs, JSON_ARRAY);
+            handleJSONArrayLogs(sender, context, logs, JSON_ARRAY);
             break;
         case JSON_STRING_ARRAY:
-            handleJSONArrayLogs(sender, logs, JSON_STRING_ARRAY);
+            handleJSONArrayLogs(sender, context, logs, JSON_STRING_ARRAY);
             break;
         case INVALID:
         default:
@@ -91,7 +91,7 @@ function handleLogs(sender, logs, context) {
     }
 }
 
-function handleJSONArrayLogs(sender, logs, logsType) {
+function handleJSONArrayLogs(sender, context, logs, logsType) {
     logs.forEach(message => {
         if (logsType == JSON_STRING_ARRAY) {
             try {

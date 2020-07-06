@@ -81,6 +81,8 @@ describe('Azure Log Monitoring', function() {
     contextSpy = sinon.spy()
     contextSpy.log = sinon.spy()
     contextSpy.log.error = function(x) {} // do nothing
+    contextSpy.log.warn = function(x) {} // do nothing
+
     return contextSpy
   }
 
@@ -161,6 +163,13 @@ describe('Azure Log Monitoring', function() {
       expected = {"time": "xyz"}
       assert.equal(client.getLogFormat(record), constants.JSON_STRING_ARRAY)
       testHandleLogs(record, expected, true)
+    });
+
+    it('should handle json-string-array with malformed string', function() {
+      record = ['{"time": "xyz"}', '{"time": "xy']
+      expected = '{"time": "xy'
+      assert.equal(client.getLogFormat(record), constants.JSON_STRING_ARRAY)
+      testHandleLogs(record, expected, false)
     });
   })
 });
