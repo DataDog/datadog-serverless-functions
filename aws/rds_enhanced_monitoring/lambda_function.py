@@ -20,7 +20,10 @@ DD_SITE = os.getenv("DD_SITE", default="datadoghq.com")
 # retrieve datadog options from KMS
 KMS_ENCRYPTED_KEYS = os.environ['kmsEncryptedKeys']
 kms = boto3.client('kms')
-datadog_keys = json.loads(kms.decrypt(CiphertextBlob=base64.b64decode(KMS_ENCRYPTED_KEYS))['Plaintext'])
+encryption_context = {'LambdaFunctionName': os.environ['AWS_LAMBDA_FUNCTION_NAME']}
+datadog_keys = json.loads(kms.decrypt(CiphertextBlob=base64.b64decode(KMS_ENCRYPTED_KEYS),
+                                      EncryptionContext=encryption_context)
+                          ['Plaintext'])
 
 print('INFO Lambda function initialized, ready to send metrics')
 
