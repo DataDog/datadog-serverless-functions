@@ -16,10 +16,6 @@ describe('Azure Log Monitoring', function() {
       eventHubMessages = ['', 'foobar'];
       assert.equal(constants.STRING_ARRAY, client.getLogFormat(eventHubMessages));
     });
-//    it('should return json with records', function() {
-//      eventHubMessages = [{'records': [{}, {}]}, {'records': [{}, {}]}];
-//      assert.equal(constants.JSON_RECORDS, client.getLogFormat(eventHubMessages));
-//    });
     it('should return json object', function() {
       eventHubMessages = {'key': 'value', 'otherkey':'othervalue'};
       assert.equal(constants.JSON_OBJECT, client.getLogFormat(eventHubMessages));
@@ -105,7 +101,7 @@ describe('Azure Log Monitoring', function() {
     if (isJson == true) {
       sinon.assert.calledWith(handleJsonLogsSpy, expected)
     } else {
-          sinon.assert.calledWith(handleStringLogsSpy, expected)
+      sinon.assert.calledWith(handleStringLogsSpy, expected)
 
     }
   }
@@ -166,6 +162,5 @@ describe('Azure Log Monitoring', function() {
       assert.equal(client.getLogFormat(record), constants.JSON_STRING_ARRAY)
       testHandleLogs(record, expected, true)
     });
-
   })
 });
