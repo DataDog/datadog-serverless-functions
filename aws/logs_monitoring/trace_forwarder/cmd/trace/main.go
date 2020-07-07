@@ -82,7 +82,7 @@ func combinePayloads(tracePayloads []*pb.TracePayload) *pb.TracePayload {
 	combinedPayload := &pb.TracePayload{
 		HostName: tracePayloads[0].HostName,
 		Env:      tracePayloads[0].Env,
-		Traces:   make([]*pb.APITrace, len(tracePayloads)),
+		Traces:   make([]*pb.APITrace, 0),
 	}
 	for _, tracePayload := range tracePayloads {
 		combinedPayload.Traces = append(combinedPayload.Traces, tracePayload.Traces...)
