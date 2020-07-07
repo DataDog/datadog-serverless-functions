@@ -14,7 +14,10 @@ import (
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring/trace_forwarder/internal/apm"
 )
-import "github.com/DataDog/datadog-agent/pkg/trace/obfuscate"
+import (
+	"github.com/DataDog/datadog-agent/pkg/trace/obfuscate"
+	"github.com/DataDog/datadog-agent/pkg/trace/pb"
+)
 
 var (
 	obfuscator     *obfuscate.Obfuscator
@@ -45,35 +48,46 @@ func Configure(rootURL, apiKey string) {
 	edgeConnection = apm.CreateTraceEdgeConnection(localRootURL, localAPIKey)
 }
 
-// ForwardTrace will perform filtering and log forwarding to the trace intake
+// ForwardTraces will perform filtering and log forwarding to the trace intake
 // returns 0 on success, 1 on error
-//export ForwardTrace
-func ForwardTrace(content string, tags string) int {
+//export ForwardTraces
+func ForwardTraces(content string, tags string) int {
 	tracePayloads, err := apm.ProcessTrace(content, obfuscator, tags)
 	if err != nil {
-		fmt.Printf("Couldn't forward trace: %v", err)
+		fmt.Printf("Couldn't forward traces: %v", err)
 		return 1
 	}
-	hadErr := false
 
-	for _, tracePayload := range tracePayloads {
+	combinedPayload := combinePayloads(tracePayloads)
 
-		err = edgeConnection.SendTraces(context.Background(), tracePayload, 3)
-		if err != nil {
-			fmt.Printf("Failed to send traces with error %v\n", err)
-			hadErr = true
-		}
-		stats := apm.ComputeAPMStats(tracePayload)
-		err = edgeConnection.SendStats(context.Background(), stats, 3)
-		if err != nil {
-			fmt.Printf("Failed to send trace stats with error %v\n", err)
-			hadErr = true
-		}
-	}
-	if hadErr {
+	err = edgeConnection.SendTraces(context.Background(), combinedPayload, 3)
+	if err != nil {
+		fmt.Printf("Failed to send traces with error %v\n", err)
 		return 1
 	}
+
+	stats := apm.ComputeAPMStats(combinedPayload)
+	err = edgeConnection.SendStats(context.Background(), stats, 3)
+	if err != nil {
+		fmt.Printf("Failed to send trace stats with error %v\n", err)
+		return 1
+	}
+
 	return 0
+}
+
+// Combine payloads into one
+// Assumes that all payloads have the same HostName and Env
+func combinePayloads(tracePayloads []*pb.TracePayload) *pb.TracePayload {
+	combinedPayload := &pb.TracePayload{
+		HostName: tracePayloads[0].HostName,
+		Env:      tracePayloads[0].Env,
+		Traces:   make([]*pb.APITrace, 0),
+	}
+	for _, tracePayload := range tracePayloads {
+		combinedPayload.Traces = append(combinedPayload.Traces, tracePayload.Traces...)
+	}
+	return combinedPayload
 }
 
 func main() {}

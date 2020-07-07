@@ -32,9 +32,9 @@ jobs:
       - name: Run trace forwarder integration tests
         run: |
           ./aws/logs_monitoring/trace_forwarder/scripts/run_tests.sh
-      - name: Run enhanced metric unittest
+      - name: Run unit tests
         env:
           AWS_DEFAULT_REGION: us-east-1
         run: |
-          pip install boto3
+          pip install boto3 mock
           python -m unittest discover ./aws/logs_monitoring/
