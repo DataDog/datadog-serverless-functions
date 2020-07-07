@@ -8,9 +8,7 @@ sys.modules["datadog_lambda.metric"] = MagicMock()
 sys.modules["datadog"] = MagicMock()
 sys.modules["requests"] = MagicMock()
 
-env_patch = patch.dict(
-    os.environ, {"DD_API_KEY": "11111111111111111111111111111111"}
-)
+env_patch = patch.dict(os.environ, {"DD_API_KEY": "11111111111111111111111111111111"})
 env_patch.start()
 from lambda_function import batch_trace_payloads
 
