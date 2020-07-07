@@ -1,8 +1,9 @@
 import unittest
-from unittest.mock import MagicMock
+from mock import MagicMock
 import sys
 
-sys.modules["datadog_lambda"] = MagicMock()
+sys.modules["datadog_lambda.wrapper"] = MagicMock()
+sys.modules["datadog_lambda.metric"] = MagicMock()
 
 from lambda_function import batch_trace_payloads
 

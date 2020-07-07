@@ -36,5 +36,5 @@ jobs:
         env:
           AWS_DEFAULT_REGION: us-east-1
         run: |
-          pip install boto3
+          pip install boto3 mock
           python -m unittest discover ./aws/logs_monitoring/
