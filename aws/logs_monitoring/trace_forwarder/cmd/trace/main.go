@@ -82,12 +82,11 @@ func combinePayloads(tracePayloads []*pb.TracePayload) *pb.TracePayload {
 	combinedPayload := &pb.TracePayload{
 		HostName: tracePayloads[0].HostName,
 		Env:      tracePayloads[0].Env,
-		Traces:   make([]*pb.APITrace, 0),
+		Traces:   make([]*pb.APITrace, len(tracePayloads)),
 	}
 	for _, tracePayload := range tracePayloads {
 		combinedPayload.Traces = append(combinedPayload.Traces, tracePayload.Traces...)
 	}
-	fmt.Sprintf("aggregated %d traces into single payload", len(combinedPayload.Traces))
 	return combinedPayload
 }
 
