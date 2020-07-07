@@ -1,6 +1,7 @@
-import unittest
-from mock import MagicMock
+from mock import MagicMock, patch
+import os
 import sys
+import unittest
 
 sys.modules["datadog_lambda.wrapper"] = MagicMock()
 sys.modules["datadog_lambda.metric"] = MagicMock()
@@ -10,6 +11,7 @@ sys.modules["requests"] = MagicMock()
 from lambda_function import batch_trace_payloads
 
 
+@patch.dict('os.environ', {'DD_API_KEY': '11111111111111111111111111111111'}):
 class TestBatchTracePayloads(unittest.TestCase):
     def test_batch_trace_payloads(self):
         trace_payloads = [
