@@ -86,12 +86,12 @@ describe('Azure Log Monitoring', function() {
     return contextSpy
   }
 
-  function testHandleLogs(logs, expected, isJson) {
+  function testHandleLogs(logs, expected, assertJson) {
     // create a spy to mock the sender call
    var handleJsonLogsSpy = sinon.spy();
    var handleStringLogsSpy = sinon.spy();
 
-   sender = function(tagger){
+   sender = function(tagger) {
      if (tagger === client.addTagsToJsonLog) {
        return handleJsonLogsSpy;
       } else {
@@ -100,75 +100,80 @@ describe('Azure Log Monitoring', function() {
     }
 
     client.handleLogs(sender, record, fakeContext());
-    if (isJson == true) {
-      sinon.assert.calledWith(handleJsonLogsSpy, expected)
+    if (assertJson == true) {
+      expected.forEach(message => {
+        sinon.assert.calledWith(handleJsonLogsSpy, message)
+      });
     } else {
-      sinon.assert.calledWith(handleStringLogsSpy, expected)
-
+      expected.forEach(message => {
+        sinon.assert.calledWith(handleStringLogsSpy, message)
+      })
     }
   }
 
   describe('#handleLogs', function() {
     it('should handle string properly', function() {
       record = 'hello'
-      expected = 'hello'
+      expected = ['hello']
       assert.equal(client.getLogFormat(record), constants.STRING)
       testHandleLogs(record, expected, false)
     });
 
     it('should handle json-string properly', function() {
       record = '{"hello": "there"}'
-      expected = {'hello': 'there'}
+      expected = [{'hello': 'there'}]
       assert.equal(client.getLogFormat(record), constants.JSON_STRING)
       testHandleLogs(record, expected, true)
     });
 
     it('should handle json-object properly', function() {
       record = {'hello': 'there'}
-      expected = {'hello': 'there'}
+      expected = [{'hello': 'there'}]
       assert.equal(client.getLogFormat(record), constants.JSON_OBJECT)
       testHandleLogs(record, expected, true)
     });
 
     it('should handle string-array properly', function() {
       record = ['one message', 'two message']
-      expected = 'one message'
+      expected = ['one message', 'two message']
       assert.equal(client.getLogFormat(record), constants.STRING_ARRAY)
       testHandleLogs(record, expected, false)
     });
 
     it('should handle json-records properly', function() {
       record = [{"records": [{"hello": "there"}, {"goodbye": "now"}]}]
-      expected = {"hello": "there"}
+      expected = [{"hello": "there"}, {"goodbye": "now"}]
       assert.equal(client.getLogFormat(record), constants.JSON_ARRAY) //JSON_RECORDS
       testHandleLogs(record, expected, true)
     });
 
     it('should handle json-array properly', function() {
       record = [{"hello": "there"}, {"goodbye": "now"}]
-      expected = {"hello": "there"}
+      expected = [{"hello": "there"}, {"goodbye": "now"}]
       assert.equal(client.getLogFormat(record), constants.JSON_ARRAY)
       testHandleLogs(record, expected, true)
     });
 
     it('should handle json-string-array properly records', function() {
       record = ['{"records": [{ "time": "xyz"}, {"time": "abc"}]}']
-      expected = {"time": "xyz"}
+      expected = [{"time": "xyz"}]
       assert.equal(client.getLogFormat(record), constants.JSON_STRING_ARRAY)
       testHandleLogs(record, expected, true)
     });
 
     it('should handle json-string-array properly no records', function() {
       record = ['{"time": "xyz"}']
-      expected = {"time": "xyz"}
+      expected = [{"time": "xyz"}]
       assert.equal(client.getLogFormat(record), constants.JSON_STRING_ARRAY)
       testHandleLogs(record, expected, true)
     });
 
     it('should handle json-string-array with malformed string', function() {
       record = ['{"time": "xyz"}', '{"time": "xy']
-      expected = '{"time": "xy'
+      expected = ['{"time": "xy']
       assert.equal(client.getLogFormat(record), constants.JSON_STRING_ARRAY)
+      // just assert that the string method is called for the second message,
+      // we don't care about the first one for this test
       testHandleLogs(record, expected, false)
     });
   })
