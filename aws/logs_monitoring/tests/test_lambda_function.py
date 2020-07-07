@@ -4,6 +4,7 @@ import sys
 
 sys.modules["datadog_lambda.wrapper"] = MagicMock()
 sys.modules["datadog_lambda.metric"] = MagicMock()
+sys.modules["datadog"] = MagicMock()
 
 from lambda_function import batch_trace_payloads
 
