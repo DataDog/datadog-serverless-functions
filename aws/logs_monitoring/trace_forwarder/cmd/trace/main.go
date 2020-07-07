@@ -14,7 +14,10 @@ import (
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring/trace_forwarder/internal/apm"
 )
-import "github.com/DataDog/datadog-agent/pkg/trace/obfuscate"
+import (
+	"github.com/DataDog/datadog-agent/pkg/trace/obfuscate"
+	"github.com/DataDog/datadog-agent/pkg/trace/pb"
+)
 
 var (
 	obfuscator     *obfuscate.Obfuscator
@@ -54,26 +57,38 @@ func ForwardTraces(content string, tags string) int {
 		fmt.Printf("Couldn't forward traces: %v", err)
 		return 1
 	}
-	hadErr := false
 
-	for _, tracePayload := range tracePayloads {
+	combinedPayload := combinePayloads(tracePayloads)
 
-		err = edgeConnection.SendTraces(context.Background(), tracePayload, 3)
-		if err != nil {
-			fmt.Printf("Failed to send traces with error %v\n", err)
-			hadErr = true
-		}
-		stats := apm.ComputeAPMStats(tracePayload)
-		err = edgeConnection.SendStats(context.Background(), stats, 3)
-		if err != nil {
-			fmt.Printf("Failed to send trace stats with error %v\n", err)
-			hadErr = true
-		}
-	}
-	if hadErr {
+	err = edgeConnection.SendTraces(context.Background(), combinedPayload, 3)
+	if err != nil {
+		fmt.Printf("Failed to send traces with error %v\n", err)
 		return 1
 	}
+
+	stats := apm.ComputeAPMStats(combinedPayload)
+	err = edgeConnection.SendStats(context.Background(), stats, 3)
+	if err != nil {
+		fmt.Printf("Failed to send trace stats with error %v\n", err)
+		return 1
+	}
+
 	return 0
+}
+
+// Combine payloads into one
+// Assumes that all payloads have the same HostName and Env
+func combinePayloads(tracePayloads []*pb.TracePayload) *pb.TracePayload {
+	combinedPayload := &pb.TracePayload{
+		HostName: tracePayloads[0].HostName,
+		Env:      tracePayloads[0].Env,
+		Traces:   make([]*pb.APITrace, 0),
+	}
+	for _, tracePayload := range tracePayloads {
+		combinedPayload.Traces = append(combinedPayload.Traces, tracePayload.Traces...)
+	}
+	fmt.Sprintf("aggregated %d traces into single payload", len(combinedPayload.Traces))
+	return combinedPayload
 }
 
 func main() {}

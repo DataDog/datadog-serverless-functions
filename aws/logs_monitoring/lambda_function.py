@@ -29,10 +29,6 @@ from enhanced_lambda_metrics import (
     parse_and_submit_enhanced_metrics,
 )
 
-from aws_xray_sdk.core import xray_recorder
-from aws_xray_sdk.core import patch_all
-
-patch_all()
 
 log = logging.getLogger()
 log.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
@@ -549,29 +545,19 @@ def datadog_forwarder(event, context):
     if log.isEnabledFor(logging.DEBUG):
         log.debug(f"Received Event:{json.dumps(event)}")
 
-    xray_recorder.begin_subsegment("initial parsing")
     metrics, logs, trace_payloads = split(enrich(parse(event, context)))
-    xray_recorder.end_subsegment()
 
     if DD_FORWARD_LOG:
-        xray_recorder.begin_subsegment("forward logs")
         forward_logs(filter_logs(map(json.dumps, logs)))
-        xray_recorder.end_subsegment()
 
     if DD_FORWARD_METRIC:
-        xray_recorder.begin_subsegment("forward metrics")
         forward_metrics(metrics)
-        xray_recorder.end_subsegment()
 
     if DD_FORWARD_TRACES and len(trace_payloads) > 0:
-        xray_recorder.begin_subsegment("forward traces")
         forward_traces(trace_payloads)
-        xray_recorder.end_subsegment()
 
     if DD_FORWARD_METRIC:
-        xray_recorder.begin_subsegment("enhanced metrics")
         parse_and_submit_enhanced_metrics(logs)
-        xray_recorder.end_subsegment()
 
 
 if DD_FORWARD_METRIC or DD_FORWARD_TRACES:
