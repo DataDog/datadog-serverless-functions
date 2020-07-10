@@ -29,7 +29,7 @@ jobs:
       - name: Run integration tests
         run: |
           ./aws/logs_monitoring/tools/integration_test.sh
-      - name: Run trace forwarder integration tests
+      - name: Run trace forwarder tests
         run: |
           ./aws/logs_monitoring/trace_forwarder/scripts/run_tests.sh
       - name: Run unit tests

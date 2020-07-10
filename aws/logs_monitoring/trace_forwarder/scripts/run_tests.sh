@@ -12,5 +12,5 @@ set -e
 cd $(dirname "$0")/..
 
 docker build -t datadog-go-layer . --build-arg runtime=python:3.7
-docker run datadog-go-layer go test ./...
+docker run datadog-go-layer go test -v ./...
 

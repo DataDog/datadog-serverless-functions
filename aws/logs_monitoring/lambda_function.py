@@ -36,6 +36,11 @@ log.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()
 DD_FORWARD_TRACES = True
 DD_FORWARD_METRIC = True
 
+from aws_xray_sdk.core import xray_recorder
+from aws_xray_sdk.core import patch_all
+
+patch_all()
+
 try:
     import requests
 except ImportError:
@@ -547,17 +552,25 @@ def datadog_forwarder(event, context):
 
     metrics, logs, trace_payloads = split(enrich(parse(event, context)))
 
+    xray_recorder.begin_subsegment('forward logs')
     if DD_FORWARD_LOG:
         forward_logs(filter_logs(map(json.dumps, logs)))
+    xray_recorder.end_subsegment()
 
+    xray_recorder.begin_subsegment('forward metrics')
     if DD_FORWARD_METRIC:
         forward_metrics(metrics)
+    xray_recorder.end_subsegment()
 
+    xray_recorder.begin_subsegment('forward traces')
     if DD_FORWARD_TRACES and len(trace_payloads) > 0:
         forward_traces(trace_payloads)
+    xray_recorder.end_subsegment()
 
+    xray_recorder.begin_subsegment('submit enhanced metrics')
     if DD_FORWARD_METRIC:
         parse_and_submit_enhanced_metrics(logs)
+    xray_recorder.end_subsegment()
 
 
 if DD_FORWARD_METRIC or DD_FORWARD_TRACES:
@@ -794,38 +807,13 @@ def forward_metrics(metrics):
 
 
 def forward_traces(trace_payloads):
-    batched_payloads = batch_trace_payloads(trace_payloads)
-
-    for payload in batched_payloads:
-        try:
-            trace_connection.send_traces(payload["message"], payload["tags"])
-        except Exception:
-            log.exception(f"Exception while forwarding traces {json.dumps(payload)}")
-        else:
-            if log.isEnabledFor(logging.DEBUG):
-                log.debug(f"Forwarded traces: {json.dumps(payload)}")
-
-
-def batch_trace_payloads(trace_payloads):
-    """
-    To reduce the number of API calls, batch traces that have the same tags
-    """
-    traces_grouped_by_tags = defaultdict(list)
-    for trace_payload in trace_payloads:
-        tags = trace_payload["tags"]
-        traces = json.loads(trace_payload["message"])["traces"]
-        traces_grouped_by_tags[tags] += traces
-
-    batched_trace_payloads = []
-    batcher = DatadogBatcher(256 * 1000, 2 * 1000 * 1000, 200)
-    for tags, traces in traces_grouped_by_tags.items():
-        batches = batcher.batch(traces)
-        for batch in batches:
-            batched_trace_payloads.append(
-                {"tags": tags, "message": json.dumps({"traces": batch})}
-            )
-
-    return batched_trace_payloads
+    try:
+        trace_connection.send_traces(trace_payloads)
+    except Exception:
+        log.exception(f"Exception while forwarding traces {json.dumps(payload)}")
+    else:
+        if log.isEnabledFor(logging.DEBUG):
+            log.debug(f"Forwarded traces: {json.dumps(payload)}")
 
 
 # Utility functions
