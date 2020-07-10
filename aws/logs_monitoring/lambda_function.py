@@ -794,38 +794,13 @@ def forward_metrics(metrics):
 
 
 def forward_traces(trace_payloads):
-    batched_payloads = batch_trace_payloads(trace_payloads)
-
-    for payload in batched_payloads:
-        try:
-            trace_connection.send_traces(payload["message"], payload["tags"])
-        except Exception:
-            log.exception(f"Exception while forwarding traces {json.dumps(payload)}")
-        else:
-            if log.isEnabledFor(logging.DEBUG):
-                log.debug(f"Forwarded traces: {json.dumps(payload)}")
-
-
-def batch_trace_payloads(trace_payloads):
-    """
-    To reduce the number of API calls, batch traces that have the same tags
-    """
-    traces_grouped_by_tags = defaultdict(list)
-    for trace_payload in trace_payloads:
-        tags = trace_payload["tags"]
-        traces = json.loads(trace_payload["message"])["traces"]
-        traces_grouped_by_tags[tags] += traces
-
-    batched_trace_payloads = []
-    batcher = DatadogBatcher(256 * 1000, 2 * 1000 * 1000, 200)
-    for tags, traces in traces_grouped_by_tags.items():
-        batches = batcher.batch(traces)
-        for batch in batches:
-            batched_trace_payloads.append(
-                {"tags": tags, "message": json.dumps({"traces": batch})}
-            )
-
-    return batched_trace_payloads
+    try:
+        trace_connection.send_traces(trace_payloads)
+    except Exception:
+        log.exception(f"Exception while forwarding traces {json.dumps(trace_payloads)}")
+    else:
+        if log.isEnabledFor(logging.DEBUG):
+            log.debug(f"Forwarded traces: {json.dumps(trace_payloads)}")
 
 
 # Utility functions

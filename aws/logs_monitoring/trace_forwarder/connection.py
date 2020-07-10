@@ -23,10 +23,10 @@ class TraceConnection:
         self.lib = cdll.LoadLibrary("{}/bin/trace-intake.so".format(dir))
         self.lib.Configure(make_go_string(root_url), make_go_string(api_key))
 
-    def send_traces(self, traces_str, tags=""):
+    def send_traces(self, trace_payloads):
+        serialized_trace_paylods = json.dumps(trace_payloads)
         had_error = (
-            self.lib.ForwardTraces(make_go_string(traces_str), make_go_string(tags))
-            != 0
+            self.lib.ForwardTraces(make_go_string(serialized_trace_paylods)) != 0
         )
         if had_error:
             raise Exception("Failed to send to trace intake")

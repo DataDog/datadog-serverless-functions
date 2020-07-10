@@ -22,7 +22,7 @@ import (
 )
 
 type (
-	// TraceList is an incomming trace payload
+	// TraceList is an incoming trace payload
 	traceList struct {
 		Traces [][]span `json:"traces"`
 	}
