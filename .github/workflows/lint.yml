@@ -1,40 +1,33 @@
-name: Lambda checks
+name: Lint
 
 on: [pull_request]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    strategy:
-      max-parallel: 4
-      matrix:
-        python-version: [3.7, 3.8]
     steps:
       - uses: actions/checkout@v2
+
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v1
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: 3.7
+
       - name: Install pip
         run: |
           python -m pip install --upgrade pip
+
       - name: Lint with flake8
         run: |
           pip install flake8
           flake8 ./aws/logs_monitoring/ --count --select=E9,F63,F7,F82 --show-source --statistics
+
       - name: Check formatting with Black
         run: |
           pip install black
           black --check ./aws/logs_monitoring
-      - name: Run integration tests
-        run: |
-          ./aws/logs_monitoring/tools/integration_test.sh
-      - name: Run trace forwarder tests
-        run: |
-          ./aws/logs_monitoring/trace_forwarder/scripts/run_tests.sh
-      - name: Run unit tests
-        env:
-          AWS_DEFAULT_REGION: us-east-1
-        run: |
-          pip install boto3 mock
-          python -m unittest discover ./aws/logs_monitoring/
+
+      - name: Lint CloudFormation template with cfn-lint
+        uses: scottbrenner/cfn-lint-action@master
+        with:
+          args: "aws/logs_monitoring/template.yaml"
