@@ -2,7 +2,7 @@ version: "3.7"
 
 services:
   forwarder:
-    image: datadog-log-forwarder:${PYTHON_RUNTIME:-python3.8}
+    image: datadog-log-forwarder:${PYTHON_RUNTIME:-python3.7}
     command: lambda_function.datadog_forwarder
     environment:
       AWS_ACCOUNT_ID: 0000000000
