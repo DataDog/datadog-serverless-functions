@@ -810,10 +810,10 @@ def forward_traces(trace_payloads):
     try:
         trace_connection.send_traces(trace_payloads)
     except Exception:
-        log.exception(f"Exception while forwarding traces {json.dumps(payload)}")
+        log.exception(f"Exception while forwarding traces {json.dumps(trace_payloads)}")
     else:
         if log.isEnabledFor(logging.DEBUG):
-            log.debug(f"Forwarded traces: {json.dumps(payload)}")
+            log.debug(f"Forwarded traces: {json.dumps(trace_payloads)}")
 
 
 # Utility functions
