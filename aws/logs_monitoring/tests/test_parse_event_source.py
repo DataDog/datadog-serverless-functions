@@ -20,12 +20,6 @@ class TestParseEventSource(unittest.TestCase):
     def test_aws_source_if_none_found(self):
         self.assertEqual(parse_event_source({}, "asdfalsfhalskjdfhalsjdf"), "aws")
 
-    def test_cloudwatch_source_if_none_found(self):
-        self.assertEqual(parse_event_source({"awslogs": "logs"}, ""), "cloudwatch")
-
-    def test_s3_source_if_none_found(self):
-        self.assertEqual(parse_event_source({"Records": ["logs-from-s3"]}, ""), "s3")
-
     def test_cloudtrail_event(self):
         self.assertEqual(
             parse_event_source(
@@ -44,6 +38,15 @@ class TestParseEventSource(unittest.TestCase):
             ),
             "cloudtrail",
         )
+
+    def test_rds_event(self):
+        self.assertEqual(parse_event_source({}, "/aws/rds/my-rds-resource"), "rds")
+
+    def test_cloudwatch_source_if_none_found(self):
+        self.assertEqual(parse_event_source({"awslogs": "logs"}, ""), "cloudwatch")
+
+    def test_s3_source_if_none_found(self):
+        self.assertEqual(parse_event_source({"Records": ["logs-from-s3"]}, ""), "s3")
 
 
 if __name__ == "__main__":
