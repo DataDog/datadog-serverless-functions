@@ -65,7 +65,7 @@ def get_env_var(envvar, default, boolean=False):
 ############# PARAMETERS ############
 #####################################
 
-## @param DD_API_KEY - String - conditional - default: none:
+## @param DD_API_KEY - String - conditional - default: none
 ## The Datadog API key associated with your Datadog Account
 ## It can be found here:
 ##
