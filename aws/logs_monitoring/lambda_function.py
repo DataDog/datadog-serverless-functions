@@ -304,7 +304,7 @@ DD_SOURCE = "ddsource"
 DD_CUSTOM_TAGS = "ddtags"
 DD_SERVICE = "service"
 DD_HOST = "host"
-DD_FORWARDER_VERSION = "3.15.0"
+DD_FORWARDER_VERSION = "3.16.0"
 
 
 # Used to identify and assign sources to logs
