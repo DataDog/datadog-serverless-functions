@@ -123,6 +123,8 @@ else:
     DD_URL = get_env_var("DD_URL", default="lambda-http-intake.logs." + DD_SITE)
     DD_PORT = int(get_env_var("DD_PORT", default="443"))
 
+DD_FORWARD_TRACES = True
+
 ## @param DD_USE_PRIVATE_LINK - whether to forward logs via private link
 ## Overrides incompatible settings
 #
@@ -199,6 +201,9 @@ os.environ["DD_API_KEY"] = DD_API_KEY
 DD_MULTILINE_LOG_REGEX_PATTERN = get_env_var(
     "DD_MULTILINE_LOG_REGEX_PATTERN", default=None
 )
+
+multiline_regex = None
+multiline_regex_start_pattern = None
 if DD_MULTILINE_LOG_REGEX_PATTERN:
     try:
         multiline_regex = re.compile(

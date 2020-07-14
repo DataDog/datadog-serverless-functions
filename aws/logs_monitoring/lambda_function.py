@@ -42,6 +42,7 @@ from settings import (
     DD_TRACE_INTAKE_URL,
     DD_URL,
     DD_PORT,
+    DD_FORWARD_TRACES,
     SCRUBBING_RULE_CONFIGS,
     INCLUDE_AT_MATCH,
     EXCLUDE_AT_MATCH,
@@ -59,35 +60,7 @@ from settings import (
 log = logging.getLogger()
 log.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
 
-DD_FORWARD_TRACES = True
 DD_FORWARD_METRIC = True
-
-log.debug(
-    DD_API_KEY,
-    DD_FORWARD_LOG,
-    DD_USE_TCP,
-    DD_USE_COMPRESSION,
-    DD_COMPRESSION_LEVEL,
-    DD_NO_SSL,
-    DD_SKIP_SSL_VALIDATION,
-    DD_SITE,
-    DD_TAGS,
-    DD_API_URL,
-    DD_TRACE_INTAKE_URL,
-    DD_URL,
-    DD_PORT,
-    SCRUBBING_RULE_CONFIGS,
-    INCLUDE_AT_MATCH,
-    EXCLUDE_AT_MATCH,
-    DD_MULTILINE_LOG_REGEX_PATTERN,
-    multiline_regex,
-    multiline_regex_start_pattern,
-    DD_SOURCE,
-    DD_CUSTOM_TAGS,
-    DD_SERVICE,
-    DD_HOST,
-    DD_FORWARDER_VERSION,
-)
 
 try:
     import requests
