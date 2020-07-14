@@ -60,8 +60,6 @@ from settings import (
 log = logging.getLogger()
 log.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
 
-DD_FORWARD_METRIC = True
-
 try:
     import requests
 except ImportError:
@@ -366,22 +364,14 @@ def datadog_forwarder(event, context):
     if DD_FORWARD_LOG:
         forward_logs(filter_logs(map(json.dumps, logs)))
 
-    if DD_FORWARD_METRIC:
-        forward_metrics(metrics)
+    forward_metrics(metrics)
 
     if DD_FORWARD_TRACES and len(trace_payloads) > 0:
         forward_traces(trace_payloads)
 
-    if DD_FORWARD_METRIC:
-        parse_and_submit_enhanced_metrics(logs)
+    parse_and_submit_enhanced_metrics(logs)
 
-
-if DD_FORWARD_METRIC or DD_FORWARD_TRACES:
-    # Datadog Lambda layer is required to forward metrics
-    lambda_handler = datadog_lambda_wrapper(datadog_forwarder)
-else:
-    lambda_handler = datadog_forwarder
-
+lambda_handler = datadog_lambda_wrapper(datadog_forwarder)
 
 def forward_logs(logs):
     """Forward logs to Datadog"""
@@ -555,7 +545,7 @@ def split(events):
     for event in events:
         metric = extract_metric(event)
         trace_payload = extract_trace_payload(event)
-        if metric and DD_FORWARD_METRIC:
+        if metric:
             metrics.append(metric)
         elif trace_payload:
             trace_payloads.append(trace_payload)
