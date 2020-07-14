@@ -203,25 +203,6 @@ DD_MULTILINE_LOG_REGEX_PATTERN = get_env_var(
     "DD_MULTILINE_LOG_REGEX_PATTERN", default=None
 )
 
-multiline_regex = None
-multiline_regex_start_pattern = None
-if DD_MULTILINE_LOG_REGEX_PATTERN:
-    try:
-        multiline_regex = re.compile(
-            "[\n\r\f]+(?={})".format(DD_MULTILINE_LOG_REGEX_PATTERN)
-        )
-    except Exception:
-        raise Exception(
-            "could not compile multiline regex with pattern: {}".format(
-                DD_MULTILINE_LOG_REGEX_PATTERN
-            )
-        )
-    multiline_regex_start_pattern = re.compile(
-        "^{}".format(DD_MULTILINE_LOG_REGEX_PATTERN)
-    )
-
-rds_regex = re.compile("/aws/rds/(instance|cluster)/(?P<host>[^/]+)/(?P<name>[^/]+)")
-
 DD_SOURCE = "ddsource"
 DD_CUSTOM_TAGS = "ddtags"
 DD_SERVICE = "service"
