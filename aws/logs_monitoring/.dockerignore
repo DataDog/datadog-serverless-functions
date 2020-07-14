@@ -1,6 +1,7 @@
 *
 !lambda_function.py
 !enhanced_lambda_metrics.py
+!settings.py
 !setup.py
 !template.yaml
 !trace_forwarder/bin

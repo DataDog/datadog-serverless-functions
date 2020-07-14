@@ -65,7 +65,7 @@ if [ "$PROD_RELEASE" = true ] ; then
 
     # Bump version number
     echo "Bumping the current version number to the desired"
-    perl -pi -e "s/DD_FORWARDER_VERSION = \"${CURRENT_VERSION}/DD_FORWARDER_VERSION = \"${VERSION}/g" lambda_function.py
+    perl -pi -e "s/DD_FORWARDER_VERSION = \"${CURRENT_VERSION}/DD_FORWARDER_VERSION = \"${VERSION}/g" settings.py
     perl -pi -e "s/Version: ${CURRENT_VERSION}/Version: ${VERSION}/g" template.yaml
 
     # Commit version number changes to git
