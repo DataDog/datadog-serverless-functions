@@ -3,8 +3,6 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2018 Datadog, Inc.
 
-from __future__ import print_function
-
 import base64
 import gzip
 import json
@@ -14,7 +12,7 @@ from collections import defaultdict
 import boto3
 import itertools
 import re
-import six.moves.urllib as urllib  # for Python 2.7 urllib.unquote_plus
+import urllib
 import socket
 import ssl
 import logging
