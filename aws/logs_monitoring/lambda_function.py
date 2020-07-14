@@ -139,6 +139,7 @@ LOG_SOURCE_SUBSTRINGS = [
     "waf",
 ]
 
+
 class RetriableException(Exception):
     pass
 
@@ -389,7 +390,9 @@ def datadog_forwarder(event, context):
 
     parse_and_submit_enhanced_metrics(logs)
 
+
 lambda_handler = datadog_lambda_wrapper(datadog_forwarder)
+
 
 def forward_logs(logs):
     """Forward logs to Datadog"""
