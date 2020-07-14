@@ -675,6 +675,7 @@ def parse_event_type(event):
         return "events"
     raise Exception("Event type not supported (see #Event supported section)")
 
+
 # Handle S3 events
 def s3_handler(event, context, metadata):
     s3 = boto3.client("s3")
