@@ -120,6 +120,24 @@ exclude_regex = compileRegex("EXCLUDE_AT_MATCH", EXCLUDE_AT_MATCH)
 
 rds_regex = re.compile("/aws/rds/(instance|cluster)/(?P<host>[^/]+)/(?P<name>[^/]+)")
 
+# Used to identify and assign sources to logs
+LOG_SOURCE_SUBSTRINGS = [
+    "codebuild",
+    "lambda",
+    "redshift",
+    "cloudfront",
+    "kinesis",
+    "mariadb",
+    "mysql",
+    "apigateway",
+    "route53",
+    "docdb",
+    "fargate",
+    "dms",
+    "vpc",
+    "sns",
+    "waf",
+]
 
 class RetriableException(Exception):
     pass
@@ -805,7 +823,7 @@ def cwevent_handler(event, metadata):
 def sns_handler(event, metadata):
     data = event
     # Set the source on the log
-    metadata[DD_SOURCE] = parse_event_source(event, "sns")
+    metadata[DD_SOURCE] = "sns"
 
     for ev in data["Records"]:
         # Create structured object and send it
@@ -843,36 +861,40 @@ def is_cloudtrail(key):
 
 
 def parse_event_source(event, key):
-    if "elasticloadbalancing" in key:
+    """Parse out the source that will be assigned to the log in Datadog
+
+    TODO Refactor to do a more thorough parsing that will guarantee correct source identification
+
+    Args:
+        event (dict): The AWS-formatted log event that the forwarder was triggered with
+        key (string): The S3 object key if the event is from S3 or the CW Log Group if the event is from CW Logs
+    """
+    lowercase_key = str(key).lower()
+
+    if "elasticloadbalancing" in lowercase_key:
         return "elb"
-    for source in [
-        "dms",
-        "codebuild",
-        "lambda",
-        "redshift",
-        "cloudfront",
-        "kinesis",
-        "/aws/rds",
-        "mariadb",
-        "mysql",
-        "apigateway",
-        "route53",
-        "vpc",
-        "sns",
-        "waf",
-        "docdb",
-        "fargate",
-    ]:
-        if source in key:
-            return source.replace("/aws/", "")
-    if "api-gateway" in key.lower() or "apigateway" in key.lower():
+
+    if "api-gateway" in lowercase_key:
         return "apigateway"
+
     if is_cloudtrail(str(key)) or (
         "logGroup" in event and event["logGroup"] == "CloudTrail"
     ):
         return "cloudtrail"
+
+    if "/aws/rds" in lowercase_key:
+        return "rds"
+
+    # Use the source substrings to find if the key matches any known services
+    for source in LOG_SOURCE_SUBSTRINGS:
+        if source in lowercase_key:
+            return source
+
+    # If the source AWS service cannot be parsed from the key, return the service
+    # that contains the logs as the source, "cloudwatch" or "s3"
     if "awslogs" in event:
         return "cloudwatch"
+
     if "Records" in event and len(event["Records"]) > 0:
         if "s3" in event["Records"][0]:
             return "s3"

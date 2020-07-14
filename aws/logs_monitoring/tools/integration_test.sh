@@ -11,22 +11,28 @@ set -e
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 cd $DIR
 
-PYTHON_VERSIONS=("python3.7")
+# Default to Python 3.7
+# But switch to Python 3.8 if argument is passed
+if [ -z "$1" ]; then
+    PYTHON_VERSION="python3.7"
+elif [[ $1 = "python3.7" ]]; then
+    PYTHON_VERSION="python3.7"
+elif [[ $1 = "python3.8" ]]; then
+    PYTHON_VERSION="python3.8"
+else
+    echo "Must use either python3.7 or python3.8"
+    exit 1
+fi
 
 ./build_bundle.sh 0.0.0
 cd ../.forwarder
 unzip aws-dd-forwarder-0.0.0 -d aws-dd-forwarder-0.0.0
 cd $DIR
 
-i=0
-for python_version in "${PYTHON_VERSIONS[@]}"
-do
-    echo "Building Docker Image"
-    docker build --file "${DIR}/Dockerfile_integration" -t "datadog-log-forwarder:$python_version" ../.forwarder --no-cache \
-        --build-arg forwarder='aws-dd-forwarder-0.0.0' \
-        --build-arg image="lambci/lambda:${python_version}"
+echo "Building Docker Image"
+docker build --file "${DIR}/Dockerfile_integration" -t "datadog-log-forwarder:$PYTHON_VERSION" ../.forwarder --no-cache \
+    --build-arg forwarder='aws-dd-forwarder-0.0.0' \
+    --build-arg image="lambci/lambda:${PYTHON_VERSION}"
 
-    echo "Running integration tests for ${python_version}"
-    PYTHON_RUNTIME=${python_version} docker-compose up --build --abort-on-container-exit
-    i=$(expr $i + 1)
-done
+echo "Running integration tests for ${PYTHON_VERSION}"
+PYTHON_RUNTIME=${PYTHON_VERSION} docker-compose up --build --abort-on-container-exit
