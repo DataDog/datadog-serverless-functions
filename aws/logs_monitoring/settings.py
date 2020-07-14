@@ -3,8 +3,16 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2018 Datadog, Inc.
 
+import base64
+import os
+
+import boto3
+import logging
 import re
 
+
+log = logging.getLogger()
+log.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
 
 def get_env_var(envvar, default, boolean=False):
     """
