@@ -11,7 +11,7 @@ The Datadog Forwarder is an AWS Lambda function that ships logs, custom metrics,
 
 ## Installation
 
-Datadog reccomends using [CloudFormation](#cloudformation) to install. You can also install using [Terraform](#terraform) or [manually](#manually).
+Datadog recommends using [CloudFormation](#cloudformation) to automatically install the Forwarder. You can also complete the setup process using [Terraform](#terraform) or [manually](#manually).
 
 <!-- xxx tabs xxx -->
 <!-- xxx tab "Cloud Formation" xxx -->
