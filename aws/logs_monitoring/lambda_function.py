@@ -485,16 +485,24 @@ def add_metadata_to_lambda_log(event):
     if not lambda_log_arn:
         return
 
-    # Function name is the sixth piece of the ARN
-    function_name = lambda_log_arn.split(":")[6]
-
+    # Set Lambda ARN to "host"
     event[DD_HOST] = lambda_log_arn
-    event[DD_SERVICE] = function_name
 
-    tags = ["functionname:{}".format(function_name)]
+    # Function name is the seventh piece of the ARN
+    function_name = lambda_log_arn.split(":")[6]
+    tags = [f"functionname:{function_name}"]
 
-    # Add any enhanced tags from metadata
+    # Get custom tags of the Lambda function
     custom_lambda_tags = get_enriched_lambda_log_tags(event)
+
+    # Set the `service` tag and metadata field. If the Lambda function is
+    # tagged with a `service` tag, use it, otherwise use the function name.
+    service_tag = next(
+        (tag for tag in custom_lambda_tags if tag.startswith("service:")),
+        f"service:{function_name}",
+    )
+    tags.append(service_tag)
+    event[DD_SERVICE] = service_tag.split(":")[1]
 
     # Check if one of the Lambda's custom tags is env
     # If an env tag exists, remove the env:none placeholder
