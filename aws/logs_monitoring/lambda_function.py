@@ -53,13 +53,13 @@ from settings import (
 )
 
 
-log = logging.getLogger()
-log.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
+logger = logging.getLogger()
+logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
 
 try:
     import requests
 except ImportError:
-    log.error(
+    logger.error(
         "Could not import the 'requests' package, please ensure the Datadog "
         "Lambda Layer is installed. https://dtdg.co/forwarder-layer"
     )
@@ -386,8 +386,8 @@ class DatadogScrubber(object):
 
 def datadog_forwarder(event, context):
     """The actual lambda function entry point"""
-    if log.isEnabledFor(logging.DEBUG):
-        log.debug(f"Received Event:{json.dumps(event)}")
+    if logger.isEnabledFor(logging.DEBUG):
+        logger.debug(f"Received Event:{json.dumps(event)}")
 
     metrics, logs, trace_payloads = split(enrich(parse(event, context)))
 
@@ -422,10 +422,10 @@ def forward_logs(logs):
             try:
                 client.send(batch)
             except Exception:
-                log.exception(f"Exception while forwarding log batch {batch}")
+                logger.exception(f"Exception while forwarding log batch {batch}")
             else:
-                if log.isEnabledFor(logging.DEBUG):
-                    log.debug(f"Forwarded log batch: {json.dumps(batch)}")
+                if logger.isEnabledFor(logging.DEBUG):
+                    logger.debug(f"Forwarded log batch: {json.dumps(batch)}")
 
 
 def parse(event, context):
@@ -633,20 +633,22 @@ def forward_metrics(metrics):
                 metric["m"], metric["v"], timestamp=metric["e"], tags=metric["t"]
             )
         except Exception:
-            log.exception(f"Exception while forwarding metric {json.dumps(metric)}")
+            logger.exception(f"Exception while forwarding metric {json.dumps(metric)}")
         else:
-            if log.isEnabledFor(logging.DEBUG):
-                log.debug(f"Forwarded metric: {json.dumps(metric)}")
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(f"Forwarded metric: {json.dumps(metric)}")
 
 
 def forward_traces(trace_payloads):
     try:
         trace_connection.send_traces(trace_payloads)
     except Exception:
-        log.exception(f"Exception while forwarding traces {json.dumps(trace_payloads)}")
+        logger.exception(
+            f"Exception while forwarding traces {json.dumps(trace_payloads)}"
+        )
     else:
-        if log.isEnabledFor(logging.DEBUG):
-            log.debug(f"Forwarded traces: {json.dumps(trace_payloads)}")
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug(f"Forwarded traces: {json.dumps(trace_payloads)}")
 
 
 # Utility functions
