@@ -11,8 +11,8 @@ import logging
 import re
 
 
-log = logging.getLogger()
-log.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
+logger = logging.getLogger()
+logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
 
 
 def get_env_var(envvar, default, boolean=False):
@@ -23,7 +23,7 @@ def get_env_var(envvar, default, boolean=False):
     value = os.getenv(envvar, default=default)
     if boolean:
         value = value.lower() == "true"
-    log.debug(f"{envvar}: {value}")
+    logger.debug(f"{envvar}: {value}")
     return value
 
 
@@ -104,7 +104,7 @@ DD_TAGS = get_env_var("DD_TAGS", "")
 
 ## @param DD_API_URL - Url to use for  validating the the api key.
 DD_API_URL = get_env_var("DD_API_URL", default="https://api.{}".format(DD_SITE))
-log.debug(f"DD_API_URL: {DD_API_URL}")
+logger.debug(f"DD_API_URL: {DD_API_URL}")
 
 ## @param DD_TRACE_INTAKE_URL
 DD_TRACE_INTAKE_URL = get_env_var(
@@ -131,7 +131,7 @@ DD_FORWARD_TRACES = True
 #
 DD_USE_PRIVATE_LINK = get_env_var("DD_USE_PRIVATE_LINK", "false", boolean=True)
 if DD_USE_PRIVATE_LINK:
-    log.debug("Private link enabled, overriding configuration settings")
+    logger.debug("Private link enabled, overriding configuration settings")
     # TCP isn't supported when private link is enabled
     DD_USE_TCP = False
     DD_NO_SSL = False

@@ -74,7 +74,7 @@ METRIC_ADJUSTMENT_FACTORS = {
 
 resource_tagging_client = boto3.client("resourcegroupstaggingapi")
 
-log = logging.getLogger()
+logger = logging.getLogger()
 
 
 try:
@@ -82,7 +82,7 @@ try:
 
     DD_SUBMIT_ENHANCED_METRICS = True
 except ImportError:
-    log.debug(
+    logger.debug(
         "Could not import from the Datadog Lambda layer so enhanced metrics won't be submitted. "
         "Add the Datadog Lambda layer to this function to submit enhanced metrics."
     )
@@ -104,7 +104,7 @@ class LambdaTagsCache(object):
 
         # If the custom tag fetch env var is not set to true do not fetch
         if not should_fetch_custom_tags():
-            log.debug(
+            logger.debug(
                 "Not fetching custom tags because the env variable DD_FETCH_LAMBDA_TAGS is not set to true"
             )
             return
@@ -199,7 +199,9 @@ class DatadogMetricPoint(object):
         if not timestamp:
             timestamp = time()
 
-        log.debug("Submitting metric {} {} {}".format(self.name, self.value, self.tags))
+        logger.debug(
+            "Submitting metric {} {} {}".format(self.name, self.value, self.tags)
+        )
         lambda_stats.distribution(
             self.name, self.value, timestamp=timestamp, tags=self.tags
         )
@@ -318,12 +320,12 @@ def build_tags_by_arn_cache():
             tags_by_arn_cache.update(page_tags_by_arn)
 
     except ClientError:
-        log.exception(
+        logger.exception(
             "Encountered a ClientError when trying to fetch tags. You may need to give "
             "this Lambda's role the 'tag:GetResources' permission"
         )
 
-    log.debug(
+    logger.debug(
         "Built this tags cache from GetResources API calls: %s", tags_by_arn_cache
     )
 
@@ -349,7 +351,7 @@ def parse_and_submit_enhanced_metrics(logs):
             for enhanced_metric in enhanced_metrics:
                 enhanced_metric.submit_to_dd()
         except Exception:
-            log.exception(
+            logger.exception(
                 "Encountered an error while trying to parse and submit enhanced metrics for log %s",
                 log,
             )
