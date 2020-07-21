@@ -3,9 +3,9 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2020 Datadog, Inc.
 
-var tls = require('tls');
+var https = require('https');
 
-const VERSION = '0.1.1';
+const VERSION = '0.1.2';
 
 const STRING = 'string'; // example: 'some message'
 const STRING_ARRAY = 'string-array'; // example: ['one message', 'two message', ...]
@@ -17,12 +17,14 @@ const INVALID = 'invalid';
 
 const DD_API_KEY = process.env.DD_API_KEY || '<DATADOG_API_KEY>';
 const DD_SITE = process.env.DD_SITE || 'datadoghq.com';
-const DD_URL = process.env.DD_URL || 'functions-intake.logs.' + DD_SITE;
-const DD_PORT = process.env.DD_PORT || DD_SITE === 'datadoghq.eu' ? 443 : 10516;
+const DD_URL = process.env.DD_URL || 'http-intake.logs.' + DD_SITE;
+const DD_PORT = process.env.DD_PORT || 443;
 const DD_TAGS = process.env.DD_TAGS || ''; // Replace '' by your comma-separated list of tags
 const DD_SERVICE = process.env.DD_SERVICE || 'azure';
 const DD_SOURCE = process.env.DD_SOURCE || 'azure';
 const DD_SOURCE_CATEGORY = process.env.DD_SOURCE_CATEGORY || 'azure';
+
+const ONE_SEC = 1000;
 
 module.exports = function(context, eventHubMessages) {
     if (!DD_API_KEY || DD_API_KEY === '<DATADOG_API_KEY>') {
@@ -32,34 +34,66 @@ module.exports = function(context, eventHubMessages) {
         return;
     }
 
-    var socket = getSocket(context);
     var sender = tagger => record => {
         record = tagger(record, context);
-        if (!send(socket, record)) {
-            // Retry once
-            socket = getSocket(context);
-            send(socket, record);
-        }
+        sendWithRetries(record, context);
     };
-
     handleLogs(sender, eventHubMessages, context);
-
-    socket.end();
     context.done();
 };
 
-function getSocket(context) {
-    var socket = tls.connect({ port: DD_PORT, host: DD_URL });
-    socket.on('error', err => {
-        context.log.error(err.toString());
-        socket.end();
-    });
-
-    return socket;
+function sendWithRetries(record, context) {
+    var info = send(record, context);
+    var sent = info[0];
+    var error = info[1];
+    if (!sent) {
+        context.log.warn('retrying...');
+        info = send(record, context);
+        sent = info[0];
+        error = info[1];
+        if (!sent) {
+            context.log.error('unable to send request', error);
+        }
+    }
 }
 
-function send(socket, record) {
-    return socket.write(DD_API_KEY + ' ' + JSON.stringify(record) + '\n');
+function send(record, context) {
+    const options = {
+        hostname: DD_URL,
+        port: 443,
+        path: '/v1/input',
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'DD-API-KEY': DD_API_KEY
+        },
+        timeout: ONE_SEC
+    };
+    var sent = true;
+    var error = '';
+    const request = https.request(options, res => {
+        var message = '';
+        res.on('data', chunk => {
+            message = message + chunk;
+        }).on('end', () => {
+            var response = JSON.parse(message);
+
+            if (!response.statusCode === 200) {
+                sent = false;
+                error = 'invalid status code ' + response.statusCode;
+            }
+        });
+    });
+
+    request.on('error', e => {
+        sent = false;
+        error = e.message;
+    });
+
+    // Write data to request body
+    request.write(JSON.stringify(record));
+    request.end();
+    return [sent, error];
 }
 
 function handleLogs(sender, logs, context) {
