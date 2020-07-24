@@ -34,7 +34,6 @@ module.exports = function(context, eventHubMessages) {
         return;
     }
 
-
     const options = {
         hostname: DD_URL,
         port: 443,
@@ -51,21 +50,23 @@ module.exports = function(context, eventHubMessages) {
 
         const request = https.request(options, res => {
             if (res.statusCode < 200 || res.statusCode > 299) {
-                context.log.error('unable to send message, err code: ' + res.statusCode);
+                context.log.error(
+                    'unable to send message, err code: ' + res.statusCode
+                );
             }
         });
 
-        request.on('error', (e) => {
-            context.log.error('unable to send request')
-        })
+        request.on('error', e => {
+            context.log.error('unable to send request');
+        });
 
         // Write data to request body
         request.write(JSON.stringify(record));
         request.end();
-    }
+    };
     handleLogs(sender, eventHubMessages, context);
     context.done();
-}
+};
 
 function handleLogs(sender, logs, context) {
     var logsType = getLogFormat(logs);
