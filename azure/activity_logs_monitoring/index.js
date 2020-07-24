@@ -34,30 +34,7 @@ module.exports = function(context, eventHubMessages) {
         return;
     }
 
-    var sender = tagger => record => {
-        record = tagger(record, context);
-        sendWithRetries(record, context);
-    };
-    handleLogs(sender, eventHubMessages, context);
-    context.done();
-};
 
-function sendWithRetries(record, context) {
-    var info = send(record, context);
-    var sent = info[0];
-    var error = info[1];
-    if (!sent) {
-        context.log.warn('retrying...');
-        info = send(record, context);
-        sent = info[0];
-        error = info[1];
-        if (!sent) {
-            context.log.error('unable to send request', error);
-        }
-    }
-}
-
-function send(record, context) {
     const options = {
         hostname: DD_URL,
         port: 443,
@@ -69,31 +46,25 @@ function send(record, context) {
         },
         timeout: ONE_SEC
     };
-    var sent = true;
-    var error = '';
-    const request = https.request(options, res => {
-        var message = '';
-        res.on('data', chunk => {
-            message = message + chunk;
-        }).on('end', () => {
-            var response = JSON.parse(message);
+    var sender = tagger => record => {
+        record = tagger(record, context);
 
-            if (!response.statusCode === 200) {
-                sent = false;
-                error = 'invalid status code ' + response.statusCode;
+        const request = https.request(options, res => {
+            if (res.statusCode < 200 || res.statusCode > 299) {
+                context.log.error('unable to send message, err code: ' + res.statusCode);
             }
         });
-    });
 
-    request.on('error', e => {
-        sent = false;
-        error = e.message;
-    });
+        request.on('error', (e) => {
+            context.log.error('unable to send request')
+        })
 
-    // Write data to request body
-    request.write(JSON.stringify(record));
-    request.end();
-    return [sent, error];
+        // Write data to request body
+        request.write(JSON.stringify(record));
+        request.end();
+    }
+    handleLogs(sender, eventHubMessages, context);
+    context.done();
 }
 
 function handleLogs(sender, logs, context) {
