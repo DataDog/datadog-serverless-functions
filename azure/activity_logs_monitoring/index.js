@@ -102,6 +102,10 @@ function handleJSONArrayLogs(sender, context, logs, logsType) {
                 return;
             }
         }
+        // If the message is a buffer object, the data type has been set to binary.
+        if (Buffer.isBuffer(message)) {
+            message = JSON.parse(message.toString());
+        }
         if (message.records != undefined) {
             message.records.forEach(sender(addTagsToJsonLog));
         } else {
