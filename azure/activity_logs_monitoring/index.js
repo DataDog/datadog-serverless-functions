@@ -3,7 +3,7 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2020 Datadog, Inc.
 
-const httpsLib = require('https');
+var https = require('https');
 
 const VERSION = '0.1.2';
 
@@ -26,82 +26,63 @@ const DD_SOURCE_CATEGORY = process.env.DD_SOURCE_CATEGORY || 'azure';
 
 const ONE_SEC = 1000;
 
-module.exports = async function(context, eventHubMessages) {
+module.exports = function(context, eventHubMessages) {
     if (!DD_API_KEY || DD_API_KEY === '<DATADOG_API_KEY>') {
         context.log.error(
             'You must configure your API key before starting this function (see ## Parameters section)'
         );
         return;
     }
+
+    const options = {
+        hostname: DD_URL,
+        port: 443,
+        path: '/v1/input',
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'DD-API-KEY': DD_API_KEY
+        },
+        timeout: ONE_SEC
+    };
+    var sender = tagger => record => {
+        record = tagger(record, context);
+
+        const request = https.request(options, res => {
+            if (res.statusCode < 200 || res.statusCode > 299) {
+                context.log.error(
+                    'unable to send message, err code: ' + res.statusCode
+                );
+            }
+        });
+
+        request.on('error', e => {
+            context.log.error('unable to send request');
+        });
+
+        // Write data to request body
+        request.write(JSON.stringify(record));
+        request.end();
+    };
     handleLogs(sender, eventHubMessages, context);
+    context.done();
 };
-
-function sender(tagger, record, context) {
-    record = tagger(record, context);
-    // retry once
-    asyncSend(tagger, record, context).catch(
-        asyncSend(tagger, record, context).catch(handleFailure(context))
-    );
-}
-
-function handleFailure(context) {
-    context.log.error('Unable to send message');
-}
-
-async function asyncSend(tagger, record, context, tries) {
-    return await send(record, context);
-}
-
-async function send(record, context) {
-    return new Promise((resolve, reject) => {
-        const options = {
-            hostname: DD_URL,
-            port: 443,
-            path: '/v1/input',
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'DD-API-KEY': DD_API_KEY
-            },
-            timeout: ONE_SEC
-        };
-        const myReq = httpsLib
-            .request(options, myResponse => {
-                if (
-                    myResponse.statusCode < 200 ||
-                    myResponse.statusCode > 299
-                ) {
-                    reject(`invalid status code ${myResponse.statusCode}`);
-                } else {
-                    resolve();
-                }
-            })
-            .on('error', error => {
-                reject(error);
-            });
-
-        myReq.write(JSON.stringify(record));
-        myReq.end();
-    });
-}
 
 function handleLogs(sender, logs, context) {
     var logsType = getLogFormat(logs);
     switch (logsType) {
         case STRING:
-            sender(addTagsToStringLog, logs, context);
+            sender(addTagsToStringLog)(logs);
             break;
         case JSON_STRING:
             logs = JSON.parse(logs);
-            sender(addTagsToJsonLog, logs, context);
+            sender(addTagsToJsonLog)(logs);
             break;
         case JSON_OBJECT:
-            sender(addTagsToJsonLog, logs, context);
+            sender(addTagsToJsonLog)(logs);
             break;
         case STRING_ARRAY:
-            logs.forEach(log => {
-                sender(addTagsToStringLog, log, context);
-            });
+            logs.forEach(sender(addTagsToStringLog));
             break;
         case JSON_ARRAY:
             handleJSONArrayLogs(sender, context, logs, JSON_ARRAY);
@@ -123,16 +104,14 @@ function handleJSONArrayLogs(sender, context, logs, logsType) {
                 message = JSON.parse(message);
             } catch (err) {
                 context.log.warn('log is malformed json, sending as string');
-                sender(addTagsToStringLog, message, context);
+                sender(addTagsToStringLog)(message);
                 return;
             }
         }
         if (message.records != undefined) {
-            message.records.forEach(log => {
-                sender(addTagsToJsonLog, log, context);
-            });
+            message.records.forEach(sender(addTagsToJsonLog));
         } else {
-            sender(addTagsToJsonLog, message, context);
+            sender(addTagsToJsonLog)(message);
         }
     });
 }
