@@ -154,6 +154,13 @@ describe('Azure Log Monitoring', function() {
       testHandleLogs(record, expected, true)
     });
 
+    it('should handle byte array properly', function() {
+      record = [Buffer.from('{"records": [{ "test": "testing"}]}')];
+      expected = [{"test": "testing"}]
+      assert.equal(client.getLogFormat(record), constants.JSON_ARRAY)
+      testHandleLogs(record, expected, true)
+    });
+
     it('should handle json-string-array properly records', function() {
       record = ['{"records": [{ "time": "xyz"}, {"time": "abc"}]}']
       expected = [{"time": "xyz"}]
