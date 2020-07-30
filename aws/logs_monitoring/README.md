@@ -166,6 +166,8 @@ To deploy the CloudFormation Stack with the default options, you need to have th
     "secretsmanager:TagResource",
     "s3:CreateBucket",
     "s3:GetObject",
+    "s3:PutEncryptionConfiguration",
+    "s3:PutBucketPublicAccessBlock",
     "iam:CreateRole",
     "iam:GetRole",
     "iam:PassRole",
