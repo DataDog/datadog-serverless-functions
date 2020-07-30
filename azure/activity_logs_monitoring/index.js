@@ -11,6 +11,7 @@ const STRING = 'string'; // example: 'some message'
 const STRING_ARRAY = 'string-array'; // example: ['one message', 'two message', ...]
 const JSON_OBJECT = 'json-object'; // example: {"key": "value"}
 const JSON_ARRAY = 'json-array'; // example: [{"key": "value"}, {"key": "value"}, ...] or [{"records": [{}, {}, ...]}, {"records": [{}, {}, ...]}, ...]
+const BUFFER_ARRAY = 'buffer-array'; // example: <Buffer 7b 22 72 65 63 6f 72 64 73 22 3a 20 5b 7b 20 22 74 69 6d 65 22 3a 20 22 74 65 73 74 69 6e 67 22 7d 5d 7d>
 const JSON_STRING = 'json-string'; // example: '{"key": "value"}'
 const JSON_STRING_ARRAY = 'json-string-array'; // example: ['{"records": [{}, {}]}'] or ['{"key": "value"}']
 const INVALID = 'invalid';
@@ -81,6 +82,9 @@ function handleLogs(sender, logs, context) {
         case JSON_ARRAY:
             handleJSONArrayLogs(sender, context, logs, JSON_ARRAY);
             break;
+        case BUFFER_ARRAY:
+            handleJSONArrayLogs(sender, context, logs, BUFFER_ARRAY);
+            break;
         case JSON_STRING_ARRAY:
             handleJSONArrayLogs(sender, context, logs, JSON_STRING_ARRAY);
             break;
@@ -103,7 +107,7 @@ function handleJSONArrayLogs(sender, context, logs, logsType) {
             }
         }
         // If the message is a buffer object, the data type has been set to binary.
-        if (Buffer.isBuffer(message)) {
+        if (logsType == BUFFER_ARRAY) {
             message = JSON.parse(message.toString());
         }
         if (message.records != undefined) {
@@ -126,6 +130,9 @@ function getLogFormat(logs) {
     }
     if (!Array.isArray(logs)) {
         return INVALID;
+    }
+    if (Buffer.isBuffer(logs[0])) {
+        return BUFFER_ARRAY;
     }
     if (typeof logs[0] === 'object') {
         return JSON_ARRAY;
@@ -214,6 +221,7 @@ module.exports.forTests = {
         STRING_ARRAY,
         JSON_OBJECT,
         JSON_ARRAY,
+        BUFFER_ARRAY,
         JSON_STRING,
         JSON_STRING_ARRAY,
         INVALID
