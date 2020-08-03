@@ -52,7 +52,7 @@ describe('Azure Log Monitoring', function() {
                 EventhubLogForwarderInstance.getLogFormat(eventHubMessages)
             );
         });
-        it('should return json no records', function() {
+        it('should return json array when there are no records', function() {
             eventHubMessages = [
                 { key: 'value', otherkey: 'othervalue' },
                 { key: 'value', otherkey: 'othervalue' }
