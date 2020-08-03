@@ -179,6 +179,9 @@ func AddTagsToTracePayloads(tracePayloads []*pb.TracePayload, tags string) {
 				for tag, value := range tagMap {
 					span.Meta[tag] = value
 				}
+				if serviceLookup[span.Service] != "" && span.Meta["service"] != "" {
+					span.Meta["service"] = serviceLookup[span.Service]
+				}
 			}
 		}
 	}
