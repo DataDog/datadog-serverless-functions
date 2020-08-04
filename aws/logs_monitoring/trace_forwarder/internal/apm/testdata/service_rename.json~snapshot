@@ -16,10 +16,11 @@
       Start: (int64) 1586269721581541000,
       Duration: (int64) 555729248,
       Error: (int32) 0,
-      Meta: (map[string]string) (len=3) {
+      Meta: (map[string]string) (len=4) {
        (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
        (string) (len=8) "language": (string) (len=10) "javascript",
-       (string) (len=2) "my": (string) (len=5) "value"
+       (string) (len=2) "my": (string) (len=5) "value",
+       (string) (len=7) "service": (string) (len=5) "hello"
       },
       Metrics: (map[string]float64) (len=2) {
        (string) (len=12) "_sample_rate": (float64) 1,
@@ -37,10 +38,11 @@
       Start: (int64) 1586269722137387000,
       Duration: (int64) 11963,
       Error: (int32) 0,
-      Meta: (map[string]string) (len=3) {
+      Meta: (map[string]string) (len=4) {
        (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
        (string) (len=8) "language": (string) (len=10) "javascript",
-       (string) (len=2) "my": (string) (len=5) "value"
+       (string) (len=2) "my": (string) (len=5) "value",
+       (string) (len=7) "service": (string) (len=5) "hello"
       },
       Metrics: (map[string]float64) (len=2) {
        (string) (len=12) "_sample_rate": (float64) 1,
@@ -58,10 +60,11 @@
       Start: (int64) 1586269722137368600,
       Duration: (int64) 32959,
       Error: (int32) 0,
-      Meta: (map[string]string) (len=3) {
+      Meta: (map[string]string) (len=4) {
        (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
        (string) (len=8) "language": (string) (len=10) "javascript",
-       (string) (len=2) "my": (string) (len=5) "value"
+       (string) (len=2) "my": (string) (len=5) "value",
+       (string) (len=7) "service": (string) (len=5) "hello"
       },
       Metrics: (map[string]float64) (len=2) {
        (string) (len=12) "_sample_rate": (float64) 1,
@@ -79,10 +82,11 @@
       Start: (int64) 1586269722137421600,
       Duration: (int64) 9033,
       Error: (int32) 0,
-      Meta: (map[string]string) (len=3) {
+      Meta: (map[string]string) (len=4) {
        (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
        (string) (len=8) "language": (string) (len=10) "javascript",
-       (string) (len=2) "my": (string) (len=5) "value"
+       (string) (len=2) "my": (string) (len=5) "value",
+       (string) (len=7) "service": (string) (len=5) "hello"
       },
       Metrics: (map[string]float64) (len=2) {
        (string) (len=12) "_sample_rate": (float64) 1,
@@ -100,10 +104,11 @@
       Start: (int64) 1586269722137407200,
       Duration: (int64) 25391,
       Error: (int32) 0,
-      Meta: (map[string]string) (len=3) {
+      Meta: (map[string]string) (len=4) {
        (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
        (string) (len=8) "language": (string) (len=10) "javascript",
-       (string) (len=2) "my": (string) (len=5) "value"
+       (string) (len=2) "my": (string) (len=5) "value",
+       (string) (len=7) "service": (string) (len=5) "hello"
       },
       Metrics: (map[string]float64) (len=2) {
        (string) (len=12) "_sample_rate": (float64) 1,
