@@ -15,6 +15,7 @@
           "start": 1586269922931758000,
           "duration": 254812000,
           "meta": {
+            "service": "aws.lambda",
             "_dd.origin": "lambda",
             "cold_start": "false",
             "function_arn": "arn:aws:lambda:us-east-1:172597598159:function:hello-dog-dev-hello36",
@@ -35,6 +36,7 @@
           "start": 1586269922945357000,
           "duration": 138997000,
           "meta": {
+            "service": "aws.lambda",
             "_dd.origin": "lambda",
             "http.method": "GET",
             "http.url": "https://www.datadoghq.com/",

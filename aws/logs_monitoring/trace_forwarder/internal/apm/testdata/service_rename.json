@@ -11,7 +11,10 @@
           "name": "calculation-long-number",
           "resource": "calculation-long-number",
           "error": 0,
-          "meta": { "language": "javascript" },
+          "meta": {
+            "language": "javascript",
+            "service": "hello-dog-node-dev-hello10x"
+          },
           "metrics": { "_sample_rate": 1, "_sampling_priority_v1": 2 },
           "start": 1586269721581541000,
           "duration": 555729248,
@@ -24,7 +27,10 @@
           "name": "recursive-func",
           "resource": "recursive-func",
           "error": 0,
-          "meta": { "language": "javascript" },
+          "meta": {
+            "language": "javascript",
+            "service": "hello-dog-node-dev-hello10x"
+          },
           "metrics": { "_sample_rate": 1, "_sampling_priority_v1": 2 },
           "start": 1586269722137387000,
           "duration": 11963,
@@ -37,7 +43,10 @@
           "name": "recursive-func",
           "resource": "recursive-func",
           "error": 0,
-          "meta": { "language": "javascript" },
+          "meta": {
+            "language": "javascript",
+            "service": "hello-dog-node-dev-hello10x"
+          },
           "metrics": { "_sample_rate": 1, "_sampling_priority_v1": 2 },
           "start": 1586269722137368600,
           "duration": 32959,
@@ -50,7 +59,10 @@
           "name": "recursive-func",
           "resource": "recursive-func",
           "error": 0,
-          "meta": { "language": "javascript" },
+          "meta": {
+            "language": "javascript",
+            "service": "hello-dog-node-dev-hello10x"
+          },
           "metrics": { "_sample_rate": 1, "_sampling_priority_v1": 2 },
           "start": 1586269722137421600,
           "duration": 9033,
@@ -63,7 +75,10 @@
           "name": "recursive-func",
           "resource": "recursive-func",
           "error": 0,
-          "meta": { "language": "javascript" },
+          "meta": {
+            "language": "javascript",
+            "service": "hello-dog-node-dev-hello10x"
+          },
           "metrics": { "_sample_rate": 1, "_sampling_priority_v1": 2 },
           "start": 1586269722137407200,
           "duration": 25391,
