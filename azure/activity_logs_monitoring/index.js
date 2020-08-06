@@ -25,6 +25,7 @@ const DD_SOURCE = process.env.DD_SOURCE || 'azure';
 const DD_SOURCE_CATEGORY = process.env.DD_SOURCE_CATEGORY || 'azure';
 
 module.exports = function(context, eventHubMessages) {
+    // Checks that the Datadog API key has been provided. Don't modify this line.
     if (!DD_API_KEY || DD_API_KEY === '<DATADOG_API_KEY>') {
         context.log.error(
             'You must configure your API key before starting this function (see ## Parameters section)'
