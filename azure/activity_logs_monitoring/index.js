@@ -3,9 +3,9 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2020 Datadog, Inc.
 
-var tls = require('tls');
+var https = require('https');
 
-const VERSION = '0.1.1';
+const VERSION = '0.1.2';
 
 const STRING = 'string'; // example: 'some message'
 const STRING_ARRAY = 'string-array'; // example: ['one message', 'two message', ...]
@@ -15,196 +15,247 @@ const JSON_STRING = 'json-string'; // example: '{"key": "value"}'
 const JSON_STRING_ARRAY = 'json-string-array'; // example: ['{"records": [{}, {}]}'] or ['{"key": "value"}']
 const INVALID = 'invalid';
 
+const JSON_TYPE = 'json';
+const STRING_TYPE = 'string';
+
 const DD_API_KEY = process.env.DD_API_KEY || '<DATADOG_API_KEY>';
 const DD_SITE = process.env.DD_SITE || 'datadoghq.com';
-const DD_URL = process.env.DD_URL || 'functions-intake.logs.' + DD_SITE;
-const DD_PORT = process.env.DD_PORT || DD_SITE === 'datadoghq.eu' ? 443 : 10516;
+const DD_URL = process.env.DD_URL || 'http-intake.logs.' + DD_SITE;
+const DD_PORT = process.env.DD_PORT || 443;
 const DD_TAGS = process.env.DD_TAGS || ''; // Replace '' by your comma-separated list of tags
 const DD_SERVICE = process.env.DD_SERVICE || 'azure';
 const DD_SOURCE = process.env.DD_SOURCE || 'azure';
 const DD_SOURCE_CATEGORY = process.env.DD_SOURCE_CATEGORY || 'azure';
 
-module.exports = function(context, eventHubMessages) {
+class EventhubLogForwarder {
+    constructor(context) {
+        this.context = context;
+        this.options = {
+            hostname: DD_URL,
+            port: 443,
+            path: '/v1/input',
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'DD-API-KEY': DD_API_KEY
+            },
+            timeout: 2000
+        };
+    }
+
+    formatLogAndSend(messageType, record) {
+        if (messageType == JSON_TYPE) {
+            record = this.addTagsToJsonLog(record);
+        } else {
+            record = this.addTagsToStringLog(record);
+        }
+        return this.sendWithRetry(record);
+    }
+
+    sendWithRetry(record) {
+        return new Promise((resolve, reject) => {
+            return this.send(record)
+                .then(res => {
+                    resolve();
+                })
+                .catch(err => {
+                    setTimeout(() => {
+                        this.send(record)
+                            .then(resolve)
+                            .catch(err => {
+                                this.context.log.error(
+                                    `unable to send request after 2 tries, err: ${err}`
+                                );
+                                reject();
+                            });
+                    }, 1000);
+                });
+        });
+    }
+
+    send(record) {
+        return new Promise((resolve, reject) => {
+            const req = https
+                .request(this.options, resp => {
+                    if (resp.statusCode < 200 || resp.statusCode > 299) {
+                        reject(`invalid status code ${resp.statusCode}`);
+                    } else {
+                        resolve();
+                    }
+                })
+                .on('error', error => {
+                    reject(error);
+                });
+            req.write(JSON.stringify(record));
+            req.end();
+        });
+    }
+
+    handleLogs(logs) {
+        var promises = [];
+        var logsType = this.getLogFormat(logs);
+        switch (logsType) {
+            case STRING:
+                promises.push(this.formatLogAndSend(STRING_TYPE, logs));
+                break;
+            case JSON_STRING:
+                logs = JSON.parse(logs);
+                promises.push(this.formatLogAndSend(JSON_TYPE, logs));
+                break;
+            case JSON_OBJECT:
+                promises.push(this.formatLogAndSend(JSON_TYPE, logs));
+                break;
+            case STRING_ARRAY:
+                logs.forEach(log =>
+                    promises.push(this.formatLogAndSend(STRING_TYPE, log))
+                );
+                break;
+            case JSON_ARRAY:
+                promises = this.handleJSONArrayLogs(logs, JSON_ARRAY);
+                break;
+            case JSON_STRING_ARRAY:
+                promises = this.handleJSONArrayLogs(logs, JSON_STRING_ARRAY);
+                break;
+            case INVALID:
+            default:
+                this.context.log.warn('logs format is invalid');
+                break;
+        }
+        return promises;
+    }
+
+    handleJSONArrayLogs(logs, logsType) {
+        var promises = [];
+        logs.forEach(message => {
+            if (logsType == JSON_STRING_ARRAY) {
+                try {
+                    message = JSON.parse(message);
+                } catch (err) {
+                    this.context.log.warn(
+                        'log is malformed json, sending as string'
+                    );
+                    promises.push(this.formatLogAndSend(STRING_TYPE, message));
+                    return;
+                }
+            }
+            if (message.records != undefined) {
+                message.records.forEach(message =>
+                    promises.push(this.formatLogAndSend(JSON_TYPE, message))
+                );
+            } else {
+                this.formatLogAndSend(JSON_TYPE, message);
+            }
+        });
+        return promises;
+    }
+
+    getLogFormat(logs) {
+        if (typeof logs === 'string') {
+            if (this.isJsonString(logs)) {
+                return JSON_STRING;
+            }
+            return STRING;
+        }
+        if (!Array.isArray(logs) && typeof logs === 'object' && logs !== null) {
+            return JSON_OBJECT;
+        }
+        if (!Array.isArray(logs)) {
+            return INVALID;
+        }
+        if (typeof logs[0] === 'object') {
+            return JSON_ARRAY;
+        }
+        if (typeof logs[0] === 'string') {
+            if (this.isJsonString(logs[0])) {
+                return JSON_STRING_ARRAY;
+            } else {
+                return STRING_ARRAY;
+            }
+        }
+        return INVALID;
+    }
+
+    isJsonString(record) {
+        try {
+            JSON.parse(record);
+            return true;
+        } catch (err) {
+            return false;
+        }
+    }
+
+    addTagsToJsonLog(record) {
+        var metadata = this.extractResourceId(record);
+        record['ddsource'] = metadata.source || DD_SOURCE;
+        record['ddsourcecategory'] = DD_SOURCE_CATEGORY;
+        record['service'] = DD_SERVICE;
+        record['ddtags'] = metadata.tags
+            .concat([
+                DD_TAGS,
+                'forwardername:' + this.context.executionContext.functionName
+            ])
+            .filter(Boolean)
+            .join(',');
+        return record;
+    }
+
+    addTagsToStringLog(stringLog) {
+        var jsonLog = { message: stringLog };
+        return this.addTagsToJsonLog(jsonLog);
+    }
+
+    extractResourceId(record) {
+        var metadata = { tags: [], source: '' };
+        if (
+            record.resourceId === undefined ||
+            typeof record.resourceId !== 'string'
+        ) {
+            return metadata;
+        } else if (
+            record.resourceId.toLowerCase().startsWith('/subscriptions/')
+        ) {
+            var resourceId = record.resourceId.toLowerCase().split('/');
+            if (resourceId.length > 2) {
+                metadata.tags.push('subscription_id:' + resourceId[2]);
+            }
+            if (resourceId.length > 4) {
+                metadata.tags.push('resource_group:' + resourceId[4]);
+            }
+            if (resourceId.length > 6 && resourceId[6]) {
+                metadata.source = resourceId[6].replace('microsoft.', 'azure.');
+            }
+            return metadata;
+        } else if (record.resourceId.toLowerCase().startsWith('/tenants/')) {
+            var resourceId = record.resourceId.toLowerCase().split('/');
+            if (resourceId.length > 4 && resourceId[4]) {
+                metadata.tags.push('tenant:' + resourceId[2]);
+                metadata.source = resourceId[4]
+                    .replace('microsoft.', 'azure.')
+                    .replace('aadiam', 'activedirectory');
+            }
+            return metadata;
+        } else {
+            return metadata;
+        }
+    }
+}
+
+module.exports = async function(context, eventHubMessages) {
     if (!DD_API_KEY || DD_API_KEY === '<DATADOG_API_KEY>') {
         context.log.error(
             'You must configure your API key before starting this function (see ## Parameters section)'
         );
         return;
     }
+    var promises = new EventhubLogForwarder(context).handleLogs(
+        eventHubMessages
+    );
 
-    var socket = getSocket(context);
-    var sender = tagger => record => {
-        record = tagger(record, context);
-        if (!send(socket, record)) {
-            // Retry once
-            socket = getSocket(context);
-            send(socket, record);
-        }
-    };
-
-    handleLogs(sender, eventHubMessages, context);
-
-    socket.end();
-    context.done();
+    return Promise.allSettled(promises);
 };
 
-function getSocket(context) {
-    var socket = tls.connect({ port: DD_PORT, host: DD_URL });
-    socket.on('error', err => {
-        context.log.error(err.toString());
-        socket.end();
-    });
-
-    return socket;
-}
-
-function send(socket, record) {
-    return socket.write(DD_API_KEY + ' ' + JSON.stringify(record) + '\n');
-}
-
-function handleLogs(sender, logs, context) {
-    var logsType = getLogFormat(logs);
-    switch (logsType) {
-        case STRING:
-            sender(addTagsToStringLog)(logs);
-            break;
-        case JSON_STRING:
-            logs = JSON.parse(logs);
-            sender(addTagsToJsonLog)(logs);
-            break;
-        case JSON_OBJECT:
-            sender(addTagsToJsonLog)(logs);
-            break;
-        case STRING_ARRAY:
-            logs.forEach(sender(addTagsToStringLog));
-            break;
-        case JSON_ARRAY:
-            handleJSONArrayLogs(sender, context, logs, JSON_ARRAY);
-            break;
-        case JSON_STRING_ARRAY:
-            handleJSONArrayLogs(sender, context, logs, JSON_STRING_ARRAY);
-            break;
-        case INVALID:
-        default:
-            context.log.warn('logs format is invalid');
-            break;
-    }
-}
-
-function handleJSONArrayLogs(sender, context, logs, logsType) {
-    logs.forEach(message => {
-        if (logsType == JSON_STRING_ARRAY) {
-            try {
-                message = JSON.parse(message);
-            } catch (err) {
-                context.log.warn('log is malformed json, sending as string');
-                sender(addTagsToStringLog)(message);
-                return;
-            }
-        }
-        if (message.records != undefined) {
-            message.records.forEach(sender(addTagsToJsonLog));
-        } else {
-            sender(addTagsToJsonLog)(message);
-        }
-    });
-}
-
-function getLogFormat(logs) {
-    if (typeof logs === 'string') {
-        if (isJsonString(logs)) {
-            return JSON_STRING;
-        }
-        return STRING;
-    }
-    if (!Array.isArray(logs) && typeof logs === 'object' && logs !== null) {
-        return JSON_OBJECT;
-    }
-    if (!Array.isArray(logs)) {
-        return INVALID;
-    }
-    if (typeof logs[0] === 'object') {
-        return JSON_ARRAY;
-    }
-    if (typeof logs[0] === 'string') {
-        if (isJsonString(logs[0])) {
-            return JSON_STRING_ARRAY;
-        } else {
-            return STRING_ARRAY;
-        }
-    }
-    return INVALID;
-}
-
-function isJsonString(record) {
-    try {
-        JSON.parse(record);
-        return true;
-    } catch (err) {
-        return false;
-    }
-}
-
-function addTagsToJsonLog(record, context) {
-    metadata = extractResourceId(record);
-    record['ddsource'] = metadata.source || DD_SOURCE;
-    record['ddsourcecategory'] = DD_SOURCE_CATEGORY;
-    record['service'] = DD_SERVICE;
-    record['ddtags'] = metadata.tags
-        .concat([
-            DD_TAGS,
-            'forwardername:' + context.executionContext.functionName
-        ])
-        .filter(Boolean)
-        .join(',');
-    return record;
-}
-
-function addTagsToStringLog(stringLog, context) {
-    jsonLog = { message: stringLog };
-    return addTagsToJsonLog(jsonLog, context);
-}
-
-function extractResourceId(record) {
-    metadata = { tags: [], source: '' };
-    if (
-        record.resourceId === undefined ||
-        typeof record.resourceId !== 'string'
-    ) {
-        return metadata;
-    } else if (record.resourceId.toLowerCase().startsWith('/subscriptions/')) {
-        var resourceId = record.resourceId.toLowerCase().split('/');
-        if (resourceId.length > 2) {
-            metadata.tags.push('subscription_id:' + resourceId[2]);
-        }
-        if (resourceId.length > 4) {
-            metadata.tags.push('resource_group:' + resourceId[4]);
-        }
-        if (resourceId.length > 6 && resourceId[6]) {
-            metadata.source = resourceId[6].replace('microsoft.', 'azure.');
-        }
-        return metadata;
-    } else if (record.resourceId.toLowerCase().startsWith('/tenants/')) {
-        var resourceId = record.resourceId.toLowerCase().split('/');
-        if (resourceId.length > 4 && resourceId[4]) {
-            metadata.tags.push('tenant:' + resourceId[2]);
-            metadata.source = resourceId[4]
-                .replace('microsoft.', 'azure.')
-                .replace('aadiam', 'activedirectory');
-        }
-        return metadata;
-    } else {
-        return metadata;
-    }
-}
-
 module.exports.forTests = {
-    getLogFormat,
-    extractResourceId,
-    handleLogs,
-    isJsonString,
-    addTagsToStringLog,
-    addTagsToJsonLog,
+    EventhubLogForwarder,
     constants: {
         STRING,
         STRING_ARRAY,
