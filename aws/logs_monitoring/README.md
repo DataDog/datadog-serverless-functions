@@ -103,9 +103,9 @@ If you can't install the Forwarder using the provided CloudFormation template, y
 You can run the Forwarder in a VPC by using AWS PrivateLink.
 
 1. Follow the [setup instructions](https://docs.datadoghq.com/agent/guide/private-link/?tab=logs#create-your-vpc-endpoint) for adding Datadog's **API** endpoint to your VPC.
-1. Follow the [same procedure](https://docs.datadoghq.com/agent/guide/private-link/?tab=logs#create-your-vpc-endpoint) to add Datadog's **Logs** endpoint to your VPC. 
-1. By default, the Forwarder's API key is stored in the Secrets Manager. The secrets manager endpoint needs to be added to the VPC. You can follow the instructions [here for adding AWS services to a VPC](https://docs.aws.amazon.com/vpc/latest/userguide/vpce-interface.html#create-interface-endpoint).
-1. When installing the Forwarder with the CloudFormation template, enable 'DdUsePrivateLink' and set at least one Subnet Id and Security Group.
+2. Follow the [same procedure](https://docs.datadoghq.com/agent/guide/private-link/?tab=logs#create-your-vpc-endpoint) to add Datadog's **Logs** endpoint to your VPC. 
+3. By default, the Forwarder's API key is stored in the Secrets Manager. The secrets manager endpoint needs to be added to the VPC. You can follow the instructions [here for adding AWS services to a VPC](https://docs.aws.amazon.com/vpc/latest/userguide/vpce-interface.html#create-interface-endpoint).
+4. When installing the Forwarder with the CloudFormation template, enable 'DdUsePrivateLink' and set at least one Subnet Id and Security Group.
 
 ### AWS PrivateLink Limitations
 
