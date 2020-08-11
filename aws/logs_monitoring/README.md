@@ -100,7 +100,7 @@ If you can't install the Forwarder using the provided CloudFormation template, y
 
 ## AWS PrivateLink Support
 
-You can run the Forwarder in a VPC by using AWS PrivateLink to connect to Datadog. Note that AWS PrivateLink can only be configured with Datadog organizations in the Datadog US region.
+You can run the Forwarder in a VPC by using AWS PrivateLink to connect to Datadog. Note that AWS PrivateLink can only be configured with Datadog organizations using the Datadog US site (i.e. datadoghq.com, not datadoghq.eu).
 
 1. Follow the [setup instructions](https://docs.datadoghq.com/agent/guide/private-link/?tab=logs#create-your-vpc-endpoint) to add an endpoint to your VPC for Datadog's **API** service.
 2. Follow the [same procedure](https://docs.datadoghq.com/agent/guide/private-link/?tab=logs#create-your-vpc-endpoint) to add a second endpoint to your VPC for Datadog's **Logs** service.
