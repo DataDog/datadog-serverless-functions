@@ -142,7 +142,7 @@ Parameters:
     AllowedValues:
       - true
       - false
-    Description: Set to true to enable sending logs and metrics via AWS PrivateLink. See https://dtdg.co/private-link .
+    Description: Set to true to enable sending logs, metrics, and traces via AWS PrivateLink. See https://dtdg.co/private-link .
   VPCSecurityGroupIds:
     Type: CommaDelimitedList
     Default: ""
