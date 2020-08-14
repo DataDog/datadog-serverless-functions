@@ -148,7 +148,7 @@ To safely delete the forwarder and other AWS resources created by the forwarder 
 2. Update the stack using the current template.
 3. Adjust parameter values.
 
-**Note:** Datadog reccomends adjusting your Forwarder settings through CloudFormation rather than directly editing the Lambda function. Find the description of settings in the [template.yaml](template.yaml) and the CloudFormation stack creation user interface when you launch the stack. Feel free to submit a pull request to make additional settings adjustable through the template.
+**Note:** Datadog recommends adjusting your Forwarder settings through CloudFormation rather than directly editing the Lambda function. Find the description of settings in the [template.yaml](https://github.com/DataDog/datadog-serverless-functions/blob/master/aws/logs_monitoring/template.yaml) and the CloudFormation stack creation user interface when you launch the stack. Feel free to submit a pull request to make additional settings adjustable through the template.
 
 ## Permissions
 
