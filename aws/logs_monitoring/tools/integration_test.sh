@@ -25,11 +25,10 @@ else
 fi
 
 # Build the Forwarder
-# You can comment this out during local testing if Forwarder has not changed since previous run
-# ./build_bundle.sh 0.0.0
-# cd ../.forwarder
-# unzip aws-dd-forwarder-0.0.0 -d aws-dd-forwarder-0.0.0
-# cd $DIR
+./build_bundle.sh 0.0.0
+cd ../.forwarder
+unzip aws-dd-forwarder-0.0.0 -d aws-dd-forwarder-0.0.0
+cd $DIR
 
 # Build Docker Image for Tests
 echo "Building Docker Image"
