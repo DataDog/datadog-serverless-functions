@@ -29,7 +29,7 @@ class TestForwarderSnapshots(unittest.TestCase):
         # see https://docs.aws.amazon.com/lambda/latest/dg/services-cloudwatchlogs.html
         gzipped_data = gzip.compress(bytes(data, encoding="utf-8"))
         encoded_data = base64.b64encode(gzipped_data).decode("utf-8")
-        return f"{{\"awslogs\": {{\"data\": \"{encoded_data}\"}}}}"
+        return f'{{"awslogs": {{"data": "{encoded_data}"}}}}'
 
     def send_log_event(self, event):
         request = urllib.request.Request(forwarder_url, data=event.encode("utf-8"))
