@@ -63,10 +63,10 @@ if [ "$PROD_RELEASE" = true ] ; then
     # Get the latest code
     git pull origin master
 
-    # Bump version number
+    # Bump version number in settings.py and template.yml
     echo "Bumping the current version number to the desired"
-    perl -pi -e "s/DD_FORWARDER_VERSION = \"${CURRENT_VERSION}/DD_FORWARDER_VERSION = \"${VERSION}/g" settings.py
-    perl -pi -e "s/Version: ${CURRENT_VERSION}/Version: ${VERSION}/g" template.yaml
+    perl -pi -e "s/DD_FORWARDER_VERSION = \"[0-9\.]+/DD_FORWARDER_VERSION = \"${VERSION}/g" settings.py
+    perl -pi -e "s/Version: [0-9\.]+/Version: ${VERSION}/g" template.yaml
 
     # Commit version number changes to git
     git add lambda_function.py template.yaml README.md
