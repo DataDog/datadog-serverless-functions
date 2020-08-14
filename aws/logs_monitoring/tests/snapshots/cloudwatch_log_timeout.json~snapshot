@@ -8,7 +8,7 @@
         {
           "id": "35496429375792603298393743017356257146982675867810398208",
           "timestamp": 1591714943146,
-          "message": "START RequestId: 7c9567b5-107b-4a6c-8798-0157ac21db52 Version: $LATEST\n",
+          "message": "START RequestId: 7c9567b5-107b-4a6c-8798-0157ac21db52 Version: $LATEST\\n",
           "aws": {
             "awslogs": {
               "logGroup": "/aws/lambda/storms-cloudwatch-event",
@@ -30,7 +30,7 @@
         {
           "id": "35496429442806342619978265557671090556291002193281548289",
           "timestamp": 1591714946151,
-          "message": "END RequestId: 7c9567b5-107b-4a6c-8798-0157ac21db52\n",
+          "message": "END RequestId: 7c9567b5-107b-4a6c-8798-0157ac21db52\\n",
           "aws": {
             "awslogs": {
               "logGroup": "/aws/lambda/storms-cloudwatch-event",
@@ -52,7 +52,7 @@
         {
           "id": "35496429442806342619978265557671090556291002193281548290",
           "timestamp": 1591714946151,
-          "message": "REPORT RequestId: 7c9567b5-107b-4a6c-8798-0157ac21db52\tDuration: 3003.16 ms\tBilled Duration: 3000 ms\tMemory Size: 128 MB\tMax Memory Used: 48 MB\tInit Duration: 127.02 ms\t\n",
+          "message": "REPORT RequestId: 7c9567b5-107b-4a6c-8798-0157ac21db52\\tDuration: 3003.16 ms\\tBilled Duration: 3000 ms\\tMemory Size: 128 MB\\tMax Memory Used: 48 MB\\tInit Duration: 127.02 ms\\t\\n",
           "aws": {
             "awslogs": {
               "logGroup": "/aws/lambda/storms-cloudwatch-event",
@@ -74,7 +74,7 @@
         {
           "id": "35496429442806342619978265557671090556291002193281548291",
           "timestamp": 1591714946151,
-          "message": "2020-06-09T15:02:26.150Z 7c9567b5-107b-4a6c-8798-0157ac21db52 Task timed out after 3.00 seconds\n\n",
+          "message": "2020-06-09T15:02:26.150Z 7c9567b5-107b-4a6c-8798-0157ac21db52 Task timed out after 3.00 seconds\\n\\n",
           "aws": {
             "awslogs": {
               "logGroup": "/aws/lambda/storms-cloudwatch-event",

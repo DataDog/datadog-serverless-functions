@@ -5,7 +5,7 @@ import os
 
 PORT_NUMBER = 8080
 
-print("Starting mock server", flush=True)
+print("Starting recorder", flush=True)
 
 events = []
 
@@ -64,8 +64,8 @@ port = int(os.environ.get("SERVER_PORT", default=PORT_NUMBER))
 
 try:
     server = HTTPServer(("", port), RecorderHandler)
-    print("Started mock server on port {}".format(port), flush=True)
+    print("Started recorder on port {}".format(port), flush=True)
     server.serve_forever()
 finally:
-    print("Shutting down server", flush=True)
+    print("Shutting down recorder", flush=True)
     server.socket.close()

@@ -1,5 +1,31 @@
 {
-    "awslogs": {
-        "data": "H4sIAAAAAAAAAK1T247TMBD9FSvisWnGdztvXbWsVqKAmsAD2wo5ibtE5FJih9Jd7b/jtou0ICF1BW+eM+M5Z45mHqLWOmfubH7Y2SiN5rN89nm5yLLZ9SKaRP2+s0OABWBGJJFaawhw099dD/24C5nE7F3SmLaoTOJ8P7QuLpt+rPbGl19i+912/vwh84M1bfhBgEACIgGd3L56M8sXWb4pCNNKcFMZs2VbUynYar5VpgItCS9UaOHGwpVDvfN1372uG28HF6W3UXs4c2xOJIvj+4g/RHUVuChnWjCiqeRSEwGUaEVDxChgSbkgXGImtCJCciWkwkBDAEc+XwdnvGnDkJhrHOo0o6F48sux0D7LZ6screy3MZTeVCmSpeZCFjzGIIuYGVHGSmoVA+bSlARXBSfoY5AehkjR0/TrLnqc/CGYMaJAUEYE1loGfZxzKSQGDTzI1hiAYE2JwpwpovRfBAvM8XPBi7fzl8r9d3WnlblE3Wrx/t3L/Vz7+TgYf3KUAtApFqh1a39VN42t0G9JOGWWtu2HA8rqe5siTBRaXgXQ/EBPiQ/OBm52xm+62j9rgomcAjm1+Q/O4AudOd5MDCIGnWOeAkmJmGIOny5buNy4r+hIU6F+9Mhsw/EgOg1uOFv2XeXW3XGWzeNPhE+9yQ4EAAA="
+  "messageType": "DATA_MESSAGE",
+  "owner": "601427279990",
+  "logGroup": "/aws/lambda/storms-cloudwatch-event",
+  "logStream": "2020/06/09/[$LATEST]b249865adaaf4fad80f95f8ad09725b8",
+  "subscriptionFilters": [
+    "myevent"
+  ],
+  "logEvents": [
+    {
+      "id": "35496429375792603298393743017356257146982675867810398208",
+      "timestamp": 1591714943146,
+      "message": "START RequestId: 7c9567b5-107b-4a6c-8798-0157ac21db52 Version: $LATEST\\n"
+    },
+    {
+      "id": "35496429442806342619978265557671090556291002193281548289",
+      "timestamp": 1591714946151,
+      "message": "END RequestId: 7c9567b5-107b-4a6c-8798-0157ac21db52\\n"
+    },
+    {
+      "id": "35496429442806342619978265557671090556291002193281548290",
+      "timestamp": 1591714946151,
+      "message": "REPORT RequestId: 7c9567b5-107b-4a6c-8798-0157ac21db52\\tDuration: 3003.16 ms\\tBilled Duration: 3000 ms\\tMemory Size: 128 MB\\tMax Memory Used: 48 MB\\tInit Duration: 127.02 ms\\t\\n"
+    },
+    {
+      "id": "35496429442806342619978265557671090556291002193281548291",
+      "timestamp": 1591714946151,
+      "message": "2020-06-09T15:02:26.150Z 7c9567b5-107b-4a6c-8798-0157ac21db52 Task timed out after 3.00 seconds\\n\\n"
     }
+  ]
 }
