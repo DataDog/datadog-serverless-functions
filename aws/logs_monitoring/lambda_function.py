@@ -151,6 +151,15 @@ LOG_SOURCE_SUBSTRINGS = [
 ]
 
 
+# Used to store datadog.forwarder.* metrics and tags
+DD_FORWARDER_TELEMETRY = {
+    "logs_forwarded": 0,
+    "traces_forwarded": 0,
+    "metrics_forwarded": 0,
+    "tags": []
+}
+
+
 class RetriableException(Exception):
     pass
 
@@ -389,18 +398,31 @@ def datadog_forwarder(event, context):
     if logger.isEnabledFor(logging.DEBUG):
         logger.debug(f"Received Event:{json.dumps(event)}")
 
-    metrics, logs, trace_payloads = split(enrich(parse(event, context)))
+    metrics, logs, trace_payloads = split(enrich(parse(event, context))) # metrics, logs, trace_payloads are enriched with 
 
     if DD_FORWARD_LOG:
         forward_logs(filter_logs(map(json.dumps, logs)))
+        print("Printing logs_forwarded before incrementer: ", DD_FORWARDER_TELEMETRY["logs_forwarded"])
+        DD_FORWARDER_TELEMETRY["logs_forwarded"]+=len(list(filter_logs(map(json.dumps, logs))))
+        print("Printing logs_forwarded after incrementer: ", DD_FORWARDER_TELEMETRY["logs_forwarded"])
 
     forward_metrics(metrics)
+    DD_FORWARDER_TELEMETRY["metrics_forwarded"]+=len(metrics)
 
     if DD_FORWARD_TRACES and len(trace_payloads) > 0:
+        DD_FORWARDER_TELEMETRY["traces_forwarded"]+=len(trace_payloads)
         forward_traces(trace_payloads)
 
     parse_and_submit_enhanced_metrics(logs)
 
+    send_dd_forwarder_telemetry()
+    print("send_dd_forwarder_telemetry successful, payload: ", DD_FORWARDER_TELEMETRY)
+
+    # Reset DD_FORWARDER_TELEMETRY counters and tags
+    DD_FORWARDER_TELEMETRY["logs_forwarded"] = 0
+    DD_FORWARDER_TELEMETRY["traces_forwarded"] = 0
+    DD_FORWARDER_TELEMETRY["metrics_forwarded"] = 0
+    DD_FORWARDER_TELEMETRY["tags"] = []
 
 lambda_handler = datadog_lambda_wrapper(datadog_forwarder)
 
@@ -418,7 +440,8 @@ def forward_logs(logs):
         )
 
     with DatadogClient(cli) as client:
-        for batch in batcher.batch(logs):
+        logs_batch = batcher.batch(logs)
+        for batch in logs_batch:
             try:
                 client.send(batch)
             except Exception:
@@ -518,6 +541,11 @@ def add_metadata_to_lambda_log(event):
     tags = list(set(tags))
     tags.sort()  # Keep order deterministic
 
+    # Set custom tags on DD_FORWARDER_TELEMETRY
+    DD_FORWARDER_TELEMETRY["tags"].extend(custom_lambda_tags)
+    DD_FORWARDER_TELEMETRY["tags"].extend(tags)
+    print("Printing DD_FORWARDER_TELEMETRY tags after extending on line 546: ", DD_FORWARDER_TELEMETRY["tags"])
+
     event[DD_CUSTOM_TAGS] = ",".join([event[DD_CUSTOM_TAGS]] + tags)
 
 
@@ -535,6 +563,13 @@ def generate_metadata(context):
         "forwarder_memorysize": context.memory_limit_in_mb,
         "forwarder_version": DD_FORWARDER_VERSION,
     }
+
+    print("Printing DD_FORWARDER_TELEMETRY tags before appending: ", DD_FORWARDER_TELEMETRY["tags"])
+    DD_FORWARDER_TELEMETRY["tags"].append("forwardername:"+dd_custom_tags_data["forwardername"])
+    DD_FORWARDER_TELEMETRY["tags"].append("forwarder_memorysize:"+dd_custom_tags_data["forwarder_memorysize"])
+    DD_FORWARDER_TELEMETRY["tags"].append("forwarder_version:"+DD_FORWARDER_VERSION)
+    print("Printing DD_FORWARDER_TELEMETRY after appending dd_custom_tags_data: ", DD_FORWARDER_TELEMETRY["tags"])
+
     metadata[DD_CUSTOM_TAGS] = ",".join(
         filter(
             None,
@@ -546,6 +581,7 @@ def generate_metadata(context):
             ],
         )
     )
+    print("Printing metadata at end of generate_metadata: ", metadata)
 
     return metadata
 
@@ -992,3 +1028,29 @@ def parse_service_arn(source, key, bucket, context):
                     region, accountID, clustername
                 )
     return
+
+
+# Send forwarder metrics with tags
+def send_dd_forwarder_telemetry():
+    timestamp=time.time()
+
+    lambda_stats.distribution(
+        "aws.dd_forwarder.logs_forwarded",
+        DD_FORWARDER_TELEMETRY["logs_forwarded"],
+        timestamp=timestamp,
+        tags=DD_FORWARDER_TELEMETRY["tags"]
+    )
+
+    lambda_stats.distribution(
+        "aws.dd_forwarder.traces_forwarded",
+        DD_FORWARDER_TELEMETRY["traces_forwarded"],
+        timestamp=timestamp,
+        tags=DD_FORWARDER_TELEMETRY["tags"]
+    )
+    
+    lambda_stats.distribution(
+        "aws.dd_forwarder.metrics_forwarded",
+        DD_FORWARDER_TELEMETRY["metrics_forwarded"],
+        timestamp=timestamp,
+        tags=DD_FORWARDER_TELEMETRY["tags"]
+    )
