@@ -43,7 +43,9 @@ class TestForwarderSnapshots(unittest.TestCase):
             r"forwarder_version:\d+\.\d+\.\d+", "forwarder_version:x.x.x", message
         )
 
-    def compare_snapshot(self, input_filename, snapshot_filename, extend_recording=False):
+    def compare_snapshot(
+        self, input_filename, snapshot_filename, extend_recording=False
+    ):
         with open(input_filename, "r") as input_file:
             input_data = input_file.read()
 
