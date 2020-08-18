@@ -1,9 +1,11 @@
 import unittest
 import base64
 import os
-import urllib.request, json
+import urllib.request
+import json
 import re
 import gzip
+from time import sleep
 
 recorder_url = os.environ.get("RECORDER_URL", default="")
 forwarder_url = os.environ.get("FORWARDER_URL", default="")
@@ -41,7 +43,7 @@ class TestForwarderSnapshots(unittest.TestCase):
             r"forwarder_version:\d+\.\d+\.\d+", "forwarder_version:x.x.x", message
         )
 
-    def compare_snapshot(self, input_filename, snapshot_filename):
+    def compare_snapshot(self, input_filename, snapshot_filename, delay=False):
         with open(input_filename, "r") as input_file:
             input_data = input_file.read()
 
@@ -55,6 +57,12 @@ class TestForwarderSnapshots(unittest.TestCase):
             pass  # Valid if snapshot data doesn't exist
 
         self.send_log_event(cloudwatch_event)
+
+        # Metrics are sent periodically in a background thread
+        # If we want to capture metrics, we need to wait for this to happen
+        if delay:
+            sleep(10)
+
         output_data = self.get_recording()
 
         if update_snapshot:
@@ -93,7 +101,7 @@ class TestForwarderSnapshots(unittest.TestCase):
     def test_cloudwatch_log_lambda_invocation(self):
         input_filename = f"{snapshot_dir}/cloudwatch_log_lambda_invocation.json"
         snapshot_filename = f"{input_filename}~snapshot"
-        self.compare_snapshot(input_filename, snapshot_filename)
+        self.compare_snapshot(input_filename, snapshot_filename, delay=True)
 
     # def test_cloudwatch_log_timeout(self):
     #     input_filename = f"{snapshot_dir}/cloudwatch_log_timeout.json"

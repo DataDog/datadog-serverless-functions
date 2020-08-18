@@ -370,6 +370,74 @@
       "verb": "POST",
       "content-type": "application/json",
       "data": null
+    },
+    {
+      "path": "/api/v1/distribution_points?api_key=abcdefghijklmnopqrstuvwxyz012345",
+      "verb": "POST",
+      "content-type": "application/json",
+      "data": {
+        "series": [
+          {
+            "metric": "aws.lambda.enhanced.invocations",
+            "points": [
+              [
+                1583425830.0,
+                [
+                  1.0
+                ]
+              ]
+            ],
+            "type": "distribution",
+            "host": null,
+            "device": null,
+            "tags": [
+              "region:us-east-1",
+              "account_id:601427279990",
+              "functionname:hello-dog-node-dev-hello12x",
+              "cold_start:false",
+              "memorysize:128",
+              "runtime:nodejs12.x",
+              "forwardername:test",
+              "forwarder_memorysize:1536",
+              "forwarder_version:x.x.x",
+              "env:none",
+              "account_id:0",
+              "aws_account:0",
+              "functionname:hello-dog-node-dev-hello12x",
+              "region:us-east-1",
+              "service:hello-dog-node-dev-hello12x"
+            ],
+            "interval": 10
+          },
+          {
+            "metric": "hello.js10x.dog-2",
+            "points": [
+              [
+                1583425830.0,
+                [
+                  10.0
+                ]
+              ]
+            ],
+            "type": "distribution",
+            "host": null,
+            "device": null,
+            "tags": [
+              "dd_lambda_layer:datadog-nodev12.14.1",
+              "forwardername:test",
+              "forwarder_memorysize:1536",
+              "forwarder_version:x.x.x",
+              "env:none",
+              "account_id:0",
+              "aws_account:0",
+              "functionname:hello-dog-node-dev-hello12x",
+              "region:us-east-1",
+              "service:hello-dog-node-dev-hello12x"
+            ],
+            "interval": 10
+          }
+        ]
+      }
     }
   ]
 }
