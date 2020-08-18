@@ -40,7 +40,6 @@ from settings import (
     DD_TRACE_INTAKE_URL,
     DD_URL,
     DD_PORT,
-    DD_FORWARD_TRACES,
     SCRUBBING_RULE_CONFIGS,
     INCLUDE_AT_MATCH,
     EXCLUDE_AT_MATCH,
@@ -88,9 +87,7 @@ if not validation_res.ok:
 api._api_key = DD_API_KEY
 api._api_host = DD_API_URL
 
-trace_connection = None
-if DD_FORWARD_TRACES:
-    trace_connection = TraceConnection(DD_TRACE_INTAKE_URL, DD_API_KEY)
+trace_connection = TraceConnection(DD_TRACE_INTAKE_URL, DD_API_KEY)
 
 # Use for include, exclude, and scrubbing rules
 def compileRegex(rule, pattern):
@@ -151,7 +148,7 @@ LOG_SOURCE_SUBSTRINGS = [
 ]
 
 
-# Used to store datadog.forwarder.* metrics and tags
+# Used to store aws.dd_forwarder.* metrics and tags
 DD_FORWARDER_TELEMETRY = {
     "logs_forwarded": 0,
     "traces_forwarded": 0,
@@ -409,7 +406,7 @@ def datadog_forwarder(event, context):
     forward_metrics(metrics)
     DD_FORWARDER_TELEMETRY["metrics_forwarded"] += len(metrics)
 
-    if DD_FORWARD_TRACES and len(trace_payloads) > 0:
+    if len(trace_payloads) > 0:
         DD_FORWARDER_TELEMETRY["traces_forwarded"] += len(trace_payloads)
         forward_traces(trace_payloads)
 

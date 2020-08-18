@@ -4,7 +4,7 @@ Description: Pushes logs, metrics and traces from AWS to Datadog.
 Mappings:
   Constants:
     DdForwarder:
-      Version: 3.16.2
+      Version: 3.16.3
 Parameters:
   DdApiKey:
     Type: String
@@ -142,7 +142,7 @@ Parameters:
     AllowedValues:
       - true
       - false
-    Description: Set to true to enable sending logs and metrics via AWS PrivateLink. See https://dtdg.co/private-link .
+    Description: Set to true to enable sending logs, metrics, and traces via AWS PrivateLink. See https://dtdg.co/private-link .
   VPCSecurityGroupIds:
     Type: CommaDelimitedList
     Default: ""

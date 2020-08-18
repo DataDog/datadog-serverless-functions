@@ -55,7 +55,7 @@ DD_API_KEY = "<YOUR_DATADOG_API_KEY>"
 
 ## @param DD_FORWARD_LOG - boolean - optional - default: true
 ## Set this variable to `False` to disable log forwarding.
-## E.g., when you only want to forward metrics from logs.
+## E.g., when you only want to forward metrics and traces from logs.
 #
 DD_FORWARD_LOG = get_env_var("DD_FORWARD_LOG", "true", boolean=True)
 
@@ -124,23 +124,22 @@ else:
     DD_URL = get_env_var("DD_URL", default="lambda-http-intake.logs." + DD_SITE)
     DD_PORT = int(get_env_var("DD_PORT", default="443"))
 
-DD_FORWARD_TRACES = True
-
-## @param DD_USE_PRIVATE_LINK - whether to forward logs via private link
+## @param DD_USE_PRIVATE_LINK - whether to forward logs via PrivateLink
 ## Overrides incompatible settings
 #
 DD_USE_PRIVATE_LINK = get_env_var("DD_USE_PRIVATE_LINK", "false", boolean=True)
 if DD_USE_PRIVATE_LINK:
     logger.debug("Private link enabled, overriding configuration settings")
-    # TCP isn't supported when private link is enabled
+    # Only the US Datadog site is supported when PrivateLink is enabled
+    DD_SITE = "datadoghq.com"
+    # TCP isn't supported when PrivateLink is enabled
     DD_USE_TCP = False
     DD_NO_SSL = False
     DD_PORT = 443
-    # Traces aren't supported via private link yet
-    DD_FORWARD_TRACES = False
-    # Override urls to use the private link url
+    # Override URLs
     DD_URL = "api-pvtlink.logs.datadoghq.com"
     DD_API_URL = "https://pvtlink.api.datadoghq.com"
+    DD_TRACE_INTAKE_URL = "https://trace-pvtlink.agent.datadoghq.com"
 
 
 class ScrubbingRuleConfig(object):
@@ -207,4 +206,4 @@ DD_SOURCE = "ddsource"
 DD_CUSTOM_TAGS = "ddtags"
 DD_SERVICE = "service"
 DD_HOST = "host"
-DD_FORWARDER_VERSION = "3.16.0"
+DD_FORWARDER_VERSION = "3.16.3"

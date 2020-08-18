@@ -24,11 +24,13 @@ else
     exit 1
 fi
 
+# Build the Forwarder
 ./build_bundle.sh 0.0.0
 cd ../.forwarder
 unzip aws-dd-forwarder-0.0.0 -d aws-dd-forwarder-0.0.0
 cd $DIR
 
+# Build Docker Image for Tests
 echo "Building Docker Image"
 docker build --file "${DIR}/Dockerfile_integration" -t "datadog-log-forwarder:$PYTHON_VERSION" ../.forwarder --no-cache \
     --build-arg forwarder='aws-dd-forwarder-0.0.0' \
