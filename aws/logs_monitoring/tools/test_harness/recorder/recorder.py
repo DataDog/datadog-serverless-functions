@@ -52,7 +52,6 @@ class RecorderHandler(BaseHTTPRequestHandler):
         self.wfile.write(response.encode("utf-8"))
         return
 
-    # Handler for the GET requests
     def do_GET(self):
         self.handle_request()
 

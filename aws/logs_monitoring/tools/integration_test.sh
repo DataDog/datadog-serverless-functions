@@ -25,10 +25,10 @@ else
 fi
 
 # Build the Forwarder
-./build_bundle.sh 0.0.0
-cd ../.forwarder
-unzip aws-dd-forwarder-0.0.0 -d aws-dd-forwarder-0.0.0
-cd $DIR
+# ./build_bundle.sh 0.0.0
+# cd ../.forwarder
+# unzip aws-dd-forwarder-0.0.0 -d aws-dd-forwarder-0.0.0
+# cd $DIR
 
 # Build Docker Image for Tests
 echo "Building Docker Image"
@@ -37,4 +37,4 @@ docker build --file "${DIR}/Dockerfile_integration" -t "datadog-log-forwarder:$P
     --build-arg image="lambci/lambda:${PYTHON_VERSION}"
 
 echo "Running integration tests for ${PYTHON_VERSION}"
-PYTHON_RUNTIME=${PYTHON_VERSION} docker-compose up --build --abort-on-container-exit
+PYTHON_RUNTIME=${PYTHON_VERSION} docker-compose up --build # --abort-on-container-exit
