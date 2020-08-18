@@ -404,7 +404,7 @@ def datadog_forwarder(event, context):
     forward_metrics(metrics)
     DD_FORWARDER_TELEMETRY["metrics_forwarded"]+=len(metrics)
 
-    if DD_FORWARD_TRACES and len(trace_payloads) > 0:
+    if len(trace_payloads) > 0:
         DD_FORWARDER_TELEMETRY["traces_forwarded"]+=len(trace_payloads)
         forward_traces(trace_payloads)
 
