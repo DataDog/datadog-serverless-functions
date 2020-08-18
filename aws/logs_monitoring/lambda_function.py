@@ -429,7 +429,6 @@ def forward_logs(logs):
                 if logger.isEnabledFor(logging.DEBUG):
                     logger.debug(f"Forwarded log batch: {json.dumps(batch)}")
 
-    """Submit logs telemetry"""
     timestamp = time.time()
 
     lambda_stats.distribution(
@@ -606,6 +605,7 @@ def extract_metric(event):
 def split(events):
     """Split events into metrics, logs, and trace payloads
     """
+    global DD_FORWARDER_TELEMETRY_TAGS
     metrics, logs, trace_payloads = [], [], []
     for event in events:
         metric = extract_metric(event)
@@ -616,8 +616,10 @@ def split(events):
             trace_payloads.append(trace_payload)
         else:
             logs.append(event)
+
     """Dedup telemetry tags"""
     DD_FORWARDER_TELEMETRY_TAGS = list(set(DD_FORWARDER_TELEMETRY_TAGS))
+    
     return metrics, logs, trace_payloads
 
 
@@ -664,7 +666,7 @@ def forward_metrics(metrics):
         else:
             if logger.isEnabledFor(logging.DEBUG):
                 logger.debug(f"Forwarded metric: {json.dumps(metric)}")
-    """"""
+
     timestamp = time.time()
 
     lambda_stats.distribution(
