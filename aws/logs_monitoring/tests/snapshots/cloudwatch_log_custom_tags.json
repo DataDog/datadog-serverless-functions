@@ -1,0 +1,14 @@
+{
+	"messageType": "DATA_MESSAGE",
+	"owner": "123456789123",
+	"logGroup": "testLogGroup",
+	"logStream": "testLogStream",
+	"subscriptionFilters": ["testFilter"],
+	"logEvents": [
+		{
+			"id": "eventId1",
+			"timestamp": 1440442987000,
+			"message": "{\"message\": \"hello world\", \"ddtags\": \"custom_tag1:value1,custom_tag2:value2\"}\n"
+		}
+	]
+}
