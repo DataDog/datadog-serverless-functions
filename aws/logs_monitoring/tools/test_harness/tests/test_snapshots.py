@@ -1,7 +1,7 @@
 import unittest
 import base64
 import os
-from urllib import request
+import urllib.request
 import json
 import re
 import gzip
