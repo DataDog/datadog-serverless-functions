@@ -69,7 +69,7 @@ if [ "$PROD_RELEASE" = true ] ; then
     perl -pi -e "s/Version: [0-9\.]+/Version: ${VERSION}/g" template.yaml
 
     # Commit version number changes to git
-    git add lambda_function.py template.yaml README.md
+    git add settings.py template.yaml
     git commit -m "Bump version from ${CURRENT_VERSION} to ${VERSION}"
     git push origin master
 
