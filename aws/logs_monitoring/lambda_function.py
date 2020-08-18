@@ -459,8 +459,48 @@ def enrich(events):
     """
     for event in events:
         add_metadata_to_lambda_log(event)
+        extract_ddtags_from_message(event)
 
     return events
+
+
+def extract_ddtags_from_message(event):
+    """When the logs intake pipeline detects a `message` field with a
+    JSON content, it extracts the content to the top-level. The fields
+    of same name from the top-level will be overridden.
+
+    E.g. the application adds some tags to the log, which appear in the
+    `message.ddtags` field, and the forwarder adds some common tags, such
+    as `aws_account`, which appear in the top-level `ddtags` field:
+
+    {
+        "message": {
+            "ddtags": "mytag:value", # tags added by the application
+            ...
+        },
+        "ddtags": "env:xxx,aws_account", # tags added by the forwarder
+        ...
+    }
+
+    Only the custom tags added by the application will be kept.
+
+    We might want to change the intake pipeline to "merge" the conflicting
+    fields rather than "overridding" in the future, but for now we should
+    extract `message.ddtags` and merge it with the top-level `ddtags` field.
+    """
+    if "message" in event and DD_CUSTOM_TAGS in event["message"]:
+        if isinstance(event["message"], dict):
+            extracted_ddtags = event["message"].pop(DD_CUSTOM_TAGS)
+        if isinstance(event["message"], str):
+            try:
+                message_dict = json.loads(event["message"])
+                extracted_ddtags = message_dict.pop(DD_CUSTOM_TAGS)
+                event["message"] = json.dumps(message_dict)
+            except Exception:
+                if logger.isEnabledFor(logging.DEBUG):
+                    logger.debug(f"Failed to extract ddtags from: {event}")
+                return
+        event[DD_CUSTOM_TAGS] = f"{event[DD_CUSTOM_TAGS]},{extracted_ddtags}"
 
 
 def add_metadata_to_lambda_log(event):
