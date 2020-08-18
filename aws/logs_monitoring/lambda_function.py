@@ -156,7 +156,7 @@ DD_FORWARDER_TELEMETRY = {
     "logs_forwarded": 0,
     "traces_forwarded": 0,
     "metrics_forwarded": 0,
-    "tags": []
+    "tags": [],
 }
 
 
@@ -402,13 +402,15 @@ def datadog_forwarder(event, context):
 
     if DD_FORWARD_LOG:
         forward_logs(filter_logs(map(json.dumps, logs)))
-        DD_FORWARDER_TELEMETRY["logs_forwarded"]+=len(list(filter_logs(map(json.dumps, logs))))
+        DD_FORWARDER_TELEMETRY["logs_forwarded"] += len(
+            list(filter_logs(map(json.dumps, logs)))
+        )
 
     forward_metrics(metrics)
-    DD_FORWARDER_TELEMETRY["metrics_forwarded"]+=len(metrics)
+    DD_FORWARDER_TELEMETRY["metrics_forwarded"] += len(metrics)
 
     if DD_FORWARD_TRACES and len(trace_payloads) > 0:
-        DD_FORWARDER_TELEMETRY["traces_forwarded"]+=len(trace_payloads)
+        DD_FORWARDER_TELEMETRY["traces_forwarded"] += len(trace_payloads)
         forward_traces(trace_payloads)
 
     parse_and_submit_enhanced_metrics(logs)
@@ -420,6 +422,7 @@ def datadog_forwarder(event, context):
     DD_FORWARDER_TELEMETRY["traces_forwarded"] = 0
     DD_FORWARDER_TELEMETRY["metrics_forwarded"] = 0
     DD_FORWARDER_TELEMETRY["tags"] = []
+
 
 lambda_handler = datadog_lambda_wrapper(datadog_forwarder)
 
@@ -559,9 +562,13 @@ def generate_metadata(context):
         "forwarder_version": DD_FORWARDER_VERSION,
     }
 
-    DD_FORWARDER_TELEMETRY["tags"].append("forwardername:"+dd_custom_tags_data["forwardername"])
-    DD_FORWARDER_TELEMETRY["tags"].append("forwarder_memorysize:"+dd_custom_tags_data["forwarder_memorysize"])
-    DD_FORWARDER_TELEMETRY["tags"].append("forwarder_version:"+DD_FORWARDER_VERSION)
+    DD_FORWARDER_TELEMETRY["tags"].append(
+        "forwardername:" + dd_custom_tags_data["forwardername"]
+    )
+    DD_FORWARDER_TELEMETRY["tags"].append(
+        "forwarder_memorysize:" + dd_custom_tags_data["forwarder_memorysize"]
+    )
+    DD_FORWARDER_TELEMETRY["tags"].append("forwarder_version:" + DD_FORWARDER_VERSION)
 
     metadata[DD_CUSTOM_TAGS] = ",".join(
         filter(
@@ -1031,19 +1038,19 @@ def send_dd_forwarder_telemetry():
         "aws.dd_forwarder.logs_forwarded",
         DD_FORWARDER_TELEMETRY["logs_forwarded"],
         timestamp=timestamp,
-        tags=tags
+        tags=tags,
     )
 
     lambda_stats.distribution(
         "aws.dd_forwarder.traces_forwarded",
         DD_FORWARDER_TELEMETRY["traces_forwarded"],
         timestamp=timestamp,
-        tags=tags
+        tags=tags,
     )
-    
+
     lambda_stats.distribution(
         "aws.dd_forwarder.metrics_forwarded",
         DD_FORWARDER_TELEMETRY["metrics_forwarded"],
         timestamp=timestamp,
-        tags=tags
+        tags=tags,
     )
