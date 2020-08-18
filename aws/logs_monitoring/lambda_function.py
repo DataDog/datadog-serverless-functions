@@ -148,7 +148,7 @@ LOG_SOURCE_SUBSTRINGS = [
 ]
 
 
-# Used to store datadog.forwarder.* metrics and tags
+# Used to store aws.dd_forwarder.* metrics and tags
 DD_FORWARDER_TELEMETRY = {
     "logs_forwarded": 0,
     "traces_forwarded": 0,
