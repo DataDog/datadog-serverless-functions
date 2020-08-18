@@ -633,8 +633,6 @@ def forward_metrics(metrics):
             logger.exception(f"Exception while forwarding metric {json.dumps(metric)}")
         else:
             if logger.isEnabledFor(logging.DEBUG):
-                from pprint import pprint
-                logger.debug(pprint(vars(lambda_stats)))
                 logger.debug(f"Forwarded metric: {json.dumps(metric)}")
 
 

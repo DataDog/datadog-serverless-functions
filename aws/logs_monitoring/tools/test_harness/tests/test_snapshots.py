@@ -1,7 +1,7 @@
 import unittest
 import base64
 import os
-import urllib.request
+from urllib import request
 import json
 import re
 import gzip
@@ -43,7 +43,7 @@ class TestForwarderSnapshots(unittest.TestCase):
             r"forwarder_version:\d+\.\d+\.\d+", "forwarder_version:x.x.x", message
         )
 
-    def compare_snapshot(self, input_filename, snapshot_filename, delay=False):
+    def compare_snapshot(self, input_filename, snapshot_filename, extend_recording=False):
         with open(input_filename, "r") as input_file:
             input_data = input_file.read()
 
@@ -59,8 +59,8 @@ class TestForwarderSnapshots(unittest.TestCase):
         self.send_log_event(cloudwatch_event)
 
         # Metrics are sent periodically in a background thread
-        # If we want to capture metrics, we need to wait for this to happen
-        if delay:
+        # If we want to capture metrics, record for 10 seconds before comparing
+        if extend_recording:
             sleep(10)
 
         output_data = self.get_recording()
@@ -88,22 +88,22 @@ class TestForwarderSnapshots(unittest.TestCase):
             )
             self.__class__.recorder_has_been_initialized = True
 
-    # def test_cloudwatch_log(self):
-    #     input_filename = f"{snapshot_dir}/cloudwatch_log.json"
-    #     snapshot_filename = f"{input_filename}~snapshot"
-    #     self.compare_snapshot(input_filename, snapshot_filename)
+    def test_cloudwatch_log(self):
+        input_filename = f"{snapshot_dir}/cloudwatch_log.json"
+        snapshot_filename = f"{input_filename}~snapshot"
+        self.compare_snapshot(input_filename, snapshot_filename)
 
-    # def test_cloudwatch_log_cold_start(self):
-    #     input_filename = f"{snapshot_dir}/cloudwatch_log_coldstart.json"
-    #     snapshot_filename = f"{input_filename}~snapshot"
-    #     self.compare_snapshot(input_filename, snapshot_filename)
+    def test_cloudwatch_log_cold_start(self):
+        input_filename = f"{snapshot_dir}/cloudwatch_log_coldstart.json"
+        snapshot_filename = f"{input_filename}~snapshot"
+        self.compare_snapshot(input_filename, snapshot_filename)
 
     def test_cloudwatch_log_lambda_invocation(self):
         input_filename = f"{snapshot_dir}/cloudwatch_log_lambda_invocation.json"
         snapshot_filename = f"{input_filename}~snapshot"
-        self.compare_snapshot(input_filename, snapshot_filename, delay=True)
+        self.compare_snapshot(input_filename, snapshot_filename, extend_recording=True)
 
-    # def test_cloudwatch_log_timeout(self):
-    #     input_filename = f"{snapshot_dir}/cloudwatch_log_timeout.json"
-    #     snapshot_filename = f"{input_filename}~snapshot"
-    #     self.compare_snapshot(input_filename, snapshot_filename)
+    def test_cloudwatch_log_timeout(self):
+        input_filename = f"{snapshot_dir}/cloudwatch_log_timeout.json"
+        snapshot_filename = f"{input_filename}~snapshot"
+        self.compare_snapshot(input_filename, snapshot_filename)
