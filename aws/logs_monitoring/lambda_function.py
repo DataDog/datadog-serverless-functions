@@ -428,7 +428,7 @@ def forward_logs(logs):
             else:
                 if logger.isEnabledFor(logging.DEBUG):
                     logger.debug(f"Forwarded log batch: {json.dumps(batch)}")
-    
+
     """Submit logs telemetry"""
     timestamp = time.time()
 
@@ -1037,4 +1037,3 @@ def parse_service_arn(source, key, bucket, context):
                     region, accountID, clustername
                 )
     return
-
