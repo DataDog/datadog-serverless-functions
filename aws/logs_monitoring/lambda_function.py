@@ -619,7 +619,7 @@ def split(events):
 
     """Dedup telemetry tags"""
     DD_FORWARDER_TELEMETRY_TAGS = list(set(DD_FORWARDER_TELEMETRY_TAGS))
-    
+
     return metrics, logs, trace_payloads
 
 
