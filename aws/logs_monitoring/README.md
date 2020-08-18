@@ -100,17 +100,14 @@ If you can't install the Forwarder using the provided CloudFormation template, y
 
 ## AWS PrivateLink Support
 
-You can run the Forwarder in a VPC by using AWS PrivateLink.
+You can run the Forwarder in a VPC by using AWS PrivateLink to connect to Datadog. Note that AWS PrivateLink can only be configured with Datadog organizations using the Datadog US site (i.e. datadoghq.com, not datadoghq.eu).
 
-1. Follow the [setup instructions](https://docs.datadoghq.com/agent/guide/private-link/?tab=logs#create-your-vpc-endpoint) for adding Datadog's **API** endpoint to your VPC.
-2. Follow the [same procedure](https://docs.datadoghq.com/agent/guide/private-link/?tab=logs#create-your-vpc-endpoint) to add Datadog's **Logs** endpoint to your VPC. 
-3. By default, the Forwarder's API key is stored in the Secrets Manager. The secrets manager endpoint needs to be added to the VPC. You can follow the instructions [here for adding AWS services to a VPC](https://docs.aws.amazon.com/vpc/latest/userguide/vpce-interface.html#create-interface-endpoint).
-4. When installing the Forwarder with the CloudFormation template, enable 'DdUsePrivateLink' and set at least one Subnet Id and Security Group.
+1. Follow the [setup instructions](https://docs.datadoghq.com/agent/guide/private-link/?tab=logs#create-your-vpc-endpoint) to add an endpoint to your VPC for Datadog's **API** service.
+2. Follow the [same procedure](https://docs.datadoghq.com/agent/guide/private-link/?tab=logs#create-your-vpc-endpoint) to add a second endpoint to your VPC for Datadog's **Logs** service.
+3. Follow the [same procedure](https://docs.datadoghq.com/agent/guide/private-link/?tab=logs#create-your-vpc-endpoint) once more to add a third endpoint to your VPC for Datadog's **Traces** service. 
+4. By default, the Forwarder's API key is stored in the Secrets Manager. The Secrets Manager endpoint needs to be added to the VPC. You can follow the instructions [here](https://docs.aws.amazon.com/vpc/latest/userguide/vpce-interface.html#create-interface-endpoint) for adding AWS services to a VPC.
+5. When installing the Forwarder with the CloudFormation template, enable 'DdUsePrivateLink' and set at least one Subnet Id and Security Group.
 
-### AWS PrivateLink Limitations
-
-* AWS PrivateLink can only be configured with Datadog organizations in the Datadog US region.
-* Trace forwarding is currently unsupported via AWS PrivateLink.
 
 ## Troubleshooting
 
@@ -151,7 +148,7 @@ To safely delete the forwarder and other AWS resources created by the forwarder 
 2. Update the stack using the current template.
 3. Adjust parameter values.
 
-**Note:** Datadog reccomends adjusting your Forwarder settings through CloudFormation rather than directly editing the Lambda function. Find the description of settings in the [template.yaml](template.yaml) and the CloudFormation stack creation user interface when you launch the stack. Feel free to submit a pull request to make additional settings adjustable through the template.
+**Note:** Datadog recommends adjusting your Forwarder settings through CloudFormation rather than directly editing the Lambda function. Find the description of settings in the [template.yaml](https://github.com/DataDog/datadog-serverless-functions/blob/master/aws/logs_monitoring/template.yaml) and the CloudFormation stack creation user interface when you launch the stack. Feel free to submit a pull request to make additional settings adjustable through the template.
 
 ## Permissions
 

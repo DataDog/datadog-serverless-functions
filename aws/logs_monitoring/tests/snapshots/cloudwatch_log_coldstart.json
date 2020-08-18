@@ -1,5 +1,26 @@
 {
-    "awslogs": {
-        "data": "H4sIAAAAAAAAAK2QT2/aQBDFv4pl9Yjj2dnZf9yIcKNIpa2w20tA1RovqSUbU3sppVG+exZIJVQlh0i5rd7svPeb9xC3bhjsvSsOWxeP4+mkmPyYZXk+ucniUdztN64PsgRGqFAZYyDITXd/03e7bZikdj+kjW3LyqaD7/p2SFZNt6v21q9+Ju632/jzQu57Z9uwgYCQgkyB0rsPnyZFlhdLu8aSOaaJl5osVhpWUmkC6/h6bRUGi2FXDqu+3vq623ysG+/6IR7fxe3hnLE8hWTH91F/iOsqZHFBWmrOyIAGkMQZCia4BMkADXKmGBE3EkkoprRQEoUCpJDn69CMt204kgnDUJMQBowe/Wss2OfFZF5Ec/drF77eVuOoKlGJtVaJNZwSUswm2mhISsnLNVUrVroy+h7QwxHj6Pn6xSZ+HL0ALJWgI6siw4wyCjkpFSCNVhoIECUHQ8xoVPw1YAbsEjj7PH0r7jvQvVrnf3Tz7OuXt/e58NNdb/2pUXalZNQOC39dN42roosJwGkwc23XH6K8/uuCiDqaXQfR/omeB98GF3LprN9uan/pgXBlzv7HVpaPT8e9Sb4+AwAA"
+  "messageType": "DATA_MESSAGE",
+  "owner": "601427279990",
+  "logGroup": "/aws/lambda/storms-cloudwatch-event",
+  "logStream": "2020/06/04/[$LATEST]af2b1e1843b84a2d80c67840ae3ffa72",
+  "subscriptionFilters": [
+    "myevent"
+  ],
+  "logEvents": [
+    {
+      "id": "35486831490800643125153606102923171443962457178576257024",
+      "timestamp": 1591284559098,
+      "message": "START RequestId: db275f87-a934-471a-8980-b63bf4dc1beb Version: $LATEST\\n"
+    },
+    {
+      "id": "35486831490867545360749197972347778598780402263094198273",
+      "timestamp": 1591284559101,
+      "message": "END RequestId: db275f87-a934-471a-8980-b63bf4dc1beb\\n"
+    },
+    {
+      "id": "35486831490867545360749197972347778598780402263094198274",
+      "timestamp": 1591284559101,
+      "message": "REPORT RequestId: db275f87-a934-471a-8980-b63bf4dc1beb\\tDuration: 1.76 ms\\tBilled Duration: 100 ms\\tMemory Size: 128 MB\\tMax Memory Used: 48 MB\\tInit Duration: 120.96 ms\\t\\n"
     }
+  ]
 }

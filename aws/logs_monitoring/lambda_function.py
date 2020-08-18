@@ -40,7 +40,6 @@ from settings import (
     DD_TRACE_INTAKE_URL,
     DD_URL,
     DD_PORT,
-    DD_FORWARD_TRACES,
     SCRUBBING_RULE_CONFIGS,
     INCLUDE_AT_MATCH,
     EXCLUDE_AT_MATCH,
@@ -88,9 +87,7 @@ if not validation_res.ok:
 api._api_key = DD_API_KEY
 api._api_host = DD_API_URL
 
-trace_connection = None
-if DD_FORWARD_TRACES:
-    trace_connection = TraceConnection(DD_TRACE_INTAKE_URL, DD_API_KEY)
+trace_connection = TraceConnection(DD_TRACE_INTAKE_URL, DD_API_KEY)
 
 # Use for include, exclude, and scrubbing rules
 def compileRegex(rule, pattern):
