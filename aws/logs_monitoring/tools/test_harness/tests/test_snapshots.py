@@ -41,11 +41,16 @@ class TestForwarderSnapshots(unittest.TestCase):
         # Remove things that can vary during each test run
         # forwarder_version
         snapshot = re.sub(
-            r"forwarder_version:\d+\.\d+\.\d+", "forwarder_version:<redacted from snapshot>", snapshot
+            r"forwarder_version:\d+\.\d+\.\d+",
+            "forwarder_version:<redacted from snapshot>",
+            snapshot,
         )
         # Metric points
         snapshot = re.sub(
-            r"\"points\":.*?,(?=\s*\")", "\"points\": \"<redacted from snapshot>\",", snapshot, flags=re.MULTILINE
+            r"\"points\":.*?,(?=\s*\")",
+            '"points": "<redacted from snapshot>",',
+            snapshot,
+            flags=re.MULTILINE,
         )
         return snapshot
 
