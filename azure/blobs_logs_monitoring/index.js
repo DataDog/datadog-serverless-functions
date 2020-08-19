@@ -17,7 +17,7 @@ const INVALID = 'invalid';
 const DD_API_KEY = process.env.DD_API_KEY || '<DATADOG_API_KEY>';
 const DD_SITE = process.env.DD_SITE || 'datadoghq.com';
 const DD_URL = process.env.DD_URL || 'functions-intake.logs.' + DD_SITE;
-const DD_PORT = process.env.DD_PORT || (DD_SITE === 'datadoghq.eu') ? 443 : 10516
+const DD_PORT = process.env.DD_PORT || DD_SITE === 'datadoghq.eu' ? 443 : 10516;
 const DD_TAGS = process.env.DD_TAGS || ''; // Replace '' by your comma-separated list of tags
 const DD_SERVICE = process.env.DD_SERVICE || 'azure';
 const DD_SOURCE = process.env.DD_SOURCE || 'azure';
@@ -45,9 +45,14 @@ module.exports = function(context, blobContent) {
     if (typeof blobContent === 'string') {
         logs = blobContent.trim().split('\n');
     } else if (Buffer.isBuffer(blobContent)) {
-        logs = blobContent.toString('utf8').trim().split('\n');
+        logs = blobContent
+            .toString('utf8')
+            .trim()
+            .split('\n');
     } else {
-        logs = JSON.stringify(blobContent).trim().split('\n');
+        logs = JSON.stringify(blobContent)
+            .trim()
+            .split('\n');
     }
 
     logs.forEach(log => {
