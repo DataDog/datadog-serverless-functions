@@ -7,10 +7,11 @@ services:
     environment:
       AWS_ACCOUNT_ID: 0000000000
       DOCKER_LAMBDA_STAY_OPEN: 1
-      DD_LOG_LEVEL: info
+      DD_LOG_LEVEL: debug
       DD_API_KEY: abcdefghijklmnopqrstuvwxyz012345 # Must be 32 characters exactly
       DD_URL: forwarder-recorder # Used for logs intake
       DD_PORT: 8080 # API port to use
+      DD_SITE: datadog.com
       DD_API_URL: http://forwarder-recorder:8080
       DD_LOGS_INTAKE_URL: forwarder-recorder:8080
       DD_TRACE_INTAKE_URL: http://forwarder-recorder:8080
