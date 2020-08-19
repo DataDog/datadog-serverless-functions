@@ -22,7 +22,7 @@ class TestForwarderSnapshots(unittest.TestCase):
 
     def get_recording(self):
         with urllib.request.urlopen(recorder_url) as url:
-            message = self.filter_message(url.read().decode())
+            message = self.filter_snapshot(url.read().decode())
             data = json.loads(message)
         return data
 
@@ -37,11 +37,17 @@ class TestForwarderSnapshots(unittest.TestCase):
         request = urllib.request.Request(forwarder_url, data=event.encode("utf-8"))
         urllib.request.urlopen(request)
 
-    def filter_message(self, message):
-        # Remove forwarder_version from output
-        return re.sub(
-            r"forwarder_version:\d+\.\d+\.\d+", "forwarder_version:x.x.x", message
+    def filter_snapshot(self, snapshot):
+        # Remove things that can vary during each test run
+        # forwarder_version
+        snapshot = re.sub(
+            r"forwarder_version:\d+\.\d+\.\d+", "forwarder_version:<redacted from snapshot>", snapshot
         )
+        # Metric points
+        snapshot = re.sub(
+            r"\"points\":.*?,(?=\s*\")", "\"points\": \"<redacted from snapshot>\",", snapshot, flags=re.MULTILINE
+        )
+        return snapshot
 
     def compare_snapshot(self, input_filename, snapshot_filename):
         with open(input_filename, "r") as input_file:
