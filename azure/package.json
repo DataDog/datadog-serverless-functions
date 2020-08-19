@@ -8,7 +8,7 @@
     },
     "scripts": {
         "test": "mocha",
-        "lint": "prettier --write shared/*.js activity_logs_monitoring/*.js blobs_logs_monitoring/*.js"
+        "lint": "prettier --write shared/*.js activity_logs_monitoring/*.js blobs_logs_monitoring/*.js test/*.js"
     },
     "repository": {
         "type": "git",
