@@ -49,16 +49,15 @@ class TestForwarderSnapshots(unittest.TestCase):
 
         cloudwatch_event = self.create_cloudwatch_log_event_from_data(input_data)
 
-        self.send_log_event(cloudwatch_event)
-
-        output_data = self.get_recording()
-
         snapshot_data = {}
         try:
             with open(snapshot_filename, "r") as snapshot_file:
                 snapshot_data = json.loads(snapshot_file.read())
         except:
             pass  # Valid if snapshot data doesn't exist
+
+        self.send_log_event(cloudwatch_event)
+        output_data = self.get_recording()
 
         if update_snapshot:
             with open(snapshot_filename, "w") as snapshot_file:
