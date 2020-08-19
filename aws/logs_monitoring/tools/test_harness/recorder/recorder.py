@@ -12,7 +12,7 @@ events = []
 
 class RecorderHandler(BaseHTTPRequestHandler):
     def __init__(self, request, client_address, server):
-        super().__init__(request, client_address, server)()
+        super().__init__(request, client_address, server)
 
     def handle_request(self):
         global events
@@ -52,7 +52,6 @@ class RecorderHandler(BaseHTTPRequestHandler):
         self.wfile.write(response.encode("utf-8"))
         return
 
-    # Handler for the GET requests
     def do_GET(self):
         self.handle_request()
 

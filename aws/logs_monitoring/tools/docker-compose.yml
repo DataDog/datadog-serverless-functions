@@ -3,7 +3,7 @@ version: "3.7"
 services:
   forwarder:
     image: datadog-log-forwarder:${PYTHON_RUNTIME:-python3.7}
-    command: lambda_function.datadog_forwarder
+    command: lambda_function.lambda_handler
     environment:
       AWS_ACCOUNT_ID: 0000000000
       DOCKER_LAMBDA_STAY_OPEN: 1
@@ -11,6 +11,7 @@ services:
       DD_API_KEY: abcdefghijklmnopqrstuvwxyz012345 # Must be 32 characters exactly
       DD_URL: forwarder-recorder # Used for logs intake
       DD_PORT: 8080 # API port to use
+      DD_SITE: datadog.com
       DD_API_URL: http://forwarder-recorder:8080
       DD_LOGS_INTAKE_URL: forwarder-recorder:8080
       DD_TRACE_INTAKE_URL: http://forwarder-recorder:8080

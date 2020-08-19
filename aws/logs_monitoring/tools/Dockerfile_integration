@@ -5,6 +5,3 @@ ARG forwarder
 
 # Add the code into /var/task (will unzip files)
 ADD $forwarder /var/task/
-
-ENV DD_API_KEY "fake-api-key"
-ENV DD_SITE "datadog.com"
