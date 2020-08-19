@@ -150,7 +150,9 @@ class EventhubLogForwarder {
                     this.context.log.warn(
                         'log is malformed json, sending as string'
                     );
-                    promises.push(this.formatLogAndSend(STRING_TYPE, message.toString()));
+                    promises.push(
+                        this.formatLogAndSend(STRING_TYPE, message.toString())
+                    );
                     return;
                 }
             }
