@@ -3,6 +3,10 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
 import os
 
+from google.protobuf.json_format import MessageToDict
+import pb.trace_payload_pb2 as TracePayloadProtobuf
+
+
 PORT_NUMBER = 8080
 
 print("Starting recorder", flush=True)
@@ -18,22 +22,28 @@ class RecorderHandler(BaseHTTPRequestHandler):
         global events
         response = '{"status":200}'
         response_type = "text/json"
+
         if self.path == "/recording":
             # Return the recent events and clear the recording
             response = json.dumps({"events": events})
             events = []
+
         else:
             print("Recorded: {} {}".format(self.command, self.path), flush=True)
-            # Record the event to logs
+
             data = None
             if self.headers["Content-Length"] != None:
                 contents = self.rfile.read(int(self.headers["Content-Length"]))
                 if self.headers["Content-Type"] == "application/json":
-                    # If the input is json, decode it and add to the event directly
                     try:
                         data = json.loads(contents.decode())
                     except:
                         pass
+                elif self.headers["Content-Type"] == "application/x-protobuf":
+                    # Assume that protobuf calls contain trace payloads
+                    message = TracePayloadProtobuf.TracePayload()
+                    message.ParseFromString(contents)
+                    data = MessageToDict(message)
 
             event = {
                 "path": self.path,
@@ -41,6 +51,7 @@ class RecorderHandler(BaseHTTPRequestHandler):
                 "content-type": self.headers["Content-Type"],
                 "data": data,
             }
+
             events.append(event)
 
         # Send an OK response
