@@ -635,10 +635,6 @@ def forward_metrics(metrics):
             if logger.isEnabledFor(logging.DEBUG):
                 logger.debug(f"Forwarded metric: {json.dumps(metric)}")
 
-    # Force the background thread to send metrics
-    # If this does not happen before the function ends, the metrics may not be sent
-    # lambda_stats.flush()
-
 
 def forward_traces(trace_payloads):
     try:
