@@ -1,9 +1,11 @@
 import unittest
 import base64
 import os
-import urllib.request, json
+import urllib.request
+import json
 import re
 import gzip
+from time import sleep
 
 recorder_url = os.environ.get("RECORDER_URL", default="")
 forwarder_url = os.environ.get("FORWARDER_URL", default="")
@@ -20,7 +22,7 @@ class TestForwarderSnapshots(unittest.TestCase):
 
     def get_recording(self):
         with urllib.request.urlopen(recorder_url) as url:
-            message = self.filter_message(url.read().decode())
+            message = self.filter_snapshot(url.read().decode())
             data = json.loads(message)
         return data
 
@@ -35,11 +37,22 @@ class TestForwarderSnapshots(unittest.TestCase):
         request = urllib.request.Request(forwarder_url, data=event.encode("utf-8"))
         urllib.request.urlopen(request)
 
-    def filter_message(self, message):
-        # Remove forwarder_version from output
-        return re.sub(
-            r"forwarder_version:\d+\.\d+\.\d+", "forwarder_version:x.x.x", message
+    def filter_snapshot(self, snapshot):
+        # Remove things that can vary during each test run
+        # forwarder_version
+        snapshot = re.sub(
+            r"forwarder_version:\d+\.\d+\.\d+",
+            "forwarder_version:<redacted from snapshot>",
+            snapshot,
         )
+        # Metric points
+        snapshot = re.sub(
+            r"\"points\":.*?,(?=\s*\")",
+            '"points": "<redacted from snapshot>",',
+            snapshot,
+            flags=re.MULTILINE,
+        )
+        return snapshot
 
     def compare_snapshot(self, input_filename, snapshot_filename):
         with open(input_filename, "r") as input_file:
@@ -61,7 +74,7 @@ class TestForwarderSnapshots(unittest.TestCase):
             with open(snapshot_filename, "w") as snapshot_file:
                 snapshot_file.write(json.dumps(output_data, indent=2))
         else:
-            message = f"Snapshots didn't match for {input_filename}. To update run `UPDATE_SNAPSHOTS=true ./tools/integration_test.sh"
+            message = f"Snapshots didn't match for {input_filename}. To update run `integration_tests.sh --update`."
             self.assertEqual(output_data, snapshot_data, message)
             pass
 
@@ -97,5 +110,10 @@ class TestForwarderSnapshots(unittest.TestCase):
 
     def test_cloudwatch_log_timeout(self):
         input_filename = f"{snapshot_dir}/cloudwatch_log_timeout.json"
+        snapshot_filename = f"{input_filename}~snapshot"
+        self.compare_snapshot(input_filename, snapshot_filename)
+
+    def test_cloudwatch_log_custom_tags(self):
+        input_filename = f"{snapshot_dir}/cloudwatch_log_custom_tags.json"
         snapshot_filename = f"{input_filename}~snapshot"
         self.compare_snapshot(input_filename, snapshot_filename)
