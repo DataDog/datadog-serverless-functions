@@ -1,0 +1,15 @@
+// copied from datadog-agent/pkg/trace/pb
+
+syntax = "proto3";
+
+package pb;
+
+import "trace.proto";
+import "span.proto";
+
+message TracePayload {
+        string hostName = 1;
+        string env = 2;
+        repeated APITrace traces = 3;
+        repeated Span transactions = 4;
+}

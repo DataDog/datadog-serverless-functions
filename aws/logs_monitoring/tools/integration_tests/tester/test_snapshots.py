@@ -74,7 +74,7 @@ class TestForwarderSnapshots(unittest.TestCase):
             with open(snapshot_filename, "w") as snapshot_file:
                 snapshot_file.write(json.dumps(output_data, indent=2))
         else:
-            message = f"Snapshots didn't match for {input_filename}. To update run `UPDATE_SNAPSHOTS=true ./tools/integration_test.sh"
+            message = f"Snapshots didn't match for {input_filename}. To update run `integration_tests.sh --update`."
             self.assertEqual(output_data, snapshot_data, message)
             pass
 

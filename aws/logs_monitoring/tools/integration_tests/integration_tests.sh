@@ -9,7 +9,9 @@ set -e
 
 # Defaults
 PYTHON_VERSION="python3.7"
-SKIP_FORWARDER_BUILD=0
+SKIP_FORWARDER_BUILD=false
+UPDATE_SNAPSHOTS=false
+LOG_LEVEL=info
 
 # Parse arguments
 for arg in "$@"
@@ -19,7 +21,7 @@ do
 		# Do not build a new forwarder bundle
 		# This saves time running the tests, but any changes to the forwarder will not be reflected
 		-s|--skip-forwarder-build)
-		SKIP_FORWARDER_BUILD=1
+		SKIP_FORWARDER_BUILD=true
 		shift
 		;;
 
@@ -30,6 +32,20 @@ do
 		PYTHON_VERSION="python${arg#*=}"
 		shift
 		;;
+
+		# -u or --update
+		# Update the snapshots to reflect this test run
+		-u|--update)
+		UPDATE_SNAPSHOTS=true
+		shift
+		;;
+
+		# -d or --debug
+		# Print debug logs
+		-d|--debug)
+		LOG_LEVEL=debug
+		shift
+		;;
 	esac
 done
 
@@ -38,23 +54,24 @@ if [ $PYTHON_VERSION != "python3.7" ] && [ $PYTHON_VERSION != "python3.8" ]; the
     exit 1
 fi
 
-# Move into the tools directory
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-cd $DIR
+INTEGRATION_TESTS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 # Build the Forwarder
-if ! [ $SKIP_FORWARDER_BUILD == 1 ]; then
+if ! [ $SKIP_FORWARDER_BUILD == true ]; then
+	cd $INTEGRATION_TESTS_DIR
+	cd ../
 	./build_bundle.sh 0.0.0
 	cd ../.forwarder
 	unzip aws-dd-forwarder-0.0.0 -d aws-dd-forwarder-0.0.0
-	cd $DIR
 fi
 
-# Build Docker Image for Tests
-echo "Building Docker Image"
-docker build --file "${DIR}/Dockerfile_integration" -t "datadog-log-forwarder:$PYTHON_VERSION" ../.forwarder --no-cache \
+cd $INTEGRATION_TESTS_DIR
+
+# Build Docker image of Forwarder for tests
+echo "Building Docker Image for Forwarder"
+docker build --file "${INTEGRATION_TESTS_DIR}/forwarder/Dockerfile" -t "datadog-log-forwarder:$PYTHON_VERSION" ../../.forwarder --no-cache \
     --build-arg forwarder='aws-dd-forwarder-0.0.0' \
     --build-arg image="lambci/lambda:${PYTHON_VERSION}"
 
 echo "Running integration tests for ${PYTHON_VERSION}"
-PYTHON_RUNTIME=${PYTHON_VERSION} docker-compose up --build --abort-on-container-exit
+LOG_LEVEL=${LOG_LEVEL} UPDATE_SNAPSHOTS=${UPDATE_SNAPSHOTS} PYTHON_RUNTIME=${PYTHON_VERSION} docker-compose up --build --abort-on-container-exit
