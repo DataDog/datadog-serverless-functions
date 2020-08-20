@@ -9,6 +9,9 @@ import boto3
 from botocore.exceptions import ClientError
 
 ENHANCED_METRICS_NAMESPACE_PREFIX = "aws.lambda.enhanced"
+DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX = "aws.dd_forwarder"
+
+TAGS_FROM_FORWARDER = []
 
 TAGS_CACHE_TTL_SECONDS = 3600
 
@@ -94,6 +97,7 @@ class LambdaTagsCache(object):
         self.tags_ttl_seconds = tags_ttl_seconds
 
         self.tags_by_arn = {}
+        self.tags_from_forwarder = []
         self.missing_arns = set()
         self.last_tags_fetch_time = 0
 
@@ -297,6 +301,11 @@ def parse_get_resources_response_for_tags_by_arn(get_resources_page):
     return tags_by_arn
 
 
+def set_enhanced_metrics_tags(tags):
+    global TAGS_FROM_FORWARDER
+    TAGS_FROM_FORWARDER = tags
+
+
 def build_tags_by_arn_cache():
     """Makes API calls to GetResources to get the live tags of the account's Lambda functions
 
@@ -313,8 +322,11 @@ def build_tags_by_arn_cache():
             ResourceTypeFilters=[GET_RESOURCES_LAMBDA_FILTER], ResourcesPerPage=100
         ):
             lambda_stats.distribution(
-                "{}.get_resources_api_calls".format(ENHANCED_METRICS_NAMESPACE_PREFIX),
+                "{}.get_resources_api_calls".format(
+                    DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX
+                ),
                 1,
+                tags=TAGS_FROM_FORWARDER,
             )
             page_tags_by_arn = parse_get_resources_response_for_tags_by_arn(page)
             tags_by_arn_cache.update(page_tags_by_arn)
