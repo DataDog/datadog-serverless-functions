@@ -11,8 +11,6 @@ from botocore.exceptions import ClientError
 ENHANCED_METRICS_NAMESPACE_PREFIX = "aws.lambda.enhanced"
 DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX = "aws.dd_forwarder"
 
-TAGS_FROM_FORWARDER = []
-
 TAGS_CACHE_TTL_SECONDS = 3600
 
 # Latest Lambda pricing per https://aws.amazon.com/lambda/pricing/
@@ -301,9 +299,11 @@ def parse_get_resources_response_for_tags_by_arn(get_resources_page):
     return tags_by_arn
 
 
-def set_enhanced_metrics_tags(tags):
-    global TAGS_FROM_FORWARDER
-    TAGS_FROM_FORWARDER = tags
+def get_forwarder_telemetry_tags():
+    """Retrieves tags used when submitting telemetry metrics
+    Used to overcome circular import"""
+    from lambda_function import DD_FORWARDER_TELEMETRY_TAGS
+    return DD_FORWARDER_TELEMETRY_TAGS
 
 
 def build_tags_by_arn_cache():
@@ -326,7 +326,7 @@ def build_tags_by_arn_cache():
                     DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX
                 ),
                 1,
-                tags=TAGS_FROM_FORWARDER,
+                tags=get_forwarder_telemetry_tags(),
             )
             page_tags_by_arn = parse_get_resources_response_for_tags_by_arn(page)
             tags_by_arn_cache.update(page_tags_by_arn)
