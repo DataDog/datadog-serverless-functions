@@ -268,18 +268,8 @@ describe('Azure Log Monitoring', function() {
         });
 
         it('should handle buffer array without records properly', function() {
-            record = [Buffer.from('{[{ "test": "testing"}]}')];
-            expected = [{ test: 'testing' }];
-            assert.equal(
-                EventhubLogForwarderInstance.getLogFormat(record),
-                constants.BUFFER_ARRAY
-            );
-            testHandleLogs(record, expected, true);
-        });
-
-        it('should handle buffer array without records properly', function() {
-            record = [Buffer.from('{[{ "test": "testing"}]}')];
-            expected = [{ test: 'testing' }];
+            record = [Buffer.from('{ "test": "example"}')];
+            expected = [{ test: 'example' }];
             assert.equal(
                 EventhubLogForwarderInstance.getLogFormat(record),
                 constants.BUFFER_ARRAY
@@ -294,8 +284,6 @@ describe('Azure Log Monitoring', function() {
                 EventhubLogForwarderInstance.getLogFormat(record),
                 constants.BUFFER_ARRAY
             );
-            // just assert that the string method is called for the second message,
-            // we don't care about the first one for this test
             testHandleLogs(record, expected, false);
         });
 
