@@ -474,18 +474,22 @@ def set_forwarder_telemetry_tags(context, event_type):
     """
     global DD_FORWARDER_TELEMETRY_TAGS
 
-    DD_FORWARDER_TELEMETRY_TAGS = [f"forwardername:{context.function_name.lower()}",
+    DD_FORWARDER_TELEMETRY_TAGS = [
+        f"forwardername:{context.function_name.lower()}",
         f"forwarder_memorysize:{context.memory_limit_in_mb}",
         f"forwarder_version:{DD_FORWARDER_VERSION}",
-        f"source:{event_type}"]
+        f"source:{event_type}",
+    ]
+
 
 def send_incoming_events_telemetry(events):
     incoming_events = sum(1 for event in events)
     lambda_stats.distribution(
         "{}.incoming_events".format(DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX),
         incoming_events,
-        tags=DD_FORWARDER_TELEMETRY_TAGS
-        )
+        tags=DD_FORWARDER_TELEMETRY_TAGS,
+    )
+
 
 def enrich(events):
     """Adds event-specific tags and attributes to each event

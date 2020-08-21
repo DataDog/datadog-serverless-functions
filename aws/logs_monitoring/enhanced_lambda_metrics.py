@@ -303,6 +303,7 @@ def get_forwarder_telemetry_tags():
     """Retrieves tags used when submitting telemetry metrics
     Used to overcome circular import"""
     from lambda_function import DD_FORWARDER_TELEMETRY_TAGS
+
     return DD_FORWARDER_TELEMETRY_TAGS
 
 
