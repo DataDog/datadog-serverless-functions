@@ -6,10 +6,9 @@
 # Copyright 2019 Datadog, Inc
 
 # Usage - run commands from the REPO_ROOT/aws/logs_monitoring directory:
-# DD_API_KEY=XXXX aws-vault exec sandbox-account-admin -- ./scripts/run_integration_tests
+# aws-vault exec sandbox-account-admin -- ./scripts/run_integration_tests
 
 set -e
-
 
 PYTHON_VERSION="python3.7"
 SKIP_FORWARDER_BUILD=false
@@ -78,6 +77,7 @@ if ! [ $SKIP_FORWARDER_BUILD == true ]; then
 fi
 
 
+# Deploy additional target lambda
 cd $EXTERNAL_LAMBDA_DIR
 sls deploy
 
@@ -96,15 +96,15 @@ PYTHON_RUNTIME=${PYTHON_VERSION} \
 EXTERNAL_LAMBDA=${EXTERNAL_LAMBDA} \
 docker-compose up --build --abort-on-container-exit
 
-echo "Waiting for logs..."
+echo "Waiting for external lambda logs..."
 sleep $LOGS_WAIT_SECONDS
-
 cd $EXTERNAL_LAMBDA_DIR
 raw_logs=$(sls logs -f $EXTERNAL_LAMBDA_NAME --startTime $script_start_time)
 
 # Extract json lines first, then the base64 gziped payload
 logs=$(echo -e "$raw_logs" | grep -o '{.*}' | jq -r '.awslogs.data')
 lambda_events=()
+
 # We break up lines into an array
 IFS=$'\n'
 while IFS= read -r line; do
