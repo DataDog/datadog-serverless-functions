@@ -5,19 +5,27 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2019 Datadog, Inc
 
+# Usage - run commands from the REPO_ROOT/aws/logs_monitoring directory:
+# DD_API_KEY=XXXX aws-vault exec sandbox-account-admin -- ./scripts/run_integration_tests
+
 set -e
 
-# Defaults
+
 PYTHON_VERSION="python3.7"
 SKIP_FORWARDER_BUILD=false
 UPDATE_SNAPSHOTS=false
 LOG_LEVEL=info
+LOGS_WAIT_SECONDS=10
+INTEGRATION_TESTS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+SNAPSHOT_DIR="${INTEGRATION_TESTS_DIR}/snapshots/*"
 SERVERLESS_NAME="forwarder-tests-external-lambda-dev"
 EXTERNAL_LAMBDA_NAME="ironmaiden"
 EXTERNAL_LAMBDA="${SERVERLESS_NAME}-${EXTERNAL_LAMBDA_NAME}"
-LOGS_WAIT_SECONDS=20
+EXTERNAL_LAMBDA_DIR="${INTEGRATION_TESTS_DIR}/external_lambda"
+SNAPS=($SNAPSHOT_DIR)
 
-START_TIME=$(date --iso-8601=seconds)
+script_start_time=$(date --iso-8601=seconds)
+echo "Starting script time: $script_start_time"
 
 # Parse arguments
 for arg in "$@"
@@ -60,8 +68,6 @@ if [ $PYTHON_VERSION != "python3.7" ] && [ $PYTHON_VERSION != "python3.8" ]; the
     exit 1
 fi
 
-INTEGRATION_TESTS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-
 # Build the Forwarder
 if ! [ $SKIP_FORWARDER_BUILD == true ]; then
 	cd $INTEGRATION_TESTS_DIR
@@ -71,8 +77,7 @@ if ! [ $SKIP_FORWARDER_BUILD == true ]; then
 	unzip aws-dd-forwarder-0.0.0 -d aws-dd-forwarder-0.0.0
 fi
 
-SNAPSHOT_DIR="${INTEGRATION_TESTS_DIR}/snapshots/*"
-EXTERNAL_LAMBDA_DIR="${INTEGRATION_TESTS_DIR}/external_lambda"
+
 cd $EXTERNAL_LAMBDA_DIR
 sls deploy
 
@@ -95,11 +100,10 @@ echo "Waiting for logs..."
 sleep $LOGS_WAIT_SECONDS
 
 cd $EXTERNAL_LAMBDA_DIR
-raw_logs=$(sls logs -f $EXTERNAL_LAMBDA_NAME --startTime $START_TIME)
+raw_logs=$(sls logs -f $EXTERNAL_LAMBDA_NAME --startTime $script_start_time)
 
 # Extract json lines first, then the base64 gziped payload
 logs=$(echo -e "$raw_logs" | grep -o '{.*}' | jq -r '.awslogs.data')
-
 lambda_events=()
 # We break up lines into an array
 IFS=$'\n'
@@ -110,25 +114,33 @@ while IFS= read -r line; do
 	fi
 done <<< "$logs"
 
-i=0
+if [ "${#lambda_events[@]}" -eq 0 ]; then
+	echo "FAILURE: No matching logs for the external lambda in Cloudwatch"
+	echo "Check with \`sls logs -f $EXTERNAL_LAMBDA_NAME --startTime $script_start_time\`"
+    exit 1
+fi
 
-SNAPS=($SNAPSHOT_DIR)
-for SNAP_PATH in "${SNAPS[@]}"; do
-	# echo "$SNAP_PATH"
-	if [[  ${SNAP_PATH: -5} == ".json"  ]]; then
-		processed_event=$(echo "${lambda_events[$i]}" | base64 -d | gunzip)
+mismatch_found=false
+# Verify every event passed to the AdditionalTargetLambda
+for event in "${lambda_events[@]}"; do
+	event_found=false
+	processed_event=$(echo "$event" | base64 -d | gunzip)
 
+	for snap_path in "${SNAPS[@]}"; do
 		set +e # Don't exit this script if there is a diff
-		diff_output=$(echo "$processed_event" | diff - $SNAP_PATH)
-		if [ $? -eq 1 ]; then
-		    echo "Failed: Return value for "$SNAP_PATH" does not match snapshot:"
-		    echo "$diff_output"
-		    mismatch_found=true
-		else
-		    echo "Ok: Return value for "$SNAP_PATH""
+		diff_output=$(echo "$processed_event" | diff - $snap_path)
+		if [ $? -eq 0 ]; then
+		    event_found=true
 		fi
 		set -e
-		((i=i+1))
+	done
+
+	if [ "$event_found" = false ]; then
+	    mismatch_found=true
+	    echo "FAILURE: The following event was not found in the snapshots"
+	    echo ""
+	    echo "$processed_event"
+	    echo ""
 	fi
 done
 
