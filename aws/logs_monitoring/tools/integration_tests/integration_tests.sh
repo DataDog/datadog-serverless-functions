@@ -12,6 +12,12 @@ PYTHON_VERSION="python3.7"
 SKIP_FORWARDER_BUILD=false
 UPDATE_SNAPSHOTS=false
 LOG_LEVEL=info
+SERVERLESS_NAME="forwarder-tests-external-lambda-dev"
+EXTERNAL_LAMBDA_NAME="ironmaiden"
+EXTERNAL_LAMBDA="${SERVERLESS_NAME}-${EXTERNAL_LAMBDA_NAME}"
+LOGS_WAIT_SECONDS=20
+
+START_TIME=$(date --iso-8601=seconds)
 
 # Parse arguments
 for arg in "$@"
@@ -65,6 +71,11 @@ if ! [ $SKIP_FORWARDER_BUILD == true ]; then
 	unzip aws-dd-forwarder-0.0.0 -d aws-dd-forwarder-0.0.0
 fi
 
+SNAPSHOT_DIR="${INTEGRATION_TESTS_DIR}/snapshots/*"
+EXTERNAL_LAMBDA_DIR="${INTEGRATION_TESTS_DIR}/external_lambda"
+cd $EXTERNAL_LAMBDA_DIR
+sls deploy
+
 cd $INTEGRATION_TESTS_DIR
 
 # Build Docker image of Forwarder for tests
@@ -74,4 +85,56 @@ docker build --file "${INTEGRATION_TESTS_DIR}/forwarder/Dockerfile" -t "datadog-
     --build-arg image="lambci/lambda:${PYTHON_VERSION}"
 
 echo "Running integration tests for ${PYTHON_VERSION}"
-LOG_LEVEL=${LOG_LEVEL} UPDATE_SNAPSHOTS=${UPDATE_SNAPSHOTS} PYTHON_RUNTIME=${PYTHON_VERSION} docker-compose up --build --abort-on-container-exit
+LOG_LEVEL=${LOG_LEVEL} \
+UPDATE_SNAPSHOTS=${UPDATE_SNAPSHOTS} \
+PYTHON_RUNTIME=${PYTHON_VERSION} \
+EXTERNAL_LAMBDA=${EXTERNAL_LAMBDA} \
+docker-compose up --build --abort-on-container-exit
+
+echo "Waiting for logs..."
+sleep $LOGS_WAIT_SECONDS
+
+cd $EXTERNAL_LAMBDA_DIR
+raw_logs=$(sls logs -f $EXTERNAL_LAMBDA_NAME --startTime $START_TIME)
+
+# Extract json lines first, then the base64 gziped payload
+logs=$(echo -e "$raw_logs" | grep -o '{.*}' | jq -r '.awslogs.data')
+
+lambda_events=()
+# We break up lines into an array
+IFS=$'\n'
+while IFS= read -r line; do
+	# we filter the first `{}` event in the recorder set up
+	if [ "$line" != "null" ]; then
+		lambda_events+=($(echo -e "$line"))
+	fi
+done <<< "$logs"
+
+i=0
+
+SNAPS=($SNAPSHOT_DIR)
+for SNAP_PATH in "${SNAPS[@]}"; do
+	# echo "$SNAP_PATH"
+	if [[  ${SNAP_PATH: -5} == ".json"  ]]; then
+		processed_event=$(echo "${lambda_events[$i]}" | base64 -d | gunzip)
+
+		set +e # Don't exit this script if there is a diff
+		diff_output=$(echo "$processed_event" | diff - $SNAP_PATH)
+		if [ $? -eq 1 ]; then
+		    echo "Failed: Return value for "$SNAP_PATH" does not match snapshot:"
+		    echo "$diff_output"
+		    mismatch_found=true
+		else
+		    echo "Ok: Return value for "$SNAP_PATH""
+		fi
+		set -e
+		((i=i+1))
+	fi
+done
+
+if [ "$mismatch_found" = true ]; then
+    echo "FAILURE: A mismatch between new data and a snapshot was found and printed above."
+    exit 1
+fi
+
+echo "SUCCESS: No difference found between input events and events in the additional target lambda"

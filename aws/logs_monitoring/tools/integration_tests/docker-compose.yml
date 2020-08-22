@@ -6,6 +6,11 @@ services:
     command: lambda_function.lambda_handler
     environment:
       AWS_ACCOUNT_ID: 0000000000
+      AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID}"
+      AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY}"
+      AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY}"
+      AWS_SECURITY_TOKEN: "${AWS_SECURITY_TOKEN}"
+      AWS_SESSION_TOKEN: "${AWS_SESSION_TOKEN}"
       DOCKER_LAMBDA_STAY_OPEN: 1
       DD_LOG_LEVEL: ${LOG_LEVEL:-info}
       DD_API_KEY: abcdefghijklmnopqrstuvwxyz012345 # Must be 32 characters exactly
@@ -19,6 +24,7 @@ services:
       DD_SKIP_SSL_VALIDATION: "true"
       DD_USE_TCP: "false"
       DD_USE_COMPRESSION: "false"
+      DD_ADDITIONAL_TARGET_LAMBDA: "${EXTERNAL_LAMBDA}"
     expose:
       - 9001
 

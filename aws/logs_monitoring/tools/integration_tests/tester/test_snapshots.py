@@ -104,6 +104,11 @@ class TestForwarderSnapshots(unittest.TestCase):
         snapshot_filename = f"{input_filename}~snapshot"
         self.compare_snapshot(input_filename, snapshot_filename)
 
+    def test_cloudwatch_log_custom_tags(self):
+        input_filename = f"{snapshot_dir}/cloudwatch_log_custom_tags.json"
+        snapshot_filename = f"{input_filename}~snapshot"
+        self.compare_snapshot(input_filename, snapshot_filename)
+
     def test_cloudwatch_log_lambda_invocation(self):
         input_filename = f"{snapshot_dir}/cloudwatch_log_lambda_invocation.json"
         snapshot_filename = f"{input_filename}~snapshot"
@@ -114,7 +119,3 @@ class TestForwarderSnapshots(unittest.TestCase):
         snapshot_filename = f"{input_filename}~snapshot"
         self.compare_snapshot(input_filename, snapshot_filename)
 
-    def test_cloudwatch_log_custom_tags(self):
-        input_filename = f"{snapshot_dir}/cloudwatch_log_custom_tags.json"
-        snapshot_filename = f"{input_filename}~snapshot"
-        self.compare_snapshot(input_filename, snapshot_filename)
