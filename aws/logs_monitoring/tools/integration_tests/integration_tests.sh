@@ -17,10 +17,6 @@ LOG_LEVEL=info
 LOGS_WAIT_SECONDS=10
 INTEGRATION_TESTS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 SNAPSHOT_DIR="${INTEGRATION_TESTS_DIR}/snapshots/*"
-SERVERLESS_NAME="forwarder-tests-external-lambda-dev"
-EXTERNAL_LAMBDA_NAME="ironmaiden"
-EXTERNAL_LAMBDA="${SERVERLESS_NAME}-${EXTERNAL_LAMBDA_NAME}"
-EXTERNAL_LAMBDA_DIR="${INTEGRATION_TESTS_DIR}/external_lambda"
 SNAPS=($SNAPSHOT_DIR)
 ADDITIONAL_LAMBDA=true
 
@@ -87,11 +83,16 @@ fi
 
 # Deploy additional target lambda
 if [ "$ADDITIONAL_LAMBDA" == true ]; then
+	SERVERLESS_NAME="forwarder-tests-external-lambda-dev"
+	EXTERNAL_LAMBDA_NAME="ironmaiden"
+	EXTERNAL_LAMBDA="${SERVERLESS_NAME}-${EXTERNAL_LAMBDA_NAME}"
+	EXTERNAL_LAMBDA_DIR="${INTEGRATION_TESTS_DIR}/external_lambda"
+
 	cd $EXTERNAL_LAMBDA_DIR
 	sls deploy
-
-	cd $INTEGRATION_TESTS_DIR
 fi
+
+cd $INTEGRATION_TESTS_DIR
 
 # Build Docker image of Forwarder for tests
 echo "Building Docker Image for Forwarder"
