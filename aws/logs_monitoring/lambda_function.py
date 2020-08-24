@@ -439,7 +439,6 @@ def forward_logs(logs):
 
 def parse(event, context):
     """Parse Lambda input to normalized events"""
-    global DD_FORWARDER_TELEMETRY_TAGS
     metadata = generate_metadata(context)
     try:
         # Route to the corresponding parser
@@ -459,11 +458,10 @@ def parse(event, context):
         err_message = "Error parsing the object. Exception: {} for event {}".format(
             str(e), event
         )
+        logger.exception(err_message)
         events = [err_message]
 
     set_forwarder_telemetry_tags(context, event_type)
-
-    send_incoming_events_telemetry(events)
 
     return normalize_events(events, metadata)
 
@@ -478,17 +476,8 @@ def set_forwarder_telemetry_tags(context, event_type):
         f"forwardername:{context.function_name.lower()}",
         f"forwarder_memorysize:{context.memory_limit_in_mb}",
         f"forwarder_version:{DD_FORWARDER_VERSION}",
-        f"source:{event_type}",
+        f"event_type:{event_type}",
     ]
-
-
-def send_incoming_events_telemetry(events):
-    incoming_events = sum(1 for event in events)
-    lambda_stats.distribution(
-        "{}.incoming_events".format(DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX),
-        incoming_events,
-        tags=DD_FORWARDER_TELEMETRY_TAGS,
-    )
 
 
 def enrich(events):
@@ -746,7 +735,10 @@ def forward_traces(trace_payloads):
 
 def normalize_events(events, metadata):
     normalized = []
+    events_counter = 0
+
     for event in events:
+        events_counter += 1
         if isinstance(event, dict):
             normalized.append(merge_dicts(event, metadata))
         elif isinstance(event, str):
@@ -754,6 +746,14 @@ def normalize_events(events, metadata):
         else:
             # drop this log
             continue
+
+    """Submit count of total events"""
+    lambda_stats.distribution(
+        "{}.incoming_events".format(DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX),
+        events_counter,
+        tags=DD_FORWARDER_TELEMETRY_TAGS,
+    )
+
     return normalized
 
 
