@@ -14,4 +14,4 @@ jobs:
 
       - name: Run integration tests
         run: |
-          ./aws/logs_monitoring/tools/integration_tests/integration_tests.sh --python-version=${{ matrix.python-version }} --no-additional-lambda
+          ./aws/logs_monitoring/tools/integration_tests/integration_tests.sh --python-version=${{ matrix.python-version }}

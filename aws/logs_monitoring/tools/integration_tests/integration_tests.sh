@@ -18,7 +18,7 @@ LOGS_WAIT_SECONDS=10
 INTEGRATION_TESTS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 SNAPSHOT_DIR="${INTEGRATION_TESTS_DIR}/snapshots/*"
 SNAPS=($SNAPSHOT_DIR)
-ADDITIONAL_LAMBDA=true
+ADDITIONAL_LAMBDA=false
 
 script_start_time=$(date --iso-8601=seconds)
 echo "Starting script time: $script_start_time"
@@ -57,10 +57,10 @@ do
 		shift
 		;;
 
-		# -n or --no-additional-lambda
-		# Print debug logs
-		-n|--no-additional-lambda)
-		ADDITIONAL_LAMBDA=false
+		# -a or --additional-lambda
+		# Run additionalLambda tests
+		-a|--additional-lambda)
+		ADDITIONAL_LAMBDA=true
 		shift
 		;;
 	esac
