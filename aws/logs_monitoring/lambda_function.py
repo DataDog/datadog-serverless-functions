@@ -1042,9 +1042,7 @@ def invoke_additional_target_lambdas(event):
 
     for lambda_arn in lambda_arns:
         lambda_client.invoke(
-            FunctionName=lambda_arn,
-            InvocationType="Event",
-            Payload=lambda_payload,
+            FunctionName=lambda_arn, InvocationType="Event", Payload=lambda_payload,
         )
 
     return

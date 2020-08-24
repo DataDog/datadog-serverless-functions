@@ -6,6 +6,7 @@ def ironmaiden(event, context):
 
     return {"statusCode": 200}
 
+
 def megadeth(event, context):
     print(json.dumps(event))
 
