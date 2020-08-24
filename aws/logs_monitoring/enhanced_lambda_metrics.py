@@ -9,7 +9,6 @@ import boto3
 from botocore.exceptions import ClientError
 
 ENHANCED_METRICS_NAMESPACE_PREFIX = "aws.lambda.enhanced"
-DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX = "aws.dd_forwarder"
 
 TAGS_CACHE_TTL_SECONDS = 3600
 

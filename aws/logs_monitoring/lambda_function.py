@@ -391,7 +391,6 @@ def datadog_forwarder(event, context):
     if logger.isEnabledFor(logging.DEBUG):
         logger.debug(f"Received Event:{json.dumps(event)}")
 
-    print("Printing event at top of datadog_forwarder: ", event)
     metrics, logs, trace_payloads = split(enrich(parse(event, context)))
 
     if DD_FORWARD_LOG:
@@ -441,6 +440,7 @@ def forward_logs(logs):
 def parse(event, context):
     """Parse Lambda input to normalized events"""
     metadata = generate_metadata(context)
+    event_type = "unknown"
     try:
         # Route to the corresponding parser
         event_type = parse_event_type(event)
@@ -461,7 +461,6 @@ def parse(event, context):
         )
         events = [err_message]
 
-    print("Printing event tpye, including when blank: ", event)
     set_forwarder_telemetry_tags(context, event_type)
 
     return normalize_events(events, metadata)
@@ -754,8 +753,6 @@ def normalize_events(events, metadata):
         events_counter,
         tags=DD_FORWARDER_TELEMETRY_TAGS,
     )
-    print("Print events_counter: ", events_counter)
-    print("Printing normalized: ", normalized)
 
     return normalized
 
