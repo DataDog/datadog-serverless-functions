@@ -1041,8 +1041,13 @@ def invoke_additional_target_lambdas(event):
     lambda_payload = json.dumps(event)
 
     for lambda_arn in lambda_arns:
-        lambda_client.invoke(
-            FunctionName=lambda_arn, InvocationType="Event", Payload=lambda_payload,
-        )
+        try:
+            lambda_client.invoke(
+                FunctionName=lambda_arn, InvocationType="Event", Payload=lambda_payload,
+            )
+        except Exception as e:
+            logger.exception(
+                f"Failed to invoke additional target lambda {lambda_arn} due to {e}"
+            )
 
     return
