@@ -118,4 +118,3 @@ class TestForwarderSnapshots(unittest.TestCase):
         input_filename = f"{snapshot_dir}/cloudwatch_log_timeout.json"
         snapshot_filename = f"{input_filename}~snapshot"
         self.compare_snapshot(input_filename, snapshot_filename)
-

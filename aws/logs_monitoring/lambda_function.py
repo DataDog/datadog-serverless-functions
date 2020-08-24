@@ -1034,13 +1034,14 @@ def parse_service_arn(source, key, bucket, context):
                 )
     return
 
+
 def invoke_additional_target_lambda(event):
-    lambda_client = boto3.client('lambda')
+    lambda_client = boto3.client("lambda")
 
     lambda_client.invoke(
         FunctionName=DD_ADDITIONAL_TARGET_LAMBDA,
-        InvocationType='Event',
+        InvocationType="Event",
         Payload=json.dumps(event),
-    );
+    )
 
     return
