@@ -95,7 +95,6 @@ class LambdaTagsCache(object):
         self.tags_ttl_seconds = tags_ttl_seconds
 
         self.tags_by_arn = {}
-        self.tags_from_forwarder = []
         self.missing_arns = set()
         self.last_tags_fetch_time = 0
 
@@ -300,7 +299,7 @@ def parse_get_resources_response_for_tags_by_arn(get_resources_page):
 
 
 def get_forwarder_telemetry_prefix_and_tags():
-    """Retrieves tags used when submitting telemetry metrics
+    """Retrieves prefix and tags used when submitting telemetry metrics
     Used to overcome circular import"""
     from lambda_function import (
         DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX,
