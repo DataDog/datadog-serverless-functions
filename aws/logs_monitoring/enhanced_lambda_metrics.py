@@ -297,6 +297,17 @@ def parse_get_resources_response_for_tags_by_arn(get_resources_page):
     return tags_by_arn
 
 
+def get_forwarder_telemetry_prefix_and_tags():
+    """Retrieves prefix and tags used when submitting telemetry metrics
+    Used to overcome circular import"""
+    from lambda_function import (
+        DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX,
+        DD_FORWARDER_TELEMETRY_TAGS,
+    )
+
+    return DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX, DD_FORWARDER_TELEMETRY_TAGS
+
+
 def build_tags_by_arn_cache():
     """Makes API calls to GetResources to get the live tags of the account's Lambda functions
 
@@ -307,14 +318,14 @@ def build_tags_by_arn_cache():
     """
     tags_by_arn_cache = {}
     get_resources_paginator = resource_tagging_client.get_paginator("get_resources")
+    prefix, tags = get_forwarder_telemetry_prefix_and_tags()
 
     try:
         for page in get_resources_paginator.paginate(
             ResourceTypeFilters=[GET_RESOURCES_LAMBDA_FILTER], ResourcesPerPage=100
         ):
             lambda_stats.distribution(
-                "{}.get_resources_api_calls".format(ENHANCED_METRICS_NAMESPACE_PREFIX),
-                1,
+                "{}.get_resources_api_calls".format(prefix), 1, tags=tags,
             )
             page_tags_by_arn = parse_get_resources_response_for_tags_by_arn(page)
             tags_by_arn_cache.update(page_tags_by_arn)

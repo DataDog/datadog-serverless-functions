@@ -148,6 +148,11 @@ LOG_SOURCE_SUBSTRINGS = [
 ]
 
 
+# Used to build and pass aws.dd_forwarder.* telemetry tags
+DD_FORWARDER_TELEMETRY_TAGS = []
+DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX = "aws.dd_forwarder"
+
+
 class RetriableException(Exception):
     pass
 
@@ -389,7 +394,7 @@ def datadog_forwarder(event, context):
     metrics, logs, trace_payloads = split(enrich(parse(event, context)))
 
     if DD_FORWARD_LOG:
-        forward_logs(filter_logs(map(json.dumps, logs)))
+        forward_logs(logs)
 
     forward_metrics(metrics)
 
@@ -404,6 +409,7 @@ lambda_handler = datadog_lambda_wrapper(datadog_forwarder)
 
 def forward_logs(logs):
     """Forward logs to Datadog"""
+    logs_to_forward = filter_logs(list(map(json.dumps, logs)))
     scrubber = DatadogScrubber(SCRUBBING_RULE_CONFIGS)
     if DD_USE_TCP:
         batcher = DatadogBatcher(256 * 1000, 256 * 1000, 1)
@@ -415,7 +421,7 @@ def forward_logs(logs):
         )
 
     with DatadogClient(cli) as client:
-        for batch in batcher.batch(logs):
+        for batch in batcher.batch(logs_to_forward):
             try:
                 client.send(batch)
             except Exception:
@@ -424,10 +430,17 @@ def forward_logs(logs):
                 if logger.isEnabledFor(logging.DEBUG):
                     logger.debug(f"Forwarded log batch: {json.dumps(batch)}")
 
+    lambda_stats.distribution(
+        "{}.logs_forwarded".format(DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX),
+        len(logs_to_forward),
+        tags=DD_FORWARDER_TELEMETRY_TAGS,
+    )
+
 
 def parse(event, context):
     """Parse Lambda input to normalized events"""
     metadata = generate_metadata(context)
+    event_type = "unknown"
     try:
         # Route to the corresponding parser
         event_type = parse_event_type(event)
@@ -448,7 +461,23 @@ def parse(event, context):
         )
         events = [err_message]
 
+    set_forwarder_telemetry_tags(context, event_type)
+
     return normalize_events(events, metadata)
+
+
+def set_forwarder_telemetry_tags(context, event_type):
+    """Helper function to set tags on telemetry metrics
+    Do not submit telemetry metrics before this helper function is invoked
+    """
+    global DD_FORWARDER_TELEMETRY_TAGS
+
+    DD_FORWARDER_TELEMETRY_TAGS = [
+        f"forwardername:{context.function_name.lower()}",
+        f"forwarder_memorysize:{context.memory_limit_in_mb}",
+        f"forwarder_version:{DD_FORWARDER_VERSION}",
+        f"event_type:{event_type}",
+    ]
 
 
 def enrich(events):
@@ -572,6 +601,7 @@ def generate_metadata(context):
         "forwarder_memorysize": context.memory_limit_in_mb,
         "forwarder_version": DD_FORWARDER_VERSION,
     }
+
     metadata[DD_CUSTOM_TAGS] = ",".join(
         filter(
             None,
@@ -675,6 +705,12 @@ def forward_metrics(metrics):
             if logger.isEnabledFor(logging.DEBUG):
                 logger.debug(f"Forwarded metric: {json.dumps(metric)}")
 
+    lambda_stats.distribution(
+        "{}.metrics_forwarded".format(DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX),
+        len(metrics),
+        tags=DD_FORWARDER_TELEMETRY_TAGS,
+    )
+
 
 def forward_traces(trace_payloads):
     try:
@@ -687,13 +723,22 @@ def forward_traces(trace_payloads):
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug(f"Forwarded traces: {json.dumps(trace_payloads)}")
 
+    lambda_stats.distribution(
+        "{}.traces_forwarded".format(DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX),
+        len(trace_payloads),
+        tags=DD_FORWARDER_TELEMETRY_TAGS,
+    )
+
 
 # Utility functions
 
 
 def normalize_events(events, metadata):
     normalized = []
+    events_counter = 0
+
     for event in events:
+        events_counter += 1
         if isinstance(event, dict):
             normalized.append(merge_dicts(event, metadata))
         elif isinstance(event, str):
@@ -701,6 +746,14 @@ def normalize_events(events, metadata):
         else:
             # drop this log
             continue
+
+    """Submit count of total events"""
+    lambda_stats.distribution(
+        "{}.incoming_events".format(DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX),
+        events_counter,
+        tags=DD_FORWARDER_TELEMETRY_TAGS,
+    )
+
     return normalized
 
 

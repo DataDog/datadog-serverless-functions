@@ -379,19 +379,19 @@
                 "start": "1583425836164691700",
                 "duration": "458278320",
                 "meta": {
-                  "account_id": "0",
-                  "language": "javascript",
-                  "forwarder_memorysize": "1536",
                   "region": "us-east-1",
                   "_dd.origin": "lambda",
+                  "account_id": "0",
+                  "forwarder_version": "3.16.4",
+                  "forwarder_memorysize": "1536",
+                  "aws_account": "0",
                   "functionname": "hello-dog-node-dev-hello12x",
                   "forwardername": "test",
-                  "aws_account": "0",
-                  "forwarder_version": "3.16.4"
+                  "language": "javascript"
                 },
                 "metrics": {
-                  "_sample_rate": 1.0,
-                  "_sampling_priority_v1": 2.0
+                  "_sampling_priority_v1": 2.0,
+                  "_sample_rate": 1.0
                 }
               },
               {
@@ -404,19 +404,19 @@
                 "start": "1583425836623188200",
                 "duration": "13428",
                 "meta": {
-                  "functionname": "hello-dog-node-dev-hello12x",
-                  "language": "javascript",
-                  "forwardername": "test",
-                  "aws_account": "0",
-                  "forwarder_memorysize": "1536",
                   "_dd.origin": "lambda",
-                  "forwarder_version": "3.16.4",
+                  "language": "javascript",
                   "account_id": "0",
-                  "region": "us-east-1"
+                  "functionname": "hello-dog-node-dev-hello12x",
+                  "aws_account": "0",
+                  "forwarder_version": "3.16.4",
+                  "region": "us-east-1",
+                  "forwarder_memorysize": "1536",
+                  "forwardername": "test"
                 },
                 "metrics": {
-                  "_sampling_priority_v1": 2.0,
-                  "_sample_rate": 1.0
+                  "_sample_rate": 1.0,
+                  "_sampling_priority_v1": 2.0
                 }
               },
               {
@@ -429,19 +429,19 @@
                 "start": "1583425836623169000",
                 "duration": "35645",
                 "meta": {
-                  "region": "us-east-1",
-                  "account_id": "0",
                   "forwardername": "test",
-                  "language": "javascript",
                   "_dd.origin": "lambda",
                   "functionname": "hello-dog-node-dev-hello12x",
-                  "forwarder_memorysize": "1536",
+                  "language": "javascript",
                   "aws_account": "0",
-                  "forwarder_version": "3.16.4"
+                  "account_id": "0",
+                  "forwarder_memorysize": "1536",
+                  "forwarder_version": "3.16.4",
+                  "region": "us-east-1"
                 },
                 "metrics": {
-                  "_sampling_priority_v1": 2.0,
-                  "_sample_rate": 1.0
+                  "_sample_rate": 1.0,
+                  "_sampling_priority_v1": 2.0
                 }
               },
               {
@@ -454,15 +454,15 @@
                 "start": "1583425836623226000",
                 "duration": "9277",
                 "meta": {
+                  "region": "us-east-1",
                   "forwarder_version": "3.16.4",
-                  "forwardername": "test",
+                  "language": "javascript",
                   "aws_account": "0",
                   "forwarder_memorysize": "1536",
                   "account_id": "0",
-                  "language": "javascript",
                   "functionname": "hello-dog-node-dev-hello12x",
-                  "region": "us-east-1",
-                  "_dd.origin": "lambda"
+                  "_dd.origin": "lambda",
+                  "forwardername": "test"
                 },
                 "metrics": {
                   "_sampling_priority_v1": 2.0,
@@ -479,19 +479,19 @@
                 "start": "1583425836623211000",
                 "duration": "26367",
                 "meta": {
-                  "forwarder_memorysize": "1536",
                   "language": "javascript",
-                  "functionname": "hello-dog-node-dev-hello12x",
-                  "aws_account": "0",
-                  "region": "us-east-1",
-                  "forwarder_version": "3.16.4",
                   "forwardername": "test",
+                  "account_id": "0",
+                  "functionname": "hello-dog-node-dev-hello12x",
                   "_dd.origin": "lambda",
-                  "account_id": "0"
+                  "region": "us-east-1",
+                  "aws_account": "0",
+                  "forwarder_version": "3.16.4",
+                  "forwarder_memorysize": "1536"
                 },
                 "metrics": {
-                  "_sampling_priority_v1": 2.0,
-                  "_sample_rate": 1.0
+                  "_sample_rate": 1.0,
+                  "_sampling_priority_v1": 2.0
                 }
               },
               {
@@ -504,15 +504,15 @@
                 "start": "1583425836623111700",
                 "duration": "127197",
                 "meta": {
-                  "region": "us-east-1",
-                  "_dd.origin": "lambda",
-                  "account_id": "0",
-                  "language": "javascript",
                   "forwarder_memorysize": "1536",
-                  "functionname": "hello-dog-node-dev-hello12x",
-                  "aws_account": "0",
+                  "region": "us-east-1",
                   "forwarder_version": "3.16.4",
-                  "forwardername": "test"
+                  "functionname": "hello-dog-node-dev-hello12x",
+                  "account_id": "0",
+                  "aws_account": "0",
+                  "language": "javascript",
+                  "forwardername": "test",
+                  "_dd.origin": "lambda"
                 },
                 "metrics": {
                   "_sample_rate": 1.0,
@@ -529,17 +529,17 @@
                 "start": "1583425836123944000",
                 "duration": "499751709",
                 "meta": {
-                  "span.kind": "client",
-                  "account_id": "0",
-                  "dns.hostname": "0.0.0.0",
                   "forwarder_version": "3.16.4",
-                  "forwarder_memorysize": "1536",
-                  "functionname": "hello-dog-node-dev-hello12x",
-                  "aws_account": "0",
-                  "region": "us-east-1",
+                  "account_id": "0",
                   "_dd.origin": "lambda",
+                  "forwarder_memorysize": "1536",
                   "dns.address": "0.0.0.0",
-                  "forwardername": "test"
+                  "forwardername": "test",
+                  "aws_account": "0",
+                  "dns.hostname": "0.0.0.0",
+                  "region": "us-east-1",
+                  "functionname": "hello-dog-node-dev-hello12x",
+                  "span.kind": "client"
                 },
                 "metrics": {
                   "_top_level": 1.0,
@@ -557,22 +557,22 @@
                 "start": "1583425836623786500",
                 "duration": "218750",
                 "meta": {
-                  "forwardername": "test",
-                  "forwarder_memorysize": "1536",
-                  "dns.address": "169.254.79.2",
-                  "region": "us-east-1",
-                  "dns.hostname": "169.254.79.2",
-                  "functionname": "hello-dog-node-dev-hello12x",
-                  "span.kind": "client",
-                  "_dd.origin": "lambda",
                   "aws_account": "0",
+                  "forwarder_memorysize": "1536",
+                  "region": "us-east-1",
+                  "dns.address": "169.254.79.2",
+                  "_dd.origin": "lambda",
+                  "forwarder_version": "3.16.4",
                   "account_id": "0",
-                  "forwarder_version": "3.16.4"
+                  "functionname": "hello-dog-node-dev-hello12x",
+                  "forwardername": "test",
+                  "dns.hostname": "169.254.79.2",
+                  "span.kind": "client"
                 },
                 "metrics": {
                   "_top_level": 1.0,
-                  "_sample_rate": 1.0,
-                  "_sampling_priority_v1": 2.0
+                  "_sampling_priority_v1": 2.0,
+                  "_sample_rate": 1.0
                 }
               },
               {
@@ -585,22 +585,22 @@
                 "start": "1583425836164049000",
                 "duration": "460493896",
                 "meta": {
-                  "account_id": "0",
-                  "aws_account": "0",
                   "dns.hostname": "www.google.com",
-                  "_dd.origin": "lambda",
-                  "forwardername": "test",
-                  "forwarder_memorysize": "1536",
-                  "forwarder_version": "3.16.4",
                   "span.kind": "client",
+                  "forwardername": "test",
+                  "_dd.origin": "lambda",
                   "region": "us-east-1",
+                  "forwarder_version": "3.16.4",
+                  "account_id": "0",
+                  "functionname": "hello-dog-node-dev-hello12x",
                   "dns.address": "172.217.15.68",
-                  "functionname": "hello-dog-node-dev-hello12x"
+                  "forwarder_memorysize": "1536",
+                  "aws_account": "0"
                 },
                 "metrics": {
-                  "_top_level": 1.0,
                   "_sample_rate": 1.0,
-                  "_sampling_priority_v1": 2.0
+                  "_sampling_priority_v1": 2.0,
+                  "_top_level": 1.0
                 }
               },
               {
@@ -613,29 +613,29 @@
                 "start": "1583425836163914000",
                 "duration": "479066650",
                 "meta": {
-                  "region": "us-east-1",
-                  "_dd.origin": "lambda",
-                  "out.host": "www.google.com",
-                  "functionname": "hello-dog-node-dev-hello12x",
-                  "forwarder_memorysize": "1536",
                   "out.port": "443",
-                  "span.kind": "client",
-                  "forwardername": "test",
-                  "tcp.local.port": "37484",
+                  "_dd.origin": "lambda",
                   "tcp.remote.host": "www.google.com",
-                  "tcp.family": "IPv4",
-                  "tcp.local.address": "169.254.76.1",
-                  "forwarder_version": "3.16.4",
+                  "region": "us-east-1",
+                  "forwarder_memorysize": "1536",
                   "aws_account": "0",
                   "tcp.remote.port": "443",
-                  "account_id": "0"
+                  "tcp.family": "IPv4",
+                  "functionname": "hello-dog-node-dev-hello12x",
+                  "account_id": "0",
+                  "forwarder_version": "3.16.4",
+                  "out.host": "www.google.com",
+                  "tcp.local.port": "37484",
+                  "forwardername": "test",
+                  "span.kind": "client",
+                  "tcp.local.address": "169.254.76.1"
                 },
                 "metrics": {
-                  "_sample_rate": 1.0,
-                  "_top_level": 1.0,
                   "_sampling_priority_v1": 2.0,
                   "_sublayers.duration.by_service.sublayer_service:hello-dog-node-dev-hello12x-tcp": 18572754.0,
+                  "_sample_rate": 1.0,
                   "_sublayers.span_count": 2.0,
+                  "_top_level": 1.0,
                   "_sublayers.duration.by_service.sublayer_service:hello-dog-node-dev-hello12x-dns": 460493896.0
                 }
               },
@@ -649,28 +649,28 @@
                 "start": "1583425836124274200",
                 "duration": "577401367",
                 "meta": {
-                  "forwarder_version": "3.16.4",
-                  "forwarder_memorysize": "1536",
-                  "region": "us-east-1",
+                  "functionname": "hello-dog-node-dev-hello12x",
                   "account_id": "0",
+                  "forwardername": "test",
+                  "forwarder_version": "3.16.4",
                   "http.method": "GET",
                   "aws_account": "0",
-                  "span.kind": "client",
+                  "region": "us-east-1",
                   "http.url": "https://www.google.com/",
-                  "_dd.origin": "lambda",
-                  "forwardername": "test",
-                  "functionname": "hello-dog-node-dev-hello12x",
-                  "http.status_code": "200"
+                  "http.status_code": "200",
+                  "forwarder_memorysize": "1536",
+                  "span.kind": "client",
+                  "_dd.origin": "lambda"
                 },
                 "metrics": {
-                  "_sublayers.duration.by_service.sublayer_service:hello-dog-node-dev-hello12x-http-client": 98334717.0,
-                  "_sublayers.duration.by_service.sublayer_service:hello-dog-node-dev-hello12x-tcp": 18572754.0,
-                  "_sample_rate": 1.0,
                   "_sublayers.duration.by_service.sublayer_service:hello-dog-node-dev-hello12x-dns": 460493896.0,
                   "_sublayers.span_count": 3.0,
-                  "_top_level": 1.0,
+                  "_sublayers.duration.by_service.sublayer_service:hello-dog-node-dev-hello12x-http-client": 98334717.0,
                   "_sublayers.duration.by_type.sublayer_type:http": 98334717.0,
-                  "_sampling_priority_v1": 2.0
+                  "_sublayers.duration.by_service.sublayer_service:hello-dog-node-dev-hello12x-tcp": 18572754.0,
+                  "_sampling_priority_v1": 2.0,
+                  "_sample_rate": 1.0,
+                  "_top_level": 1.0
                 },
                 "type": "http"
               },
@@ -684,30 +684,30 @@
                 "start": "1583425836123549200",
                 "duration": "578297119",
                 "meta": {
-                  "request_id": "f08bb4c8-d6b2-4f05-ac17-af7e2ba005fb",
                   "forwardername": "test",
-                  "_dd.origin": "lambda",
-                  "function_arn": "arn:aws:lambda:us-east-1:601427279990:function:hello-dog-node-dev-hello12x",
-                  "forwarder_version": "3.16.4",
                   "functionname": "hello-dog-node-dev-hello12x",
-                  "resource_names": "hello-dog-node-dev-hello12x",
                   "cold_start": "false",
-                  "aws_account": "0",
-                  "account_id": "0",
-                  "forwarder_memorysize": "1536",
+                  "resource_names": "hello-dog-node-dev-hello12x",
+                  "_dd.origin": "lambda",
                   "region": "us-east-1",
-                  "language": "javascript"
+                  "forwarder_version": "3.16.4",
+                  "request_id": "f08bb4c8-d6b2-4f05-ac17-af7e2ba005fb",
+                  "forwarder_memorysize": "1536",
+                  "account_id": "0",
+                  "aws_account": "0",
+                  "language": "javascript",
+                  "function_arn": "arn:aws:lambda:us-east-1:601427279990:function:hello-dog-node-dev-hello12x"
                 },
                 "metrics": {
-                  "_sublayers.duration.by_service.sublayer_service:hello-dog-node-dev-hello12x-dns": 327909657.0,
                   "_sublayers.duration.by_service.sublayer_service:hello-dog-node-dev-hello12x-http-client": 78514817.0,
                   "_top_level": 1.0,
                   "_sublayers.span_count": 12.0,
-                  "_sublayers.duration.by_type.sublayer_type:http": 78514817.0,
-                  "_sublayers.duration.by_service.sublayer_service:hello-dog-node-dev-hello12x": 153367391.0,
                   "_sublayers.duration.by_service.sublayer_service:hello-dog-node-dev-hello12x-tcp": 18505254.0,
                   "_sampling_priority_v1": 2.0,
-                  "_sample_rate": 1.0
+                  "_sublayers.duration.by_type.sublayer_type:http": 78514817.0,
+                  "_sublayers.duration.by_service.sublayer_service:hello-dog-node-dev-hello12x": 153367391.0,
+                  "_sample_rate": 1.0,
+                  "_sublayers.duration.by_service.sublayer_service:hello-dog-node-dev-hello12x-dns": 327909657.0
                 }
               }
             ],
@@ -728,6 +728,62 @@
       "content-type": "application/json",
       "data": {
         "series": [
+          {
+            "metric": "aws.dd_forwarder.incoming_events",
+            "points": "<redacted from snapshot>",
+            "type": "distribution",
+            "host": null,
+            "device": null,
+            "tags": [
+              "forwardername:test",
+              "forwarder_memorysize:1536",
+              "forwarder_version:<redacted from snapshot>",
+              "event_type:awslogs"
+            ],
+            "interval": 10
+          },
+          {
+            "metric": "aws.dd_forwarder.logs_forwarded",
+            "points": "<redacted from snapshot>",
+            "type": "distribution",
+            "host": null,
+            "device": null,
+            "tags": [
+              "forwardername:test",
+              "forwarder_memorysize:1536",
+              "forwarder_version:<redacted from snapshot>",
+              "event_type:awslogs"
+            ],
+            "interval": 10
+          },
+          {
+            "metric": "aws.dd_forwarder.metrics_forwarded",
+            "points": "<redacted from snapshot>",
+            "type": "distribution",
+            "host": null,
+            "device": null,
+            "tags": [
+              "forwardername:test",
+              "forwarder_memorysize:1536",
+              "forwarder_version:<redacted from snapshot>",
+              "event_type:awslogs"
+            ],
+            "interval": 10
+          },
+          {
+            "metric": "aws.dd_forwarder.traces_forwarded",
+            "points": "<redacted from snapshot>",
+            "type": "distribution",
+            "host": null,
+            "device": null,
+            "tags": [
+              "forwardername:test",
+              "forwarder_memorysize:1536",
+              "forwarder_version:<redacted from snapshot>",
+              "event_type:awslogs"
+            ],
+            "interval": 10
+          },
           {
             "metric": "aws.lambda.enhanced.invocations",
             "points": "<redacted from snapshot>",
