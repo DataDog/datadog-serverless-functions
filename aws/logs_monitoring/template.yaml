@@ -160,10 +160,10 @@ Parameters:
     Type: String
     Default: ""
     Description: ARN for the Permissions Boundary Policy
-  AdditionalTargetLambdaArn:
-    Type: String
+  AdditionalTargetLambdaArns:
+    Type: CommaDelimitedList
     Default: ""
-    Description: ARN for an additional lambda that gets invoked with the same event
+    Description: Comma separated list of lambda ARNs that get invoked asynchronously with the same input event
 Conditions:
   IsAWSChina:
     Fn::Equals:
@@ -273,10 +273,10 @@ Conditions:
       - Fn::Equals:
           - Ref: PermissionsBoundaryArn
           - ""
-  SetAdditionalTargetLambda:
+  SetAdditionalTargetLambdas:
     Fn::Not:
       - Fn::Equals:
-          - Ref: AdditionalTargetLambdaArn
+          - Ref: AdditionalTargetLambdaArns
           - ""
 Resources:
   Forwarder:
@@ -406,10 +406,10 @@ Resources:
               - SetDdUsePrivateLink
               - true
               - false
-          DD_ADDITIONAL_TARGET_LAMBDA:
+          DD_ADDITIONAL_TARGET_LAMBDAS:
             Fn::If:
-              - SetAdditionalTargetLambda
-              - !Ref AdditionalTargetLambdaArn
+              - SetAdditionalTargetLambdas
+              - !Ref AdditionalTargetLambdaArns
               - !Ref AWS::NoValue
       ReservedConcurrentExecutions:
         Ref: ReservedConcurrency
@@ -456,11 +456,11 @@ Resources:
                 Resource: "*"
               - Ref: AWS::NoValue
             - !If
-              - SetAdditionalTargetLambda
+              - SetAdditionalTargetLambdas
               - Effect: Allow
                 Action:
                   - lambda:InvokeFunction
-                Resource: !Ref AdditionalTargetLambdaArn
+                Resource: !Ref AdditionalTargetLambdaArns
               - Ref: AWS::NoValue
   CloudWatchLogsPermission:
     Type: AWS::Lambda::Permission

@@ -334,3 +334,4 @@ The CloudFormation Stack creates following IAM roles:
 - `VPCSecurityGroupIds` - Comma separated list of VPC Security Group Ids. Used when AWS PrivateLink is 
     enabled.
 - `VPCSubnetIds` - Comma separated list of VPC Subnet Ids. Used when AWS PrivateLink is enabled.
+- `AdditionalTargetLambdaARNs` - Comma separated list of lambda ARNs that will get called asynchronously with the same data the forwarder receives.

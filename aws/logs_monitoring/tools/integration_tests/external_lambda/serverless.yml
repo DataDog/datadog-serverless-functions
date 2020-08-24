@@ -6,3 +6,5 @@ provider:
 functions:
   ironmaiden:
     handler: handler.ironmaiden
+  megadeth:
+    handler: handler.megadeth

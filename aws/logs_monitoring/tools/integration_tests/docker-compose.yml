@@ -24,7 +24,7 @@ services:
       DD_SKIP_SSL_VALIDATION: "true"
       DD_USE_TCP: "false"
       DD_USE_COMPRESSION: "false"
-      DD_ADDITIONAL_TARGET_LAMBDA: "${EXTERNAL_LAMBDA}"
+      DD_ADDITIONAL_TARGET_LAMBDAS: "${EXTERNAL_LAMBDAS}"
     expose:
       - 9001
 

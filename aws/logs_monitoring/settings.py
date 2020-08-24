@@ -209,4 +209,4 @@ DD_HOST = "host"
 DD_FORWARDER_VERSION = "3.16.4"
 
 # Additional target lambda invoked async with event data
-DD_ADDITIONAL_TARGET_LAMBDA = get_env_var("DD_ADDITIONAL_TARGET_LAMBDA", default=None)
+DD_ADDITIONAL_TARGET_LAMBDAS = get_env_var("DD_ADDITIONAL_TARGET_LAMBDAS", default=None)
