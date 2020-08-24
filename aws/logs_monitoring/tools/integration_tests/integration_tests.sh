@@ -22,6 +22,7 @@ EXTERNAL_LAMBDA_NAME="ironmaiden"
 EXTERNAL_LAMBDA="${SERVERLESS_NAME}-${EXTERNAL_LAMBDA_NAME}"
 EXTERNAL_LAMBDA_DIR="${INTEGRATION_TESTS_DIR}/external_lambda"
 SNAPS=($SNAPSHOT_DIR)
+ADDITIONAL_LAMBDA=true
 
 script_start_time=$(date --iso-8601=seconds)
 echo "Starting script time: $script_start_time"
@@ -59,6 +60,13 @@ do
 		LOG_LEVEL=debug
 		shift
 		;;
+
+		# -n or --no-additional-lambda
+		# Print debug logs
+		-n|--no-additional-lambda)
+		ADDITIONAL_LAMBDA=false
+		shift
+		;;
 	esac
 done
 
@@ -78,10 +86,12 @@ fi
 
 
 # Deploy additional target lambda
-cd $EXTERNAL_LAMBDA_DIR
-sls deploy
+if [ "$ADDITIONAL_LAMBDA" == true ]; then
+	cd $EXTERNAL_LAMBDA_DIR
+	sls deploy
 
-cd $INTEGRATION_TESTS_DIR
+	cd $INTEGRATION_TESTS_DIR
+fi
 
 # Build Docker image of Forwarder for tests
 echo "Building Docker Image for Forwarder"
@@ -96,57 +106,59 @@ PYTHON_RUNTIME=${PYTHON_VERSION} \
 EXTERNAL_LAMBDA=${EXTERNAL_LAMBDA} \
 docker-compose up --build --abort-on-container-exit
 
-echo "Waiting for external lambda logs..."
-sleep $LOGS_WAIT_SECONDS
-cd $EXTERNAL_LAMBDA_DIR
-raw_logs=$(sls logs -f $EXTERNAL_LAMBDA_NAME --startTime $script_start_time)
+if [ "$ADDITIONAL_LAMBDA" == true ]; then
+	echo "Waiting for external lambda logs..."
+	sleep $LOGS_WAIT_SECONDS
+	cd $EXTERNAL_LAMBDA_DIR
+	raw_logs=$(sls logs -f $EXTERNAL_LAMBDA_NAME --startTime $script_start_time)
 
-# Extract json lines first, then the base64 gziped payload
-logs=$(echo -e "$raw_logs" | grep -o '{.*}' | jq -r '.awslogs.data')
-lambda_events=()
+	# Extract json lines first, then the base64 gziped payload
+	logs=$(echo -e "$raw_logs" | grep -o '{.*}' | jq -r '.awslogs.data')
+	lambda_events=()
 
-# We break up lines into an array
-IFS=$'\n'
-while IFS= read -r line; do
-	# we filter the first `{}` event in the recorder set up
-	if [ "$line" != "null" ]; then
-		lambda_events+=($(echo -e "$line"))
-	fi
-done <<< "$logs"
-
-if [ "${#lambda_events[@]}" -eq 0 ]; then
-	echo "FAILURE: No matching logs for the external lambda in Cloudwatch"
-	echo "Check with \`sls logs -f $EXTERNAL_LAMBDA_NAME --startTime $script_start_time\`"
-    exit 1
-fi
-
-mismatch_found=false
-# Verify every event passed to the AdditionalTargetLambda
-for event in "${lambda_events[@]}"; do
-	event_found=false
-	processed_event=$(echo "$event" | base64 -d | gunzip)
-
-	for snap_path in "${SNAPS[@]}"; do
-		set +e # Don't exit this script if there is a diff
-		diff_output=$(echo "$processed_event" | diff - $snap_path)
-		if [ $? -eq 0 ]; then
-		    event_found=true
+	# We break up lines into an array
+	IFS=$'\n'
+	while IFS= read -r line; do
+		# we filter the first `{}` event in the recorder set up
+		if [ "$line" != "null" ]; then
+			lambda_events+=($(echo -e "$line"))
 		fi
-		set -e
+	done <<< "$logs"
+
+	if [ "${#lambda_events[@]}" -eq 0 ]; then
+		echo "FAILURE: No matching logs for the external lambda in Cloudwatch"
+		echo "Check with \`sls logs -f $EXTERNAL_LAMBDA_NAME --startTime $script_start_time\`"
+	    exit 1
+	fi
+
+	mismatch_found=false
+	# Verify every event passed to the AdditionalTargetLambda
+	for event in "${lambda_events[@]}"; do
+		event_found=false
+		processed_event=$(echo "$event" | base64 -d | gunzip)
+
+		for snap_path in "${SNAPS[@]}"; do
+			set +e # Don't exit this script if there is a diff
+			diff_output=$(echo "$processed_event" | diff - $snap_path)
+			if [ $? -eq 0 ]; then
+			    event_found=true
+			fi
+			set -e
+		done
+
+		if [ "$event_found" = false ]; then
+		    mismatch_found=true
+		    echo "FAILURE: The following event was not found in the snapshots"
+		    echo ""
+		    echo "$processed_event"
+		    echo ""
+		fi
 	done
 
-	if [ "$event_found" = false ]; then
-	    mismatch_found=true
-	    echo "FAILURE: The following event was not found in the snapshots"
-	    echo ""
-	    echo "$processed_event"
-	    echo ""
+	if [ "$mismatch_found" = true ]; then
+	    echo "FAILURE: A mismatch between new data and a snapshot was found and printed above."
+	    exit 1
 	fi
-done
 
-if [ "$mismatch_found" = true ]; then
-    echo "FAILURE: A mismatch between new data and a snapshot was found and printed above."
-    exit 1
+	echo "SUCCESS: No difference found between input events and events in the additional target lambda"
 fi
-
-echo "SUCCESS: No difference found between input events and events in the additional target lambda"
