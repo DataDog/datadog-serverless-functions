@@ -276,7 +276,7 @@ Conditions:
   SetAdditionalTargetLambdas:
     Fn::Not:
       - Fn::Equals:
-          - Ref: AdditionalTargetLambdaArns
+          - Fn::Join: ["", !Ref AdditionalTargetLambdaArns]
           - ""
 Resources:
   Forwarder:
@@ -409,7 +409,9 @@ Resources:
           DD_ADDITIONAL_TARGET_LAMBDAS:
             Fn::If:
               - SetAdditionalTargetLambdas
-              - !Ref AdditionalTargetLambdaArns
+              - !Join
+                - ','
+                - !Ref AdditionalTargetLambdaArns
               - !Ref AWS::NoValue
       ReservedConcurrentExecutions:
         Ref: ReservedConcurrency
