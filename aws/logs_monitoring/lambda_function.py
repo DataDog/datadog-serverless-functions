@@ -49,6 +49,7 @@ from settings import (
     DD_SERVICE,
     DD_HOST,
     DD_FORWARDER_VERSION,
+    DD_ADDITIONAL_TARGET_LAMBDAS,
 )
 
 
@@ -390,6 +391,9 @@ def datadog_forwarder(event, context):
     """The actual lambda function entry point"""
     if logger.isEnabledFor(logging.DEBUG):
         logger.debug(f"Received Event:{json.dumps(event)}")
+
+    if DD_ADDITIONAL_TARGET_LAMBDAS:
+        invoke_additional_target_lambdas(event)
 
     metrics, logs, trace_payloads = split(enrich(parse(event, context)))
 
@@ -1081,4 +1085,22 @@ def parse_service_arn(source, key, bucket, context):
                 return "arn:aws:redshift:{}:{}:cluster:{}:".format(
                     region, accountID, clustername
                 )
+    return
+
+
+def invoke_additional_target_lambdas(event):
+    lambda_client = boto3.client("lambda")
+    lambda_arns = DD_ADDITIONAL_TARGET_LAMBDAS.split(",")
+    lambda_payload = json.dumps(event)
+
+    for lambda_arn in lambda_arns:
+        try:
+            lambda_client.invoke(
+                FunctionName=lambda_arn, InvocationType="Event", Payload=lambda_payload,
+            )
+        except Exception as e:
+            logger.exception(
+                f"Failed to invoke additional target lambda {lambda_arn} due to {e}"
+            )
+
     return
