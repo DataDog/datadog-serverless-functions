@@ -9,6 +9,8 @@ The Datadog Forwarder is an AWS Lambda function that ships logs, custom metrics,
 - Forward traces from AWS Lambda functions using CloudWatch logs
 - Generate and submit enhanced Lambda metrics (`aws.lambda.enhanced.*`) parsed from the AWS REPORT log: duration, billed_duration, max_memory_used, timeouts, out_of_memory, and estimated_cost
 
+For additional information on sending AWS services logs with the Datadog Forwarder, see [here](https://docs.datadoghq.com/logs/guide/send-aws-services-logs-with-the-datadog-lambda-function/).
+
 ## Installation
 
 Datadog recommends using [CloudFormation](#cloudformation) to automatically install the Forwarder. You can also complete the setup process using [Terraform](#terraform) or [manually](#manually).
