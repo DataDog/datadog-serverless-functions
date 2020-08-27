@@ -102,7 +102,7 @@ If you can't install the Forwarder using the provided CloudFormation template, y
 
 ## Shipping logs to other lambda functions
 
-You can ship logs to other lambda functions using the `AdditionalTargetLambdaARNs` Cloudformation parameter. These additional lambdas will be called asynchronously with the same `event` the Datadog Forwarder receives.
+You can ship logs to other Lambda functions using the `AdditionalTargetLambdaARNs` Cloudformation parameter. These additional Lambda functions will be called asynchronously with the same `event` the Datadog Forwarder receives.
 
 ## AWS PrivateLink Support
 
