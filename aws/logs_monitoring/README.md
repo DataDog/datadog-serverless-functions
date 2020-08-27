@@ -98,6 +98,10 @@ If you can't install the Forwarder using the provided CloudFormation template, y
 <!-- xxz tab xxx -->
 <!-- xxz tabs xxx -->
 
+## Shipping logs to other lambda functions
+
+You can ship logs to other lambda functions using the `AdditionalTargetLambdaARNs` Cloudformation parameter. These additional lambdas will be called asynchronously with the same `event` the Datadog Forwarder receives.
+
 ## AWS PrivateLink Support
 
 You can run the Forwarder in a VPC by using AWS PrivateLink to connect to Datadog. Note that AWS PrivateLink can only be configured with Datadog organizations using the Datadog US site (i.e. datadoghq.com, not datadoghq.eu).
