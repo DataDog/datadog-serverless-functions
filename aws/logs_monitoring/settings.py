@@ -17,8 +17,8 @@ logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").uppe
 
 def get_env_var(envvar, default, boolean=False):
     """
-        Return the value of the given environment variable with debug logging.
-        When boolean=True, parse the value as a boolean case-insensitively.
+    Return the value of the given environment variable with debug logging.
+    When boolean=True, parse the value as a boolean case-insensitively.
     """
     value = os.getenv(envvar, default=default)
     if boolean:

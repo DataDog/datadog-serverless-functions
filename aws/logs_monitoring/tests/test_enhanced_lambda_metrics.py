@@ -143,25 +143,37 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
             [
                 {
                     "name": "aws.lambda.enhanced.duration",
-                    "tags": ["memorysize:128", "cold_start:false",],
+                    "tags": [
+                        "memorysize:128",
+                        "cold_start:false",
+                    ],
                     "value": 0.00062,
                     "timestamp": None,
                 },
                 {
                     "name": "aws.lambda.enhanced.billed_duration",
-                    "tags": ["memorysize:128", "cold_start:false",],
+                    "tags": [
+                        "memorysize:128",
+                        "cold_start:false",
+                    ],
                     "value": 0.1000,
                     "timestamp": None,
                 },
                 {
                     "name": "aws.lambda.enhanced.max_memory_used",
-                    "tags": ["memorysize:128", "cold_start:false",],
+                    "tags": [
+                        "memorysize:128",
+                        "cold_start:false",
+                    ],
                     "value": 51.0,
                     "timestamp": None,
                 },
                 {
                     "name": "aws.lambda.enhanced.estimated_cost",
-                    "tags": ["memorysize:128", "cold_start:false",],
+                    "tags": [
+                        "memorysize:128",
+                        "cold_start:false",
+                    ],
                     "timestamp": None,
                     "value": 4.0833375e-07,
                 },
@@ -174,31 +186,46 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
             [
                 {
                     "name": "aws.lambda.enhanced.duration",
-                    "tags": ["memorysize:128", "cold_start:true",],
+                    "tags": [
+                        "memorysize:128",
+                        "cold_start:true",
+                    ],
                     "value": 0.0008100000000000001,
                     "timestamp": None,
                 },
                 {
                     "name": "aws.lambda.enhanced.billed_duration",
-                    "tags": ["memorysize:128", "cold_start:true",],
+                    "tags": [
+                        "memorysize:128",
+                        "cold_start:true",
+                    ],
                     "value": 0.1000,
                     "timestamp": None,
                 },
                 {
                     "name": "aws.lambda.enhanced.max_memory_used",
-                    "tags": ["memorysize:128", "cold_start:true",],
+                    "tags": [
+                        "memorysize:128",
+                        "cold_start:true",
+                    ],
                     "value": 90.0,
                     "timestamp": None,
                 },
                 {
                     "name": "aws.lambda.enhanced.init_duration",
-                    "tags": ["memorysize:128", "cold_start:true",],
+                    "tags": [
+                        "memorysize:128",
+                        "cold_start:true",
+                    ],
                     "value": 1.234,
                     "timestamp": None,
                 },
                 {
                     "name": "aws.lambda.enhanced.estimated_cost",
-                    "tags": ["memorysize:128", "cold_start:true",],
+                    "tags": [
+                        "memorysize:128",
+                        "cold_start:true",
+                    ],
                     "timestamp": None,
                     "value": 4.0833375e-07,
                 },
@@ -210,25 +237,37 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
             [
                 {
                     "name": "aws.lambda.enhanced.duration",
-                    "tags": ["memorysize:128", "cold_start:false",],
+                    "tags": [
+                        "memorysize:128",
+                        "cold_start:false",
+                    ],
                     "timestamp": None,
                     "value": 1.71187,
                 },
                 {
                     "name": "aws.lambda.enhanced.billed_duration",
-                    "tags": ["memorysize:128", "cold_start:false",],
+                    "tags": [
+                        "memorysize:128",
+                        "cold_start:false",
+                    ],
                     "timestamp": None,
                     "value": 1.8,
                 },
                 {
                     "name": "aws.lambda.enhanced.max_memory_used",
-                    "tags": ["memorysize:128", "cold_start:false",],
+                    "tags": [
+                        "memorysize:128",
+                        "cold_start:false",
+                    ],
                     "timestamp": None,
                     "value": 98.0,
                 },
                 {
                     "name": "aws.lambda.enhanced.estimated_cost",
-                    "tags": ["memorysize:128", "cold_start:false",],
+                    "tags": [
+                        "memorysize:128",
+                        "cold_start:false",
+                    ],
                     "timestamp": None,
                     "value": 3.9500075e-06,
                 },

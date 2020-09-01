@@ -40,10 +40,16 @@ class TestForwarderSnapshots(unittest.TestCase):
 
     def filter_snapshot(self, snapshot):
         # Remove things that can vary during each test run
-        # forwarder_version
+        # Forwarder version in tags
         snapshot = re.sub(
             r"forwarder_version:\d+\.\d+\.\d+",
             "forwarder_version:<redacted from snapshot>",
+            snapshot,
+        )
+        # Forwarder version in trace payloads
+        snapshot = re.sub(
+            r"\"forwarder_version\":\s\"\d+\.\d+\.\d+\"",
+            '"forwarder_version": "<redacted from snapshot>"',
             snapshot,
         )
         # Metric points
@@ -73,7 +79,8 @@ class TestForwarderSnapshots(unittest.TestCase):
 
         if update_snapshot:
             with open(snapshot_filename, "w") as snapshot_file:
-                snapshot_file.write(json.dumps(output_data, indent=2))
+                snapshot_file.write(json.dumps(output_data, indent=2, sort_keys=True))
+                # snapshot_file.write(json.dumps(output_data, indent=2))
         else:
             message = f"Snapshots didn't match for {input_filename}. To update run `integration_tests.sh --update`."
             self.assertEqual(output_data, snapshot_data, message)
