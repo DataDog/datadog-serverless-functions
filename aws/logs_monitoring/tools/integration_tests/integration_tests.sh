@@ -5,9 +5,6 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2019 Datadog, Inc
 
-# Usage - run commands from the REPO_ROOT/aws/logs_monitoring directory:
-# aws-vault exec sandbox-account-admin -- ./scripts/run_integration_tests
-
 set -e
 
 PYTHON_VERSION="python3.7"
@@ -20,7 +17,7 @@ SNAPSHOT_DIR="${INTEGRATION_TESTS_DIR}/snapshots/*"
 SNAPS=($SNAPSHOT_DIR)
 ADDITIONAL_LAMBDA=false
 
-script_start_time=$(date --iso-8601=seconds)
+script_start_time=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 echo "Starting script time: $script_start_time"
 
 # Parse arguments
@@ -59,6 +56,9 @@ do
 
 		# -a or --additional-lambda
 		# Run additionalLambda tests
+
+		# Requires AWS credentials
+		# Use aws-vault exec sandbox-account-admin -- ./integration_tests.sh
 		-a|--additional-lambda)
 		ADDITIONAL_LAMBDA=true
 		shift
@@ -81,7 +81,7 @@ if ! [ $SKIP_FORWARDER_BUILD == true ]; then
 fi
 
 
-# Deploy additional target lambda
+# Deploy additional target Lambdas
 if [ $ADDITIONAL_LAMBDA == true ]; then
 	SERVERLESS_NAME="forwarder-tests-external-lambda-dev"
 	EXTERNAL_LAMBDA_NAMES=("ironmaiden" "megadeth")
@@ -165,6 +165,6 @@ if [ $ADDITIONAL_LAMBDA == true ]; then
 		    exit 1
 		fi
 	done
-fi
 
-echo "SUCCESS: No difference found between input events and events in the additional target lambda"
+	echo "SUCCESS: No difference found between input events and events in the additional target lambda"
+fi
