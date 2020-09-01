@@ -23,7 +23,10 @@ DESCRIPTOR = _descriptor.FileDescriptor(
     serialized_options=None,
     create_key=_descriptor._internal_create_key,
     serialized_pb=b'\n\x13trace_payload.proto\x12\x02pb\x1a\x0btrace.proto\x1a\nspan.proto"k\n\x0cTracePayload\x12\x10\n\x08hostName\x18\x01 \x01(\t\x12\x0b\n\x03\x65nv\x18\x02 \x01(\t\x12\x1c\n\x06traces\x18\x03 \x03(\x0b\x32\x0c.pb.APITrace\x12\x1e\n\x0ctransactions\x18\x04 \x03(\x0b\x32\x08.pb.Spanb\x06proto3',
-    dependencies=[trace__pb2.DESCRIPTOR, span__pb2.DESCRIPTOR,],
+    dependencies=[
+        trace__pb2.DESCRIPTOR,
+        span__pb2.DESCRIPTOR,
+    ],
 )
 
 
