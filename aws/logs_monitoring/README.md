@@ -111,8 +111,9 @@ You can run the Forwarder in a VPC by using AWS PrivateLink to connect to Datado
 1. Follow the [setup instructions](https://docs.datadoghq.com/agent/guide/private-link/?tab=logs#create-your-vpc-endpoint) to add an endpoint to your VPC for Datadog's **API** service.
 2. Follow the [same procedure](https://docs.datadoghq.com/agent/guide/private-link/?tab=logs#create-your-vpc-endpoint) to add a second endpoint to your VPC for Datadog's **Logs** service.
 3. Follow the [same procedure](https://docs.datadoghq.com/agent/guide/private-link/?tab=logs#create-your-vpc-endpoint) once more to add a third endpoint to your VPC for Datadog's **Traces** service. 
-4. By default, the Forwarder's API key is stored in the Secrets Manager. The Secrets Manager endpoint needs to be added to the VPC. You can follow the instructions [here](https://docs.aws.amazon.com/vpc/latest/userguide/vpce-interface.html#create-interface-endpoint) for adding AWS services to a VPC.
+4. Unless the Forwarder is deployed to a public subnet, follow the [instructions](https://docs.aws.amazon.com/vpc/latest/userguide/vpce-interface.html#create-interface-endpoint) to add endpoints for Secrets Manager and S3 to the VPC, so that the Forwarder can access those services.
 5. When installing the Forwarder with the CloudFormation template, enable 'DdUsePrivateLink' and set at least one Subnet Id and Security Group.
+6. Ensure the `DdFetchLambdaTags` option is disabled, because AWS VPC does not yet offer an endpoint for the Resource Groups Tagging API.
 
 
 ## Troubleshooting
