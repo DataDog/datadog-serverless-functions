@@ -112,9 +112,22 @@ You can run the Forwarder in a VPC by using AWS PrivateLink to connect to Datado
 2. Follow the [same procedure](https://docs.datadoghq.com/agent/guide/private-link/?tab=logs#create-your-vpc-endpoint) to add a second endpoint to your VPC for Datadog's **Logs** service.
 3. Follow the [same procedure](https://docs.datadoghq.com/agent/guide/private-link/?tab=logs#create-your-vpc-endpoint) once more to add a third endpoint to your VPC for Datadog's **Traces** service. 
 4. Unless the Forwarder is deployed to a public subnet, follow the [instructions](https://docs.aws.amazon.com/vpc/latest/userguide/vpce-interface.html#create-interface-endpoint) to add endpoints for Secrets Manager and S3 to the VPC, so that the Forwarder can access those services.
-5. When installing the Forwarder with the CloudFormation template, enable 'DdUsePrivateLink' and set at least one Subnet Id and Security Group.
+5. When installing the Forwarder with the CloudFormation template, set `DdUsePrivateLink`, `VPCSecurityGroupIds` and `VPCSubnetIds`.
 6. Ensure the `DdFetchLambdaTags` option is disabled, because AWS VPC does not yet offer an endpoint for the Resource Groups Tagging API.
 
+## AWS VPC and Proxy Support
+
+If you must deploy the Forwarder to a VPC without direct public internet access, and you cannot use AWS PrivateLink to connect to Datadog, such as your organization is hosted on the Datadog EU site (datadoghq.eu), then you can send data via a proxy.
+
+1. Unless the Forwarder is deployed to a public subnet, follow the [instructions](https://docs.aws.amazon.com/vpc/latest/userguide/vpce-interface.html#create-interface-endpoint) to add endpoints for Secrets Manager and S3 to the VPC, so that the Forwarder can access those services.
+2. Update your proxy with following configurations ([HAProxy](https://github.com/DataDog/datadog-serverless-functions/blob/master/aws/logs_monitoring/proxy_conf/haproxy.txt) or [Nginx](https://github.com/DataDog/datadog-serverless-functions/blob/master/aws/logs_monitoring/proxy_conf/nginx.txt)).
+3. When installing the Forwarder with the CloudFormation template, set `DdUseVPC`, `VPCSecurityGroupIds` and `VPCSubnetIds`.
+4. Ensure the `DdFetchLambdaTags` option is disabled, because AWS VPC does not yet offer an endpoint for the Resource Groups Tagging API.
+5. Set `DdApiUrl` to `http://<proxy_host>:3834` or `https://<proxy_host>:3834`.
+6. Set `DdTraceIntakeUrl` to `http://<proxy_host>:3835` or `https://<proxy_host>:3835`.
+7. Set `DdUrl` to `<proxy_host>` and `DdPort` to `3837`.
+8. Set `DdNoSsl` to `true` if connecting to the proxy using `http`.
+9. Set `DdSkipSslValidation` to `true` if connecting to the proxy using `https` with a sef-signed certificate.
 
 ## Troubleshooting
 
