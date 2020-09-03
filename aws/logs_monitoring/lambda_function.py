@@ -10,6 +10,7 @@ import os
 from collections import defaultdict
 
 import boto3
+import botocore
 import itertools
 import re
 import urllib
@@ -779,7 +780,11 @@ def parse_event_type(event):
 
 # Handle S3 events
 def s3_handler(event, context, metadata):
-    s3 = boto3.client("s3")
+    s3 = boto3.client(
+        "s3",
+        os.environ["AWS_REGION"],
+        config=botocore.config.Config(s3={"addressing_style": "path"}),
+    )
 
     # Get the object from the event and show its content type
     bucket = event["Records"][0]["s3"]["bucket"]["name"]
