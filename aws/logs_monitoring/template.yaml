@@ -36,6 +36,10 @@ Parameters:
     Type: Number
     Default: 120
     Description: Timeout for the Datadog Forwarder Lambda function
+  TagsCacheTTLSeconds:
+    Type: Number
+    Default: 300
+    Description: TTL (in seconds) for the Datadog tags cache
   ReservedConcurrency:
     Type: Number
     Default: 100
@@ -296,7 +300,7 @@ Resources:
       Timeout:
         Ref: Timeout
       CodeUri:
-        Bucket: !Ref ForwarderZipsBucket
+        Bucket: !Ref ForwarderBucket
         Key:
           Fn::Sub:
             - "aws-dd-forwarder-${DdForwarderVersion}.zip"
@@ -314,6 +318,11 @@ Resources:
               - CreateDdApiKeySecret
               - Ref: DdApiKeySecret
               - Ref: DdApiKeySecretArn
+          DD_S3_BUCKET_NAME:
+            Fn::If:
+              - SetDdFetchLambdaTags
+              - Ref: ForwarderBucket
+              - Ref: AWS::NoValue
           DD_SITE:
             Ref: DdSite
           DD_TAGS:
@@ -321,6 +330,8 @@ Resources:
               - SetDdTags
               - Ref: DdTags
               - Ref: AWS::NoValue
+          DD_TAGS_CACHE_TTL_SECONDS:
+            Ref: TagsCacheTTLSeconds
           DD_FETCH_LAMBDA_TAGS:
             Fn::If:
               - SetDdFetchLambdaTags
@@ -410,7 +421,7 @@ Resources:
             Fn::If:
               - SetAdditionalTargetLambdas
               - !Join
-                - ','
+                - ","
                 - !Ref AdditionalTargetLambdaArns
               - !Ref AWS::NoValue
       ReservedConcurrentExecutions:
@@ -429,6 +440,15 @@ Resources:
       Policies:
         - Version: "2012-10-17"
           Statement:
+            - Effect: Allow
+              Action:
+                - s3:PutObject
+                - s3:GetObject
+              Resource:
+                - Fn::Join:
+                    - "/"
+                    - - Fn::GetAtt: "ForwarderBucket.Arn"
+                      - "*"
             - Effect: Allow
               Action:
                 - s3:GetObject
@@ -500,11 +520,11 @@ Resources:
       Description: Datadog API Key
       SecretString:
         Ref: DdApiKey
-  ForwarderZipsBucket:
+  ForwarderBucket:
     Type: AWS::S3::Bucket
     Properties:
       BucketEncryption:
-          ServerSideEncryptionConfiguration:
+        ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
               SSEAlgorithm: AES256
       PublicAccessBlockConfiguration:
@@ -516,7 +536,7 @@ Resources:
     Type: Custom::ForwarderZip
     Properties:
       ServiceToken: !GetAtt "ForwarderZipCopier.Arn"
-      DestZipsBucket: !Ref "ForwarderZipsBucket"
+      DestZipsBucket: !Ref "ForwarderBucket"
       SourceZipUrl:
         Fn::If:
           - SetSourceZipUrl
@@ -612,13 +632,13 @@ Resources:
               Resource:
                 - Fn::Join:
                     - "/"
-                    - - Fn::GetAtt: "ForwarderZipsBucket.Arn"
+                    - - Fn::GetAtt: "ForwarderBucket.Arn"
                       - "*"
             - Effect: Allow
               Action:
                 - s3:ListBucket
               Resource:
-                - Fn::GetAtt: "ForwarderZipsBucket.Arn"
+                - Fn::GetAtt: "ForwarderBucket.Arn"
             - !If
               - SetS3SourceZip
               - Effect: Allow
