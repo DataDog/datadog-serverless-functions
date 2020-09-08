@@ -1,5 +1,6 @@
 import unittest
 import os
+from time import time
 
 from unittest.mock import patch
 
@@ -305,16 +306,23 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
         success_message = "Success!"
         self.assertEqual(len(create_out_of_memory_enhanced_metric(success_message)), 0)
 
-    @patch("enhanced_lambda_metrics.build_tags_by_arn_cache")
-    def test_generate_enhanced_lambda_metrics(self, mock_build_cache):
-        mock_build_cache.return_value = {
-            "arn:aws:lambda:us-east-1:172597598159:function:post-coupon-prod-us": [
-                "team:metrics",
-                "monitor:datadog",
-                "env:prod",
-                "creator:swf",
-            ]
-        }
+    @patch("enhanced_lambda_metrics.send_forwarder_internal_metrics")
+    @patch("enhanced_lambda_metrics.get_cache_from_s3")
+    def test_generate_enhanced_lambda_metrics(
+        self, mock_build_cache, mock_forward_metrics
+    ):
+        mock_build_cache.return_value = (
+            {
+                "arn:aws:lambda:us-east-1:172597598159:function:post-coupon-prod-us": [
+                    "team:metrics",
+                    "monitor:datadog",
+                    "env:prod",
+                    "creator:swf",
+                ]
+            },
+            time(),
+        )
+        mock_forward_metrics.return_value = None
         tags_cache = LambdaTagsCache()
 
         logs_input = {
@@ -397,16 +405,22 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
 
         del os.environ["DD_FETCH_LAMBDA_TAGS"]
 
-    @patch("enhanced_lambda_metrics.build_tags_by_arn_cache")
-    def test_generate_enhanced_lambda_metrics_with_tags(self, mock_build_cache):
-        mock_build_cache.return_value = {
-            "arn:aws:lambda:us-east-1:172597598159:function:post-coupon-prod-us": [
-                "team:metrics",
-                "monitor:datadog",
-                "env:prod",
-                "creator:swf",
-            ]
-        }
+    @patch("enhanced_lambda_metrics.send_forwarder_internal_metrics")
+    @patch("enhanced_lambda_metrics.get_cache_from_s3")
+    def test_generate_enhanced_lambda_metrics_with_tags(
+        self, mock_build_cache, mock_forward_metrics
+    ):
+        mock_build_cache.return_value = (
+            {
+                "arn:aws:lambda:us-east-1:172597598159:function:post-coupon-prod-us": [
+                    "team:metrics",
+                    "monitor:datadog",
+                    "env:prod",
+                    "creator:swf",
+                ]
+            },
+            time(),
+        )
         tags_cache = LambdaTagsCache()
         logs_input = {
             "message": "REPORT RequestId: fe1467d6-1458-4e20-8e40-9aaa4be7a0f4\tDuration: 3470.65 ms\tBilled Duration: 3500 ms\tMemory Size: 128 MB\tMax Memory Used: 89 MB\t\nXRAY TraceId: 1-5d8bba5a-dc2932496a65bab91d2d42d4\tSegmentId: 5ff79d2a06b82ad6\tSampled: true\t\n",
@@ -504,11 +518,12 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
 
         del os.environ["DD_FETCH_LAMBDA_TAGS"]
 
-    @patch("enhanced_lambda_metrics.build_tags_by_arn_cache")
+    @patch("enhanced_lambda_metrics.send_forwarder_internal_metrics")
+    @patch("enhanced_lambda_metrics.get_cache_from_s3")
     def test_generate_enhanced_lambda_metrics_once_with_missing_arn(
-        self, mock_build_cache
+        self, mock_build_cache, mock_forward_metrics
     ):
-        mock_build_cache.return_value = {}
+        mock_build_cache.return_value = ({}, time())
         tags_cache = LambdaTagsCache()
 
         logs_input = {
@@ -539,18 +554,22 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
 
         del os.environ["DD_FETCH_LAMBDA_TAGS"]
 
-    @patch("enhanced_lambda_metrics.build_tags_by_arn_cache")
+    @patch("enhanced_lambda_metrics.send_forwarder_internal_metrics")
+    @patch("enhanced_lambda_metrics.get_cache_from_s3")
     def test_generate_enhanced_lambda_metrics_refresh_on_new_arn(
-        self, mock_build_cache
+        self, mock_build_cache, mock_forward_metrics
     ):
-        mock_build_cache.return_value = {
-            "arn:aws:lambda:us-east-1:172597598159:function:post-coupon-prod-us": [
-                "team:metrics",
-                "monitor:datadog",
-                "env:prod",
-                "creator:swf",
-            ]
-        }
+        mock_build_cache.return_value = (
+            {
+                "arn:aws:lambda:us-east-1:172597598159:function:post-coupon-prod-us": [
+                    "team:metrics",
+                    "monitor:datadog",
+                    "env:prod",
+                    "creator:swf",
+                ]
+            },
+            time(),
+        )
         tags_cache = LambdaTagsCache()
 
         logs_input = {
@@ -576,26 +595,25 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
         mock_build_cache.assert_called_once()
         mock_build_cache.reset_mock()
 
-        # Creat a new
-        logs_input["lambda"][
-            "arn"
-        ] = "arn:aws:lambda:us-east-1:172597598159:function:post-coupon-eu"
-        generated_metrics = generate_enhanced_lambda_metrics(logs_input, tags_cache)
-        mock_build_cache.assert_called_once()
-
         del os.environ["DD_FETCH_LAMBDA_TAGS"]
 
-    @patch("enhanced_lambda_metrics.build_tags_by_arn_cache")
-    def test_generate_enhanced_lambda_metrics_timeout(self, mock_build_cache):
+    @patch("enhanced_lambda_metrics.send_forwarder_internal_metrics")
+    @patch("enhanced_lambda_metrics.get_cache_from_s3")
+    def test_generate_enhanced_lambda_metrics_timeout(
+        self, mock_build_cache, mock_forward_metrics
+    ):
 
-        mock_build_cache.return_value = {
-            "arn:aws:lambda:us-east-1:0:function:cloudwatch-event": [
-                "team:metrics",
-                "monitor:datadog",
-                "env:prod",
-                "creator:swf",
-            ]
-        }
+        mock_build_cache.return_value = (
+            {
+                "arn:aws:lambda:us-east-1:0:function:cloudwatch-event": [
+                    "team:metrics",
+                    "monitor:datadog",
+                    "env:prod",
+                    "creator:swf",
+                ]
+            },
+            time(),
+        )
         tags_cache = LambdaTagsCache()
 
         logs_input = {
@@ -638,17 +656,23 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
         )
         del os.environ["DD_FETCH_LAMBDA_TAGS"]
 
-    @patch("enhanced_lambda_metrics.build_tags_by_arn_cache")
-    def test_generate_enhanced_lambda_metrics_out_of_memory(self, mock_build_cache):
+    @patch("enhanced_lambda_metrics.send_forwarder_internal_metrics")
+    @patch("enhanced_lambda_metrics.get_cache_from_s3")
+    def test_generate_enhanced_lambda_metrics_out_of_memory(
+        self, mock_build_cache, mock_forward_metrics
+    ):
 
-        mock_build_cache.return_value = {
-            "arn:aws:lambda:us-east-1:0:function:cloudwatch-event": [
-                "team:metrics",
-                "monitor:datadog",
-                "env:prod",
-                "creator:swf",
-            ]
-        }
+        mock_build_cache.return_value = (
+            {
+                "arn:aws:lambda:us-east-1:0:function:cloudwatch-event": [
+                    "team:metrics",
+                    "monitor:datadog",
+                    "env:prod",
+                    "creator:swf",
+                ]
+            },
+            time(),
+        )
         tags_cache = LambdaTagsCache()
 
         logs_input = {
