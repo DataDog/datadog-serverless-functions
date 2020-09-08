@@ -58,7 +58,7 @@ Parameters:
     Description: Add custom tags to forwarded logs, comma-delimited string, no trailing comma, e.g., env:prod,stack:classic
   DdFetchLambdaTags:
     Type: String
-    Default: false
+    Default: true
     AllowedValues:
       - true
       - false
