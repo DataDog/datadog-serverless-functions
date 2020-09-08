@@ -300,6 +300,9 @@ The CloudFormation Stack creates following IAM roles:
     duration.
 - `DdForwardLog` - Set to false to disable log forwarding, while continuing to forward other 
     observability data, such as metrics and traces from Lambda functions.
+- `DdFetchLambdaTags` - Let the forwarder fetch Lambda tags using GetResources API calls and apply 
+    them to logs, metrics and traces. If set to true, permission `tag:GetResources` will be 
+    automatically added to the Lambda execution IAM role. The tags are cached in memory as well as S3. If the cache in memory is expired, the S3 cache is used. If they're both expired, then both caches are built using AWS GetResources API call. Tags for new lambda functions and new tags for existing lambda functions are fetched when the S3 cache TTL (5 minutes by default) expires. This delay can be at most `2 x TTL`, i.e. 5 minutes for local cache to expire, and 5 minutes for S3 cache to expire. The `aws.lambda.enhanced.get_resources_api_calls` metric is incremented by the forwarder for each API call made.
 
 ### Log Scrubbing (Optional)
 
@@ -320,13 +323,6 @@ The CloudFormation Stack creates following IAM roles:
 - `IncludeAtMatch` - Only send logs matching the supplied regular expression and not excluded by 
     ExcludeAtMatch.
 
-### Experimental (Optional)
-
-- `DdFetchLambdaTags` - Let the forwarder fetch Lambda tags using GetResources API calls and apply 
-    them to logs, metrics and traces. If set to true, permission `tag:GetResources` will be 
-    automatically added to the Lambda execution IAM role. The tags are cached in memory so that 
-    they'll only be fetched when the function cold starts or when the TTL (1 hour) expires. The 
-    forwarder increments the `aws.lambda.enhanced.get_resources_api_calls` metric for each API call made.
 
 ### Advanced (Optional)
 
