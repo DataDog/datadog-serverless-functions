@@ -1,6 +1,8 @@
 import unittest
+import mock
 import os
 from time import time
+from botocore.exceptions import ClientError
 
 from unittest.mock import patch
 
@@ -645,6 +647,52 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
         mock_build_cache.assert_called_once()
         mock_write_cache.assert_called_once()
         mock_get_s3_cache.reset_mock()
+        assert mock_forward_metrics.call_count == 2
+
+        del os.environ["DD_FETCH_LAMBDA_TAGS"]
+
+    @patch("enhanced_lambda_metrics.write_cache_to_s3")
+    @patch("enhanced_lambda_metrics.parse_get_resources_response_for_tags_by_arn")
+    @patch("enhanced_lambda_metrics.send_forwarder_internal_metrics")
+    @patch("enhanced_lambda_metrics.get_cache_from_s3")
+    def test_generate_enhanced_lambda_metrics_client_error(
+        self,
+        mock_get_s3_cache,
+        mock_forward_metrics,
+        mock_parse_responses,
+        mock_write_cache,
+    ):
+        mock_get_s3_cache.return_value = (
+            {},
+            1000,
+        )
+        mock_parse_responses.side_effect = ClientError({}, "Client Error")
+        tags_cache = LambdaTagsCache()
+
+        logs_input = {
+            "message": "REPORT RequestId: fe1467d6-1458-4e20-8e40-9aaa4be7a0f4\tDuration: 3470.65 ms\tBilled Duration: 3500 ms\tMemory Size: 128 MB\tMax Memory Used: 89 MB\t\nXRAY TraceId: 1-5d8bba5a-dc2932496a65bab91d2d42d4\tSegmentId: 5ff79d2a06b82ad6\tSampled: true\t\n",
+            "aws": {
+                "awslogs": {
+                    "logGroup": "/aws/lambda/post-coupon-prod-us",
+                    "logStream": "2019/09/25/[$LATEST]d6c10ebbd9cb48dba94a7d9b874b49bb",
+                    "owner": "172597598159",
+                },
+                "function_version": "$LATEST",
+                "invoked_function_arn": "arn:aws:lambda:us-east-1:172597598159:function:collect_logs_datadog_demo",
+            },
+            "lambda": {
+                "arn": "arn:aws:lambda:us-east-1:172597598159:function:post-coupon-prod-us"
+            },
+            "timestamp": 10000,
+        }
+
+        os.environ["DD_FETCH_LAMBDA_TAGS"] = "True"
+
+        generated_metrics = generate_enhanced_lambda_metrics(logs_input, tags_cache)
+        mock_get_s3_cache.assert_called_once()
+        mock_write_cache.assert_called_once()
+        mock_get_s3_cache.reset_mock()
+        assert mock_forward_metrics.call_count == 3
 
         del os.environ["DD_FETCH_LAMBDA_TAGS"]
 
