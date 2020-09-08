@@ -301,13 +301,13 @@ def get_forwarder_telemetry_prefix_and_tags():
     return DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX, DD_FORWARDER_TELEMETRY_TAGS
 
 
-def send_forwarder_internal_metrics(name):
+def send_forwarder_internal_metrics(name, additional_tags=[]):
     """Send forwarder's internal metrics to DD"""
     prefix, tags = get_forwarder_telemetry_prefix_and_tags()
     lambda_stats.distribution(
         "{}.{}".format(prefix, name),
         1,
-        tags=tags,
+        tags=tags + additional_tags,
     )
 
 
@@ -361,8 +361,10 @@ def build_tags_by_arn_cache():
             "Encountered a ClientError when trying to fetch tags. You may need to give "
             "this Lambda's role the 'tag:GetResources' permission"
         )
-        tags.append(f"HTTPStatusCode:{e['ResponseMetadata']['HTTPStatusCode']}")
-        send_forwarder_internal_metrics("client_error")
+        additional_tags = [
+            f"HTTPStatusCode:{e.response['ResponseMetadata']['HTTPStatusCode']}"
+        ]
+        send_forwarder_internal_metrics("client_error", additional_tags=additional_tags)
 
     logger.debug(
         "Built this tags cache from GetResources API calls: %s", tags_by_arn_cache
