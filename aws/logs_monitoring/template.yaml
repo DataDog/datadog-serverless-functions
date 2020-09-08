@@ -705,7 +705,7 @@ Metadata:
           - ExcludeAtMatch
           - IncludeAtMatch
       - Label:
-          default: Experimental (Optional)
+          default: Fetch Lambda Tags (Optional)
         Parameters:
           - DdFetchLambdaTags
       - Label:
