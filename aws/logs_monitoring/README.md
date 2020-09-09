@@ -117,7 +117,7 @@ You can run the Forwarder in a VPC by using AWS PrivateLink to connect to Datado
 
 ## AWS VPC and Proxy Support
 
-If you must deploy the Forwarder to a VPC without direct public internet access, and you cannot use AWS PrivateLink to connect to Datadog, such as your organization is hosted on the Datadog EU site (datadoghq.eu), then you can send data via a proxy.
+If you must deploy the Forwarder to a VPC without direct public internet access, and you cannot use AWS PrivateLink to connect to Datadog (for example, if your organization is hosted on the Datadog EU site (i.e. datadoghq.eu)), then you can send data via a proxy.
 
 1. Unless the Forwarder is deployed to a public subnet, follow the [instructions](https://docs.aws.amazon.com/vpc/latest/userguide/vpce-interface.html#create-interface-endpoint) to add endpoints for Secrets Manager and S3 to the VPC, so that the Forwarder can access those services.
 2. Update your proxy with following configurations ([HAProxy](https://github.com/DataDog/datadog-serverless-functions/blob/master/aws/logs_monitoring/proxy_conf/haproxy.txt) or [Nginx](https://github.com/DataDog/datadog-serverless-functions/blob/master/aws/logs_monitoring/proxy_conf/nginx.txt)).
