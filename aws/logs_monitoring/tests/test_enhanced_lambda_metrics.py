@@ -651,6 +651,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
 
         del os.environ["DD_FETCH_LAMBDA_TAGS"]
 
+    @patch("enhanced_lambda_metrics.resource_tagging_client")
     @patch("enhanced_lambda_metrics.write_cache_to_s3")
     @patch("enhanced_lambda_metrics.parse_get_resources_response_for_tags_by_arn")
     @patch("enhanced_lambda_metrics.send_forwarder_internal_metrics")
@@ -661,12 +662,19 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
         mock_forward_metrics,
         mock_parse_responses,
         mock_write_cache,
+        mock_boto3,
     ):
         mock_get_s3_cache.return_value = (
             {},
             1000,
         )
-        mock_parse_responses.side_effect = ClientError({}, "Client Error")
+        paginator = mock.MagicMock()
+        paginator.paginate.return_value = ["foo"]
+        mock_boto3.get_paginator.return_value = paginator
+
+        mock_parse_responses.side_effect = ClientError(
+            {"ResponseMetadata": {"HTTPStatusCode": 429}}, "Client Error"
+        )
         tags_cache = LambdaTagsCache()
 
         logs_input = {
@@ -691,8 +699,11 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
         generated_metrics = generate_enhanced_lambda_metrics(logs_input, tags_cache)
         mock_get_s3_cache.assert_called_once()
         mock_write_cache.assert_called_once()
+        mock_boto3.get_paginator.assert_called_once()
+        paginator.paginate.assert_called_once()
         mock_get_s3_cache.reset_mock()
-        assert mock_forward_metrics.call_count == 3
+        print(mock_forward_metrics.call_count)
+        assert mock_forward_metrics.call_count == 4
 
         del os.environ["DD_FETCH_LAMBDA_TAGS"]
 
