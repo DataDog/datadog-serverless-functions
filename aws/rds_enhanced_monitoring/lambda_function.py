@@ -17,13 +17,48 @@ import boto3
 
 DD_SITE = os.getenv("DD_SITE", default="datadoghq.com")
 
-# retrieve datadog options from KMS
-KMS_ENCRYPTED_KEYS = os.environ['kmsEncryptedKeys']
-kms = boto3.client('kms')
-datadog_keys = json.loads(kms.decrypt(
-    CiphertextBlob=b64decode(KMS_ENCRYPTED_KEYS),
-    EncryptionContext={'LambdaFunctionName': os.environ['AWS_LAMBDA_FUNCTION_NAME']}
-)['Plaintext'])
+# DD API Key
+if "kmsEncryptedKeys" in os.environ:
+    # retrieve datadog options from KMS
+    KMS_ENCRYPTED_KEYS = os.environ['kmsEncryptedKeys']
+    kms = boto3.client('kms')
+    datadog_keys = json.loads(kms.decrypt(
+        CiphertextBlob=b64decode(KMS_ENCRYPTED_KEYS),
+        EncryptionContext={'LambdaFunctionName': os.environ['AWS_LAMBDA_FUNCTION_NAME']}
+    )['Plaintext'])
+elif "DD_API_KEY_SECRET_ARN" in os.environ:
+    SECRET_ARN = os.environ["DD_API_KEY_SECRET_ARN"]
+    DD_API_KEY = boto3.client("secretsmanager").get_secret_value(SecretId=SECRET_ARN)[
+        "SecretString"
+    ]
+    datadog_keys = {
+        "api_key": DD_API_KEY
+    }
+elif "DD_API_KEY_SSM_NAME" in os.environ:
+    SECRET_NAME = os.environ["DD_API_KEY_SSM_NAME"]
+    DD_API_KEY = boto3.client("ssm").get_parameter(
+        Name=SECRET_NAME, WithDecryption=True
+    )["Parameter"]["Value"]
+    datadog_keys = {
+        "api_key": DD_API_KEY
+    }
+elif "DD_KMS_API_KEY" in os.environ:
+    ENCRYPTED = os.environ["DD_KMS_API_KEY"]
+    DD_API_KEY = boto3.client("kms").decrypt(
+        CiphertextBlob=base64.b64decode(ENCRYPTED)
+    )["Plaintext"]
+    if type(DD_API_KEY) is bytes:
+        DD_API_KEY = DD_API_KEY.decode("utf-8")
+    datadog_keys = {
+        "api_key": DD_API_KEY
+    }
+elif "DD_API_KEY" in os.environ:
+    DD_API_KEY = os.environ["DD_API_KEY"]
+    datadog_keys = {
+        "api_key": DD_API_KEY
+    }
+else:
+    raise ValueError("Datadog API-key is missing. Need either 'kmsEncryptedKeys' or ")
 
 print('INFO Lambda function initialized, ready to send metrics')
 
