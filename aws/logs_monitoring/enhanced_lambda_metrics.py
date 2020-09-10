@@ -10,11 +10,7 @@ from time import time
 import boto3
 from botocore.exceptions import ClientError
 
-# from settings import DD_S3_BUCKET_NAME, DD_S3_CACHE_FILENAME, DD_TAGS_CACHE_TTL_SECONDS
-# TODO: the above line causes an issue with the unit tests
-DD_S3_BUCKET_NAME = os.getenv("DD_S3_BUCKET_NAME", default="")
-DD_S3_CACHE_FILENAME = "cache.json"
-DD_TAGS_CACHE_TTL_SECONDS = os.getenv("DD_TAGS_CACHE_TTL_SECONDS", default=300)
+from settings import DD_S3_BUCKET_NAME, DD_S3_CACHE_FILENAME, DD_TAGS_CACHE_TTL_SECONDS
 
 ENHANCED_METRICS_NAMESPACE_PREFIX = "aws.lambda.enhanced"
 
