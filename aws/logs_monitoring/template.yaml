@@ -523,11 +523,7 @@ Resources:
     Properties:
       FunctionName: !Ref "Forwarder"
       Action: lambda:InvokeFunction
-      Principal:
-        Fn::If:
-          - IsAWSChina
-          - "s3.amazonaws.com.cn"
-          - "s3.amazonaws.com"
+      Principal: "s3.amazonaws.com"
       SourceAccount: !Ref "AWS::AccountId"
   LogGroup:
     Type: AWS::Logs::LogGroup
