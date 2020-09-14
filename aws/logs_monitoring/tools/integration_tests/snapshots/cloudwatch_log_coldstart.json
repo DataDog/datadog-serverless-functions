@@ -1,7 +1,7 @@
 {
   "messageType": "DATA_MESSAGE",
   "owner": "601427279990",
-  "logGroup": "/aws/lambda/integration-tests-dev-cache_test_lambda",
+  "logGroup": "/aws/lambda/storms-cloudwatch-event",
   "logStream": "2020/06/04/[$LATEST]af2b1e1843b84a2d80c67840ae3ffa72",
   "subscriptionFilters": [
     "myevent"
