@@ -1,0 +1,11 @@
+service: integration-tests
+provider:
+  name: aws
+  runtime: python3.7
+
+functions:
+  cache_test_lambda:
+    handler: handler.handle
+    tags:
+      TAG1: Tag Value
+      TAG2: Tag2 Value
