@@ -103,12 +103,15 @@ DD_SITE = get_env_var("DD_SITE", default="datadoghq.com")
 DD_TAGS = get_env_var("DD_TAGS", "")
 
 ## @param DD_API_URL - Url to use for  validating the the api key.
-DD_API_URL = get_env_var("DD_API_URL", default="https://api.{}".format(DD_SITE))
-logger.debug(f"DD_API_URL: {DD_API_URL}")
+DD_API_URL = get_env_var(
+    "DD_API_URL",
+    default="{}://api.{}".format("http" if DD_NO_SSL else "https", DD_SITE),
+)
 
 ## @param DD_TRACE_INTAKE_URL
 DD_TRACE_INTAKE_URL = get_env_var(
-    "DD_TRACE_INTAKE_URL", default="https://trace.agent.{}".format(DD_SITE)
+    "DD_TRACE_INTAKE_URL",
+    default="{}://trace.agent.{}".format("http" if DD_NO_SSL else "https", DD_SITE),
 )
 
 if DD_USE_TCP:
@@ -206,7 +209,7 @@ DD_SOURCE = "ddsource"
 DD_CUSTOM_TAGS = "ddtags"
 DD_SERVICE = "service"
 DD_HOST = "host"
-DD_FORWARDER_VERSION = "3.17.0"
+DD_FORWARDER_VERSION = "3.18.0"
 
 # Additional target lambda invoked async with event data
 DD_ADDITIONAL_TARGET_LAMBDAS = get_env_var("DD_ADDITIONAL_TARGET_LAMBDAS", default=None)
