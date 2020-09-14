@@ -1,13 +1,12 @@
 {
   "messageType": "DATA_MESSAGE",
   "owner": "601427279990",
-  "logGroup": "/aws/lambda/storms-cloudwatch-event",
+  "logGroup": "/aws/lambda/integration-tests-dev-cache_test_lambda",
   "logStream": "2020/06/09/[$LATEST]b249865adaaf4fad80f95f8ad09725b8",
   "subscriptionFilters": [
     "myevent"
   ],
-  "logEvents": [
-    {
+  "logEvents": [{
       "id": "35496429375792603298393743017356257146982675867810398208",
       "timestamp": 1591714943146,
       "message": "START RequestId: 7c9567b5-107b-4a6c-8798-0157ac21db52 Version: $LATEST\\n"
