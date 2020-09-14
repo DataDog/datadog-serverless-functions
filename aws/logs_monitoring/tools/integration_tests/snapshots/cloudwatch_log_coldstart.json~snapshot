@@ -11,15 +11,15 @@
               "owner": "601427279990"
             },
             "function_version": "$LATEST",
-            "invoked_function_arn": "arn:aws:lambda:us-east-1:601427279990:function:test"
+            "invoked_function_arn": "arn:aws:lambda:us-east-1:0000000000:function:test"
           },
           "ddsource": "lambda",
           "ddsourcecategory": "aws",
-          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,aws_cloudformation_logical-id:cacheunderscoretestunderscorelambdalambdafunction,aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/integration-tests-dev/<redacted from snapshot>,aws_cloudformation_stack-name:integration-tests-dev,functionname:integration-tests-dev-cache_test_lambda,region:us-east-1,service:integration-tests-dev-cache_test_lambda,stage:dev,tag1:tag_value,tag2:tag2_value",
-          "host": "arn:aws:lambda:us-east-1:601427279990:function:integration-tests-dev-cache_test_lambda",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:0000000000,aws_account:0000000000,functionname:integration-tests-dev-cache_test_lambda,region:us-east-1,service:integration-tests-dev-cache_test_lambda",
+          "host": "arn:aws:lambda:us-east-1:0000000000:function:integration-tests-dev-cache_test_lambda",
           "id": "35486831490800643125153606102923171443962457178576257024",
           "lambda": {
-            "arn": "arn:aws:lambda:us-east-1:601427279990:function:integration-tests-dev-cache_test_lambda"
+            "arn": "arn:aws:lambda:us-east-1:0000000000:function:integration-tests-dev-cache_test_lambda"
           },
           "message": "START RequestId: <redacted from snapshot> Version: $LATEST\\n",
           "service": "integration-tests-dev-cache_test_lambda",
@@ -33,15 +33,15 @@
               "owner": "601427279990"
             },
             "function_version": "$LATEST",
-            "invoked_function_arn": "arn:aws:lambda:us-east-1:601427279990:function:test"
+            "invoked_function_arn": "arn:aws:lambda:us-east-1:0000000000:function:test"
           },
           "ddsource": "lambda",
           "ddsourcecategory": "aws",
-          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,aws_cloudformation_logical-id:cacheunderscoretestunderscorelambdalambdafunction,aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/integration-tests-dev/<redacted from snapshot>,aws_cloudformation_stack-name:integration-tests-dev,functionname:integration-tests-dev-cache_test_lambda,region:us-east-1,service:integration-tests-dev-cache_test_lambda,stage:dev,tag1:tag_value,tag2:tag2_value",
-          "host": "arn:aws:lambda:us-east-1:601427279990:function:integration-tests-dev-cache_test_lambda",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:0000000000,aws_account:0000000000,functionname:integration-tests-dev-cache_test_lambda,region:us-east-1,service:integration-tests-dev-cache_test_lambda",
+          "host": "arn:aws:lambda:us-east-1:0000000000:function:integration-tests-dev-cache_test_lambda",
           "id": "35486831490867545360749197972347778598780402263094198273",
           "lambda": {
-            "arn": "arn:aws:lambda:us-east-1:601427279990:function:integration-tests-dev-cache_test_lambda"
+            "arn": "arn:aws:lambda:us-east-1:0000000000:function:integration-tests-dev-cache_test_lambda"
           },
           "message": "END RequestId: <redacted from snapshot>\\n",
           "service": "integration-tests-dev-cache_test_lambda",
@@ -55,15 +55,15 @@
               "owner": "601427279990"
             },
             "function_version": "$LATEST",
-            "invoked_function_arn": "arn:aws:lambda:us-east-1:601427279990:function:test"
+            "invoked_function_arn": "arn:aws:lambda:us-east-1:0000000000:function:test"
           },
           "ddsource": "lambda",
           "ddsourcecategory": "aws",
-          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,aws_cloudformation_logical-id:cacheunderscoretestunderscorelambdalambdafunction,aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/integration-tests-dev/<redacted from snapshot>,aws_cloudformation_stack-name:integration-tests-dev,functionname:integration-tests-dev-cache_test_lambda,region:us-east-1,service:integration-tests-dev-cache_test_lambda,stage:dev,tag1:tag_value,tag2:tag2_value",
-          "host": "arn:aws:lambda:us-east-1:601427279990:function:integration-tests-dev-cache_test_lambda",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:0000000000,aws_account:0000000000,functionname:integration-tests-dev-cache_test_lambda,region:us-east-1,service:integration-tests-dev-cache_test_lambda",
+          "host": "arn:aws:lambda:us-east-1:0000000000:function:integration-tests-dev-cache_test_lambda",
           "id": "35486831490867545360749197972347778598780402263094198274",
           "lambda": {
-            "arn": "arn:aws:lambda:us-east-1:601427279990:function:integration-tests-dev-cache_test_lambda"
+            "arn": "arn:aws:lambda:us-east-1:0000000000:function:integration-tests-dev-cache_test_lambda"
           },
           "message": "REPORT RequestId: <redacted from snapshot>\\tDuration: 1.76 ms\\tBilled Duration: 100 ms\\tMemory Size: 128 MB\\tMax Memory Used: 48 MB\\tInit Duration: 120.96 ms\\t\\n",
           "service": "integration-tests-dev-cache_test_lambda",
@@ -96,34 +96,6 @@
             "host": null,
             "interval": 10,
             "metric": "aws.dd_forwarder.local_cache_expired",
-            "points": "<redacted from snapshot>",
-            "tags": [
-              "forwardername:test",
-              "forwarder_memorysize:1536",
-              "forwarder_version:<redacted from snapshot>",
-              "event_type:awslogs"
-            ],
-            "type": "distribution"
-          },
-          {
-            "device": null,
-            "host": null,
-            "interval": 10,
-            "metric": "aws.dd_forwarder.s3_cache_expired",
-            "points": "<redacted from snapshot>",
-            "tags": [
-              "forwardername:test",
-              "forwarder_memorysize:1536",
-              "forwarder_version:<redacted from snapshot>",
-              "event_type:awslogs"
-            ],
-            "type": "distribution"
-          },
-          {
-            "device": null,
-            "host": null,
-            "interval": 10,
-            "metric": "aws.dd_forwarder.get_resources_api_calls",
             "points": "<redacted from snapshot>",
             "tags": [
               "forwardername:test",
