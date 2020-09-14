@@ -166,5 +166,6 @@ if [ $ADDITIONAL_LAMBDA == true ]; then
 		fi
 	done
 
+	sls remove
 	echo "SUCCESS: No difference found between input events and events in the additional target lambda"
 fi
