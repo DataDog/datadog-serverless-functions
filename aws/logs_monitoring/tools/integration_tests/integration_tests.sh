@@ -16,6 +16,7 @@ INTEGRATION_TESTS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 
 SNAPSHOT_DIR="${INTEGRATION_TESTS_DIR}/snapshots/*"
 SNAPS=($SNAPSHOT_DIR)
 ADDITIONAL_LAMBDA=false
+CACHE_TEST=true
 
 script_start_time=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 echo "Starting script time: $script_start_time"
@@ -64,13 +65,10 @@ do
 		shift
 		;;
 
-		# -c or --cache-test
-		# Run cache test
-
-		# Requires AWS credentials
-		# Use aws-vault exec sandbox-account-admin -- ./integration_tests.sh
-		-c|--cache-test)
-		CACHE_TEST=true
+		# -nc or --no-cache-test
+		# Do not run cache test
+		-nc|--no-cache-test)
+		CACHE_TEST=false
 		shift
 		;;
 	esac
