@@ -6,89 +6,89 @@
         {
           "aws": {
             "awslogs": {
-              "logGroup": "/aws/lambda/storms-cloudwatch-event",
+              "logGroup": "/aws/lambda/integration-tests-dev-cache_test_lambda",
               "logStream": "2020/06/09/[$LATEST]b249865adaaf4fad80f95f8ad09725b8",
               "owner": "601427279990"
             },
             "function_version": "$LATEST",
-            "invoked_function_arn": "arn:aws:lambda:us-east-1:0:function:test"
+            "invoked_function_arn": "arn:aws:lambda:us-east-1:601427279990:function:test"
           },
           "ddsource": "lambda",
           "ddsourcecategory": "aws",
-          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:0,aws_account:0,functionname:storms-cloudwatch-event,region:us-east-1,service:storms-cloudwatch-event",
-          "host": "arn:aws:lambda:us-east-1:0:function:storms-cloudwatch-event",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,aws_cloudformation_logical-id:cacheunderscoretestunderscorelambdalambdafunction,aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/integration-tests-dev/863e6e10-f6c5-11ea-a8be-12b94cd95a93,aws_cloudformation_stack-name:integration-tests-dev,functionname:integration-tests-dev-cache_test_lambda,region:us-east-1,service:integration-tests-dev-cache_test_lambda,stage:dev,tag1:tag_value,tag2:tag2_value",
+          "host": "arn:aws:lambda:us-east-1:601427279990:function:integration-tests-dev-cache_test_lambda",
           "id": "35496429375792603298393743017356257146982675867810398208",
           "lambda": {
-            "arn": "arn:aws:lambda:us-east-1:0:function:storms-cloudwatch-event"
+            "arn": "arn:aws:lambda:us-east-1:601427279990:function:integration-tests-dev-cache_test_lambda"
           },
           "message": "START RequestId: 7c9567b5-107b-4a6c-8798-0157ac21db52 Version: $LATEST\\n",
-          "service": "storms-cloudwatch-event",
+          "service": "integration-tests-dev-cache_test_lambda",
           "timestamp": 1591714943146
         },
         {
           "aws": {
             "awslogs": {
-              "logGroup": "/aws/lambda/storms-cloudwatch-event",
+              "logGroup": "/aws/lambda/integration-tests-dev-cache_test_lambda",
               "logStream": "2020/06/09/[$LATEST]b249865adaaf4fad80f95f8ad09725b8",
               "owner": "601427279990"
             },
             "function_version": "$LATEST",
-            "invoked_function_arn": "arn:aws:lambda:us-east-1:0:function:test"
+            "invoked_function_arn": "arn:aws:lambda:us-east-1:601427279990:function:test"
           },
           "ddsource": "lambda",
           "ddsourcecategory": "aws",
-          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:0,aws_account:0,functionname:storms-cloudwatch-event,region:us-east-1,service:storms-cloudwatch-event",
-          "host": "arn:aws:lambda:us-east-1:0:function:storms-cloudwatch-event",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,aws_cloudformation_logical-id:cacheunderscoretestunderscorelambdalambdafunction,aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/integration-tests-dev/863e6e10-f6c5-11ea-a8be-12b94cd95a93,aws_cloudformation_stack-name:integration-tests-dev,functionname:integration-tests-dev-cache_test_lambda,region:us-east-1,service:integration-tests-dev-cache_test_lambda,stage:dev,tag1:tag_value,tag2:tag2_value",
+          "host": "arn:aws:lambda:us-east-1:601427279990:function:integration-tests-dev-cache_test_lambda",
           "id": "35496429442806342619978265557671090556291002193281548289",
           "lambda": {
-            "arn": "arn:aws:lambda:us-east-1:0:function:storms-cloudwatch-event"
+            "arn": "arn:aws:lambda:us-east-1:601427279990:function:integration-tests-dev-cache_test_lambda"
           },
           "message": "END RequestId: 7c9567b5-107b-4a6c-8798-0157ac21db52\\n",
-          "service": "storms-cloudwatch-event",
+          "service": "integration-tests-dev-cache_test_lambda",
           "timestamp": 1591714946151
         },
         {
           "aws": {
             "awslogs": {
-              "logGroup": "/aws/lambda/storms-cloudwatch-event",
+              "logGroup": "/aws/lambda/integration-tests-dev-cache_test_lambda",
               "logStream": "2020/06/09/[$LATEST]b249865adaaf4fad80f95f8ad09725b8",
               "owner": "601427279990"
             },
             "function_version": "$LATEST",
-            "invoked_function_arn": "arn:aws:lambda:us-east-1:0:function:test"
+            "invoked_function_arn": "arn:aws:lambda:us-east-1:601427279990:function:test"
           },
           "ddsource": "lambda",
           "ddsourcecategory": "aws",
-          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:0,aws_account:0,functionname:storms-cloudwatch-event,region:us-east-1,service:storms-cloudwatch-event",
-          "host": "arn:aws:lambda:us-east-1:0:function:storms-cloudwatch-event",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,aws_cloudformation_logical-id:cacheunderscoretestunderscorelambdalambdafunction,aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/integration-tests-dev/863e6e10-f6c5-11ea-a8be-12b94cd95a93,aws_cloudformation_stack-name:integration-tests-dev,functionname:integration-tests-dev-cache_test_lambda,region:us-east-1,service:integration-tests-dev-cache_test_lambda,stage:dev,tag1:tag_value,tag2:tag2_value",
+          "host": "arn:aws:lambda:us-east-1:601427279990:function:integration-tests-dev-cache_test_lambda",
           "id": "35496429442806342619978265557671090556291002193281548290",
           "lambda": {
-            "arn": "arn:aws:lambda:us-east-1:0:function:storms-cloudwatch-event"
+            "arn": "arn:aws:lambda:us-east-1:601427279990:function:integration-tests-dev-cache_test_lambda"
           },
           "message": "REPORT RequestId: 7c9567b5-107b-4a6c-8798-0157ac21db52\\tDuration: 3003.16 ms\\tBilled Duration: 3000 ms\\tMemory Size: 128 MB\\tMax Memory Used: 48 MB\\tInit Duration: 127.02 ms\\t\\n",
-          "service": "storms-cloudwatch-event",
+          "service": "integration-tests-dev-cache_test_lambda",
           "timestamp": 1591714946151
         },
         {
           "aws": {
             "awslogs": {
-              "logGroup": "/aws/lambda/storms-cloudwatch-event",
+              "logGroup": "/aws/lambda/integration-tests-dev-cache_test_lambda",
               "logStream": "2020/06/09/[$LATEST]b249865adaaf4fad80f95f8ad09725b8",
               "owner": "601427279990"
             },
             "function_version": "$LATEST",
-            "invoked_function_arn": "arn:aws:lambda:us-east-1:0:function:test"
+            "invoked_function_arn": "arn:aws:lambda:us-east-1:601427279990:function:test"
           },
           "ddsource": "lambda",
           "ddsourcecategory": "aws",
-          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:0,aws_account:0,functionname:storms-cloudwatch-event,region:us-east-1,service:storms-cloudwatch-event",
-          "host": "arn:aws:lambda:us-east-1:0:function:storms-cloudwatch-event",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,aws_cloudformation_logical-id:cacheunderscoretestunderscorelambdalambdafunction,aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/integration-tests-dev/863e6e10-f6c5-11ea-a8be-12b94cd95a93,aws_cloudformation_stack-name:integration-tests-dev,functionname:integration-tests-dev-cache_test_lambda,region:us-east-1,service:integration-tests-dev-cache_test_lambda,stage:dev,tag1:tag_value,tag2:tag2_value",
+          "host": "arn:aws:lambda:us-east-1:601427279990:function:integration-tests-dev-cache_test_lambda",
           "id": "35496429442806342619978265557671090556291002193281548291",
           "lambda": {
-            "arn": "arn:aws:lambda:us-east-1:0:function:storms-cloudwatch-event"
+            "arn": "arn:aws:lambda:us-east-1:601427279990:function:integration-tests-dev-cache_test_lambda"
           },
           "message": "2020-06-09T15:02:26.150Z 7c9567b5-107b-4a6c-8798-0157ac21db52 Task timed out after 3.00 seconds\\n\\n",
-          "service": "storms-cloudwatch-event",
+          "service": "integration-tests-dev-cache_test_lambda",
           "timestamp": 1591714946151
         }
       ],
@@ -149,9 +149,15 @@
             "points": "<redacted from snapshot>",
             "tags": [
               "region:us-east-1",
-              "account_id:0",
-              "aws_account:0",
-              "functionname:storms-cloudwatch-event"
+              "account_id:601427279990",
+              "aws_account:601427279990",
+              "functionname:integration-tests-dev-cache_test_lambda",
+              "stage:dev",
+              "tag1:tag_value",
+              "tag2:tag2_value",
+              "aws_cloudformation_logical-id:cacheunderscoretestunderscorelambdalambdafunction",
+              "aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/integration-tests-dev/863e6e10-f6c5-11ea-a8be-12b94cd95a93",
+              "aws_cloudformation_stack-name:integration-tests-dev"
             ],
             "type": "distribution"
           }
