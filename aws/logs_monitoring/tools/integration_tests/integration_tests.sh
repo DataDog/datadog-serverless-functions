@@ -13,10 +13,12 @@ UPDATE_SNAPSHOTS=false
 LOG_LEVEL=info
 LOGS_WAIT_SECONDS=10
 INTEGRATION_TESTS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-SNAPSHOT_DIR="${INTEGRATION_TESTS_DIR}/snapshots/*"
+SNAPSHOTS_DIR_NAME="snapshots"
+SNAPSHOT_DIR="${INTEGRATION_TESTS_DIR}/${SNAPSHOTS_DIR_NAME}/*"
 SNAPS=($SNAPSHOT_DIR)
 ADDITIONAL_LAMBDA=false
-CACHE_TEST=true
+CACHE_TEST=false 
+DD_FETCH_LAMBDA_TAGS="false"
 
 script_start_time=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 echo "Starting script time: $script_start_time"
@@ -65,10 +67,10 @@ do
 		shift
 		;;
 
-		# -nc or --no-cache-test
-		# Do not run cache test
-		-nc|--no-cache-test)
-		CACHE_TEST=false
+		# -c or --cache-test
+		# Run cache test
+		-c|--cache-test)
+		CACHE_TEST=true
 		shift
 		;;
 	esac
@@ -89,6 +91,10 @@ if ! [ $SKIP_FORWARDER_BUILD == true ]; then
 fi
 
 if [ $CACHE_TEST == true ]; then
+
+	SNAPSHOTS_DIR_NAME="snapshots-cache-test"
+	DD_FETCH_LAMBDA_TAGS="true"
+
 	# Deploy test lambda functiion with tags
 	AWS_LAMBDA_FUNCTION_INVOKED="cache_test_lambda"
 	TEST_LAMBDA_DIR="$INTEGRATION_TESTS_DIR/$AWS_LAMBDA_FUNCTION_INVOKED"
@@ -153,6 +159,8 @@ PYTHON_RUNTIME=${PYTHON_VERSION} \
 EXTERNAL_LAMBDAS=${EXTERNAL_LAMBDAS} \
 DD_S3_BUCKET_NAME=${DD_S3_BUCKET_NAME} \
 AWS_ACCOUNT_ID=${AWS_ACCOUNT_ID} \
+SNAPSHOTS_DIR_NAME="./${SNAPSHOTS_DIR_NAME}" \
+DD_FETCH_LAMBDA_TAGS=${DD_FETCH_LAMBDA_TAGS} \
 docker-compose up --build --abort-on-container-exit
 
 if [ $ADDITIONAL_LAMBDA == true ]; then

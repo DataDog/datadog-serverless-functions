@@ -5,7 +5,7 @@ services:
     image: datadog-log-forwarder:${PYTHON_RUNTIME:-python3.7}
     command: lambda_function.lambda_handler
     environment:
-      AWS_ACCOUNT_ID: "${AWS_ACCOUNT_ID}"
+      AWS_ACCOUNT_ID: ${AWS_ACCOUNT_ID:-0000000000}
       AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID}"
       AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY}"
       AWS_SECURITY_TOKEN: "${AWS_SECURITY_TOKEN}"
@@ -25,7 +25,7 @@ services:
       DD_USE_COMPRESSION: "false"
       DD_ADDITIONAL_TARGET_LAMBDAS: "${EXTERNAL_LAMBDAS}"
       DD_S3_BUCKET_NAME: "${DD_S3_BUCKET_NAME}"
-      DD_FETCH_LAMBDA_TAGS: "true"
+      DD_FETCH_LAMBDA_TAGS: "${DD_FETCH_LAMBDA_TAGS}"
     expose:
       - 9001
 
@@ -41,11 +41,12 @@ services:
     build: tester
     command: python -m unittest discover
     volumes:
-      - ./snapshots:/snapshots
+      - ${SNAPSHOTS_DIR_NAME}:/snapshots
     environment:
       RECORDER_URL: http://recorder:8080/recording
       FORWARDER_URL: http://forwarder:9001/2015-03-31/functions/myfunction/invocations
       UPDATE_SNAPSHOTS: ${UPDATE_SNAPSHOTS:-false}
+      SNAPSHOTS_DIR_NAME: ${SNAPSHOTS_DIR_NAME}
 
     depends_on:
       - forwarder
