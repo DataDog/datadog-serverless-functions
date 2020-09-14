@@ -52,6 +52,11 @@ class TestForwarderSnapshots(unittest.TestCase):
             '"forwarder_version": "<redacted from snapshot>"',
             snapshot,
         )
+        snapshot = re.sub(
+            r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
+            "<redacted from snapshot>",
+            snapshot,
+        )
         # Metric points
         snapshot = re.sub(
             r"\"points\":.*?,(?=\s*\")",
