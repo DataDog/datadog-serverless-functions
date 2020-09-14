@@ -15,13 +15,13 @@
           },
           "ddsource": "lambda",
           "ddsourcecategory": "aws",
-          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,aws_cloudformation_logical-id:cacheunderscoretestunderscorelambdalambdafunction,aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/integration-tests-dev/863e6e10-f6c5-11ea-a8be-12b94cd95a93,aws_cloudformation_stack-name:integration-tests-dev,functionname:integration-tests-dev-cache_test_lambda,region:us-east-1,service:integration-tests-dev-cache_test_lambda,stage:dev,tag1:tag_value,tag2:tag2_value",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,aws_cloudformation_logical-id:cacheunderscoretestunderscorelambdalambdafunction,aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/integration-tests-dev/<redacted from snapshot>,aws_cloudformation_stack-name:integration-tests-dev,functionname:integration-tests-dev-cache_test_lambda,region:us-east-1,service:integration-tests-dev-cache_test_lambda,stage:dev,tag1:tag_value,tag2:tag2_value",
           "host": "arn:aws:lambda:us-east-1:601427279990:function:integration-tests-dev-cache_test_lambda",
           "id": "35486831490800643125153606102923171443962457178576257024",
           "lambda": {
             "arn": "arn:aws:lambda:us-east-1:601427279990:function:integration-tests-dev-cache_test_lambda"
           },
-          "message": "START RequestId: db275f87-a934-471a-8980-b63bf4dc1beb Version: $LATEST\\n",
+          "message": "START RequestId: <redacted from snapshot> Version: $LATEST\\n",
           "service": "integration-tests-dev-cache_test_lambda",
           "timestamp": 1591284559098
         },
@@ -37,13 +37,13 @@
           },
           "ddsource": "lambda",
           "ddsourcecategory": "aws",
-          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,aws_cloudformation_logical-id:cacheunderscoretestunderscorelambdalambdafunction,aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/integration-tests-dev/863e6e10-f6c5-11ea-a8be-12b94cd95a93,aws_cloudformation_stack-name:integration-tests-dev,functionname:integration-tests-dev-cache_test_lambda,region:us-east-1,service:integration-tests-dev-cache_test_lambda,stage:dev,tag1:tag_value,tag2:tag2_value",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,aws_cloudformation_logical-id:cacheunderscoretestunderscorelambdalambdafunction,aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/integration-tests-dev/<redacted from snapshot>,aws_cloudformation_stack-name:integration-tests-dev,functionname:integration-tests-dev-cache_test_lambda,region:us-east-1,service:integration-tests-dev-cache_test_lambda,stage:dev,tag1:tag_value,tag2:tag2_value",
           "host": "arn:aws:lambda:us-east-1:601427279990:function:integration-tests-dev-cache_test_lambda",
           "id": "35486831490867545360749197972347778598780402263094198273",
           "lambda": {
             "arn": "arn:aws:lambda:us-east-1:601427279990:function:integration-tests-dev-cache_test_lambda"
           },
-          "message": "END RequestId: db275f87-a934-471a-8980-b63bf4dc1beb\\n",
+          "message": "END RequestId: <redacted from snapshot>\\n",
           "service": "integration-tests-dev-cache_test_lambda",
           "timestamp": 1591284559101
         },
@@ -59,13 +59,13 @@
           },
           "ddsource": "lambda",
           "ddsourcecategory": "aws",
-          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,aws_cloudformation_logical-id:cacheunderscoretestunderscorelambdalambdafunction,aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/integration-tests-dev/863e6e10-f6c5-11ea-a8be-12b94cd95a93,aws_cloudformation_stack-name:integration-tests-dev,functionname:integration-tests-dev-cache_test_lambda,region:us-east-1,service:integration-tests-dev-cache_test_lambda,stage:dev,tag1:tag_value,tag2:tag2_value",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,aws_cloudformation_logical-id:cacheunderscoretestunderscorelambdalambdafunction,aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/integration-tests-dev/<redacted from snapshot>,aws_cloudformation_stack-name:integration-tests-dev,functionname:integration-tests-dev-cache_test_lambda,region:us-east-1,service:integration-tests-dev-cache_test_lambda,stage:dev,tag1:tag_value,tag2:tag2_value",
           "host": "arn:aws:lambda:us-east-1:601427279990:function:integration-tests-dev-cache_test_lambda",
           "id": "35486831490867545360749197972347778598780402263094198274",
           "lambda": {
             "arn": "arn:aws:lambda:us-east-1:601427279990:function:integration-tests-dev-cache_test_lambda"
           },
-          "message": "REPORT RequestId: db275f87-a934-471a-8980-b63bf4dc1beb\\tDuration: 1.76 ms\\tBilled Duration: 100 ms\\tMemory Size: 128 MB\\tMax Memory Used: 48 MB\\tInit Duration: 120.96 ms\\t\\n",
+          "message": "REPORT RequestId: <redacted from snapshot>\\tDuration: 1.76 ms\\tBilled Duration: 100 ms\\tMemory Size: 128 MB\\tMax Memory Used: 48 MB\\tInit Duration: 120.96 ms\\t\\n",
           "service": "integration-tests-dev-cache_test_lambda",
           "timestamp": 1591284559101
         }

@@ -15,13 +15,13 @@
           },
           "ddsource": "lambda",
           "ddsourcecategory": "aws",
-          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,aws_cloudformation_logical-id:hello12xlambdafunction,aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/11af7cc0-b926-11e9-be33-0aad5d963972,aws_cloudformation_stack-name:hello-dog-node-dev,functionname:hello-dog-node-dev-hello12x,region:us-east-1,service:hello-dog-node-dev-hello12x,stage:dev",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,aws_cloudformation_logical-id:hello12xlambdafunction,aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/<redacted from snapshot>,aws_cloudformation_stack-name:hello-dog-node-dev,functionname:hello-dog-node-dev-hello12x,region:us-east-1,service:hello-dog-node-dev-hello12x,stage:dev",
           "host": "arn:aws:lambda:us-east-1:601427279990:function:hello-dog-node-dev-hello12x",
           "id": "35311576111948622874033876462979853992919938886093242368",
           "lambda": {
             "arn": "arn:aws:lambda:us-east-1:601427279990:function:hello-dog-node-dev-hello12x"
           },
-          "message": "2020-03-05T16:30:36.113Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tDEBUG\t[dd.trace_id=3172564172058669914 dd.span_id=14292093692483532556] {\"status\":\"debug\",\"message\":\"datadog:Patched console output with trace context\"}\n",
+          "message": "2020-03-05T16:30:36.113Z\t<redacted from snapshot>\tDEBUG\t[dd.trace_id=3172564172058669914 dd.span_id=14292093692483532556] {\"status\":\"debug\",\"message\":\"datadog:Patched console output with trace context\"}\n",
           "service": "hello-dog-node-dev-hello12x",
           "timestamp": 1583425836114
         },
@@ -37,13 +37,13 @@
           },
           "ddsource": "lambda",
           "ddsourcecategory": "aws",
-          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,aws_cloudformation_logical-id:hello12xlambdafunction,aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/11af7cc0-b926-11e9-be33-0aad5d963972,aws_cloudformation_stack-name:hello-dog-node-dev,functionname:hello-dog-node-dev-hello12x,region:us-east-1,service:hello-dog-node-dev-hello12x,stage:dev",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,aws_cloudformation_logical-id:hello12xlambdafunction,aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/<redacted from snapshot>,aws_cloudformation_stack-name:hello-dog-node-dev,functionname:hello-dog-node-dev-hello12x,region:us-east-1,service:hello-dog-node-dev-hello12x,stage:dev",
           "host": "arn:aws:lambda:us-east-1:601427279990:function:hello-dog-node-dev-hello12x",
           "id": "35311576111948622874033876462979853992919938886093242369",
           "lambda": {
             "arn": "arn:aws:lambda:us-east-1:601427279990:function:hello-dog-node-dev-hello12x"
           },
-          "message": "2020-03-05T16:30:36.114Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tDEBUG\t[dd.trace_id=3172564172058669914 dd.span_id=14292093692483532556] {\"autoPatchHTTP\":true,\"tracerInitialized\":true,\"status\":\"debug\",\"message\":\"datadog:Not patching HTTP libraries\"}\n",
+          "message": "2020-03-05T16:30:36.114Z\t<redacted from snapshot>\tDEBUG\t[dd.trace_id=3172564172058669914 dd.span_id=14292093692483532556] {\"autoPatchHTTP\":true,\"tracerInitialized\":true,\"status\":\"debug\",\"message\":\"datadog:Not patching HTTP libraries\"}\n",
           "service": "hello-dog-node-dev-hello12x",
           "timestamp": 1583425836114
         },
@@ -59,13 +59,13 @@
           },
           "ddsource": "lambda",
           "ddsourcecategory": "aws",
-          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,aws_cloudformation_logical-id:hello12xlambdafunction,aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/11af7cc0-b926-11e9-be33-0aad5d963972,aws_cloudformation_stack-name:hello-dog-node-dev,functionname:hello-dog-node-dev-hello12x,region:us-east-1,service:hello-dog-node-dev-hello12x,stage:dev",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,aws_cloudformation_logical-id:hello12xlambdafunction,aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/<redacted from snapshot>,aws_cloudformation_stack-name:hello-dog-node-dev,functionname:hello-dog-node-dev-hello12x,region:us-east-1,service:hello-dog-node-dev-hello12x,stage:dev",
           "host": "arn:aws:lambda:us-east-1:601427279990:function:hello-dog-node-dev-hello12x",
           "id": "35311576111948622874033876462979853992919938886093242370",
           "lambda": {
             "arn": "arn:aws:lambda:us-east-1:601427279990:function:hello-dog-node-dev-hello12x"
           },
-          "message": "2020-03-05T16:30:36.114Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tDEBUG\t[dd.trace_id=3172564172058669914 dd.span_id=14292093692483532556] {\"status\":\"debug\",\"message\":\"datadog:Reading trace context from env var Root=1-5e61292c-cc1229a4dfbeae1043928548;Parent=c657b77d9514f70c;Sampled=1\"}\n",
+          "message": "2020-03-05T16:30:36.114Z\t<redacted from snapshot>\tDEBUG\t[dd.trace_id=3172564172058669914 dd.span_id=14292093692483532556] {\"status\":\"debug\",\"message\":\"datadog:Reading trace context from env var Root=1-5e61292c-cc1229a4dfbeae1043928548;Parent=c657b77d9514f70c;Sampled=1\"}\n",
           "service": "hello-dog-node-dev-hello12x",
           "timestamp": 1583425836114
         },
@@ -81,13 +81,13 @@
           },
           "ddsource": "lambda",
           "ddsourcecategory": "aws",
-          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,aws_cloudformation_logical-id:hello12xlambdafunction,aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/11af7cc0-b926-11e9-be33-0aad5d963972,aws_cloudformation_stack-name:hello-dog-node-dev,functionname:hello-dog-node-dev-hello12x,region:us-east-1,service:hello-dog-node-dev-hello12x,stage:dev",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,aws_cloudformation_logical-id:hello12xlambdafunction,aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/<redacted from snapshot>,aws_cloudformation_stack-name:hello-dog-node-dev,functionname:hello-dog-node-dev-hello12x,region:us-east-1,service:hello-dog-node-dev-hello12x,stage:dev",
           "host": "arn:aws:lambda:us-east-1:601427279990:function:hello-dog-node-dev-hello12x",
           "id": "35311576111948622874033876462979853992919938886093242371",
           "lambda": {
             "arn": "arn:aws:lambda:us-east-1:601427279990:function:hello-dog-node-dev-hello12x"
           },
-          "message": "2020-03-05T16:30:36.114Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tDEBUG\t[dd.trace_id=3172564172058669914 dd.span_id=14292093692483532556] {\"parentID\":\"14292093692483532556\",\"sampleMode\":2,\"source\":\"xray\",\"traceID\":\"6899143064054564168\",\"status\":\"debug\",\"message\":\"datadog:read trace context from environment\"}\n",
+          "message": "2020-03-05T16:30:36.114Z\t<redacted from snapshot>\tDEBUG\t[dd.trace_id=3172564172058669914 dd.span_id=14292093692483532556] {\"parentID\":\"14292093692483532556\",\"sampleMode\":2,\"source\":\"xray\",\"traceID\":\"6899143064054564168\",\"status\":\"debug\",\"message\":\"datadog:read trace context from environment\"}\n",
           "service": "hello-dog-node-dev-hello12x",
           "timestamp": 1583425836114
         },
@@ -103,13 +103,13 @@
           },
           "ddsource": "lambda",
           "ddsourcecategory": "aws",
-          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,aws_cloudformation_logical-id:hello12xlambdafunction,aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/11af7cc0-b926-11e9-be33-0aad5d963972,aws_cloudformation_stack-name:hello-dog-node-dev,functionname:hello-dog-node-dev-hello12x,region:us-east-1,service:hello-dog-node-dev-hello12x,stage:dev",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,aws_cloudformation_logical-id:hello12xlambdafunction,aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/<redacted from snapshot>,aws_cloudformation_stack-name:hello-dog-node-dev,functionname:hello-dog-node-dev-hello12x,region:us-east-1,service:hello-dog-node-dev-hello12x,stage:dev",
           "host": "arn:aws:lambda:us-east-1:601427279990:function:hello-dog-node-dev-hello12x",
           "id": "35311576112305434797210366433244425485282312670188929029",
           "lambda": {
             "arn": "arn:aws:lambda:us-east-1:601427279990:function:hello-dog-node-dev-hello12x"
           },
-          "message": "2020-03-05T16:30:36.130Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tDEBUG\t[dd.trace_id=6899143064054564168 dd.span_id=14292093692483532556] {\"status\":\"debug\",\"message\":\"datadog:set trace context from xray with parent 14292093692483532556 from segment\"}\n",
+          "message": "2020-03-05T16:30:36.130Z\t<redacted from snapshot>\tDEBUG\t[dd.trace_id=6899143064054564168 dd.span_id=14292093692483532556] {\"status\":\"debug\",\"message\":\"datadog:set trace context from xray with parent 14292093692483532556 from segment\"}\n",
           "service": "hello-dog-node-dev-hello12x",
           "timestamp": 1583425836130
         },
@@ -125,13 +125,13 @@
           },
           "ddsource": "lambda",
           "ddsourcecategory": "aws",
-          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,aws_cloudformation_logical-id:hello12xlambdafunction,aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/11af7cc0-b926-11e9-be33-0aad5d963972,aws_cloudformation_stack-name:hello-dog-node-dev,functionname:hello-dog-node-dev-hello12x,region:us-east-1,service:hello-dog-node-dev-hello12x,stage:dev",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,aws_cloudformation_logical-id:hello12xlambdafunction,aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/<redacted from snapshot>,aws_cloudformation_stack-name:hello-dog-node-dev,functionname:hello-dog-node-dev-hello12x,region:us-east-1,service:hello-dog-node-dev-hello12x,stage:dev",
           "host": "arn:aws:lambda:us-east-1:601427279990:function:hello-dog-node-dev-hello12x",
           "id": "35311576113197464605151591358905854216188247130428145670",
           "lambda": {
             "arn": "arn:aws:lambda:us-east-1:601427279990:function:hello-dog-node-dev-hello12x"
           },
-          "message": "2020-03-05T16:30:36.131Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tDEBUG\t[dd.trace_id=6899143064054564168 dd.span_id=14292093692483532556] {\"status\":\"debug\",\"message\":\"datadog:set trace context from xray with parent 14292093692483532556 from segment\"}\n",
+          "message": "2020-03-05T16:30:36.131Z\t<redacted from snapshot>\tDEBUG\t[dd.trace_id=6899143064054564168 dd.span_id=14292093692483532556] {\"status\":\"debug\",\"message\":\"datadog:set trace context from xray with parent 14292093692483532556 from segment\"}\n",
           "service": "hello-dog-node-dev-hello12x",
           "timestamp": 1583425836170
         },
@@ -147,13 +147,13 @@
           },
           "ddsource": "lambda",
           "ddsourcecategory": "aws",
-          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,aws_cloudformation_logical-id:hello12xlambdafunction,aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/11af7cc0-b926-11e9-be33-0aad5d963972,aws_cloudformation_stack-name:hello-dog-node-dev,functionname:hello-dog-node-dev-hello12x,region:us-east-1,service:hello-dog-node-dev-hello12x,stage:dev",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,aws_cloudformation_logical-id:hello12xlambdafunction,aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/<redacted from snapshot>,aws_cloudformation_stack-name:hello-dog-node-dev,functionname:hello-dog-node-dev-hello12x,region:us-east-1,service:hello-dog-node-dev-hello12x,stage:dev",
           "host": "arn:aws:lambda:us-east-1:601427279990:function:hello-dog-node-dev-hello12x",
           "id": "35311576113197464605151591358905854216188247130428145671",
           "lambda": {
             "arn": "arn:aws:lambda:us-east-1:601427279990:function:hello-dog-node-dev-hello12x"
           },
-          "message": "2020-03-05T16:30:36.131Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tDEBUG\t[dd.trace_id=6899143064054564168 dd.span_id=14292093692483532556] {\"status\":\"debug\",\"message\":\"datadog:set trace context from xray with parent 14292093692483532556 from segment\"}\n",
+          "message": "2020-03-05T16:30:36.131Z\t<redacted from snapshot>\tDEBUG\t[dd.trace_id=6899143064054564168 dd.span_id=14292093692483532556] {\"status\":\"debug\",\"message\":\"datadog:set trace context from xray with parent 14292093692483532556 from segment\"}\n",
           "service": "hello-dog-node-dev-hello12x",
           "timestamp": 1583425836170
         },
@@ -169,13 +169,13 @@
           },
           "ddsource": "lambda",
           "ddsourcecategory": "aws",
-          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,aws_cloudformation_logical-id:hello12xlambdafunction,aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/11af7cc0-b926-11e9-be33-0aad5d963972,aws_cloudformation_stack-name:hello-dog-node-dev,functionname:hello-dog-node-dev-hello12x,region:us-east-1,service:hello-dog-node-dev-hello12x,stage:dev",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,aws_cloudformation_logical-id:hello12xlambdafunction,aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/<redacted from snapshot>,aws_cloudformation_stack-name:hello-dog-node-dev,functionname:hello-dog-node-dev-hello12x,region:us-east-1,service:hello-dog-node-dev-hello12x,stage:dev",
           "host": "arn:aws:lambda:us-east-1:601427279990:function:hello-dog-node-dev-hello12x",
           "id": "35311576113197464605151591358905854216188247130428145672",
           "lambda": {
             "arn": "arn:aws:lambda:us-east-1:601427279990:function:hello-dog-node-dev-hello12x"
           },
-          "message": "2020-03-05T16:30:36.131Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tDEBUG\t[dd.trace_id=6899143064054564168 dd.span_id=14292093692483532556] {\"status\":\"debug\",\"message\":\"datadog:set trace context from xray with parent 14292093692483532556 from segment\"}\n",
+          "message": "2020-03-05T16:30:36.131Z\t<redacted from snapshot>\tDEBUG\t[dd.trace_id=6899143064054564168 dd.span_id=14292093692483532556] {\"status\":\"debug\",\"message\":\"datadog:set trace context from xray with parent 14292093692483532556 from segment\"}\n",
           "service": "hello-dog-node-dev-hello12x",
           "timestamp": 1583425836170
         },
@@ -191,13 +191,13 @@
           },
           "ddsource": "lambda",
           "ddsourcecategory": "aws",
-          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,aws_cloudformation_logical-id:hello12xlambdafunction,aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/11af7cc0-b926-11e9-be33-0aad5d963972,aws_cloudformation_stack-name:hello-dog-node-dev,functionname:hello-dog-node-dev-hello12x,region:us-east-1,service:hello-dog-node-dev-hello12x,stage:dev",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,aws_cloudformation_logical-id:hello12xlambdafunction,aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/<redacted from snapshot>,aws_cloudformation_stack-name:hello-dog-node-dev,functionname:hello-dog-node-dev-hello12x,region:us-east-1,service:hello-dog-node-dev-hello12x,stage:dev",
           "host": "arn:aws:lambda:us-east-1:601427279990:function:hello-dog-node-dev-hello12x",
           "id": "35311576113197464605151591358905854216188247130428145673",
           "lambda": {
             "arn": "arn:aws:lambda:us-east-1:601427279990:function:hello-dog-node-dev-hello12x"
           },
-          "message": "2020-03-05T16:30:36.131Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tDEBUG\t[dd.trace_id=6899143064054564168 dd.span_id=14292093692483532556] {\"status\":\"debug\",\"message\":\"datadog:Attempting to find parent for datadog trace trace\"}\n",
+          "message": "2020-03-05T16:30:36.131Z\t<redacted from snapshot>\tDEBUG\t[dd.trace_id=6899143064054564168 dd.span_id=14292093692483532556] {\"status\":\"debug\",\"message\":\"datadog:Attempting to find parent for datadog trace trace\"}\n",
           "service": "hello-dog-node-dev-hello12x",
           "timestamp": 1583425836170
         },
@@ -213,13 +213,13 @@
           },
           "ddsource": "lambda",
           "ddsourcecategory": "aws",
-          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,aws_cloudformation_logical-id:hello12xlambdafunction,aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/11af7cc0-b926-11e9-be33-0aad5d963972,aws_cloudformation_stack-name:hello-dog-node-dev,functionname:hello-dog-node-dev-hello12x,region:us-east-1,service:hello-dog-node-dev-hello12x,stage:dev",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,aws_cloudformation_logical-id:hello12xlambdafunction,aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/<redacted from snapshot>,aws_cloudformation_stack-name:hello-dog-node-dev,functionname:hello-dog-node-dev-hello12x,region:us-east-1,service:hello-dog-node-dev-hello12x,stage:dev",
           "host": "arn:aws:lambda:us-east-1:601427279990:function:hello-dog-node-dev-hello12x",
           "id": "35311576113197464605151591358905854216188247130428145674",
           "lambda": {
             "arn": "arn:aws:lambda:us-east-1:601427279990:function:hello-dog-node-dev-hello12x"
           },
-          "message": "2020-03-05T16:30:36.131Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tDEBUG\t[dd.trace_id=6899143064054564168 dd.span_id=14292093692483532556] {\"status\":\"debug\",\"message\":\"datadog:Applying lambda context to datadog traces\"}\n",
+          "message": "2020-03-05T16:30:36.131Z\t<redacted from snapshot>\tDEBUG\t[dd.trace_id=6899143064054564168 dd.span_id=14292093692483532556] {\"status\":\"debug\",\"message\":\"datadog:Applying lambda context to datadog traces\"}\n",
           "service": "hello-dog-node-dev-hello12x",
           "timestamp": 1583425836170
         },
@@ -235,13 +235,13 @@
           },
           "ddsource": "lambda",
           "ddsourcecategory": "aws",
-          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,aws_cloudformation_logical-id:hello12xlambdafunction,aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/11af7cc0-b926-11e9-be33-0aad5d963972,aws_cloudformation_stack-name:hello-dog-node-dev,functionname:hello-dog-node-dev-hello12x,region:us-east-1,service:hello-dog-node-dev-hello12x,stage:dev",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,aws_cloudformation_logical-id:hello12xlambdafunction,aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/<redacted from snapshot>,aws_cloudformation_stack-name:hello-dog-node-dev,functionname:hello-dog-node-dev-hello12x,region:us-east-1,service:hello-dog-node-dev-hello12x,stage:dev",
           "host": "arn:aws:lambda:us-east-1:601427279990:function:hello-dog-node-dev-hello12x",
           "id": "35311576113643479509122203821736568581641214360547753995",
           "lambda": {
             "arn": "arn:aws:lambda:us-east-1:601427279990:function:hello-dog-node-dev-hello12x"
           },
-          "message": "2020-03-05T16:30:36.172Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tINFO\t[dd.trace_id=6899143064054564168 dd.span_id=2927617725217152879] Request Headers undefined\n",
+          "message": "2020-03-05T16:30:36.172Z\t<redacted from snapshot>\tINFO\t[dd.trace_id=6899143064054564168 dd.span_id=2927617725217152879] Request Headers undefined\n",
           "service": "hello-dog-node-dev-hello12x",
           "timestamp": 1583425836190
         },
@@ -257,13 +257,13 @@
           },
           "ddsource": "lambda",
           "ddsourcecategory": "aws",
-          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,aws_cloudformation_logical-id:hello12xlambdafunction,aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/11af7cc0-b926-11e9-be33-0aad5d963972,aws_cloudformation_stack-name:hello-dog-node-dev,functionname:hello-dog-node-dev-hello12x,region:us-east-1,service:hello-dog-node-dev-hello12x,stage:dev",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,aws_cloudformation_logical-id:hello12xlambdafunction,aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/<redacted from snapshot>,aws_cloudformation_stack-name:hello-dog-node-dev,functionname:hello-dog-node-dev-hello12x,region:us-east-1,service:hello-dog-node-dev-hello12x,stage:dev",
           "host": "arn:aws:lambda:us-east-1:601427279990:function:hello-dog-node-dev-hello12x",
           "id": "35311576113643479509122203821736568581641214360547753996",
           "lambda": {
             "arn": "arn:aws:lambda:us-east-1:601427279990:function:hello-dog-node-dev-hello12x"
           },
-          "message": "2020-03-05T16:30:36.172Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tINFO\t[dd.trace_id=6899143064054564168 dd.span_id=2927617725217152879] Root=1-5e61292c-cc1229a4dfbeae1043928548;Parent=c657b77d9514f70c;Sampled=1\n",
+          "message": "2020-03-05T16:30:36.172Z\t<redacted from snapshot>\tINFO\t[dd.trace_id=6899143064054564168 dd.span_id=2927617725217152879] Root=1-5e61292c-cc1229a4dfbeae1043928548;Parent=c657b77d9514f70c;Sampled=1\n",
           "service": "hello-dog-node-dev-hello12x",
           "timestamp": 1583425836190
         },
@@ -279,13 +279,13 @@
           },
           "ddsource": "lambda",
           "ddsourcecategory": "aws",
-          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,aws_cloudformation_logical-id:hello12xlambdafunction,aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/11af7cc0-b926-11e9-be33-0aad5d963972,aws_cloudformation_stack-name:hello-dog-node-dev,functionname:hello-dog-node-dev-hello12x,region:us-east-1,service:hello-dog-node-dev-hello12x,stage:dev",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,aws_cloudformation_logical-id:hello12xlambdafunction,aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/<redacted from snapshot>,aws_cloudformation_stack-name:hello-dog-node-dev,functionname:hello-dog-node-dev-hello12x,region:us-east-1,service:hello-dog-node-dev-hello12x,stage:dev",
           "host": "arn:aws:lambda:us-east-1:601427279990:function:hello-dog-node-dev-hello12x",
           "id": "35311576123455807396475678004012284621606493423179137038",
           "lambda": {
             "arn": "arn:aws:lambda:us-east-1:601427279990:function:hello-dog-node-dev-hello12x"
           },
-          "message": "2020-03-05T16:30:36.592Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tINFO\t[dd.trace_id=6899143064054564168 dd.span_id=3694123456155101779] 8103.047457805628\n",
+          "message": "2020-03-05T16:30:36.592Z\t<redacted from snapshot>\tINFO\t[dd.trace_id=6899143064054564168 dd.span_id=3694123456155101779] 8103.047457805628\n",
           "service": "hello-dog-node-dev-hello12x",
           "timestamp": 1583425836630
         },
@@ -301,13 +301,13 @@
           },
           "ddsource": "lambda",
           "ddsourcecategory": "aws",
-          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,aws_cloudformation_logical-id:hello12xlambdafunction,aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/11af7cc0-b926-11e9-be33-0aad5d963972,aws_cloudformation_stack-name:hello-dog-node-dev,functionname:hello-dog-node-dev-hello12x,region:us-east-1,service:hello-dog-node-dev-hello12x,stage:dev",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,aws_cloudformation_logical-id:hello12xlambdafunction,aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/<redacted from snapshot>,aws_cloudformation_stack-name:hello-dog-node-dev,functionname:hello-dog-node-dev-hello12x,region:us-east-1,service:hello-dog-node-dev-hello12x,stage:dev",
           "host": "arn:aws:lambda:us-east-1:601427279990:function:hello-dog-node-dev-hello12x",
           "id": "35311576123478108141674208627153820339879141784685117455",
           "lambda": {
             "arn": "arn:aws:lambda:us-east-1:601427279990:function:hello-dog-node-dev-hello12x"
           },
-          "message": "2020-03-05T16:30:36.631Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tINFO\t[dd.trace_id=6899143064054564168 dd.span_id=2927617725217152879] Finishing Span\n",
+          "message": "2020-03-05T16:30:36.631Z\t<redacted from snapshot>\tINFO\t[dd.trace_id=6899143064054564168 dd.span_id=2927617725217152879] Finishing Span\n",
           "service": "hello-dog-node-dev-hello12x",
           "timestamp": 1583425836631
         },
@@ -323,13 +323,13 @@
           },
           "ddsource": "lambda",
           "ddsourcecategory": "aws",
-          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,aws_cloudformation_logical-id:hello12xlambdafunction,aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/11af7cc0-b926-11e9-be33-0aad5d963972,aws_cloudformation_stack-name:hello-dog-node-dev,functionname:hello-dog-node-dev-hello12x,region:us-east-1,service:hello-dog-node-dev-hello12x,stage:dev",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,aws_cloudformation_logical-id:hello12xlambdafunction,aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/<redacted from snapshot>,aws_cloudformation_stack-name:hello-dog-node-dev,functionname:hello-dog-node-dev-hello12x,region:us-east-1,service:hello-dog-node-dev-hello12x,stage:dev",
           "host": "arn:aws:lambda:us-east-1:601427279990:function:hello-dog-node-dev-hello12x",
           "id": "35311576126131896820299352780996570814324296803896786961",
           "lambda": {
             "arn": "arn:aws:lambda:us-east-1:601427279990:function:hello-dog-node-dev-hello12x"
           },
-          "message": "END RequestId: f08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\n",
+          "message": "END RequestId: <redacted from snapshot>\n",
           "service": "hello-dog-node-dev-hello12x",
           "timestamp": 1583425836750
         },
@@ -345,13 +345,13 @@
           },
           "ddsource": "lambda",
           "ddsourcecategory": "aws",
-          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,aws_cloudformation_logical-id:hello12xlambdafunction,aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/11af7cc0-b926-11e9-be33-0aad5d963972,aws_cloudformation_stack-name:hello-dog-node-dev,functionname:hello-dog-node-dev-hello12x,region:us-east-1,service:hello-dog-node-dev-hello12x,stage:dev",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,aws_cloudformation_logical-id:hello12xlambdafunction,aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/<redacted from snapshot>,aws_cloudformation_stack-name:hello-dog-node-dev,functionname:hello-dog-node-dev-hello12x,region:us-east-1,service:hello-dog-node-dev-hello12x,stage:dev",
           "host": "arn:aws:lambda:us-east-1:601427279990:function:hello-dog-node-dev-hello12x",
           "id": "35311576126131896820299352780996570814324296803896786962",
           "lambda": {
             "arn": "arn:aws:lambda:us-east-1:601427279990:function:hello-dog-node-dev-hello12x"
           },
-          "message": "REPORT RequestId: f08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tDuration: 619.31 ms\tBilled Duration: 700 ms\tMemory Size: 128 MB\tMax Memory Used: 118 MB\t\nXRAY TraceId: 1-5e61292c-cc1229a4dfbeae1043928548\tSegmentId: 07a85e713f6302b2\tSampled: true\t\n",
+          "message": "REPORT RequestId: <redacted from snapshot>\tDuration: 619.31 ms\tBilled Duration: 700 ms\tMemory Size: 128 MB\tMax Memory Used: 118 MB\t\nXRAY TraceId: 1-5e61292c-cc1229a4dfbeae1043928548\tSegmentId: 07a85e713f6302b2\tSampled: true\t\n",
           "service": "hello-dog-node-dev-hello12x",
           "timestamp": 1583425836750
         }
@@ -373,7 +373,7 @@
                   "account_id": "601427279990",
                   "aws_account": "601427279990",
                   "aws_cloudformation_logical-id": "hello12xlambdafunction",
-                  "aws_cloudformation_stack-id": "arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/11af7cc0-b926-11e9-be33-0aad5d963972",
+                  "aws_cloudformation_stack-id": "arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/<redacted from snapshot>",
                   "aws_cloudformation_stack-name": "hello-dog-node-dev",
                   "forwarder_memorysize": "1536",
                   "forwarder_version": "<redacted from snapshot>",
@@ -402,7 +402,7 @@
                   "account_id": "601427279990",
                   "aws_account": "601427279990",
                   "aws_cloudformation_logical-id": "hello12xlambdafunction",
-                  "aws_cloudformation_stack-id": "arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/11af7cc0-b926-11e9-be33-0aad5d963972",
+                  "aws_cloudformation_stack-id": "arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/<redacted from snapshot>",
                   "aws_cloudformation_stack-name": "hello-dog-node-dev",
                   "forwarder_memorysize": "1536",
                   "forwarder_version": "<redacted from snapshot>",
@@ -431,7 +431,7 @@
                   "account_id": "601427279990",
                   "aws_account": "601427279990",
                   "aws_cloudformation_logical-id": "hello12xlambdafunction",
-                  "aws_cloudformation_stack-id": "arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/11af7cc0-b926-11e9-be33-0aad5d963972",
+                  "aws_cloudformation_stack-id": "arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/<redacted from snapshot>",
                   "aws_cloudformation_stack-name": "hello-dog-node-dev",
                   "forwarder_memorysize": "1536",
                   "forwarder_version": "<redacted from snapshot>",
@@ -460,7 +460,7 @@
                   "account_id": "601427279990",
                   "aws_account": "601427279990",
                   "aws_cloudformation_logical-id": "hello12xlambdafunction",
-                  "aws_cloudformation_stack-id": "arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/11af7cc0-b926-11e9-be33-0aad5d963972",
+                  "aws_cloudformation_stack-id": "arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/<redacted from snapshot>",
                   "aws_cloudformation_stack-name": "hello-dog-node-dev",
                   "forwarder_memorysize": "1536",
                   "forwarder_version": "<redacted from snapshot>",
@@ -489,7 +489,7 @@
                   "account_id": "601427279990",
                   "aws_account": "601427279990",
                   "aws_cloudformation_logical-id": "hello12xlambdafunction",
-                  "aws_cloudformation_stack-id": "arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/11af7cc0-b926-11e9-be33-0aad5d963972",
+                  "aws_cloudformation_stack-id": "arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/<redacted from snapshot>",
                   "aws_cloudformation_stack-name": "hello-dog-node-dev",
                   "forwarder_memorysize": "1536",
                   "forwarder_version": "<redacted from snapshot>",
@@ -518,7 +518,7 @@
                   "account_id": "601427279990",
                   "aws_account": "601427279990",
                   "aws_cloudformation_logical-id": "hello12xlambdafunction",
-                  "aws_cloudformation_stack-id": "arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/11af7cc0-b926-11e9-be33-0aad5d963972",
+                  "aws_cloudformation_stack-id": "arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/<redacted from snapshot>",
                   "aws_cloudformation_stack-name": "hello-dog-node-dev",
                   "forwarder_memorysize": "1536",
                   "forwarder_version": "<redacted from snapshot>",
@@ -547,7 +547,7 @@
                   "account_id": "601427279990",
                   "aws_account": "601427279990",
                   "aws_cloudformation_logical-id": "hello12xlambdafunction",
-                  "aws_cloudformation_stack-id": "arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/11af7cc0-b926-11e9-be33-0aad5d963972",
+                  "aws_cloudformation_stack-id": "arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/<redacted from snapshot>",
                   "aws_cloudformation_stack-name": "hello-dog-node-dev",
                   "dns.address": "0.0.0.0",
                   "dns.hostname": "0.0.0.0",
@@ -579,7 +579,7 @@
                   "account_id": "601427279990",
                   "aws_account": "601427279990",
                   "aws_cloudformation_logical-id": "hello12xlambdafunction",
-                  "aws_cloudformation_stack-id": "arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/11af7cc0-b926-11e9-be33-0aad5d963972",
+                  "aws_cloudformation_stack-id": "arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/<redacted from snapshot>",
                   "aws_cloudformation_stack-name": "hello-dog-node-dev",
                   "dns.address": "169.254.79.2",
                   "dns.hostname": "169.254.79.2",
@@ -611,7 +611,7 @@
                   "account_id": "601427279990",
                   "aws_account": "601427279990",
                   "aws_cloudformation_logical-id": "hello12xlambdafunction",
-                  "aws_cloudformation_stack-id": "arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/11af7cc0-b926-11e9-be33-0aad5d963972",
+                  "aws_cloudformation_stack-id": "arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/<redacted from snapshot>",
                   "aws_cloudformation_stack-name": "hello-dog-node-dev",
                   "dns.address": "172.217.15.68",
                   "dns.hostname": "www.google.com",
@@ -643,7 +643,7 @@
                   "account_id": "601427279990",
                   "aws_account": "601427279990",
                   "aws_cloudformation_logical-id": "hello12xlambdafunction",
-                  "aws_cloudformation_stack-id": "arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/11af7cc0-b926-11e9-be33-0aad5d963972",
+                  "aws_cloudformation_stack-id": "arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/<redacted from snapshot>",
                   "aws_cloudformation_stack-name": "hello-dog-node-dev",
                   "forwarder_memorysize": "1536",
                   "forwarder_version": "<redacted from snapshot>",
@@ -683,7 +683,7 @@
                   "account_id": "601427279990",
                   "aws_account": "601427279990",
                   "aws_cloudformation_logical-id": "hello12xlambdafunction",
-                  "aws_cloudformation_stack-id": "arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/11af7cc0-b926-11e9-be33-0aad5d963972",
+                  "aws_cloudformation_stack-id": "arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/<redacted from snapshot>",
                   "aws_cloudformation_stack-name": "hello-dog-node-dev",
                   "forwarder_memorysize": "1536",
                   "forwarder_version": "<redacted from snapshot>",
@@ -722,7 +722,7 @@
                   "account_id": "601427279990",
                   "aws_account": "601427279990",
                   "aws_cloudformation_logical-id": "hello12xlambdafunction",
-                  "aws_cloudformation_stack-id": "arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/11af7cc0-b926-11e9-be33-0aad5d963972",
+                  "aws_cloudformation_stack-id": "arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/<redacted from snapshot>",
                   "aws_cloudformation_stack-name": "hello-dog-node-dev",
                   "cold_start": "false",
                   "forwarder_memorysize": "1536",
@@ -732,7 +732,7 @@
                   "functionname": "hello-dog-node-dev-hello12x",
                   "language": "javascript",
                   "region": "us-east-1",
-                  "request_id": "f08bb4c8-d6b2-4f05-ac17-af7e2ba005fb",
+                  "request_id": "<redacted from snapshot>",
                   "resource_names": "hello-dog-node-dev-hello12x",
                   "stage": "dev"
                 },
@@ -850,7 +850,7 @@
               "account_id:601427279990",
               "aws_account:601427279990",
               "aws_cloudformation_logical-id:hello12xlambdafunction",
-              "aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/11af7cc0-b926-11e9-be33-0aad5d963972",
+              "aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/<redacted from snapshot>",
               "aws_cloudformation_stack-name:hello-dog-node-dev",
               "functionname:hello-dog-node-dev-hello12x",
               "region:us-east-1",
@@ -874,7 +874,7 @@
               "account_id:601427279990",
               "aws_account:601427279990",
               "aws_cloudformation_logical-id:hello12xlambdafunction",
-              "aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/11af7cc0-b926-11e9-be33-0aad5d963972",
+              "aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/<redacted from snapshot>",
               "aws_cloudformation_stack-name:hello-dog-node-dev",
               "functionname:hello-dog-node-dev-hello12x",
               "region:us-east-1",
@@ -898,7 +898,7 @@
               "functionname:hello-dog-node-dev-hello12x",
               "stage:dev",
               "aws_cloudformation_logical-id:hello12xlambdafunction",
-              "aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/11af7cc0-b926-11e9-be33-0aad5d963972",
+              "aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/<redacted from snapshot>",
               "aws_cloudformation_stack-name:hello-dog-node-dev"
             ],
             "type": "distribution"
@@ -918,7 +918,7 @@
               "functionname:hello-dog-node-dev-hello12x",
               "stage:dev",
               "aws_cloudformation_logical-id:hello12xlambdafunction",
-              "aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/11af7cc0-b926-11e9-be33-0aad5d963972",
+              "aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/<redacted from snapshot>",
               "aws_cloudformation_stack-name:hello-dog-node-dev"
             ],
             "type": "distribution"
@@ -938,7 +938,7 @@
               "functionname:hello-dog-node-dev-hello12x",
               "stage:dev",
               "aws_cloudformation_logical-id:hello12xlambdafunction",
-              "aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/11af7cc0-b926-11e9-be33-0aad5d963972",
+              "aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/<redacted from snapshot>",
               "aws_cloudformation_stack-name:hello-dog-node-dev"
             ],
             "type": "distribution"
@@ -958,7 +958,7 @@
               "functionname:hello-dog-node-dev-hello12x",
               "stage:dev",
               "aws_cloudformation_logical-id:hello12xlambdafunction",
-              "aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/11af7cc0-b926-11e9-be33-0aad5d963972",
+              "aws_cloudformation_stack-id:arn:aws:cloudformation:us-east-1:601427279990:stack/hello-dog-node-dev/<redacted from snapshot>",
               "aws_cloudformation_stack-name:hello-dog-node-dev"
             ],
             "type": "distribution"
