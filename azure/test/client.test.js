@@ -196,7 +196,6 @@ describe('Azure Log Monitoring', function() {
 
     function testHandleStringLogs(forwarder, logs, expected) {
         forwarder.handleLogs(logs);
-
         expected.forEach(message => {
             sinon.assert.calledWith(forwarder.addTagsToStringLog, message);
         });
@@ -208,125 +207,125 @@ describe('Azure Log Monitoring', function() {
         });
 
         it('should handle string properly', function() {
-            records = 'hello';
+            log = 'hello';
             expected = ['hello'];
             assert.equal(
-                this.forwarder.getLogFormat(records),
+                this.forwarder.getLogFormat(log),
                 constants.STRING
             );
-            testHandleStringLogs(this.forwarder, records, expected);
+            testHandleStringLogs(this.forwarder, log, expected);
         });
 
         it('should handle json-string properly', function() {
-            records = '{"hello": "there"}';
+            log = '{"hello": "there"}';
             expected = [{ hello: 'there' }];
             assert.equal(
-                this.forwarder.getLogFormat(records),
+                this.forwarder.getLogFormat(log),
                 constants.JSON_STRING
             );
-            testHandleJSONLogs(this.forwarder, records, expected);
+            testHandleJSONLogs(this.forwarder, log, expected);
         });
 
         it('should handle json-object properly', function() {
-            records = { hello: 'there' };
+            log = { hello: 'there' };
             expected = [{ hello: 'there' }];
             assert.equal(
-                this.forwarder.getLogFormat(records),
+                this.forwarder.getLogFormat(log),
                 constants.JSON_OBJECT
             );
-            testHandleJSONLogs(this.forwarder, records, expected);
+            testHandleJSONLogs(this.forwarder, log, expected);
         });
 
         it('should handle string-array properly', function() {
-            records = ['one message', 'two message'];
+            log = ['one message', 'two message'];
             expected = ['one message', 'two message'];
             assert.equal(
-                this.forwarder.getLogFormat(records),
+                this.forwarder.getLogFormat(log),
                 constants.STRING_ARRAY
             );
-            testHandleStringLogs(this.forwarder, records, expected);
+            testHandleStringLogs(this.forwarder, log, expected);
         });
 
         it('should handle json-records properly', function() {
-            records = [{ records: [{ hello: 'there' }, { goodbye: 'now' }] }];
+            log = [{ records: [{ hello: 'there' }, { goodbye: 'now' }] }];
             expected = [{ hello: 'there' }, { goodbye: 'now' }];
             assert.equal(
-                this.forwarder.getLogFormat(records),
+                this.forwarder.getLogFormat(log),
                 constants.JSON_ARRAY
             ); //JSON_RECORDS
-            testHandleJSONLogs(this.forwarder, records, expected);
+            testHandleJSONLogs(this.forwarder, log, expected);
         });
 
         it('should handle json-array properly', function() {
-            records = [{ hello: 'there' }, { goodbye: 'now' }];
+            log = [{ hello: 'there' }, { goodbye: 'now' }];
             expected = [{ hello: 'there' }, { goodbye: 'now' }];
             assert.equal(
-                this.forwarder.getLogFormat(records),
+                this.forwarder.getLogFormat(log),
                 constants.JSON_ARRAY
             );
-            testHandleJSONLogs(this.forwarder, records, expected);
+            testHandleJSONLogs(this.forwarder, log, expected);
         });
 
         it('should handle buffer array properly', function() {
-            records = [Buffer.from('{"records": [{ "test": "testing"}]}')];
+            log = [Buffer.from('{"records": [{ "test": "testing"}]}')];
             expected = [{ test: 'testing' }];
             assert.equal(
-                this.forwarder.getLogFormat(records),
+                this.forwarder.getLogFormat(log),
                 constants.BUFFER_ARRAY
             );
-            testHandleJSONLogs(this.forwarder, records, expected);
+            testHandleJSONLogs(this.forwarder, log, expected);
         });
 
         it('should handle buffer array without records properly', function() {
-            records = [Buffer.from('{ "test": "example"}')];
+            log = [Buffer.from('{ "test": "example"}')];
             expected = [{ test: 'example' }];
             assert.equal(
-                this.forwarder.getLogFormat(records),
+                this.forwarder.getLogFormat(log),
                 constants.BUFFER_ARRAY
             );
-            testHandleJSONLogs(this.forwarder, records, expected);
+            testHandleJSONLogs(this.forwarder, log, expected);
         });
 
         it('should handle buffer array with malformed string', function() {
-            records = [Buffer.from('{"time": "xy')];
+            log = [Buffer.from('{"time": "xy')];
             expected = ['{"time": "xy'];
             assert.equal(
-                this.forwarder.getLogFormat(records),
+                this.forwarder.getLogFormat(log),
                 constants.BUFFER_ARRAY
             );
-            testHandleStringLogs(this.forwarder, records, expected);
+            testHandleStringLogs(this.forwarder, log, expected);
         });
 
         it('should handle json-string-array properly records', function() {
-            records = ['{"records": [{ "time": "xyz"}, {"time": "abc"}]}'];
+            log = ['{"records": [{ "time": "xyz"}, {"time": "abc"}]}'];
             expected = [{ time: 'xyz' }];
             assert.equal(
-                this.forwarder.getLogFormat(records),
+                this.forwarder.getLogFormat(log),
                 constants.JSON_STRING_ARRAY
             );
-            testHandleJSONLogs(this.forwarder, records, expected);
+            testHandleJSONLogs(this.forwarder, log, expected);
         });
 
         it('should handle json-string-array properly no records', function() {
-            records = ['{"time": "xyz"}'];
+            log = ['{"time": "xyz"}'];
             expected = [{ time: 'xyz' }];
             assert.equal(
-                this.forwarder.getLogFormat(records),
+                this.forwarder.getLogFormat(log),
                 constants.JSON_STRING_ARRAY
             );
-            testHandleJSONLogs(this.forwarder, records, expected);
+            testHandleJSONLogs(this.forwarder, log, expected);
         });
 
         it('should handle json-string-array with malformed string', function() {
-            records = ['{"time": "xyz"}', '{"time": "xy'];
+            log = ['{"time": "xyz"}', '{"time": "xy'];
             expected = ['{"time": "xy'];
             assert.equal(
-                this.forwarder.getLogFormat(records),
+                this.forwarder.getLogFormat(log),
                 constants.JSON_STRING_ARRAY
             );
             // just assert that the string method is called for the second message,
             // we don't care about the first one for this test
-            testHandleStringLogs(this.forwarder, records, expected);
+            testHandleStringLogs(this.forwarder, log, expected);
         });
     });
 });
