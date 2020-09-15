@@ -22,7 +22,9 @@ DESCRIPTOR = _descriptor.FileDescriptor(
     serialized_options=None,
     create_key=_descriptor._internal_create_key,
     serialized_pb=b'\n\x0btrace.proto\x12\x02pb\x1a\nspan.proto"X\n\x08\x41PITrace\x12\x0f\n\x07traceID\x18\x01 \x01(\x04\x12\x17\n\x05spans\x18\x02 \x03(\x0b\x32\x08.pb.Span\x12\x11\n\tstartTime\x18\x06 \x01(\x03\x12\x0f\n\x07\x65ndTime\x18\x07 \x01(\x03\x62\x06proto3',
-    dependencies=[span__pb2.DESCRIPTOR,],
+    dependencies=[
+        span__pb2.DESCRIPTOR,
+    ],
 )
 
 

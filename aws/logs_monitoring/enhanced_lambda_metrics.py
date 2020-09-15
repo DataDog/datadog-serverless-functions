@@ -98,8 +98,7 @@ class LambdaTagsCache(object):
         self.last_tags_fetch_time = 0
 
     def _refresh(self):
-        """Populate the tags in the cache by making calls to GetResources
-        """
+        """Populate the tags in the cache by making calls to GetResources"""
         self.last_tags_fetch_time = time()
 
         # If the custom tag fetch env var is not set to true do not fetch
@@ -113,15 +112,14 @@ class LambdaTagsCache(object):
         self.missing_arns -= set(self.tags_by_arn.keys())
 
     def _is_expired(self):
-        """Returns bool for whether the tag fetch TTL has expired
-        """
+        """Returns bool for whether the tag fetch TTL has expired"""
         earliest_time_to_refetch_tags = (
             self.last_tags_fetch_time + self.tags_ttl_seconds
         )
         return time() > earliest_time_to_refetch_tags
 
     def _should_refresh_if_missing_arn(self, resource_arn):
-        """ Determines whether to try and fetch a missing lambda arn.
+        """Determines whether to try and fetch a missing lambda arn.
         We only refresh if we encounter an arn that we haven't seen
         since the last refresh. This prevents refreshing on every call when
         tags can't be found for an arn.
@@ -193,8 +191,7 @@ class DatadogMetricPoint(object):
         self.timestamp = timestamp
 
     def submit_to_dd(self):
-        """Submit this metric to the Datadog API
-        """
+        """Submit this metric to the Datadog API"""
         timestamp = self.timestamp
         if not timestamp:
             timestamp = time()
@@ -208,8 +205,7 @@ class DatadogMetricPoint(object):
 
 
 def should_fetch_custom_tags():
-    """Checks the env var to determine if the customer has opted-in to fetching custom tags
-    """
+    """Checks the env var to determine if the customer has opted-in to fetching custom tags"""
     return os.environ.get("DD_FETCH_LAMBDA_TAGS", "false").lower() == "true"
 
 
@@ -220,8 +216,7 @@ FixInit = re.compile(r"^[_\d]*", re.UNICODE).sub
 
 
 def sanitize_aws_tag_string(tag, remove_colons=False):
-    """Convert characters banned from DD but allowed in AWS tags to underscores
-    """
+    """Convert characters banned from DD but allowed in AWS tags to underscores"""
     global Sanitize, Dedupe, FixInit
 
     # 1. Replace colons with _
@@ -297,6 +292,17 @@ def parse_get_resources_response_for_tags_by_arn(get_resources_page):
     return tags_by_arn
 
 
+def get_forwarder_telemetry_prefix_and_tags():
+    """Retrieves prefix and tags used when submitting telemetry metrics
+    Used to overcome circular import"""
+    from lambda_function import (
+        DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX,
+        DD_FORWARDER_TELEMETRY_TAGS,
+    )
+
+    return DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX, DD_FORWARDER_TELEMETRY_TAGS
+
+
 def build_tags_by_arn_cache():
     """Makes API calls to GetResources to get the live tags of the account's Lambda functions
 
@@ -307,14 +313,16 @@ def build_tags_by_arn_cache():
     """
     tags_by_arn_cache = {}
     get_resources_paginator = resource_tagging_client.get_paginator("get_resources")
+    prefix, tags = get_forwarder_telemetry_prefix_and_tags()
 
     try:
         for page in get_resources_paginator.paginate(
             ResourceTypeFilters=[GET_RESOURCES_LAMBDA_FILTER], ResourcesPerPage=100
         ):
             lambda_stats.distribution(
-                "{}.get_resources_api_calls".format(ENHANCED_METRICS_NAMESPACE_PREFIX),
+                "{}.get_resources_api_calls".format(prefix),
                 1,
+                tags=tags,
             )
             page_tags_by_arn = parse_get_resources_response_for_tags_by_arn(page)
             tags_by_arn_cache.update(page_tags_by_arn)
@@ -526,7 +534,7 @@ def calculate_estimated_cost(billed_duration_ms, memory_allocated):
 
 
 def get_enriched_lambda_log_tags(log_event):
-    """ Retrieves extra tags from lambda, either read from the function arn, or by fetching lambda tags from the function itself.
+    """Retrieves extra tags from lambda, either read from the function arn, or by fetching lambda tags from the function itself.
 
     Args:
         log (dict<str, str | dict | int>): a log parsed from the event in the split method
@@ -561,7 +569,8 @@ def create_timeout_enhanced_metric(log_line):
         return []
 
     dd_metric = DatadogMetricPoint(
-        f"{ENHANCED_METRICS_NAMESPACE_PREFIX}.{TIMEOUTS_METRIC_NAME}", 1.0,
+        f"{ENHANCED_METRICS_NAMESPACE_PREFIX}.{TIMEOUTS_METRIC_NAME}",
+        1.0,
     )
     return [dd_metric]
 
@@ -584,6 +593,7 @@ def create_out_of_memory_enhanced_metric(log_line):
         return []
 
     dd_metric = DatadogMetricPoint(
-        f"{ENHANCED_METRICS_NAMESPACE_PREFIX}.{OUT_OF_MEMORY_METRIC_NAME}", 1.0,
+        f"{ENHANCED_METRICS_NAMESPACE_PREFIX}.{OUT_OF_MEMORY_METRIC_NAME}",
+        1.0,
     )
     return [dd_metric]

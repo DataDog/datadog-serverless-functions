@@ -1,0 +1,10 @@
+service: forwarder-tests-external-lambda
+provider:
+  name: aws
+  runtime: python2.7
+
+functions:
+  ironmaiden:
+    handler: handler.ironmaiden
+  megadeth:
+    handler: handler.megadeth

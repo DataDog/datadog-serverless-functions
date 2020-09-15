@@ -11,6 +11,7 @@ const STRING = 'string'; // example: 'some message'
 const STRING_ARRAY = 'string-array'; // example: ['one message', 'two message', ...]
 const JSON_OBJECT = 'json-object'; // example: {"key": "value"}
 const JSON_ARRAY = 'json-array'; // example: [{"key": "value"}, {"key": "value"}, ...] or [{"records": [{}, {}, ...]}, {"records": [{}, {}, ...]}, ...]
+const BUFFER_ARRAY = 'buffer-array'; // example: [<Buffer obj>, <Buffer obj>]
 const JSON_STRING = 'json-string'; // example: '{"key": "value"}'
 const JSON_STRING_ARRAY = 'json-string-array'; // example: ['{"records": [{}, {}]}'] or ['{"key": "value"}']
 const INVALID = 'invalid';
@@ -113,6 +114,9 @@ class EventhubLogForwarder {
             case JSON_ARRAY:
                 promises = this.handleJSONArrayLogs(logs, JSON_ARRAY);
                 break;
+            case BUFFER_ARRAY:
+                this.handleJSONArrayLogs(logs, BUFFER_ARRAY);
+                break;
             case JSON_STRING_ARRAY:
                 promises = this.handleJSONArrayLogs(logs, JSON_STRING_ARRAY);
                 break;
@@ -135,6 +139,20 @@ class EventhubLogForwarder {
                         'log is malformed json, sending as string'
                     );
                     promises.push(this.formatLogAndSend(STRING_TYPE, message));
+                    return;
+                }
+            }
+            // If the message is a buffer object, the data type has been set to binary.
+            if (logsType == BUFFER_ARRAY) {
+                try {
+                    message = JSON.parse(message.toString());
+                } catch (err) {
+                    this.context.log.warn(
+                        'log is malformed json, sending as string'
+                    );
+                    promises.push(
+                        this.formatLogAndSend(STRING_TYPE, message.toString())
+                    );
                     return;
                 }
             }
@@ -161,6 +179,9 @@ class EventhubLogForwarder {
         }
         if (!Array.isArray(logs)) {
             return INVALID;
+        }
+        if (Buffer.isBuffer(logs[0])) {
+            return BUFFER_ARRAY;
         }
         if (typeof logs[0] === 'object') {
             return JSON_ARRAY;
@@ -261,6 +282,7 @@ module.exports.forTests = {
         STRING_ARRAY,
         JSON_OBJECT,
         JSON_ARRAY,
+        BUFFER_ARRAY,
         JSON_STRING,
         JSON_STRING_ARRAY,
         INVALID

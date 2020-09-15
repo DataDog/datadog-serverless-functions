@@ -282,6 +282,36 @@ describe('Azure Log Monitoring', function() {
             testHandleJSONLogs(this.forwarder, records, expected);
         });
 
+        it('should handle buffer array properly', function() {
+            record = [Buffer.from('{"records": [{ "test": "testing"}]}')];
+            expected = [{ test: 'testing' }];
+            assert.equal(
+                EventhubLogForwarderInstance.getLogFormat(record),
+                constants.BUFFER_ARRAY
+            );
+            testHandleLogs(record, expected, true);
+        });
+
+        it('should handle buffer array without records properly', function() {
+            record = [Buffer.from('{ "test": "example"}')];
+            expected = [{ test: 'example' }];
+            assert.equal(
+                EventhubLogForwarderInstance.getLogFormat(record),
+                constants.BUFFER_ARRAY
+            );
+            testHandleLogs(record, expected, true);
+        });
+
+        it('should handle buffer array with malformed string', function() {
+            record = [Buffer.from('{"time": "xy')];
+            expected = ['{"time": "xy'];
+            assert.equal(
+                EventhubLogForwarderInstance.getLogFormat(record),
+                constants.BUFFER_ARRAY
+            );
+            testHandleLogs(record, expected, false);
+        });
+
         it('should handle json-string-array properly records', function() {
             records = ['{"records": [{ "time": "xyz"}, {"time": "abc"}]}'];
             expected = [{ time: 'xyz' }];

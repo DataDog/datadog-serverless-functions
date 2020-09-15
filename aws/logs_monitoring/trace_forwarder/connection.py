@@ -18,10 +18,14 @@ def make_go_string(str):
 
 
 class TraceConnection:
-    def __init__(self, root_url, api_key):
+    def __init__(self, root_url, api_key, insecure_skip_verify):
         dir = os.path.dirname(os.path.realpath(__file__))
         self.lib = cdll.LoadLibrary("{}/bin/trace-intake.so".format(dir))
-        self.lib.Configure(make_go_string(root_url), make_go_string(api_key))
+        self.lib.Configure(
+            make_go_string(root_url),
+            make_go_string(api_key),
+            insecure_skip_verify,
+        )
 
     def send_traces(self, trace_payloads):
         serialized_trace_paylods = json.dumps(trace_payloads)

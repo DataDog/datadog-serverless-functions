@@ -28,13 +28,13 @@ var (
 type (
 	RawTracePayload struct {
 		Message string `json:"message"`
-		Tags string    `json:"tags"`
+		Tags    string `json:"tags"`
 	}
 )
 
 // Configure will set up the bindings
 //export Configure
-func Configure(rootURL, apiKey string) {
+func Configure(rootURL, apiKey string, InsecureSkipVerify bool) {
 	// Need to make a copy of these values, otherwise the underlying memory
 	// might be cleaned up by the runtime.
 	localRootURL := fmt.Sprintf("%s", rootURL)
@@ -53,7 +53,7 @@ func Configure(rootURL, apiKey string) {
 		Redis:             true,
 		Memcached:         true,
 	})
-	edgeConnection = apm.CreateTraceEdgeConnection(localRootURL, localAPIKey)
+	edgeConnection = apm.CreateTraceEdgeConnection(localRootURL, localAPIKey, InsecureSkipVerify)
 }
 
 // returns 0 on success, 1 on error

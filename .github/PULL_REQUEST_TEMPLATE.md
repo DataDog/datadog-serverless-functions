@@ -33,3 +33,4 @@
 - [ ] This PR collects user input/sensitive content into Datadog
 - [ ] This PR passes the integration tests (ask a Datadog member to run the tests)
 - [ ] This PR passes the unit tests 
+- [ ] This PR passes the installation tests (ask a Datadog member to run the tests)

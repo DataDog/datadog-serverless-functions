@@ -378,7 +378,10 @@ _SPAN = _descriptor.Descriptor(
         ),
     ],
     extensions=[],
-    nested_types=[_SPAN_METAENTRY, _SPAN_METRICSENTRY,],
+    nested_types=[
+        _SPAN_METAENTRY,
+        _SPAN_METRICSENTRY,
+    ],
     enum_types=[],
     serialized_options=None,
     is_extendable=False,

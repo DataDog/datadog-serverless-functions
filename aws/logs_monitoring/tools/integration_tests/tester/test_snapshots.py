@@ -9,11 +9,12 @@ from time import sleep
 
 recorder_url = os.environ.get("RECORDER_URL", default="")
 forwarder_url = os.environ.get("FORWARDER_URL", default="")
-snapshot_dir = os.environ.get("SNAPSHOT_DIR", default="snapshots")
 update_snapshot = os.environ.get("UPDATE_SNAPSHOTS")
 if not update_snapshot:
     update_snapshot = "false"
 update_snapshot = update_snapshot.lower() == "true"
+
+snapshot_dir = "snapshots"
 
 
 class TestForwarderSnapshots(unittest.TestCase):
@@ -39,10 +40,16 @@ class TestForwarderSnapshots(unittest.TestCase):
 
     def filter_snapshot(self, snapshot):
         # Remove things that can vary during each test run
-        # forwarder_version
+        # Forwarder version in tags
         snapshot = re.sub(
             r"forwarder_version:\d+\.\d+\.\d+",
             "forwarder_version:<redacted from snapshot>",
+            snapshot,
+        )
+        # Forwarder version in trace payloads
+        snapshot = re.sub(
+            r"\"forwarder_version\":\s\"\d+\.\d+\.\d+\"",
+            '"forwarder_version": "<redacted from snapshot>"',
             snapshot,
         )
         # Metric points
@@ -72,7 +79,8 @@ class TestForwarderSnapshots(unittest.TestCase):
 
         if update_snapshot:
             with open(snapshot_filename, "w") as snapshot_file:
-                snapshot_file.write(json.dumps(output_data, indent=2))
+                snapshot_file.write(json.dumps(output_data, indent=2, sort_keys=True))
+                # snapshot_file.write(json.dumps(output_data, indent=2))
         else:
             message = f"Snapshots didn't match for {input_filename}. To update run `integration_tests.sh --update`."
             self.assertEqual(output_data, snapshot_data, message)
@@ -103,6 +111,11 @@ class TestForwarderSnapshots(unittest.TestCase):
         snapshot_filename = f"{input_filename}~snapshot"
         self.compare_snapshot(input_filename, snapshot_filename)
 
+    def test_cloudwatch_log_custom_tags(self):
+        input_filename = f"{snapshot_dir}/cloudwatch_log_custom_tags.json"
+        snapshot_filename = f"{input_filename}~snapshot"
+        self.compare_snapshot(input_filename, snapshot_filename)
+
     def test_cloudwatch_log_lambda_invocation(self):
         input_filename = f"{snapshot_dir}/cloudwatch_log_lambda_invocation.json"
         snapshot_filename = f"{input_filename}~snapshot"
@@ -110,10 +123,5 @@ class TestForwarderSnapshots(unittest.TestCase):
 
     def test_cloudwatch_log_timeout(self):
         input_filename = f"{snapshot_dir}/cloudwatch_log_timeout.json"
-        snapshot_filename = f"{input_filename}~snapshot"
-        self.compare_snapshot(input_filename, snapshot_filename)
-
-    def test_cloudwatch_log_custom_tags(self):
-        input_filename = f"{snapshot_dir}/cloudwatch_log_custom_tags.json"
         snapshot_filename = f"{input_filename}~snapshot"
         self.compare_snapshot(input_filename, snapshot_filename)
