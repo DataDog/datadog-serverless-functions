@@ -13,43 +13,49 @@ function fakeContext() {
     return contextSpy;
 }
 
-var EventhubLogForwarderInstance = new client.EventhubLogForwarder(
-    fakeContext()
-);
-EventhubLogForwarderInstance.sendWithRetry = function(record) {}; // do nothing
-console.log(EventhubLogForwarderInstance.getLogFormat);
-var handleJsonLogsSpy = sinon.spy();
-var handleStringLogsSpy = sinon.spy();
+function setUp(jsonSpy, stringSpy) {
+    var forwarder = new client.EventhubLogForwarder(
+       fakeContext()
+   );
+   forwarder.sendWithRetry = function(record) {}; // do nothing
 
-EventhubLogForwarderInstance.addTagsToJsonLog = handleJsonLogsSpy;
-EventhubLogForwarderInstance.addTagsToStringLog = handleStringLogsSpy;
+   forwarder.addTagsToJsonLog = sinon.spy();
+   forwarder.addTagsToStringLog = sinon.spy();
+   return forwarder
+}
+
+
 
 describe('Azure Log Monitoring', function() {
+
     describe('#getLogFormat', function() {
+    beforeEach(function () {
+            this.forwarder =  setUp();
+        });
         it('should return string', function() {
             eventHubMessages = '';
             assert.equal(
                 constants.STRING,
-                EventhubLogForwarderInstance.getLogFormat(eventHubMessages)
+                this.forwarder.getLogFormat(eventHubMessages)
             );
             eventHubMessages = 'foobar';
             assert.equal(
                 constants.STRING,
-                EventhubLogForwarderInstance.getLogFormat(eventHubMessages)
+                this.forwarder.getLogFormat(eventHubMessages)
             );
         });
         it('should return string array', function() {
             eventHubMessages = ['', 'foobar'];
             assert.equal(
                 constants.STRING_ARRAY,
-                EventhubLogForwarderInstance.getLogFormat(eventHubMessages)
+                this.forwarder.getLogFormat(eventHubMessages)
             );
         });
         it('should return json object', function() {
             eventHubMessages = { key: 'value', otherkey: 'othervalue' };
             assert.equal(
                 constants.JSON_OBJECT,
-                EventhubLogForwarderInstance.getLogFormat(eventHubMessages)
+                this.forwarder.getLogFormat(eventHubMessages)
             );
         });
         it('should return json array when there are no records', function() {
@@ -59,39 +65,42 @@ describe('Azure Log Monitoring', function() {
             ];
             assert.equal(
                 constants.JSON_ARRAY,
-                EventhubLogForwarderInstance.getLogFormat(eventHubMessages)
+                this.forwarder.getLogFormat(eventHubMessages)
             );
         });
         it('should return invalid', function() {
             eventHubMessages = 1;
             assert.equal(
                 constants.INVALID,
-                EventhubLogForwarderInstance.getLogFormat(eventHubMessages)
+                this.forwarder.getLogFormat(eventHubMessages)
             );
             eventHubMessages = () => {};
             assert.equal(
                 constants.INVALID,
-                EventhubLogForwarderInstance.getLogFormat(eventHubMessages)
+                this.forwarder.getLogFormat(eventHubMessages)
             );
             eventHubMessages = true;
             assert.equal(
                 constants.INVALID,
-                EventhubLogForwarderInstance.getLogFormat(eventHubMessages)
+                this.forwarder.getLogFormat(eventHubMessages)
             );
             eventHubMessages = null;
             assert.equal(
                 constants.INVALID,
-                EventhubLogForwarderInstance.getLogFormat(eventHubMessages)
+                this.forwarder.getLogFormat(eventHubMessages)
             );
             eventHubMessages = undefined;
             assert.equal(
                 constants.INVALID,
-                EventhubLogForwarderInstance.getLogFormat(eventHubMessages)
+                this.forwarder.getLogFormat(eventHubMessages)
             );
         });
     });
 
     describe('#extractResourceId', function() {
+       beforeEach(function () {
+            this.forwarder =  setUp();
+        });
         it('should parse a valid record', function() {
             record = {
                 resourceId:
@@ -106,7 +115,7 @@ describe('Azure Log Monitoring', function() {
             };
             assert.deepEqual(
                 expectedMetadata,
-                EventhubLogForwarderInstance.extractResourceId(record)
+                this.forwarder.extractResourceId(record)
             );
         });
         it('should parse a valid record without provider', function() {
@@ -123,7 +132,7 @@ describe('Azure Log Monitoring', function() {
             };
             assert.deepEqual(
                 expectedMetadata,
-                EventhubLogForwarderInstance.extractResourceId(record)
+                this.forwarder.extractResourceId(record)
             );
         });
         it('should parse a valid record without provider and resource group', function() {
@@ -137,7 +146,7 @@ describe('Azure Log Monitoring', function() {
             };
             assert.deepEqual(
                 expectedMetadata,
-                EventhubLogForwarderInstance.extractResourceId(record)
+                this.forwarder.extractResourceId(record)
             );
         });
         it('should not fail on record without resourceId', function() {
@@ -145,7 +154,7 @@ describe('Azure Log Monitoring', function() {
             expectedMetadata = { tags: [], source: '' };
             assert.deepEqual(
                 expectedMetadata,
-                EventhubLogForwarderInstance.extractResourceId(record)
+                this.forwarder.extractResourceId(record)
             );
         });
         it('should not fail on string record', function() {
@@ -153,7 +162,7 @@ describe('Azure Log Monitoring', function() {
             expectedMetadata = { tags: [], source: '' };
             assert.deepEqual(
                 expectedMetadata,
-                EventhubLogForwarderInstance.extractResourceId(record)
+                this.forwarder.extractResourceId(record)
             );
         });
         it('should not fail on improper resourceId', function() {
@@ -161,7 +170,7 @@ describe('Azure Log Monitoring', function() {
             expectedMetadata = { tags: [], source: '' };
             assert.deepEqual(
                 expectedMetadata,
-                EventhubLogForwarderInstance.extractResourceId(record)
+                this.forwarder.extractResourceId(record)
             );
         });
         it('should not fail with an invalid source', function() {
@@ -178,115 +187,131 @@ describe('Azure Log Monitoring', function() {
             };
             assert.deepEqual(
                 expectedMetadata,
-                EventhubLogForwarderInstance.extractResourceId(record)
+                this.forwarder.extractResourceId(record)
             );
         });
     });
 
-    function testHandleLogs(logs, expected, assertJson) {
-        EventhubLogForwarderInstance.handleLogs(record);
-        if (assertJson == true) {
+        function testHandleJSONLogs(forwarder, logs, expected) {
+            forwarder.handleLogs(logs);
             expected.forEach(message => {
-                sinon.assert.calledWith(handleJsonLogsSpy, message);
+                sinon.assert.calledWith(forwarder.addTagsToJsonLog, message);
             });
-        } else {
+        };
+
+        function testHandleStringLogs(forwarder, logs, expected) {
+           forwarder.handleLogs(logs);
+
             expected.forEach(message => {
-                sinon.assert.calledWith(handleStringLogsSpy, message);
+                sinon.assert.calledWith(forwarder.addTagsToStringLog, message);
             });
-        }
-    }
+        };
+
 
     describe('#handleLogs', function() {
+        beforeEach(function () {
+            this.forwarder =  setUp();
+        });
+
         it('should handle string properly', function() {
-            record = 'hello';
+            records = 'hello';
             expected = ['hello'];
             assert.equal(
-                EventhubLogForwarderInstance.getLogFormat(record),
+                this.forwarder.getLogFormat(records),
                 constants.STRING
             );
-            testHandleLogs(record, expected, false);
+            testHandleStringLogs(this.forwarder, records, expected);
         });
 
         it('should handle json-string properly', function() {
-            record = '{"hello": "there"}';
+            records = '{"hello": "there"}';
             expected = [{ hello: 'there' }];
             assert.equal(
-                EventhubLogForwarderInstance.getLogFormat(record),
+                this.forwarder.getLogFormat(records),
                 constants.JSON_STRING
             );
-            testHandleLogs(record, expected, true);
+            testHandleJSONLogs(this.forwarder, records, expected);
         });
 
         it('should handle json-object properly', function() {
-            record = { hello: 'there' };
+            records = { hello: 'there' };
             expected = [{ hello: 'there' }];
             assert.equal(
-                EventhubLogForwarderInstance.getLogFormat(record),
+                this.forwarder.getLogFormat(records),
                 constants.JSON_OBJECT
             );
-            testHandleLogs(record, expected, true);
+            testHandleJSONLogs(this.forwarder, records, expected);
         });
 
         it('should handle string-array properly', function() {
-            record = ['one message', 'two message'];
+            records = ['one message', 'two message'];
             expected = ['one message', 'two message'];
             assert.equal(
-                EventhubLogForwarderInstance.getLogFormat(record),
+                this.forwarder.getLogFormat(records),
                 constants.STRING_ARRAY
             );
-            testHandleLogs(record, expected, false);
+            testHandleStringLogs(this.forwarder, records, expected);
         });
 
         it('should handle json-records properly', function() {
-            record = [{ records: [{ hello: 'there' }, { goodbye: 'now' }] }];
+            records = [{ records: [{ hello: 'there' }, { goodbye: 'now' }] }];
             expected = [{ hello: 'there' }, { goodbye: 'now' }];
             assert.equal(
-                EventhubLogForwarderInstance.getLogFormat(record),
+                this.forwarder.getLogFormat(records),
                 constants.JSON_ARRAY
             ); //JSON_RECORDS
-            testHandleLogs(record, expected, true);
+            testHandleJSONLogs(this.forwarder, records, expected);
         });
 
         it('should handle json-array properly', function() {
-            record = [{ hello: 'there' }, { goodbye: 'now' }];
+            records = [{ hello: 'there' }, { goodbye: 'now' }];
             expected = [{ hello: 'there' }, { goodbye: 'now' }];
             assert.equal(
-                EventhubLogForwarderInstance.getLogFormat(record),
+                this.forwarder.getLogFormat(records),
                 constants.JSON_ARRAY
             );
-            testHandleLogs(record, expected, true);
+            testHandleJSONLogs(this.forwarder, records, expected);
+        });
+     it('should handle buffer array without records properly', function() {
+            records = [Buffer.from('{[{ "test": "testing"}]}')];
+            expected = [{ test: 'testing' }];
+            assert.equal(
+                this.forwarder.getLogFormat(records),
+                constants.BUFFER_ARRAY
+            );
+            testHandleJSONLogs(this.forwarder, records, expected);
         });
 
         it('should handle json-string-array properly records', function() {
-            record = ['{"records": [{ "time": "xyz"}, {"time": "abc"}]}'];
+            records = ['{"records": [{ "time": "xyz"}, {"time": "abc"}]}'];
             expected = [{ time: 'xyz' }];
             assert.equal(
-                EventhubLogForwarderInstance.getLogFormat(record),
+                this.forwarder.getLogFormat(records),
                 constants.JSON_STRING_ARRAY
             );
-            testHandleLogs(record, expected, true);
+            testHandleJSONLogs(this.forwarder, records, expected);
         });
 
         it('should handle json-string-array properly no records', function() {
-            record = ['{"time": "xyz"}'];
+            records = ['{"time": "xyz"}'];
             expected = [{ time: 'xyz' }];
             assert.equal(
-                EventhubLogForwarderInstance.getLogFormat(record),
+                this.forwarder.getLogFormat(records),
                 constants.JSON_STRING_ARRAY
             );
-            testHandleLogs(record, expected, true);
+            testHandleJSONLogs(this.forwarder, records, expected );
         });
 
         it('should handle json-string-array with malformed string', function() {
-            record = ['{"time": "xyz"}', '{"time": "xy'];
+            records = ['{"time": "xyz"}', '{"time": "xy'];
             expected = ['{"time": "xy'];
             assert.equal(
-                EventhubLogForwarderInstance.getLogFormat(record),
+                this.forwarder.getLogFormat(records),
                 constants.JSON_STRING_ARRAY
             );
             // just assert that the string method is called for the second message,
             // we don't care about the first one for this test
-            testHandleLogs(record, expected, false);
+            testHandleStringLogs(this.forwarder, records, expected);
         });
     });
 });
