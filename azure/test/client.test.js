@@ -14,23 +14,18 @@ function fakeContext() {
 }
 
 function setUp(jsonSpy, stringSpy) {
-    var forwarder = new client.EventhubLogForwarder(
-       fakeContext()
-   );
-   forwarder.sendWithRetry = function(record) {}; // do nothing
+    var forwarder = new client.EventhubLogForwarder(fakeContext());
+    forwarder.sendWithRetry = function(record) {}; // do nothing
 
-   forwarder.addTagsToJsonLog = sinon.spy();
-   forwarder.addTagsToStringLog = sinon.spy();
-   return forwarder
+    forwarder.addTagsToJsonLog = sinon.spy();
+    forwarder.addTagsToStringLog = sinon.spy();
+    return forwarder;
 }
 
-
-
 describe('Azure Log Monitoring', function() {
-
     describe('#getLogFormat', function() {
-    beforeEach(function () {
-            this.forwarder =  setUp();
+        beforeEach(function() {
+            this.forwarder = setUp();
         });
         it('should return string', function() {
             eventHubMessages = '';
@@ -98,8 +93,8 @@ describe('Azure Log Monitoring', function() {
     });
 
     describe('#extractResourceId', function() {
-       beforeEach(function () {
-            this.forwarder =  setUp();
+        beforeEach(function() {
+            this.forwarder = setUp();
         });
         it('should parse a valid record', function() {
             record = {
@@ -192,25 +187,24 @@ describe('Azure Log Monitoring', function() {
         });
     });
 
-        function testHandleJSONLogs(forwarder, logs, expected) {
-            forwarder.handleLogs(logs);
-            expected.forEach(message => {
-                sinon.assert.calledWith(forwarder.addTagsToJsonLog, message);
-            });
-        };
+    function testHandleJSONLogs(forwarder, logs, expected) {
+        forwarder.handleLogs(logs);
+        expected.forEach(message => {
+            sinon.assert.calledWith(forwarder.addTagsToJsonLog, message);
+        });
+    }
 
-        function testHandleStringLogs(forwarder, logs, expected) {
-           forwarder.handleLogs(logs);
+    function testHandleStringLogs(forwarder, logs, expected) {
+        forwarder.handleLogs(logs);
 
-            expected.forEach(message => {
-                sinon.assert.calledWith(forwarder.addTagsToStringLog, message);
-            });
-        };
-
+        expected.forEach(message => {
+            sinon.assert.calledWith(forwarder.addTagsToStringLog, message);
+        });
+    }
 
     describe('#handleLogs', function() {
-        beforeEach(function () {
-            this.forwarder =  setUp();
+        beforeEach(function() {
+            this.forwarder = setUp();
         });
 
         it('should handle string properly', function() {
@@ -273,7 +267,6 @@ describe('Azure Log Monitoring', function() {
             testHandleJSONLogs(this.forwarder, records, expected);
         });
 
-
         it('should handle buffer array properly', function() {
             records = [Buffer.from('{"records": [{ "test": "testing"}]}')];
             expected = [{ test: 'testing' }];
@@ -291,7 +284,7 @@ describe('Azure Log Monitoring', function() {
                 this.forwarder.getLogFormat(records),
                 constants.BUFFER_ARRAY
             );
-            testHandleJSONLogs(this.forwarder ,records, expected);
+            testHandleJSONLogs(this.forwarder, records, expected);
         });
 
         it('should handle buffer array with malformed string', function() {
@@ -321,7 +314,7 @@ describe('Azure Log Monitoring', function() {
                 this.forwarder.getLogFormat(records),
                 constants.JSON_STRING_ARRAY
             );
-            testHandleJSONLogs(this.forwarder, records, expected );
+            testHandleJSONLogs(this.forwarder, records, expected);
         });
 
         it('should handle json-string-array with malformed string', function() {
