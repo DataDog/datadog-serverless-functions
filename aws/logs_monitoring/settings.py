@@ -216,6 +216,7 @@ DD_ADDITIONAL_TARGET_LAMBDAS = get_env_var("DD_ADDITIONAL_TARGET_LAMBDAS", defau
 
 DD_S3_BUCKET_NAME = get_env_var("DD_S3_BUCKET_NAME", default=None)
 DD_S3_CACHE_FILENAME = "cache.json"
+DD_S3_CACHE_LOCK_FILENAME = "cache.lock"
 
-# Additional target lambda invoked async with event data
 DD_TAGS_CACHE_TTL_SECONDS = get_env_var("DD_TAGS_CACHE_TTL_SECONDS", default=300)
+DD_S3_CACHE_LOCK_TTL_SECONDS = 60

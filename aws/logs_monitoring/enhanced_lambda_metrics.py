@@ -3,6 +3,7 @@ import os
 import re
 import json
 import datetime
+from random import randint
 
 from collections import defaultdict
 from time import time
@@ -10,9 +11,22 @@ from time import time
 import boto3
 from botocore.exceptions import ClientError
 
-from settings import DD_S3_BUCKET_NAME, DD_S3_CACHE_FILENAME, DD_TAGS_CACHE_TTL_SECONDS
+from settings import (
+    DD_S3_BUCKET_NAME,
+    DD_S3_CACHE_FILENAME,
+    DD_TAGS_CACHE_TTL_SECONDS,
+    DD_S3_CACHE_LOCK_FILENAME,
+    DD_S3_CACHE_LOCK_TTL_SECONDS,
+)
+
+JITTER_MIN = 1
+JITTER_MAX = 100
 
 ENHANCED_METRICS_NAMESPACE_PREFIX = "aws.lambda.enhanced"
+DD_TAGS_CACHE_TTL_SECONDS = DD_TAGS_CACHE_TTL_SECONDS + randint(JITTER_MIN, JITTER_MAX)
+DD_S3_CACHE_LOCK_TTL_SECONDS = DD_S3_CACHE_LOCK_TTL_SECONDS + randint(
+    JITTER_MIN, JITTER_MAX
+)
 
 # Latest Lambda pricing per https://aws.amazon.com/lambda/pricing/
 BASE_LAMBDA_INVOCATION_PRICE = 0.0000002
@@ -112,11 +126,22 @@ class LambdaTagsCache(object):
             )
             return
 
-        self.tags_by_arn, last_modified = get_cache_from_s3()
+        tags_fetched, last_modified = get_cache_from_s3()
+
+        # s3 cache fetch succeeded
+        if last_modified > -1:
+            self.tags_by_arn = tags_fetched
+
         if self._is_expired(last_modified):
             send_forwarder_internal_metrics("s3_cache_expired")
-            self.tags_by_arn = build_tags_by_arn_cache()
-            write_cache_to_s3(self.tags_by_arn)
+            lock_acquired = acquire_s3_cache_lock()
+            if lock_acquired:
+                success, tags_fetched = build_tags_by_arn_cache()
+                if success:
+                    self.tags_by_arn = tags_fetched
+                    write_cache_to_s3(self.tags_by_arn)
+
+                release_s3_cache_lock()
 
     def _is_expired(self, last_modified=None):
         """Returns bool for whether the fetch TTL has expired"""
@@ -307,10 +332,55 @@ def send_forwarder_internal_metrics(name, additional_tags=[]):
     )
 
 
+def get_last_modified_time(s3_file):
+    last_modified_str = s3_file["ResponseMetadata"]["HTTPHeaders"]["last-modified"]
+    last_modified_date = datetime.datetime.strptime(
+        last_modified_str, "%a, %d %b %Y %H:%M:%S %Z"
+    )
+    last_modified_unix_time = int(last_modified_date.strftime("%s"))
+    return last_modified_unix_time
+
+
+def acquire_s3_cache_lock():
+    """Acquire cache lock"""
+    cache_lock_object = s3_client.Object(DD_S3_BUCKET_NAME, DD_S3_CACHE_LOCK_FILENAME)
+    try:
+        file_content = cache_lock_object.get()
+
+        # check lock file expiration
+        last_modified_unix_time = get_last_modified_time(file_content)
+        if last_modified_unix_time + DD_S3_CACHE_LOCK_TTL_SECONDS >= time():
+            return False
+
+    except ClientError:
+        pass
+
+    # lock file doesn't exist, create file to acquire lock
+    cache_lock_object.put(Body=(bytes("lock".encode("UTF-8"))))
+    send_forwarder_internal_metrics("s3_cache_lock_acquired")
+
+    return True
+
+
+def release_s3_cache_lock():
+    """Release cache lock"""
+    try:
+        cache_lock_object = s3_client.Object(
+            DD_S3_BUCKET_NAME, DD_S3_CACHE_LOCK_FILENAME
+        )
+        cache_lock_object.delete()
+        send_forwarder_internal_metrics("s3_cache_lock_released")
+    except ClientError:
+        send_forwarder_internal_metrics("s3_cache_lock_release_failure")
+
+
 def write_cache_to_s3(data):
     """Writes tags cache to s3"""
-    s3_object = s3_client.Object(DD_S3_BUCKET_NAME, DD_S3_CACHE_FILENAME)
-    s3_object.put(Body=(bytes(json.dumps(data).encode("UTF-8"))))
+    try:
+        s3_object = s3_client.Object(DD_S3_BUCKET_NAME, DD_S3_CACHE_FILENAME)
+        s3_object.put(Body=(bytes(json.dumps(data).encode("UTF-8"))))
+    except ClientError:
+        send_forwarder_internal_metrics("s3_cache_write_failure")
 
 
 def get_cache_from_s3():
@@ -318,19 +388,14 @@ def get_cache_from_s3():
     the last modified datetime for the cache"""
     cache_object = s3_client.Object(DD_S3_BUCKET_NAME, DD_S3_CACHE_FILENAME)
     try:
-        last_modified_str = cache_object.get()["ResponseMetadata"]["HTTPHeaders"][
-            "last-modified"
-        ]
-        last_modified_date = datetime.datetime.strptime(
-            last_modified_str, "%a, %d %b %Y %H:%M:%S %Z"
-        )
-        last_modified_unix_time = int(last_modified_date.strftime("%s"))
+        file_content = cache_object.get()
+        tags_cache = json.loads(file_content["Body"].read().decode("utf-8"))
+        last_modified_unix_time = get_last_modified_time(file_content)
     except:
-        logger.debug("Unable to get cache from s3")
+        send_forwarder_internal_metrics("s3_cache_fetch_failure")
         return {}, -1
 
-    file_content = cache_object.get()["Body"].read().decode("utf-8")
-    return json.loads(file_content), last_modified_unix_time
+    return tags_cache, last_modified_unix_time
 
 
 def build_tags_by_arn_cache():
@@ -341,6 +406,7 @@ def build_tags_by_arn_cache():
     Returns:
         tags_by_arn_cache (dict<str, str[]>): each Lambda's tags in a dict keyed by ARN
     """
+    tags_fetch_success = False
     tags_by_arn_cache = {}
     get_resources_paginator = resource_tagging_client.get_paginator("get_resources")
 
@@ -351,6 +417,7 @@ def build_tags_by_arn_cache():
             send_forwarder_internal_metrics("get_resources_api_calls")
             page_tags_by_arn = parse_get_resources_response_for_tags_by_arn(page)
             tags_by_arn_cache.update(page_tags_by_arn)
+            tags_fetch_success = True
 
     except ClientError as e:
         logger.exception(
@@ -366,7 +433,7 @@ def build_tags_by_arn_cache():
         "Built this tags cache from GetResources API calls: %s", tags_by_arn_cache
     )
 
-    return tags_by_arn_cache
+    return tags_fetch_success, tags_by_arn_cache
 
 
 def parse_and_submit_enhanced_metrics(logs):
