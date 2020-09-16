@@ -351,13 +351,15 @@ def acquire_s3_cache_lock():
         last_modified_unix_time = get_last_modified_time(file_content)
         if last_modified_unix_time + DD_S3_CACHE_LOCK_TTL_SECONDS >= time():
             return False
-
     except ClientError:
         pass
 
     # lock file doesn't exist, create file to acquire lock
-    cache_lock_object.put(Body=(bytes("lock".encode("UTF-8"))))
-    send_forwarder_internal_metrics("s3_cache_lock_acquired")
+    try:
+        cache_lock_object.put(Body=(bytes("lock".encode("UTF-8"))))
+        send_forwarder_internal_metrics("s3_cache_lock_acquired")
+    except ClientError:
+        return False
 
     return True
 
