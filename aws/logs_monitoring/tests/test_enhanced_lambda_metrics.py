@@ -598,6 +598,8 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
 
         del os.environ["DD_FETCH_LAMBDA_TAGS"]
 
+    @patch("enhanced_lambda_metrics.acquire_s3_cache_lock")
+    @patch("enhanced_lambda_metrics.release_s3_cache_lock")
     @patch("enhanced_lambda_metrics.write_cache_to_s3")
     @patch("enhanced_lambda_metrics.build_tags_by_arn_cache")
     @patch("enhanced_lambda_metrics.send_forwarder_internal_metrics")
@@ -608,19 +610,25 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
         mock_forward_metrics,
         mock_build_cache,
         mock_write_cache,
+        mock_acquire_lock,
+        mock_release_lock,
     ):
+        mock_acquire_lock.return_value = True
         mock_get_s3_cache.return_value = (
             {},
             1000,
         )
-        mock_build_cache.return_value = {
-            "arn:aws:lambda:us-east-1:172597598159:function:post-coupon-prod-us": [
-                "team:metrics",
-                "monitor:datadog",
-                "env:prod",
-                "creator:swf",
-            ]
-        }
+        mock_build_cache.return_value = (
+            True,
+            {
+                "arn:aws:lambda:us-east-1:172597598159:function:post-coupon-prod-us": [
+                    "team:metrics",
+                    "monitor:datadog",
+                    "env:prod",
+                    "creator:swf",
+                ]
+            },
+        )
         tags_cache = LambdaTagsCache()
 
         logs_input = {
@@ -651,6 +659,8 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
 
         del os.environ["DD_FETCH_LAMBDA_TAGS"]
 
+    @patch("enhanced_lambda_metrics.acquire_s3_cache_lock")
+    @patch("enhanced_lambda_metrics.release_s3_cache_lock")
     @patch("enhanced_lambda_metrics.resource_tagging_client")
     @patch("enhanced_lambda_metrics.write_cache_to_s3")
     @patch("enhanced_lambda_metrics.parse_get_resources_response_for_tags_by_arn")
@@ -663,7 +673,10 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
         mock_parse_responses,
         mock_write_cache,
         mock_boto3,
+        mock_acquire_lock,
+        mock_release_lock,
     ):
+        mock_acquire_lock.return_value = True
         mock_get_s3_cache.return_value = (
             {},
             1000,
@@ -698,7 +711,6 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
 
         generated_metrics = generate_enhanced_lambda_metrics(logs_input, tags_cache)
         mock_get_s3_cache.assert_called_once()
-        mock_write_cache.assert_called_once()
         mock_boto3.get_paginator.assert_called_once()
         paginator.paginate.assert_called_once()
         mock_get_s3_cache.reset_mock()
