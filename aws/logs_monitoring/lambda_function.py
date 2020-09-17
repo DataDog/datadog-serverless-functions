@@ -797,6 +797,11 @@ def parse_event_type(event):
         if "s3" in event["Records"][0]:
             return "s3"
         elif "Sns" in event["Records"][0]:
+            snsS3EventMessage = event["Records"][0]["Sns"]["Message"]
+            if len(snsS3EventMessage) > 0:
+                snsS3Event = json.loads(snsS3EventMessage)
+                if "Records" in snsS3Event and "s3" in snsS3Event["Records"][0]:
+                    return "s3"
             return "sns"
         elif "kinesis" in event["Records"][0]:
             return "kinesis"
@@ -816,6 +821,12 @@ def s3_handler(event, context, metadata):
         os.environ["AWS_REGION"],
         config=botocore.config.Config(s3={"addressing_style": "path"}),
     )
+    if "Sns" in event["Records"][0]:
+        snsS3EventMessage = event["Records"][0]["Sns"]["Message"]
+        if len(snsS3EventMessage) > 0:
+            snsS3Event = json.loads(snsS3EventMessage)
+            if "Records" in snsS3Event and len(snsS3Event["Records"]) > 0:
+                event = snsS3Event
 
     # Get the object from the event and show its content type
     bucket = event["Records"][0]["s3"]["bucket"]["name"]
