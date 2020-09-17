@@ -13,7 +13,7 @@ function fakeContext() {
     return contextSpy;
 }
 
-function setUp(jsonSpy, stringSpy) {
+function setUp() {
     var forwarder = new client.EventhubLogForwarder(fakeContext());
     forwarder.sendWithRetry = function(record) {}; // do nothing
 
