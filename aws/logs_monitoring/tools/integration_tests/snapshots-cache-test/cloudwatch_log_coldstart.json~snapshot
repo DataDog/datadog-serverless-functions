@@ -109,6 +109,20 @@
             "device": null,
             "host": null,
             "interval": 10,
+            "metric": "aws.dd_forwarder.s3_cache_fetch_failure",
+            "points": "<redacted from snapshot>",
+            "tags": [
+              "forwardername:test",
+              "forwarder_memorysize:1536",
+              "forwarder_version:<redacted from snapshot>",
+              "event_type:awslogs"
+            ],
+            "type": "distribution"
+          },
+          {
+            "device": null,
+            "host": null,
+            "interval": 10,
             "metric": "aws.dd_forwarder.s3_cache_expired",
             "points": "<redacted from snapshot>",
             "tags": [
@@ -123,7 +137,35 @@
             "device": null,
             "host": null,
             "interval": 10,
+            "metric": "aws.dd_forwarder.s3_cache_lock_acquired",
+            "points": "<redacted from snapshot>",
+            "tags": [
+              "forwardername:test",
+              "forwarder_memorysize:1536",
+              "forwarder_version:<redacted from snapshot>",
+              "event_type:awslogs"
+            ],
+            "type": "distribution"
+          },
+          {
+            "device": null,
+            "host": null,
+            "interval": 10,
             "metric": "aws.dd_forwarder.get_resources_api_calls",
+            "points": "<redacted from snapshot>",
+            "tags": [
+              "forwardername:test",
+              "forwarder_memorysize:1536",
+              "forwarder_version:<redacted from snapshot>",
+              "event_type:awslogs"
+            ],
+            "type": "distribution"
+          },
+          {
+            "device": null,
+            "host": null,
+            "interval": 10,
+            "metric": "aws.dd_forwarder.s3_cache_lock_released",
             "points": "<redacted from snapshot>",
             "tags": [
               "forwardername:test",
