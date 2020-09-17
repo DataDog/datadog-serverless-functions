@@ -821,12 +821,9 @@ def s3_handler(event, context, metadata):
         os.environ["AWS_REGION"],
         config=botocore.config.Config(s3={"addressing_style": "path"}),
     )
+    # if this is a S3 event carried in a SNS message, extract it and override the event
     if "Sns" in event["Records"][0]:
-        snsS3EventMessage = event["Records"][0]["Sns"]["Message"]
-        if len(snsS3EventMessage) > 0:
-            snsS3Event = json.loads(snsS3EventMessage)
-            if "Records" in snsS3Event and len(snsS3Event["Records"]) > 0:
-                event = snsS3Event
+        event = json.loads(event["Records"][0]["Sns"]["Message"])
 
     # Get the object from the event and show its content type
     bucket = event["Records"][0]["s3"]["bucket"]["name"]
