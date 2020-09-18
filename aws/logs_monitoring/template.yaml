@@ -485,8 +485,7 @@ Resources:
           Statement:
             - Effect: Allow
               Action:
-                - s3:PutObject
-                - s3:GetObject
+                - s3:*
               Resource:
                 - Fn::Join:
                     - "/"
@@ -565,7 +564,7 @@ Resources:
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
-              SSEAlgorithm: 'aws:kms'
+              SSEAlgorithm: "aws:kms"
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
