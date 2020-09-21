@@ -643,6 +643,8 @@ def extract_metric(event):
             return None
         if not isinstance(metric["t"], list):
             return None
+        if not (isinstance(metric["v"], int) or isinstance(metric["v"], float)):
+            return None
 
         metric["t"] += event[DD_CUSTOM_TAGS].split(",")
         return metric
