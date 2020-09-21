@@ -135,6 +135,9 @@ class LambdaTagsCache(object):
 
         if self._is_expired(last_modified):
             send_forwarder_internal_metrics("s3_cache_expired")
+            logger.debug(
+                "S3 cache expired, building cache from Resource Groups Tagging API"
+            )
             lock_acquired = acquire_s3_cache_lock()
             if lock_acquired:
                 success, tags_fetched = build_tags_by_arn_cache()
@@ -168,6 +171,7 @@ class LambdaTagsCache(object):
         """
         if self._is_expired():
             send_forwarder_internal_metrics("local_cache_expired")
+            logger.debug("Local cache expired, fetching cache from S3")
             self._refresh()
 
         function_tags = self.tags_by_arn.get(resource_arn, [])
@@ -352,14 +356,16 @@ def acquire_s3_cache_lock():
         last_modified_unix_time = get_last_modified_time(file_content)
         if last_modified_unix_time + DD_S3_CACHE_LOCK_TTL_SECONDS >= time():
             return False
-    except ClientError:
-        pass
+    except Exception:
+        logger.exception("Unable to get cache lock file")
 
     # lock file doesn't exist, create file to acquire lock
     try:
         cache_lock_object.put(Body=(bytes("lock".encode("UTF-8"))))
         send_forwarder_internal_metrics("s3_cache_lock_acquired")
+        logger.debug("S3 cache lock acquired")
     except ClientError:
+        logger.exception("Unable to write S3 cache lock file")
         return False
 
     return True
@@ -373,8 +379,10 @@ def release_s3_cache_lock():
         )
         cache_lock_object.delete()
         send_forwarder_internal_metrics("s3_cache_lock_released")
+        logger.debug("S3 cache lock released")
     except ClientError:
         send_forwarder_internal_metrics("s3_cache_lock_release_failure")
+        logger.exception("Unable to release S3 cache lock")
 
 
 def write_cache_to_s3(data):
@@ -384,6 +392,7 @@ def write_cache_to_s3(data):
         s3_object.put(Body=(bytes(json.dumps(data).encode("UTF-8"))))
     except ClientError:
         send_forwarder_internal_metrics("s3_cache_write_failure")
+        logger.exception("Unable to write new cache to S3")
 
 
 def get_cache_from_s3():
@@ -396,6 +405,7 @@ def get_cache_from_s3():
         last_modified_unix_time = get_last_modified_time(file_content)
     except:
         send_forwarder_internal_metrics("s3_cache_fetch_failure")
+        logger.exception("Unable to fetch cache from S3")
         return {}, -1
 
     return tags_cache, last_modified_unix_time
@@ -428,7 +438,7 @@ def build_tags_by_arn_cache():
             "this Lambda's role the 'tag:GetResources' permission"
         )
         additional_tags = [
-            f"HTTPStatusCode:{e.response['ResponseMetadata']['HTTPStatusCode']}"
+            f"http_status_code:{e.response['ResponseMetadata']['HTTPStatusCode']}"
         ]
         send_forwarder_internal_metrics("client_error", additional_tags=additional_tags)
 
