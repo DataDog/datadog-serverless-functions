@@ -213,3 +213,10 @@ DD_FORWARDER_VERSION = "3.18.2"
 
 # Additional target lambda invoked async with event data
 DD_ADDITIONAL_TARGET_LAMBDAS = get_env_var("DD_ADDITIONAL_TARGET_LAMBDAS", default=None)
+
+DD_S3_BUCKET_NAME = get_env_var("DD_S3_BUCKET_NAME", default=None)
+DD_S3_CACHE_FILENAME = "cache.json"
+DD_S3_CACHE_LOCK_FILENAME = "cache.lock"
+
+DD_TAGS_CACHE_TTL_SECONDS = int(get_env_var("DD_TAGS_CACHE_TTL_SECONDS", default=300))
+DD_S3_CACHE_LOCK_TTL_SECONDS = 60
