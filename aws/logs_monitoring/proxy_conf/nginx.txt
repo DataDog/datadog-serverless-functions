@@ -1,0 +1,30 @@
+# For Datadog EU, change `datadoghq.com` to `datadoghq.eu`
+
+# HTTP Proxy for Datadog Agent
+http {
+    server {
+        listen 3834;
+        access_log off;
+
+        location /api/v1/validate {
+            proxy_pass https://api.datadoghq.com:443/api/v1/validate;
+        }
+        location / {
+            proxy_pass https://haproxy-app.agent.datadoghq.com:443/;
+        }
+    }
+}
+
+# TCP Proxy for Datadog Agent
+stream {
+    server {
+        listen 3835;
+        proxy_ssl on;
+        proxy_pass trace.agent.datadoghq.com:443;
+    }
+    server {
+        listen 3837;
+        proxy_ssl on;
+        proxy_pass lambda-http-intake.logs.datadoghq.com:443;
+    }
+}

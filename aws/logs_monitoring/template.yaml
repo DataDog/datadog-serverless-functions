@@ -4,7 +4,7 @@ Description: Pushes logs, metrics and traces from AWS to Datadog.
 Mappings:
   Constants:
     DdForwarder:
-      Version: 3.17.0
+      Version: 3.18.1
 Parameters:
   DdApiKey:
     Type: String
@@ -142,15 +142,22 @@ Parameters:
     AllowedValues:
       - true
       - false
-    Description: Set to true to enable sending logs, metrics, and traces via AWS PrivateLink. See https://dtdg.co/private-link .
+    Description: Set to true to deploy the Forwarder to a VPC and send logs, metrics, and traces via AWS PrivateLink. When set to true, must also set VPCSecurityGroupIds and VPCSubnetIds. Find more details from https://dtdg.co/private-link.
+  DdUseVPC:
+    Type: String
+    Default: false
+    AllowedValues:
+      - true
+      - false
+    Description: Set to true to deploy the Forwarder to a VPC and send logs, metrics, and traces via a proxy. When set to true, must also set VPCSecurityGroupIds and VPCSubnetIds.
   VPCSecurityGroupIds:
     Type: CommaDelimitedList
     Default: ""
-    Description: Comma separated list of VPC Security Group Ids. Used when AWS PrivateLink is enabled.
+    Description: Comma separated list of VPC Security Group Ids. Used when DdUsePrivateLink or DdUseVPC is enabled.
   VPCSubnetIds:
     Type: CommaDelimitedList
     Default: ""
-    Description: Comma separated list of VPC Subnet Ids. Used when AWS PrivateLink is enabled.
+    Description: Comma separated list of VPC Subnet Ids. Used when DdUsePrivateLink or DdUseVPC is enabled.
   DdCompressionLevel:
     Type: Number
     Default: 6
@@ -164,6 +171,14 @@ Parameters:
     Type: CommaDelimitedList
     Default: ""
     Description: Comma separated list of lambda ARNs that get invoked asynchronously with the same input event
+  DdApiUrl:
+    Type: String
+    Default: ""
+    Description: The endpoint URL to forward the metrics to, useful for forwarding metrics through a proxy
+  DdTraceIntakeUrl:
+    Type: String
+    Default: ""
+    Description: The endpoint URL to forward the traces to, useful for forwarding traces through a proxy
 Conditions:
   IsAWSChina:
     Fn::Equals:
@@ -255,6 +270,14 @@ Conditions:
     Fn::Equals:
       - Ref: DdUsePrivateLink
       - true
+  SetDdUseVPC:
+    Fn::Equals:
+      - Ref: DdUseVPC
+      - true
+  UseVPC:
+    Fn::Or:
+      - Condition: SetDdUsePrivateLink
+      - Condition: SetDdUseVPC
   SetDdForwardLog:
     Fn::Equals:
       - Ref: DdForwardLog
@@ -277,6 +300,16 @@ Conditions:
     Fn::Not:
       - Fn::Equals:
           - Fn::Join: ["", !Ref AdditionalTargetLambdaArns]
+          - ""
+  SetDdApiUrl:
+    Fn::Not:
+      - Fn::Equals:
+          - Ref: DdApiUrl
+          - ""
+  SetDdTraceIntakeUrl:
+    Fn::Not:
+      - Fn::Equals:
+          - Ref: DdTraceIntakeUrl
           - ""
 Resources:
   Forwarder:
@@ -413,6 +446,16 @@ Resources:
                 - ','
                 - !Ref AdditionalTargetLambdaArns
               - !Ref AWS::NoValue
+          DD_API_URL:
+            Fn::If:
+              - SetDdApiUrl
+              - Ref: DdApiUrl
+              - Ref: AWS::NoValue
+          DD_TRACE_INTAKE_URL:
+            Fn::If:
+              - SetDdTraceIntakeUrl
+              - Ref: DdTraceIntakeUrl
+              - Ref: AWS::NoValue
       ReservedConcurrentExecutions:
         Ref: ReservedConcurrency
       PermissionsBoundary:
@@ -422,7 +465,7 @@ Resources:
           - Ref: AWS::NoValue
       VpcConfig:
         Fn::If:
-          - SetDdUsePrivateLink
+          - UseVPC
           - SecurityGroupIds: !Ref VPCSecurityGroupIds
             SubnetIds: !Ref VPCSubnetIds
           - Ref: AWS::NoValue
@@ -449,7 +492,7 @@ Resources:
                 Resource: "*"
               - Ref: AWS::NoValue
             - !If
-              - SetDdUsePrivateLink
+              - UseVPC
               - Effect: Allow
                 Action:
                   - ec2:CreateNetworkInterface
@@ -480,11 +523,7 @@ Resources:
     Properties:
       FunctionName: !Ref "Forwarder"
       Action: lambda:InvokeFunction
-      Principal:
-        Fn::If:
-          - IsAWSChina
-          - "s3.amazonaws.com.cn"
-          - "s3.amazonaws.com"
+      Principal: "s3.amazonaws.com"
       SourceAccount: !Ref "AWS::AccountId"
   LogGroup:
     Type: AWS::Logs::LogGroup
@@ -506,7 +545,7 @@ Resources:
       BucketEncryption:
           ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
-              SSEAlgorithm: AES256
+              SSEAlgorithm: 'aws:kms'
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
@@ -695,8 +734,12 @@ Metadata:
           - PermissionsBoundaryArn
           - DdApiKeySecretArn
           - DdUsePrivateLink
+          - DdUseVPC
           - VPCSecurityGroupIds
           - VPCSubnetIds
+          - DdApiUrl
+          - DdTraceIntakeUrl
+          - AdditionalTargetLambdaArns
     ParameterLabels:
       DdApiKey:
         default: "DdApiKey *"

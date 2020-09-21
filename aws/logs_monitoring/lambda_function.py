@@ -80,7 +80,8 @@ if len(DD_API_KEY) != 32:
     )
 # Validate the API key
 validation_res = requests.get(
-    "{}/api/v1/validate?api_key={}".format(DD_API_URL, DD_API_KEY)
+    "{}/api/v1/validate?api_key={}".format(DD_API_URL, DD_API_KEY),
+    verify=(not DD_SKIP_SSL_VALIDATION),
 )
 if not validation_res.ok:
     raise Exception("The API key is not valid.")
@@ -88,8 +89,11 @@ if not validation_res.ok:
 # Force the layer to use the exact same API key and host as the forwarder
 api._api_key = DD_API_KEY
 api._api_host = DD_API_URL
+api._cacert = not DD_SKIP_SSL_VALIDATION
 
-trace_connection = TraceConnection(DD_TRACE_INTAKE_URL, DD_API_KEY)
+trace_connection = TraceConnection(
+    DD_TRACE_INTAKE_URL, DD_API_KEY, DD_SKIP_SSL_VALIDATION
+)
 
 # Use for include, exclude, and scrubbing rules
 def compileRegex(rule, pattern):
@@ -204,6 +208,11 @@ class DatadogTCPClient(object):
         self._api_key = api_key
         self._scrubber = scrubber
         self._sock = None
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug(
+                f"Initialized tcp client for logs intake: "
+                f"<host: {host}, port: {port}, no_ssl: {no_ssl}>"
+            )
 
     def _connect(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -263,6 +272,12 @@ class DatadogHTTPClient(object):
         self._timeout = timeout
         self._session = None
         self._ssl_validation = not skip_ssl_validation
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug(
+                f"Initialized http client for logs intake: "
+                f"<host: {host}, port: {port}, url: {self._url}, no_ssl: {no_ssl}, "
+                f"skip_ssl_validation: {skip_ssl_validation}, timeout: {timeout}>"
+            )
 
     def _connect(self):
         self._session = requests.Session()
@@ -414,6 +429,8 @@ lambda_handler = datadog_lambda_wrapper(datadog_forwarder)
 
 def forward_logs(logs):
     """Forward logs to Datadog"""
+    if logger.isEnabledFor(logging.DEBUG):
+        logger.debug(f"Forwarding {len(logs)} logs")
     logs_to_forward = filter_logs(list(map(json.dumps, logs)))
     scrubber = DatadogScrubber(SCRUBBING_RULE_CONFIGS)
     if DD_USE_TCP:
@@ -449,6 +466,8 @@ def parse(event, context):
     try:
         # Route to the corresponding parser
         event_type = parse_event_type(event)
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug(f"Parsed event type: {event_type}")
         if event_type == "s3":
             events = s3_handler(event, context, metadata)
         elif event_type == "awslogs":
@@ -664,6 +683,12 @@ def split(events):
             trace_payloads.append(trace_payload)
         else:
             logs.append(event)
+
+    if logger.isEnabledFor(logging.DEBUG):
+        logger.debug(
+            f"Extracted {len(metrics)} metrics, {len(trace_payloads)} traces, and {len(logs)} logs"
+        )
+
     return metrics, logs, trace_payloads
 
 
@@ -700,6 +725,9 @@ def forward_metrics(metrics):
     Forward custom metrics submitted via logs to Datadog in a background thread
     using `lambda_stats` that is provided by the Datadog Python Lambda Layer.
     """
+    if logger.isEnabledFor(logging.DEBUG):
+        logger.debug(f"Forwarding {len(metrics)} metrics")
+
     for metric in metrics:
         try:
             lambda_stats.distribution(
@@ -719,6 +747,9 @@ def forward_metrics(metrics):
 
 
 def forward_traces(trace_payloads):
+    if logger.isEnabledFor(logging.DEBUG):
+        logger.debug(f"Forwarding {len(trace_payloads)} traces")
+
     try:
         trace_connection.send_traces(trace_payloads)
     except Exception:
