@@ -226,7 +226,7 @@ class EventhubLogForwarder {
     }
 
     formatSourceType(sourceType) {
-        if (sourceType.includes('microsoft')) {
+        if (sourceType.includes('microsoft.')) {
             return sourceType.replace('microsoft.', 'azure.');
         } else {
             return '';
@@ -244,6 +244,9 @@ class EventhubLogForwarder {
         var resourceId = record.resourceId.toLowerCase().split('/');
         if (resourceId[0] === '') {
             resourceId = resourceId.slice(1);
+        }
+        if (resourceId[resourceId.length - 1] === '') {
+            resourceId.pop();
         }
 
         if (resourceId[0] === 'subscriptions') {

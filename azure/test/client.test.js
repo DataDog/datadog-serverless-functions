@@ -113,10 +113,27 @@ describe('Azure Log Monitoring', function() {
                 this.forwarder.extractMetadataFromResource(record)
             );
         });
-        it('should parse a valid record without provider', function() {
+        it('should parse a valid resource group resource', function() {
             record = {
                 resourceId:
                     '/SUBSCRIPTIONS/12345678-1234-ABCD-1234-1234567890AB/RESOURCEGROUPS/SOME-RESOURCE-GROUP'
+            };
+            expectedMetadata = {
+                tags: [
+                    'subscription_id:12345678-1234-abcd-1234-1234567890ab',
+                    'resource_group:some-resource-group'
+                ],
+                source: 'azure.resourcegroup'
+            };
+            assert.deepEqual(
+                expectedMetadata,
+                this.forwarder.extractMetadataFromResource(record)
+            );
+        });
+        it('should parse a valid resource group resource ending slash', function() {
+            record = {
+                resourceId:
+                    '/SUBSCRIPTIONS/12345678-1234-ABCD-1234-1234567890AB/RESOURCEGROUPS/SOME-RESOURCE-GROUP/'
             };
             expectedMetadata = {
                 tags: [
@@ -147,10 +164,24 @@ describe('Azure Log Monitoring', function() {
                 this.forwarder.extractMetadataFromResource(record)
             );
         });
-        it('should parse a valid record without provider and resource group', function() {
+        it('should parse a valid subscription type resource', function() {
             record = {
                 resourceId:
                     '/SUBSCRIPTIONS/12345678-1234-ABCD-1234-1234567890AB'
+            };
+            expectedMetadata = {
+                tags: ['subscription_id:12345678-1234-abcd-1234-1234567890ab'],
+                source: 'azure.subscription'
+            };
+            assert.deepEqual(
+                expectedMetadata,
+                this.forwarder.extractMetadataFromResource(record)
+            );
+        });
+        it('should parse a valid subscription type resource ending slash', function() {
+            record = {
+                resourceId:
+                    '/SUBSCRIPTIONS/12345678-1234-ABCD-1234-1234567890AB/'
             };
             expectedMetadata = {
                 tags: ['subscription_id:12345678-1234-abcd-1234-1234567890ab'],
