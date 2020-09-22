@@ -233,6 +233,23 @@ describe('Azure Log Monitoring', function() {
                 this.forwarder.extractMetadataFromResource(record)
             );
         });
+        it('should handle when first element of resource id list is not empty', function() {
+            record = {
+                resourceId:
+                    'SUBSCRIPTIONS/12345678-1234-ABCD-1234-1234567890AB/RESOURCEGROUPS/SOME-RESOURCE-GROUP/PROVIDERS/NOTTHESAMEFORMAT/VIRTUALMACHINES/SOME-VM'
+            };
+            expectedMetadata = {
+                tags: [
+                    'subscription_id:12345678-1234-abcd-1234-1234567890ab',
+                    'resource_group:some-resource-group'
+                ],
+                source: ''
+            };
+            assert.deepEqual(
+                expectedMetadata,
+                this.forwarder.extractMetadataFromResource(record)
+            );
+        });
     });
 
     function testHandleJSONLogs(forwarder, logs, expected) {

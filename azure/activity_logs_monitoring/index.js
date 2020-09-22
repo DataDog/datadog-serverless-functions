@@ -241,8 +241,10 @@ class EventhubLogForwarder {
         ) {
             return metadata;
         }
-        var lowerResourceId = record.resourceId.toLowerCase();
-        var resourceId = lowerResourceId.split('/').filter(Boolean);
+        var resourceId = record.resourceId.toLowerCase().split('/');
+        if (resourceId[0] === '') {
+            resourceId = resourceId.slice(1);
+        }
 
         if (resourceId[0] === 'subscriptions') {
             if (resourceId.length > 1) {
