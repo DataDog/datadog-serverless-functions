@@ -226,7 +226,11 @@ class EventhubLogForwarder {
     }
 
     formatSourceType(sourceType) {
-        return sourceType.replace('microsoft.', 'azure.');
+        if (sourceType.includes('microsoft')) {
+            return sourceType.replace('microsoft.', 'azure.');
+        } else {
+            return '';
+        }
     }
 
     extractMetadataFromResource(record) {
@@ -256,9 +260,7 @@ class EventhubLogForwarder {
                 }
             }
             if (resourceId.length > 5 && resourceId[5]) {
-                if (resourceId[5].includes('microsoft')) {
-                    metadata.source = this.formatSourceType(resourceId[5]);
-                }
+                metadata.source = this.formatSourceType(resourceId[5]);
             }
         } else if (resourceId[0] === 'tenants') {
             if (resourceId.length > 3 && resourceId[3]) {
@@ -284,7 +286,7 @@ module.exports = async function(context, eventHubMessages) {
         eventHubMessages
     );
 
-    return Promise.allSettled(promises);
+    return Promise.all(promises.map(p => p.catch(e => e)));
 };
 
 module.exports.forTests = {

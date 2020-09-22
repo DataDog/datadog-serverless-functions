@@ -216,6 +216,23 @@ describe('Azure Log Monitoring', function() {
                 this.forwarder.extractMetadataFromResource(record)
             );
         });
+        it('should return empty source when not correct source format', function() {
+            record = {
+                resourceId:
+                    '/SUBSCRIPTIONS/12345678-1234-ABCD-1234-1234567890AB/RESOURCEGROUPS/SOME-RESOURCE-GROUP/PROVIDERS/NOTTHESAMEFORMAT/VIRTUALMACHINES/SOME-VM'
+            };
+            expectedMetadata = {
+                tags: [
+                    'subscription_id:12345678-1234-abcd-1234-1234567890ab',
+                    'resource_group:some-resource-group'
+                ],
+                source: ''
+            };
+            assert.deepEqual(
+                expectedMetadata,
+                this.forwarder.extractMetadataFromResource(record)
+            );
+        });
     });
 
     function testHandleJSONLogs(forwarder, logs, expected) {
@@ -354,6 +371,21 @@ describe('Azure Log Monitoring', function() {
             // just assert that the string method is called for the second message,
             // we don't care about the first one for this test
             testHandleStringLogs(this.forwarder, log, expected);
+        });
+    });
+    describe('#formatSourceType', function() {
+        beforeEach(function() {
+            this.forwarder = setUp();
+        });
+        it('should replace microsoft with azure', function() {
+            expected = 'azure.bleh';
+            actual = this.forwarder.formatSourceType('microsoft.bleh');
+            assert.equal(actual, expected);
+        });
+        it('should return empty source', function() {
+            expected = '';
+            actual = this.forwarder.formatSourceType('something');
+            assert.equal(actual, expected);
         });
     });
 });
