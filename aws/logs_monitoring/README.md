@@ -13,7 +13,7 @@ For additional information on sending AWS services logs with the Datadog Forward
 
 ## Installation
 
-Datadog recommends using [CloudFormation](#cloudformation) to automatically install the Forwarder. You can also complete the setup process using [Terraform](#terraform) or [manually](#manually).
+Datadog recommends using [CloudFormation](#cloudformation) to automatically install the Forwarder. You can also complete the setup process using [Terraform](#terraform) or [manually](#manual).
 
 Once installed, you can subscribe the Forwarder to log sources, such as S3 buckets or CloudWatch log groups following the [instructions](https://docs.datadoghq.com/logs/guide/send-aws-services-logs-with-the-datadog-lambda-function/?tab=awsconsole#set-up-triggers).
 
