@@ -206,7 +206,7 @@ class EventhubLogForwarder {
     }
 
     addTagsToJsonLog(record) {
-        var metadata = this.extractResourceId(record);
+        var metadata = this.extractMetadataFromResource(record);
         record['ddsource'] = metadata.source || DD_SOURCE;
         record['ddsourcecategory'] = DD_SOURCE_CATEGORY;
         record['service'] = DD_SERVICE;
@@ -225,39 +225,51 @@ class EventhubLogForwarder {
         return this.addTagsToJsonLog(jsonLog);
     }
 
-    extractResourceId(record) {
+    formatSourceType(sourceType) {
+        return sourceType.replace('microsoft.', 'azure.');
+    }
+
+    extractMetadataFromResource(record) {
         var metadata = { tags: [], source: '' };
         if (
             record.resourceId === undefined ||
             typeof record.resourceId !== 'string'
         ) {
             return metadata;
-        } else if (
-            record.resourceId.toLowerCase().startsWith('/subscriptions/')
-        ) {
-            var resourceId = record.resourceId.toLowerCase().split('/');
-            if (resourceId.length > 2) {
-                metadata.tags.push('subscription_id:' + resourceId[2]);
-            }
-            if (resourceId.length > 4) {
-                metadata.tags.push('resource_group:' + resourceId[4]);
-            }
-            if (resourceId.length > 6 && resourceId[6]) {
-                metadata.source = resourceId[6].replace('microsoft.', 'azure.');
-            }
-            return metadata;
-        } else if (record.resourceId.toLowerCase().startsWith('/tenants/')) {
-            var resourceId = record.resourceId.toLowerCase().split('/');
-            if (resourceId.length > 4 && resourceId[4]) {
-                metadata.tags.push('tenant:' + resourceId[2]);
-                metadata.source = resourceId[4]
-                    .replace('microsoft.', 'azure.')
-                    .replace('aadiam', 'activedirectory');
-            }
-            return metadata;
-        } else {
-            return metadata;
         }
+        var lowerResourceId = record.resourceId.toLowerCase();
+        var resourceId = lowerResourceId.split('/').filter(Boolean);
+
+        if (resourceId[0] === 'subscriptions') {
+            if (resourceId.length > 1) {
+                metadata.tags.push('subscription_id:' + resourceId[1]);
+                if (resourceId.length == 2) {
+                    metadata.source = 'azure.subscription';
+                    return metadata;
+                }
+            }
+            if (resourceId.length > 3) {
+                metadata.tags.push('resource_group:' + resourceId[3]);
+                if (resourceId.length == 4) {
+                    metadata.source = 'azure.resourcegroup';
+                    return metadata;
+                }
+            }
+            if (resourceId.length > 5 && resourceId[5]) {
+                if (resourceId[5].includes('microsoft')) {
+                    metadata.source = this.formatSourceType(resourceId[5]);
+                }
+            }
+        } else if (resourceId[0] === 'tenants') {
+            if (resourceId.length > 3 && resourceId[3]) {
+                metadata.tags.push('tenant:' + resourceId[1]);
+                metadata.source = this.formatSourceType(resourceId[3]).replace(
+                    'aadiam',
+                    'activedirectory'
+                );
+            }
+        }
+        return metadata;
     }
 }
 
