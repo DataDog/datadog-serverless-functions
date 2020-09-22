@@ -41,7 +41,7 @@ Install the Forwarder using the Terraform resource [aws_cloudformation_stack](ht
 Datadog recommends creating two separate Terraform configurations:
 
 - Use the first one to store the Datadog API key in the AWS Secrets Manager, and note down the secrets ARN from the output of apply.
-- Then create another configuration for the forwarder and supply the secretes ARN through the `DdApiKeySecretArn` parameter.
+- Then create another configuration for the forwarder and supply the secrets ARN through the `DdApiKeySecretArn` parameter.
 
 Separating the configurations of the API key and the forwarder means that you don't need to provide the Datadog API key when updating the forwarder.
 
