@@ -797,11 +797,16 @@ def parse_event_type(event):
         if "s3" in event["Records"][0]:
             return "s3"
         elif "Sns" in event["Records"][0]:
-            snsS3EventMessage = event["Records"][0]["Sns"]["Message"]
-            if len(snsS3EventMessage) > 0:
-                snsS3Event = json.loads(snsS3EventMessage)
-                if "Records" in snsS3Event and "s3" in snsS3Event["Records"][0]:
+            # it's not uncommon to fan out s3 notifications through SNS,
+            # should treat it as an s3 event rather than sns event.
+            sns_msg = event["Records"][0]["Sns"]["Message"]
+            try:
+                sns_msg_dict = json.loads(sns_msg)
+                if "Records" in sns_msg_dict and "s3" in sns_msg_dict["Records"][0]:
                     return "s3"
+            except Exception:
+                if logger.isEnabledFor(logging.DEBUG):
+                    logger.debug(f"No s3 event detected from SNS message: {sns_msg}")
             return "sns"
         elif "kinesis" in event["Records"][0]:
             return "kinesis"
