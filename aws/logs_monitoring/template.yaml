@@ -497,6 +497,10 @@ Resources:
               Resource: "*"
             - Effect: Allow
               Action:
+                - kms:Decrypt
+              Resource: "*"
+            - Effect: Allow
+              Action:
                 - secretsmanager:GetSecretValue
               Resource:
                 Fn::If:
