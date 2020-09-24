@@ -497,11 +497,7 @@ Resources:
               Resource: "*"
             - Effect: Allow
               Action:
-                - kms:Encrypt
                 - kms:Decrypt
-                - kms:ReEncrypt*
-                - kms:GenerateDataKey*
-                - kms:DescribeKey
               Resource: "*"
             - Effect: Allow
               Action:
