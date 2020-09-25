@@ -799,6 +799,16 @@ def parse_event_type(event):
         if "s3" in event["Records"][0]:
             return "s3"
         elif "Sns" in event["Records"][0]:
+            # it's not uncommon to fan out s3 notifications through SNS,
+            # should treat it as an s3 event rather than sns event.
+            sns_msg = event["Records"][0]["Sns"]["Message"]
+            try:
+                sns_msg_dict = json.loads(sns_msg)
+                if "Records" in sns_msg_dict and "s3" in sns_msg_dict["Records"][0]:
+                    return "s3"
+            except Exception:
+                if logger.isEnabledFor(logging.DEBUG):
+                    logger.debug(f"No s3 event detected from SNS message: {sns_msg}")
             return "sns"
         elif "kinesis" in event["Records"][0]:
             return "kinesis"
@@ -818,6 +828,9 @@ def s3_handler(event, context, metadata):
         os.environ["AWS_REGION"],
         config=botocore.config.Config(s3={"addressing_style": "path"}),
     )
+    # if this is a S3 event carried in a SNS message, extract it and override the event
+    if "Sns" in event["Records"][0]:
+        event = json.loads(event["Records"][0]["Sns"]["Message"])
 
     # Get the object from the event and show its content type
     bucket = event["Records"][0]["s3"]["bucket"]["name"]
