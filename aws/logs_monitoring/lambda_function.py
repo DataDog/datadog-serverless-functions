@@ -78,7 +78,7 @@ if len(DD_API_KEY) != 32:
     )
 # Validate the API key
 validation_res = requests.get(
-    "{}/api/v1/validate?api_key={}".format(DD_API_URL, DD_API_KEY),
+    f"{DD_API_URL}/api/v1/validate?api_key={DD_API_KEY}",
     verify=(not DD_SKIP_SSL_VALIDATION),
 )
 if not validation_res.ok:
@@ -100,15 +100,13 @@ def compileRegex(rule, pattern):
         if pattern == "":
             # If pattern is an empty string, raise exception
             raise Exception(
-                "No pattern provided:\nAdd pattern or remove {} environment variable".format(
-                    rule
-                )
+                f"No pattern provided:\nAdd pattern or remove {rule} environment variable"
             )
         try:
             return re.compile(pattern)
         except Exception:
             raise Exception(
-                "could not compile {} regex with pattern: {}".format(rule, pattern)
+                f"could not compile {rule} regex with pattern: {pattern}"
             )
 
 
@@ -121,17 +119,13 @@ rds_regex = re.compile("/aws/rds/(instance|cluster)/(?P<host>[^/]+)/(?P<name>[^/
 if DD_MULTILINE_LOG_REGEX_PATTERN:
     try:
         multiline_regex = re.compile(
-            "[\n\r\f]+(?={})".format(DD_MULTILINE_LOG_REGEX_PATTERN)
+            f"[\n\r\f]+(?={DD_MULTILINE_LOG_REGEX_PATTERN})"
         )
     except Exception:
         raise Exception(
-            "could not compile multiline regex with pattern: {}".format(
-                DD_MULTILINE_LOG_REGEX_PATTERN
-            )
+            f"could not compile multiline regex with pattern: {DD_MULTILINE_LOG_REGEX_PATTERN}"
         )
-    multiline_regex_start_pattern = re.compile(
-        "^{}".format(DD_MULTILINE_LOG_REGEX_PATTERN)
-    )
+    multiline_regex_start_pattern = re.compile(f"^{DD_MULTILINE_LOG_REGEX_PATTERN}")
 
 # Used to identify and assign sources to logs
 LOG_SOURCE_SUBSTRINGS = [
@@ -233,7 +227,7 @@ class DatadogTCPClient(object):
     def send(self, logs):
         try:
             frame = self._scrubber.scrub(
-                "".join(["{} {}\n".format(self._api_key, log) for log in logs])
+                "".join([f"{self._api_key} {log}\n" for log in logs])
             )
             self._sock.sendall(frame.encode("UTF-8"))
         except ScrubbingException:
@@ -266,7 +260,7 @@ class DatadogHTTPClient(object):
         self, host, port, no_ssl, skip_ssl_validation, api_key, scrubber, timeout=10
     ):
         protocol = "http" if no_ssl else "https"
-        self._url = "{}://{}:{}/v1/input/{}".format(protocol, host, port, api_key)
+        self._url = f"{protocol}://{host}:{port}/v1/input/{api_key}"
         self._scrubber = scrubber
         self._timeout = timeout
         self._session = None
@@ -290,7 +284,7 @@ class DatadogHTTPClient(object):
         Sends a batch of log, only retry on server and network errors.
         """
         try:
-            data = self._scrubber.scrub("[{}]".format(",".join(logs)))
+            data = self._scrubber.scrub(f"[{','.join(logs)}]")
         except ScrubbingException:
             raise Exception("could not scrub the payload")
         if DD_USE_COMPRESSION:
@@ -308,9 +302,7 @@ class DatadogHTTPClient(object):
         elif resp.status_code >= 400:
             # client error
             raise Exception(
-                "client error, status: {}, reason {}".format(
-                    resp.status_code, resp.reason
-                )
+                f"client error, status: {resp.status_code}, reason {resp.reason}"
             )
         else:
             # success
@@ -452,7 +444,7 @@ def forward_logs(logs):
                     logger.debug(f"Forwarded log batch: {json.dumps(batch)}")
 
     lambda_stats.distribution(
-        "{}.logs_forwarded".format(DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX),
+        f"{DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX}.logs_forwarded",
         len(logs_to_forward),
         tags=DD_FORWARDER_TELEMETRY_TAGS,
     )
@@ -479,9 +471,7 @@ def parse(event, context):
             events = kinesis_awslogs_handler(event, context, metadata)
     except Exception as e:
         # Logs through the socket the error
-        err_message = "Error parsing the object. Exception: {} for event {}".format(
-            str(e), event
-        )
+        err_message = f"Error parsing the object. Exception: {e} for event {event}"
         events = [err_message]
 
     set_forwarder_telemetry_tags(context, event_type)
@@ -631,7 +621,7 @@ def generate_metadata(context):
             [
                 DD_TAGS,
                 ",".join(
-                    ["{}:{}".format(k, v) for k, v in dd_custom_tags_data.items()]
+                    [f"{k}:{v}" for k, v in dd_custom_tags_data.items()]
                 ),
             ],
         )
@@ -739,7 +729,7 @@ def forward_metrics(metrics):
                 logger.debug(f"Forwarded metric: {json.dumps(metric)}")
 
     lambda_stats.distribution(
-        "{}.metrics_forwarded".format(DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX),
+        f"{DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX}.metrics_forwarded",
         len(metrics),
         tags=DD_FORWARDER_TELEMETRY_TAGS,
     )
@@ -760,7 +750,7 @@ def forward_traces(trace_payloads):
             logger.debug(f"Forwarded traces: {json.dumps(trace_payloads)}")
 
     lambda_stats.distribution(
-        "{}.traces_forwarded".format(DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX),
+        f"{DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX}.traces_forwarded",
         len(trace_payloads),
         tags=DD_FORWARDER_TELEMETRY_TAGS,
     )
@@ -785,7 +775,7 @@ def normalize_events(events, metadata):
 
     """Submit count of total events"""
     lambda_stats.distribution(
-        "{}.incoming_events".format(DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX),
+        f"{DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX}.incoming_events",
         events_counter,
         tags=DD_FORWARDER_TELEMETRY_TAGS,
     )
@@ -1091,13 +1081,11 @@ def parse_service_arn(source, key, bucket, context):
             elbname = name.replace(".", "/")
             if len(idsplit) > 1:
                 idvalue = idsplit[1]
-                return "arn:aws:elasticloadbalancing:{}:{}:loadbalancer/{}".format(
-                    region, idvalue, elbname
-                )
+                return f"arn:aws:elasticloadbalancing:{region}:{idvalue}:loadbalancer/{elbname}"
     if source == "s3":
         # For S3 access logs we use the bucket name to rebuild the arn
         if bucket:
-            return "arn:aws:s3:::{}".format(bucket)
+            return f"arn:aws:s3:::{bucket}"
     if source == "cloudfront":
         # For Cloudfront logs we need to get the account and distribution id from the lambda arn and the filename
         # 1. We extract the cloudfront id  from the filename
@@ -1114,9 +1102,7 @@ def parse_service_arn(source, key, bucket, context):
                 arnsplit = arn.split(":")
                 if len(arnsplit) == 7:
                     awsaccountID = arnsplit[4].lower()
-                    return "arn:aws:cloudfront::{}:distribution/{}".format(
-                        awsaccountID, distributionID
-                    )
+                    return f"arn:aws:cloudfront::{awsaccountID}:distribution/{distributionID}"
     if source == "redshift":
         # For redshift logs we leverage the filename to extract the relevant information
         # 1. We extract the region from the filename
@@ -1131,9 +1117,7 @@ def parse_service_arn(source, key, bucket, context):
             filesplit = filename.split("_")
             if len(filesplit) == 6:
                 clustername = filesplit[3]
-                return "arn:aws:redshift:{}:{}:cluster:{}:".format(
-                    region, accountID, clustername
-                )
+                return f"arn:aws:redshift:{region}:{accountID}:cluster:{clustername}:"
     return
 
 

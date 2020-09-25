@@ -104,13 +104,13 @@ DD_TAGS = get_env_var("DD_TAGS", "")
 # @param DD_API_URL - Url to use for  validating the the api key.
 DD_API_URL = get_env_var(
     "DD_API_URL",
-    default="{}://api.{}".format("http" if DD_NO_SSL else "https", DD_SITE),
+    default=f"{'http' if DD_NO_SSL else 'https'}://api.{DD_SITE}",
 )
 
 # @param DD_TRACE_INTAKE_URL
 DD_TRACE_INTAKE_URL = get_env_var(
     "DD_TRACE_INTAKE_URL",
-    default="{}://trace.agent.{}".format("http" if DD_NO_SSL else "https", DD_SITE),
+    default=f"{'http' if DD_NO_SSL else 'https'}://trace.agent.{DD_SITE}",
 )
 
 if DD_USE_TCP:

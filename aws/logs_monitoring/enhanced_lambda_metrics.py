@@ -52,18 +52,16 @@ OUT_OF_MEMORY_METRIC_NAME = "out_of_memory"
 # access the values from the search result by name
 REPORT_LOG_REGEX = re.compile(
     r"REPORT\s+"
-    + r"RequestId:\s+(?P<{}>[\w-]+)\s+".format(REQUEST_ID_FIELD_NAME)
-    + r"Duration:\s+(?P<{}>[\d\.]+)\s+ms\s+".format(DURATION_METRIC_NAME)
-    + r"Billed\s+Duration:\s+(?P<{}>[\d\.]+)\s+ms\s+".format(
-        BILLED_DURATION_METRIC_NAME
-    )
-    + r"Memory\s+Size:\s+(?P<{}>\d+)\s+MB\s+".format(MEMORY_ALLOCATED_FIELD_NAME)
-    + r"Max\s+Memory\s+Used:\s+(?P<{}>\d+)\s+MB".format(MAX_MEMORY_USED_METRIC_NAME)
-    + r"(\s+Init\s+Duration:\s+(?P<{}>[\d\.]+)\s+ms)?".format(INIT_DURATION_METRIC_NAME)
+    + fr"RequestId:\s+(?P<{REQUEST_ID_FIELD_NAME}>[\w-]+)\s+"
+    + fr"Duration:\s+(?P<{DURATION_METRIC_NAME}>[\d\.]+)\s+ms\s+"
+    + fr"Billed\s+Duration:\s+(?P<{BILLED_DURATION_METRIC_NAME}>[\d\.]+)\s+ms\s+"
+    + fr"Memory\s+Size:\s+(?P<{MEMORY_ALLOCATED_FIELD_NAME}>\d+)\s+MB\s+"
+    + fr"Max\s+Memory\s+Used:\s+(?P<{MAX_MEMORY_USED_METRIC_NAME}>\d+)\s+MB"
+    + fr"(\s+Init\s+Duration:\s+(?P<{INIT_DURATION_METRIC_NAME}>[\d\.]+)\s+ms)?"
 )
 
 TIMED_OUT_REGEX = re.compile(
-    r"Task\stimed\sout\safter\s+(?P<{}>[\d\.]+)\s+seconds".format(TIMEOUTS_METRIC_NAME)
+    fr"Task\stimed\sout\safter\s+(?P<{TIMEOUTS_METRIC_NAME}>[\d\.]+)\s+seconds"
 )
 
 OUT_OF_MEMORY_ERROR_STRINGS = [
@@ -221,7 +219,7 @@ class DatadogMetricPoint(object):
             timestamp = time()
 
         logger.debug(
-            "Submitting metric {} {} {}".format(self.name, self.value, self.tags)
+            f"Submitting metric {self.name} {self.value} {self.tags}"
         )
         lambda_stats.distribution(
             self.name, self.value, timestamp=timestamp, tags=self.tags
@@ -330,11 +328,7 @@ def get_forwarder_telemetry_prefix_and_tags():
 def send_forwarder_internal_metrics(name, additional_tags=[]):
     """Send forwarder's internal metrics to DD"""
     prefix, tags = get_forwarder_telemetry_prefix_and_tags()
-    lambda_stats.distribution(
-        "{}.{}".format(prefix, name),
-        1,
-        tags=tags + additional_tags,
-    )
+    lambda_stats.distribution(f"{prefix}.{name}", 1, tags=tags + additional_tags)
 
 
 def get_last_modified_time(s3_file):
@@ -559,11 +553,11 @@ def parse_lambda_tags_from_arn(arn):
     _, _, _, region, account_id, _, function_name = split_arn
 
     return [
-        "region:{}".format(region),
-        "account_id:{}".format(account_id),
+        f"region:{region}",
+        f"account_id:{account_id}",
         # Include the aws_account tag to match the aws.lambda CloudWatch metrics
-        "aws_account:{}".format(account_id),
-        "functionname:{}".format(function_name),
+        f"aws_account:{account_id}",
+        f"functionname:{function_name}",
     ]
 
 
@@ -604,7 +598,7 @@ def parse_metrics_from_report_log(report_log_line):
             metric_point_value *= METRIC_ADJUSTMENT_FACTORS[metric_name]
 
         dd_metric = DatadogMetricPoint(
-            "{}.{}".format(ENHANCED_METRICS_NAMESPACE_PREFIX, metric_name),
+            f"{ENHANCED_METRICS_NAMESPACE_PREFIX}.{metric_name}",
             metric_point_value,
         )
 
@@ -613,7 +607,7 @@ def parse_metrics_from_report_log(report_log_line):
         metrics.append(dd_metric)
 
     estimated_cost_metric_point = DatadogMetricPoint(
-        "{}.{}".format(ENHANCED_METRICS_NAMESPACE_PREFIX, ESTIMATED_COST_METRIC_NAME),
+        f"{ENHANCED_METRICS_NAMESPACE_PREFIX}.{ESTIMATED_COST_METRIC_NAME}",
         calculate_estimated_cost(
             float(regex_match.group(BILLED_DURATION_METRIC_NAME)),
             float(regex_match.group(MEMORY_ALLOCATED_FIELD_NAME)),
