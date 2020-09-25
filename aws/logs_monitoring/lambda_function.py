@@ -105,9 +105,7 @@ def compileRegex(rule, pattern):
         try:
             return re.compile(pattern)
         except Exception:
-            raise Exception(
-                f"could not compile {rule} regex with pattern: {pattern}"
-            )
+            raise Exception(f"could not compile {rule} regex with pattern: {pattern}")
 
 
 include_regex = compileRegex("INCLUDE_AT_MATCH", INCLUDE_AT_MATCH)
@@ -118,9 +116,7 @@ rds_regex = re.compile("/aws/rds/(instance|cluster)/(?P<host>[^/]+)/(?P<name>[^/
 
 if DD_MULTILINE_LOG_REGEX_PATTERN:
     try:
-        multiline_regex = re.compile(
-            f"[\n\r\f]+(?={DD_MULTILINE_LOG_REGEX_PATTERN})"
-        )
+        multiline_regex = re.compile(f"[\n\r\f]+(?={DD_MULTILINE_LOG_REGEX_PATTERN})")
     except Exception:
         raise Exception(
             f"could not compile multiline regex with pattern: {DD_MULTILINE_LOG_REGEX_PATTERN}"
@@ -620,9 +616,7 @@ def generate_metadata(context):
             None,
             [
                 DD_TAGS,
-                ",".join(
-                    [f"{k}:{v}" for k, v in dd_custom_tags_data.items()]
-                ),
+                ",".join([f"{k}:{v}" for k, v in dd_custom_tags_data.items()]),
             ],
         )
     )

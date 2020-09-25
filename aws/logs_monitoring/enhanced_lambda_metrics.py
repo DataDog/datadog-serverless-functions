@@ -218,9 +218,7 @@ class DatadogMetricPoint(object):
         if not timestamp:
             timestamp = time()
 
-        logger.debug(
-            f"Submitting metric {self.name} {self.value} {self.tags}"
-        )
+        logger.debug(f"Submitting metric {self.name} {self.value} {self.tags}")
         lambda_stats.distribution(
             self.name, self.value, timestamp=timestamp, tags=self.tags
         )
