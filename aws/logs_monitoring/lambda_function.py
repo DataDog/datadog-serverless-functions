@@ -7,7 +7,6 @@ import base64
 import gzip
 import json
 import os
-from collections import defaultdict
 
 import boto3
 import botocore
@@ -35,7 +34,6 @@ from settings import (
     DD_COMPRESSION_LEVEL,
     DD_NO_SSL,
     DD_SKIP_SSL_VALIDATION,
-    DD_SITE,
     DD_TAGS,
     DD_API_URL,
     DD_TRACE_INTAKE_URL,
@@ -94,6 +92,7 @@ api._cacert = not DD_SKIP_SSL_VALIDATION
 trace_connection = TraceConnection(
     DD_TRACE_INTAKE_URL, DD_API_KEY, DD_SKIP_SSL_VALIDATION
 )
+
 
 # Use for include, exclude, and scrubbing rules
 def compileRegex(rule, pattern):
@@ -604,7 +603,7 @@ def add_metadata_to_lambda_log(event):
 
     tags += custom_lambda_tags
 
-    # Dedup tags, so we don't end up with functionname twice
+    # Dedupe tags, so we don't end up with functionname twice
     tags = list(set(tags))
     tags.sort()  # Keep order deterministic
 
@@ -646,7 +645,7 @@ def extract_trace_payload(event):
     try:
         message = event["message"]
         obj = json.loads(event["message"])
-        if not "traces" in obj or not isinstance(obj["traces"], list):
+        if "traces" not in obj or not isinstance(obj["traces"], list):
             return None
         return {"message": message, "tags": event[DD_CUSTOM_TAGS]}
     except Exception:
@@ -838,9 +837,9 @@ def s3_handler(event, context, metadata):
 
     source = parse_event_source(event, key)
     metadata[DD_SOURCE] = source
-    ##default service to source value
+    # default service to source value
     metadata[DD_SERVICE] = source
-    ##Get the ARN of the service and set it as the hostname
+    # Get the ARN of the service and set it as the hostname
     hostname = parse_service_arn(source, key, bucket, context)
     if hostname:
         metadata[DD_HOST] = hostname
@@ -981,7 +980,7 @@ def cwevent_handler(event, metadata):
         metadata[DD_SOURCE] = service[1]
     else:
         metadata[DD_SOURCE] = "cloudwatch"
-    ##default service to source value
+    # default service to source value
     metadata[DD_SERVICE] = metadata[DD_SOURCE]
 
     yield data

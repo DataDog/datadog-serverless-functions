@@ -175,4 +175,5 @@ class Stats(object):
         response = urlopen(req)
         print('INFO Submitted data with status%s' % response.getcode())
 
+
 stats = Stats()

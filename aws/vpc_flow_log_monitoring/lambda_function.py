@@ -8,7 +8,6 @@ from __future__ import print_function
 import os
 import gzip
 import json
-import re
 import time
 import urllib
 import urllib2
@@ -32,6 +31,7 @@ datadog_keys = json.loads(kms.decrypt(CiphertextBlob=b64decode(KMS_ENCRYPTED_KEY
 #     "api_key": "abcd",
 #     "app_key": "efgh",
 # }
+
 
 def process_message(message, tags, timestamp, node_ip):
     version, account_id, interface_id, srcaddr, dstaddr, srcport, dstport, protocol, packets, _bytes, start, end, action, log_status = message.split(" ")
@@ -320,6 +320,7 @@ class Stats(object):
         req = urllib2.Request(url, data, {'Content-Type': 'application/json'})
         response = urllib2.urlopen(req)
         print('INFO Submitted data with status {}'.format(response.getcode()))
+
 
 stats = Stats()
 
