@@ -450,6 +450,11 @@ Resources:
               - SetDdUsePrivateLink
               - true
               - false
+          DD_USE_VPC:
+            Fn::If:
+              - UseVPC
+              - true
+              - false
           DD_ADDITIONAL_TARGET_LAMBDAS:
             Fn::If:
               - SetAdditionalTargetLambdas

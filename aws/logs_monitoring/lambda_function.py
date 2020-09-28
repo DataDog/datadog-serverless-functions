@@ -51,6 +51,7 @@ from settings import (
     DD_HOST,
     DD_FORWARDER_VERSION,
     DD_ADDITIONAL_TARGET_LAMBDAS,
+    DD_USE_VPC,
 )
 
 
@@ -823,11 +824,16 @@ def parse_event_type(event):
 
 # Handle S3 events
 def s3_handler(event, context, metadata):
-    s3 = boto3.client(
-        "s3",
-        os.environ["AWS_REGION"],
-        config=botocore.config.Config(s3={"addressing_style": "path"}),
-    )
+    # Need to use path style to access s3 via VPC Endpoints
+    # https://github.com/gford1000-aws/lambda_s3_access_using_vpc_endpoint#boto3-specific-notes
+    if DD_USE_VPC:
+        s3 = boto3.client(
+            "s3",
+            os.environ["AWS_REGION"],
+            config=botocore.config.Config(s3={"addressing_style": "path"}),
+        )
+    else:
+        s3 = boto3.client("s3")
     # if this is a S3 event carried in a SNS message, extract it and override the event
     if "Sns" in event["Records"][0]:
         event = json.loads(event["Records"][0]["Sns"]["Message"])
