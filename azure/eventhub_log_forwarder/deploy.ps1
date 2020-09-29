@@ -6,7 +6,7 @@ param
 )
 
 
-$templateURI = "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/eventhub_log_forwarder/function_template.json"
+$templateURI = "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/claudia/azure-automation-function/azure/eventhub_log_forwarder/function_template.json"
 $codePath = "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/activity_logs_monitoring/index.js"
 
 $code = (New-Object System.Net.WebClient).DownloadString($codePath)
@@ -21,8 +21,8 @@ $templateParameters.Add("apiKey", $apiKey)
 New-AzResourceGroup -Name $resourceGroupName -Location $location
 
 # Deploy the ARM template
-New-AzureRmResourceGroupDeployment `
-    -TemplateURI $templateURI `
+New-AzResourceGroupDeployment `
+    -TemplateUri $templateURI `
     -ResourceGroupName $ResourceGroupName `
     -TemplateParameterObject $templateParameters `
     -Verbose
