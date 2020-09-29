@@ -127,6 +127,9 @@ else:
     DD_URL = get_env_var("DD_URL", default="lambda-http-intake.logs." + DD_SITE)
     DD_PORT = int(get_env_var("DD_PORT", default="443"))
 
+## @param DD_USE_VPC
+DD_USE_VPC = get_env_var("DD_USE_VPC", "false", boolean=True)
+
 ## @param DD_USE_PRIVATE_LINK - whether to forward logs via PrivateLink
 ## Overrides incompatible settings
 #
