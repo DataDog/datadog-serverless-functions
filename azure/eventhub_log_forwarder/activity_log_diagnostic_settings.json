@@ -8,13 +8,19 @@
 				"description": "The name of the diagnostic setting"
 			}
 		},
-		"eventHubAuthorizationRuleId": {
-			"type": "string",
-            "defaultValue": "/subscriptions/8c56d827-5f07-45ce-8f2b-6c5001db5c6f/resourceGroups/ricky_powershell_rg/providers/Microsoft.EventHub/namespaces/ricky-test-namespace/eventhubs/ricky-test-hub/authorizationRules/RootManageSharedAccessKey",
-			"metadata": {
-			  "description": "Resource ID of the event hub authorization rule for the Event Hubs namespace in which the event hub should be created or streamed to."
-			}
-		},
+        "resourceGroup": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the relevant Resource Group"
+            }
+        },
+        "eventHubNamespace": {
+            "type": "string",
+            "defaultValue": "datadog-eventhub-namespace",
+            "metadata": {
+                "description": "Name of EventHub namespace"
+            }
+        },
 		"eventHubName": {
 			"type": "string",
 			"metadata": {
@@ -22,7 +28,10 @@
 			}
 		}
 	},
-	"variables": {},
+	"variables": {
+        "subscriptionId": "[subscription().subscriptionId]",
+        "eventHubAuthorizationRuleId": "[concat('/subscriptions/', variables('subscriptionId'), '/resourceGroups/', parameters('resourceGroup'), '/providers/Microsoft.EventHub/namespaces/', parameters('eventhubNamespace'), '/authorizationRules/RootManageSharedAccessKey')]"
+    },
 	"resources": [
 		{
 			"type": "Microsoft.Insights/diagnosticSettings",
@@ -30,7 +39,7 @@
 			"name": "[parameters('settingName')]",
 			"location": "global",
 			"properties": {
-				"eventHubAuthorizationRuleId": "[parameters('eventHubAuthorizationRuleId')]",
+				"eventHubAuthorizationRuleId": "[variables('eventHubAuthorizationRuleId')]",
 				"eventHubName": "[parameters('eventHubName')]",
 				"logs": [
 					{
