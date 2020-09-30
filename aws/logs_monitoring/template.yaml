@@ -4,7 +4,7 @@ Description: Pushes logs, metrics and traces from AWS to Datadog.
 Mappings:
   Constants:
     DdForwarder:
-      Version: 3.19.0
+      Version: 3.20.0
 Parameters:
   DdApiKey:
     Type: String
@@ -450,6 +450,11 @@ Resources:
               - SetDdUsePrivateLink
               - true
               - false
+          DD_USE_VPC:
+            Fn::If:
+              - UseVPC
+              - true
+              - false
           DD_ADDITIONAL_TARGET_LAMBDAS:
             Fn::If:
               - SetAdditionalTargetLambdas
@@ -494,6 +499,10 @@ Resources:
             - Effect: Allow
               Action:
                 - s3:GetObject
+              Resource: "*"
+            - Effect: Allow
+              Action:
+                - kms:Decrypt
               Resource: "*"
             - Effect: Allow
               Action:
@@ -746,6 +755,7 @@ Metadata:
           default: Advanced (Optional)
         Parameters:
           - DdFetchLambdaTags
+          - TagsCacheTTLSeconds
           - SourceZipUrl
           - PermissionsBoundaryArn
           - DdApiKeySecretArn

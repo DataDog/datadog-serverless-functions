@@ -92,7 +92,7 @@ describe('Azure Log Monitoring', function() {
         });
     });
 
-    describe('#extractResourceId', function() {
+    describe('#extractMetadataFromResource', function() {
         beforeEach(function() {
             this.forwarder = setUp();
         });
@@ -110,13 +110,47 @@ describe('Azure Log Monitoring', function() {
             };
             assert.deepEqual(
                 expectedMetadata,
-                this.forwarder.extractResourceId(record)
+                this.forwarder.extractMetadataFromResource(record)
             );
         });
-        it('should parse a valid record without provider', function() {
+        it('should parse a valid resource group resource', function() {
             record = {
                 resourceId:
                     '/SUBSCRIPTIONS/12345678-1234-ABCD-1234-1234567890AB/RESOURCEGROUPS/SOME-RESOURCE-GROUP'
+            };
+            expectedMetadata = {
+                tags: [
+                    'subscription_id:12345678-1234-abcd-1234-1234567890ab',
+                    'resource_group:some-resource-group'
+                ],
+                source: 'azure.resourcegroup'
+            };
+            assert.deepEqual(
+                expectedMetadata,
+                this.forwarder.extractMetadataFromResource(record)
+            );
+        });
+        it('should parse a valid resource group resource ending slash', function() {
+            record = {
+                resourceId:
+                    '/SUBSCRIPTIONS/12345678-1234-ABCD-1234-1234567890AB/RESOURCEGROUPS/SOME-RESOURCE-GROUP/'
+            };
+            expectedMetadata = {
+                tags: [
+                    'subscription_id:12345678-1234-abcd-1234-1234567890ab',
+                    'resource_group:some-resource-group'
+                ],
+                source: 'azure.resourcegroup'
+            };
+            assert.deepEqual(
+                expectedMetadata,
+                this.forwarder.extractMetadataFromResource(record)
+            );
+        });
+        it('should parse a valid record without provider length 5', function() {
+            record = {
+                resourceId:
+                    '/SUBSCRIPTIONS/12345678-1234-ABCD-1234-1234567890AB/RESOURCEGROUPS/SOME-RESOURCE-GROUP/ffffff'
             };
             expectedMetadata = {
                 tags: [
@@ -127,13 +161,41 @@ describe('Azure Log Monitoring', function() {
             };
             assert.deepEqual(
                 expectedMetadata,
-                this.forwarder.extractResourceId(record)
+                this.forwarder.extractMetadataFromResource(record)
             );
         });
-        it('should parse a valid record without provider and resource group', function() {
+        it('should parse a valid subscription type resource', function() {
             record = {
                 resourceId:
                     '/SUBSCRIPTIONS/12345678-1234-ABCD-1234-1234567890AB'
+            };
+            expectedMetadata = {
+                tags: ['subscription_id:12345678-1234-abcd-1234-1234567890ab'],
+                source: 'azure.subscription'
+            };
+            assert.deepEqual(
+                expectedMetadata,
+                this.forwarder.extractMetadataFromResource(record)
+            );
+        });
+        it('should parse a valid subscription type resource ending slash', function() {
+            record = {
+                resourceId:
+                    '/SUBSCRIPTIONS/12345678-1234-ABCD-1234-1234567890AB/'
+            };
+            expectedMetadata = {
+                tags: ['subscription_id:12345678-1234-abcd-1234-1234567890ab'],
+                source: 'azure.subscription'
+            };
+            assert.deepEqual(
+                expectedMetadata,
+                this.forwarder.extractMetadataFromResource(record)
+            );
+        });
+        it('should parse a valid record without provider and resource group length 3', function() {
+            record = {
+                resourceId:
+                    '/SUBSCRIPTIONS/12345678-1234-ABCD-1234-1234567890AB/ffffff'
             };
             expectedMetadata = {
                 tags: ['subscription_id:12345678-1234-abcd-1234-1234567890ab'],
@@ -141,7 +203,7 @@ describe('Azure Log Monitoring', function() {
             };
             assert.deepEqual(
                 expectedMetadata,
-                this.forwarder.extractResourceId(record)
+                this.forwarder.extractMetadataFromResource(record)
             );
         });
         it('should not fail on record without resourceId', function() {
@@ -149,7 +211,7 @@ describe('Azure Log Monitoring', function() {
             expectedMetadata = { tags: [], source: '' };
             assert.deepEqual(
                 expectedMetadata,
-                this.forwarder.extractResourceId(record)
+                this.forwarder.extractMetadataFromResource(record)
             );
         });
         it('should not fail on string record', function() {
@@ -157,7 +219,7 @@ describe('Azure Log Monitoring', function() {
             expectedMetadata = { tags: [], source: '' };
             assert.deepEqual(
                 expectedMetadata,
-                this.forwarder.extractResourceId(record)
+                this.forwarder.extractMetadataFromResource(record)
             );
         });
         it('should not fail on improper resourceId', function() {
@@ -165,7 +227,7 @@ describe('Azure Log Monitoring', function() {
             expectedMetadata = { tags: [], source: '' };
             assert.deepEqual(
                 expectedMetadata,
-                this.forwarder.extractResourceId(record)
+                this.forwarder.extractMetadataFromResource(record)
             );
         });
         it('should not fail with an invalid source', function() {
@@ -182,7 +244,41 @@ describe('Azure Log Monitoring', function() {
             };
             assert.deepEqual(
                 expectedMetadata,
-                this.forwarder.extractResourceId(record)
+                this.forwarder.extractMetadataFromResource(record)
+            );
+        });
+        it('should return empty source when not correct source format', function() {
+            record = {
+                resourceId:
+                    '/SUBSCRIPTIONS/12345678-1234-ABCD-1234-1234567890AB/RESOURCEGROUPS/SOME-RESOURCE-GROUP/PROVIDERS/NOTTHESAMEFORMAT/VIRTUALMACHINES/SOME-VM'
+            };
+            expectedMetadata = {
+                tags: [
+                    'subscription_id:12345678-1234-abcd-1234-1234567890ab',
+                    'resource_group:some-resource-group'
+                ],
+                source: ''
+            };
+            assert.deepEqual(
+                expectedMetadata,
+                this.forwarder.extractMetadataFromResource(record)
+            );
+        });
+        it('should handle when first element of resource id list is not empty', function() {
+            record = {
+                resourceId:
+                    'SUBSCRIPTIONS/12345678-1234-ABCD-1234-1234567890AB/RESOURCEGROUPS/SOME-RESOURCE-GROUP/PROVIDERS/NOTTHESAMEFORMAT/VIRTUALMACHINES/SOME-VM'
+            };
+            expectedMetadata = {
+                tags: [
+                    'subscription_id:12345678-1234-abcd-1234-1234567890ab',
+                    'resource_group:some-resource-group'
+                ],
+                source: ''
+            };
+            assert.deepEqual(
+                expectedMetadata,
+                this.forwarder.extractMetadataFromResource(record)
             );
         });
     });
@@ -209,10 +305,7 @@ describe('Azure Log Monitoring', function() {
         it('should handle string properly', function() {
             log = 'hello';
             expected = ['hello'];
-            assert.equal(
-                this.forwarder.getLogFormat(log),
-                constants.STRING
-            );
+            assert.equal(this.forwarder.getLogFormat(log), constants.STRING);
             testHandleStringLogs(this.forwarder, log, expected);
         });
 
@@ -326,6 +419,21 @@ describe('Azure Log Monitoring', function() {
             // just assert that the string method is called for the second message,
             // we don't care about the first one for this test
             testHandleStringLogs(this.forwarder, log, expected);
+        });
+    });
+    describe('#formatSourceType', function() {
+        beforeEach(function() {
+            this.forwarder = setUp();
+        });
+        it('should replace microsoft with azure', function() {
+            expected = 'azure.bleh';
+            actual = this.forwarder.formatSourceType('microsoft.bleh');
+            assert.equal(actual, expected);
+        });
+        it('should return empty source', function() {
+            expected = '';
+            actual = this.forwarder.formatSourceType('something');
+            assert.equal(actual, expected);
         });
     });
 });
