@@ -1,0 +1,72 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"settingName": {
+			"type": "string",
+			"metadata": {
+				"description": "The name of the diagnostic setting"
+			}
+		},
+		"eventHubAuthorizationRuleId": {
+			"type": "string",
+            "defaultValue": "/subscriptions/8c56d827-5f07-45ce-8f2b-6c5001db5c6f/resourceGroups/ricky_powershell_rg/providers/Microsoft.EventHub/namespaces/ricky-test-namespace/eventhubs/ricky-test-hub/authorizationRules/RootManageSharedAccessKey",
+			"metadata": {
+			  "description": "Resource ID of the event hub authorization rule for the Event Hubs namespace in which the event hub should be created or streamed to."
+			}
+		},
+		"eventHubName": {
+			"type": "string",
+			"metadata": {
+				"description": "Optional. Name of the event hub within the namespace to which logs are streamed. Without this, an event hub is created for each log category."
+			}
+		}
+	},
+	"variables": {},
+	"resources": [
+		{
+			"type": "Microsoft.Insights/diagnosticSettings",
+			"apiVersion": "2017-05-01-preview",
+			"name": "[parameters('settingName')]",
+			"location": "global",
+			"properties": {
+				"eventHubAuthorizationRuleId": "[parameters('eventHubAuthorizationRuleId')]",
+				"eventHubName": "[parameters('eventHubName')]",
+				"logs": [
+					{
+						"category": "Administrative",
+						"enabled": true
+					},
+					{
+						"category": "Security",
+						"enabled": true
+					},
+					{
+						"category": "ServiceHealth",
+						"enabled": true
+					},
+					{
+						"category": "Alert",
+						"enabled": true
+					},
+					{
+						"category": "Recommendation",
+						"enabled": true
+					},
+					{
+						"category": "Policy",
+						"enabled": true
+					},
+					{
+						"category": "Autoscale",
+						"enabled": true
+					},
+					{
+						"category": "ResourceHealth",
+						"enabled": true
+					}
+				]
+			}
+		}
+	]
+}
