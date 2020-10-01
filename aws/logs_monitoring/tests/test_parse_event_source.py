@@ -23,7 +23,7 @@ class TestParseEventSource(unittest.TestCase):
     def test_cloudtrail_event(self):
         self.assertEqual(
             parse_event_source(
-                {},
+                {"Records": ["logs-from-s3"]},
                 "cloud-trail/AWSLogs/123456779121/CloudTrail/us-west-3/2018/01/07/123456779121_CloudTrail_eu-west-3_20180707T1735Z_abcdefghi0MCRL2O.json.gz",
             ),
             "cloudtrail",
@@ -33,14 +33,16 @@ class TestParseEventSource(unittest.TestCase):
         # Assert that source "cloudtrail" is parsed even though substrings "waf" and "sns" are present in the key
         self.assertEqual(
             parse_event_source(
-                {},
+                {"Records": ["logs-from-s3"]},
                 "cloud-trail/AWSLogs/123456779121/CloudTrail/us-west-3/2018/01/07/123456779121_CloudTrail_eu-west-3_20180707T1735Z_xywafKsnsXMBrdsMCRL2O.json.gz",
             ),
             "cloudtrail",
         )
 
     def test_rds_event(self):
-        self.assertEqual(parse_event_source({}, "/aws/rds/my-rds-resource"), "rds")
+        self.assertEqual(
+            parse_event_source({"awslogs": "logs"}, "/aws/rds/my-rds-resource"), "rds"
+        )
 
     def test_cloudwatch_source_if_none_found(self):
         self.assertEqual(parse_event_source({"awslogs": "logs"}, ""), "cloudwatch")

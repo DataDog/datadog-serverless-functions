@@ -134,25 +134,25 @@ if DD_MULTILINE_LOG_REGEX_PATTERN:
         "^{}".format(DD_MULTILINE_LOG_REGEX_PATTERN)
     )
 
-# Used to identify and assign sources to logs
-LOG_SOURCE_SUBSTRINGS = [
-    "codebuild",
-    "lambda",
-    "redshift",
-    "cloudfront",
-    "kinesis",
-    "mariadb",
-    "mysql",
-    "apigateway",
+# Used to identify and assign cloudwatch sources to logs
+CW_SOURCE_SUBSTRINGS = [
+    "/aws/codebuild",
+    "/aws/kinesis",
+    "/aws/docdb",
     "route53",
-    "docdb",
-    "fargate",
-    "dms",
     "vpc",
-    "sns",
-    "waf",
+    "fargate",
+    "cloudtrail",
 ]
 
+# Used to identify and assign s3 sources to logs
+S3_SOURCE_SUBSTRINGS = [
+    "amazon_codebuild",
+    "amazon_kinesis",
+    "amazon_dms",
+    "redshift",
+    "cloudfront",
+]
 
 # Used to build and pass aws.dd_forwarder.* telemetry tags
 DD_FORWARDER_TELEMETRY_TAGS = []
@@ -892,6 +892,8 @@ def awslogs_handler(event, context, metadata):
 
     # Set the source on the logs
     source = logs.get("logGroup", "cloudwatch")
+    if "_CloudTrail_" in logs["logStream"]:
+        source = "cloudtrail"
     metadata[DD_SOURCE] = parse_event_source(event, source)
 
     # Default service to source value
@@ -914,7 +916,7 @@ def awslogs_handler(event, context, metadata):
 
     # When parsing rds logs, use the cloudwatch log group name to derive the
     # rds instance name, and add the log name of the stream ingested
-    if metadata[DD_SOURCE] == "rds":
+    if metadata[DD_SOURCE] in ["rds", "mariadb", "mysql"]:
         match = rds_regex.match(logs["logGroup"])
         if match is not None:
             metadata[DD_HOST] = match.group("host")
@@ -1015,41 +1017,62 @@ def is_cloudtrail(key):
 
 def parse_event_source(event, key):
     """Parse out the source that will be assigned to the log in Datadog
-
-    TODO Refactor to do a more thorough parsing that will guarantee correct source identification
-
     Args:
         event (dict): The AWS-formatted log event that the forwarder was triggered with
         key (string): The S3 object key if the event is from S3 or the CW Log Group if the event is from CW Logs
     """
     lowercase_key = str(key).lower()
 
-    if "elasticloadbalancing" in lowercase_key:
-        return "elb"
-
-    if "api-gateway" in lowercase_key:
-        return "apigateway"
-
-    if is_cloudtrail(str(key)) or (
-        "logGroup" in event and event["logGroup"] == "CloudTrail"
-    ):
-        return "cloudtrail"
-
-    if "/aws/rds" in lowercase_key:
-        return "rds"
-
-    # Use the source substrings to find if the key matches any known services
-    for source in LOG_SOURCE_SUBSTRINGS:
-        if source in lowercase_key:
-            return source
-
-    # If the source AWS service cannot be parsed from the key, return the service
-    # that contains the logs as the source, "cloudwatch" or "s3"
+    # Determines if the key matches any known sources for Cloudwatch logs
     if "awslogs" in event:
+        if "/aws/lambda" in lowercase_key:
+            return "lambda"
+
+        if "/aws/rds" in lowercase_key:
+            for engine in ["mariadb", "mysql"]:
+                if engine in lowercase_key:
+                    return engine
+            return "rds"
+
+        if "api-gateway" in lowercase_key:
+            return "apigateway"
+
+        if "dms-tasks" in lowercase_key:
+            return "dms"
+
+        if "sns/" in lowercase_key:
+            return "sns"
+
+        for cw_source in CW_SOURCE_SUBSTRINGS:
+            if cw_source in lowercase_key:
+                return cw_source.replace("/aws/", "")
+
         return "cloudwatch"
 
+    # Determines if the key matches any known sources for S3 logs
     if "Records" in event and len(event["Records"]) > 0:
         if "s3" in event["Records"][0]:
+            if is_cloudtrail(str(key)) or (
+                "logGroup" in event and event["logGroup"] == "CloudTrail"
+            ):
+                return "cloudtrail"
+
+            if "elasticloadbalancing" in lowercase_key:
+                return "elb"
+
+            if "vpcflowlogs" in lowercase_key:
+                return "vpc"
+
+            if "aws-waf-logs" in lowercase_key:
+                return "waf"
+
+            if "amazon_documentdb" in lowercase_key:
+                return "docdb"
+
+            for s3_source in S3_SOURCE_SUBSTRINGS:
+                if s3_source in lowercase_key:
+                    return s3_source.replace("amazon_", "")
+
             return "s3"
 
     return "aws"
