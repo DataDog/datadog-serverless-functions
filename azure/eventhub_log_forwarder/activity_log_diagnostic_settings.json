@@ -4,6 +4,7 @@
     "parameters": {
         "settingName": {
             "type": "string",
+            "defaultValue": "datadog-activity-logs-diagnostic-setting",
             "metadata": {
                 "description": "The name of the diagnostic setting"
             }
@@ -11,7 +12,7 @@
         "resourceGroup": {
             "type": "string",
             "metadata": {
-                "description": "Name of the relevant Resource Group"
+                "description": "Name of the Resource Group of the EventHub"
             }
         },
         "eventHubNamespace": {
@@ -23,14 +24,15 @@
         },
         "eventHubName": {
             "type": "string",
+            "defaultValue": "datadog-eventhub",
             "metadata": {
-                "description": "Optional. Name of the event hub within the namespace to which logs are streamed. Without this, an event hub is created for each log category."
+                "description": "Name of the EventHub to which the Activity logs will be sent."
             }
         }
     },
     "variables": {
         "subscriptionId": "[subscription().subscriptionId]",
-        "eventHubAuthorizationRuleId": "[concat('/subscriptions/', variables('subscriptionId'), '/resourceGroups/', parameters('resourceGroup'), '/providers/Microsoft.EventHub/namespaces/', parameters('eventhubNamespace'), '/authorizationRules/RootManageSharedAccessKey')]"
+        "eventHubAuthorizationRuleId": "[concat('/subscriptions/', variables('subscriptionId'), '/resourceGroups/', parameters('resourceGroup'), '/providers/Microsoft.EventHub/namespaces/', parameters('eventHubNamespace'), '/authorizationRules/RootManageSharedAccessKey')]"
     },
     "resources": [
         {

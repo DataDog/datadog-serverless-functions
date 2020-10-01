@@ -9,22 +9,6 @@
         "description": "Name of EventHub namespace"
       }
     },
-    "eventhubSku": {
-      "type": "string",
-      "allowedValues": [ "Basic", "Standard" ],
-      "defaultValue": "Standard",
-      "metadata": {
-        "description": "Specifies the messaging tier for the EventHub Namespace."
-      }
-    },
-    "skuCapacity": {
-      "type": "int",
-      "allowedValues": [ 1, 2, 4 ],
-      "defaultValue": 1,
-      "metadata": {
-        "description": "MessagingUnits for premium namespace"
-      }
-    },
     "eventHubName": {
       "type": "string",
       "defaultValue": "datadog-eventhub",
@@ -47,14 +31,11 @@
       "type": "Microsoft.EventHub/namespaces",
       "location": "[parameters('location')]",
       "sku": {
-        "name": "[parameters('eventhubSku')]",
-        "tier": "[parameters('eventhubSku')]",
-        "capacity": "[parameters('skuCapacity')]"
+        "name": "Standard",
+        "tier": "Standard",
+        "capacity": 1
       },
-      "tags": {
-        "tag1": "value1",
-        "tag2": "value2"
-      },
+      "tags": {},
       "properties": {},
       "resources": [
         {
