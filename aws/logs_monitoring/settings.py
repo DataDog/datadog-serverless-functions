@@ -127,6 +127,9 @@ else:
     DD_URL = get_env_var("DD_URL", default="lambda-http-intake.logs." + DD_SITE)
     DD_PORT = int(get_env_var("DD_PORT", default="443"))
 
+## @param DD_USE_VPC
+DD_USE_VPC = get_env_var("DD_USE_VPC", "false", boolean=True)
+
 ## @param DD_USE_PRIVATE_LINK - whether to forward logs via PrivateLink
 ## Overrides incompatible settings
 #
@@ -209,7 +212,14 @@ DD_SOURCE = "ddsource"
 DD_CUSTOM_TAGS = "ddtags"
 DD_SERVICE = "service"
 DD_HOST = "host"
-DD_FORWARDER_VERSION = "3.18.1"
+DD_FORWARDER_VERSION = "3.20.0"
 
 # Additional target lambda invoked async with event data
 DD_ADDITIONAL_TARGET_LAMBDAS = get_env_var("DD_ADDITIONAL_TARGET_LAMBDAS", default=None)
+
+DD_S3_BUCKET_NAME = get_env_var("DD_S3_BUCKET_NAME", default=None)
+DD_S3_CACHE_FILENAME = "cache.json"
+DD_S3_CACHE_LOCK_FILENAME = "cache.lock"
+
+DD_TAGS_CACHE_TTL_SECONDS = int(get_env_var("DD_TAGS_CACHE_TTL_SECONDS", default=300))
+DD_S3_CACHE_LOCK_TTL_SECONDS = 60

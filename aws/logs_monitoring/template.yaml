@@ -4,7 +4,7 @@ Description: Pushes logs, metrics and traces from AWS to Datadog.
 Mappings:
   Constants:
     DdForwarder:
-      Version: 3.18.1
+      Version: 3.20.0
 Parameters:
   DdApiKey:
     Type: String
@@ -36,6 +36,10 @@ Parameters:
     Type: Number
     Default: 120
     Description: Timeout for the Datadog Forwarder Lambda function
+  TagsCacheTTLSeconds:
+    Type: Number
+    Default: 300
+    Description: TTL (in seconds) for the Datadog tags cache
   ReservedConcurrency:
     Type: Number
     Default: 100
@@ -54,7 +58,7 @@ Parameters:
     Description: Add custom tags to forwarded logs, comma-delimited string, no trailing comma, e.g., env:prod,stack:classic
   DdFetchLambdaTags:
     Type: String
-    Default: false
+    Default: true
     AllowedValues:
       - true
       - false
@@ -329,7 +333,7 @@ Resources:
       Timeout:
         Ref: Timeout
       CodeUri:
-        Bucket: !Ref ForwarderZipsBucket
+        Bucket: !Ref ForwarderBucket
         Key:
           Fn::Sub:
             - "aws-dd-forwarder-${DdForwarderVersion}.zip"
@@ -347,6 +351,11 @@ Resources:
               - CreateDdApiKeySecret
               - Ref: DdApiKeySecret
               - Ref: DdApiKeySecretArn
+          DD_S3_BUCKET_NAME:
+            Fn::If:
+              - SetDdFetchLambdaTags
+              - Ref: ForwarderBucket
+              - Ref: AWS::NoValue
           DD_SITE:
             Ref: DdSite
           DD_TAGS:
@@ -354,6 +363,8 @@ Resources:
               - SetDdTags
               - Ref: DdTags
               - Ref: AWS::NoValue
+          DD_TAGS_CACHE_TTL_SECONDS:
+            Ref: TagsCacheTTLSeconds
           DD_FETCH_LAMBDA_TAGS:
             Fn::If:
               - SetDdFetchLambdaTags
@@ -439,11 +450,16 @@ Resources:
               - SetDdUsePrivateLink
               - true
               - false
+          DD_USE_VPC:
+            Fn::If:
+              - UseVPC
+              - true
+              - false
           DD_ADDITIONAL_TARGET_LAMBDAS:
             Fn::If:
               - SetAdditionalTargetLambdas
               - !Join
-                - ','
+                - ","
                 - !Ref AdditionalTargetLambdaArns
               - !Ref AWS::NoValue
           DD_API_URL:
@@ -474,7 +490,19 @@ Resources:
           Statement:
             - Effect: Allow
               Action:
+                - s3:*
+              Resource:
+                - Fn::Join:
+                    - "/"
+                    - - Fn::GetAtt: "ForwarderBucket.Arn"
+                      - "*"
+            - Effect: Allow
+              Action:
                 - s3:GetObject
+              Resource: "*"
+            - Effect: Allow
+              Action:
+                - kms:Decrypt
               Resource: "*"
             - Effect: Allow
               Action:
@@ -539,13 +567,13 @@ Resources:
       Description: Datadog API Key
       SecretString:
         Ref: DdApiKey
-  ForwarderZipsBucket:
+  ForwarderBucket:
     Type: AWS::S3::Bucket
     Properties:
       BucketEncryption:
-          ServerSideEncryptionConfiguration:
+        ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
-              SSEAlgorithm: 'aws:kms'
+              SSEAlgorithm: "aws:kms"
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
@@ -555,7 +583,7 @@ Resources:
     Type: Custom::ForwarderZip
     Properties:
       ServiceToken: !GetAtt "ForwarderZipCopier.Arn"
-      DestZipsBucket: !Ref "ForwarderZipsBucket"
+      DestZipsBucket: !Ref "ForwarderBucket"
       SourceZipUrl:
         Fn::If:
           - SetSourceZipUrl
@@ -651,13 +679,13 @@ Resources:
               Resource:
                 - Fn::Join:
                     - "/"
-                    - - Fn::GetAtt: "ForwarderZipsBucket.Arn"
+                    - - Fn::GetAtt: "ForwarderBucket.Arn"
                       - "*"
             - Effect: Allow
               Action:
                 - s3:ListBucket
               Resource:
-                - Fn::GetAtt: "ForwarderZipsBucket.Arn"
+                - Fn::GetAtt: "ForwarderBucket.Arn"
             - !If
               - SetS3SourceZip
               - Effect: Allow
@@ -724,12 +752,10 @@ Metadata:
           - ExcludeAtMatch
           - IncludeAtMatch
       - Label:
-          default: Experimental (Optional)
-        Parameters:
-          - DdFetchLambdaTags
-      - Label:
           default: Advanced (Optional)
         Parameters:
+          - DdFetchLambdaTags
+          - TagsCacheTTLSeconds
           - SourceZipUrl
           - PermissionsBoundaryArn
           - DdApiKeySecretArn

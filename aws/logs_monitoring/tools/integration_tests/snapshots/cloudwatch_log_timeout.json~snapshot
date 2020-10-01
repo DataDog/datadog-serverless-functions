@@ -11,17 +11,17 @@
               "owner": "601427279990"
             },
             "function_version": "$LATEST",
-            "invoked_function_arn": "arn:aws:lambda:us-east-1:0:function:test"
+            "invoked_function_arn": "arn:aws:lambda:us-east-1:0000000000:function:test"
           },
           "ddsource": "lambda",
           "ddsourcecategory": "aws",
-          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:0,aws_account:0,functionname:storms-cloudwatch-event,region:us-east-1,service:storms-cloudwatch-event",
-          "host": "arn:aws:lambda:us-east-1:0:function:storms-cloudwatch-event",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:0000000000,aws_account:0000000000,functionname:storms-cloudwatch-event,region:us-east-1,service:storms-cloudwatch-event",
+          "host": "arn:aws:lambda:us-east-1:0000000000:function:storms-cloudwatch-event",
           "id": "35496429375792603298393743017356257146982675867810398208",
           "lambda": {
-            "arn": "arn:aws:lambda:us-east-1:0:function:storms-cloudwatch-event"
+            "arn": "arn:aws:lambda:us-east-1:0000000000:function:storms-cloudwatch-event"
           },
-          "message": "START RequestId: 7c9567b5-107b-4a6c-8798-0157ac21db52 Version: $LATEST\\n",
+          "message": "START RequestId: <redacted from snapshot> Version: $LATEST\\n",
           "service": "storms-cloudwatch-event",
           "timestamp": 1591714943146
         },
@@ -33,17 +33,17 @@
               "owner": "601427279990"
             },
             "function_version": "$LATEST",
-            "invoked_function_arn": "arn:aws:lambda:us-east-1:0:function:test"
+            "invoked_function_arn": "arn:aws:lambda:us-east-1:0000000000:function:test"
           },
           "ddsource": "lambda",
           "ddsourcecategory": "aws",
-          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:0,aws_account:0,functionname:storms-cloudwatch-event,region:us-east-1,service:storms-cloudwatch-event",
-          "host": "arn:aws:lambda:us-east-1:0:function:storms-cloudwatch-event",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:0000000000,aws_account:0000000000,functionname:storms-cloudwatch-event,region:us-east-1,service:storms-cloudwatch-event",
+          "host": "arn:aws:lambda:us-east-1:0000000000:function:storms-cloudwatch-event",
           "id": "35496429442806342619978265557671090556291002193281548289",
           "lambda": {
-            "arn": "arn:aws:lambda:us-east-1:0:function:storms-cloudwatch-event"
+            "arn": "arn:aws:lambda:us-east-1:0000000000:function:storms-cloudwatch-event"
           },
-          "message": "END RequestId: 7c9567b5-107b-4a6c-8798-0157ac21db52\\n",
+          "message": "END RequestId: <redacted from snapshot>\\n",
           "service": "storms-cloudwatch-event",
           "timestamp": 1591714946151
         },
@@ -55,17 +55,17 @@
               "owner": "601427279990"
             },
             "function_version": "$LATEST",
-            "invoked_function_arn": "arn:aws:lambda:us-east-1:0:function:test"
+            "invoked_function_arn": "arn:aws:lambda:us-east-1:0000000000:function:test"
           },
           "ddsource": "lambda",
           "ddsourcecategory": "aws",
-          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:0,aws_account:0,functionname:storms-cloudwatch-event,region:us-east-1,service:storms-cloudwatch-event",
-          "host": "arn:aws:lambda:us-east-1:0:function:storms-cloudwatch-event",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:0000000000,aws_account:0000000000,functionname:storms-cloudwatch-event,region:us-east-1,service:storms-cloudwatch-event",
+          "host": "arn:aws:lambda:us-east-1:0000000000:function:storms-cloudwatch-event",
           "id": "35496429442806342619978265557671090556291002193281548290",
           "lambda": {
-            "arn": "arn:aws:lambda:us-east-1:0:function:storms-cloudwatch-event"
+            "arn": "arn:aws:lambda:us-east-1:0000000000:function:storms-cloudwatch-event"
           },
-          "message": "REPORT RequestId: 7c9567b5-107b-4a6c-8798-0157ac21db52\\tDuration: 3003.16 ms\\tBilled Duration: 3000 ms\\tMemory Size: 128 MB\\tMax Memory Used: 48 MB\\tInit Duration: 127.02 ms\\t\\n",
+          "message": "REPORT RequestId: <redacted from snapshot>\\tDuration: 3003.16 ms\\tBilled Duration: 3000 ms\\tMemory Size: 128 MB\\tMax Memory Used: 48 MB\\tInit Duration: 127.02 ms\\t\\n",
           "service": "storms-cloudwatch-event",
           "timestamp": 1591714946151
         },
@@ -77,17 +77,17 @@
               "owner": "601427279990"
             },
             "function_version": "$LATEST",
-            "invoked_function_arn": "arn:aws:lambda:us-east-1:0:function:test"
+            "invoked_function_arn": "arn:aws:lambda:us-east-1:0000000000:function:test"
           },
           "ddsource": "lambda",
           "ddsourcecategory": "aws",
-          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:0,aws_account:0,functionname:storms-cloudwatch-event,region:us-east-1,service:storms-cloudwatch-event",
-          "host": "arn:aws:lambda:us-east-1:0:function:storms-cloudwatch-event",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:0000000000,aws_account:0000000000,functionname:storms-cloudwatch-event,region:us-east-1,service:storms-cloudwatch-event",
+          "host": "arn:aws:lambda:us-east-1:0000000000:function:storms-cloudwatch-event",
           "id": "35496429442806342619978265557671090556291002193281548291",
           "lambda": {
-            "arn": "arn:aws:lambda:us-east-1:0:function:storms-cloudwatch-event"
+            "arn": "arn:aws:lambda:us-east-1:0000000000:function:storms-cloudwatch-event"
           },
-          "message": "2020-06-09T15:02:26.150Z 7c9567b5-107b-4a6c-8798-0157ac21db52 Task timed out after 3.00 seconds\\n\\n",
+          "message": "2020-06-09T15:02:26.150Z <redacted from snapshot> Task timed out after 3.00 seconds\\n\\n",
           "service": "storms-cloudwatch-event",
           "timestamp": 1591714946151
         }
@@ -149,8 +149,8 @@
             "points": "<redacted from snapshot>",
             "tags": [
               "region:us-east-1",
-              "account_id:0",
-              "aws_account:0",
+              "account_id:0000000000",
+              "aws_account:0000000000",
               "functionname:storms-cloudwatch-event"
             ],
             "type": "distribution"

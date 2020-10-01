@@ -20,7 +20,8 @@ jobs:
       - name: Run Python unit tests
         env:
           AWS_DEFAULT_REGION: us-east-1
+          DD_API_KEY: "11111111111111111111111111111111"
+          DD_ADDITIONAL_TARGET_LAMBDAS: "ironmaiden,megadeth"
         run: |
           pip install boto3 mock
           python -m unittest discover ./aws/logs_monitoring/
-

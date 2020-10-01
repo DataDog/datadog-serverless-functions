@@ -51,6 +51,7 @@ from settings import (
     DD_HOST,
     DD_FORWARDER_VERSION,
     DD_ADDITIONAL_TARGET_LAMBDAS,
+    DD_USE_VPC,
 )
 
 
@@ -662,6 +663,8 @@ def extract_metric(event):
             return None
         if not isinstance(metric["t"], list):
             return None
+        if not (isinstance(metric["v"], int) or isinstance(metric["v"], float)):
+            return None
 
         metric["t"] += event[DD_CUSTOM_TAGS].split(",")
         return metric
@@ -797,6 +800,16 @@ def parse_event_type(event):
         if "s3" in event["Records"][0]:
             return "s3"
         elif "Sns" in event["Records"][0]:
+            # it's not uncommon to fan out s3 notifications through SNS,
+            # should treat it as an s3 event rather than sns event.
+            sns_msg = event["Records"][0]["Sns"]["Message"]
+            try:
+                sns_msg_dict = json.loads(sns_msg)
+                if "Records" in sns_msg_dict and "s3" in sns_msg_dict["Records"][0]:
+                    return "s3"
+            except Exception:
+                if logger.isEnabledFor(logging.DEBUG):
+                    logger.debug(f"No s3 event detected from SNS message: {sns_msg}")
             return "sns"
         elif "kinesis" in event["Records"][0]:
             return "kinesis"
@@ -811,11 +824,19 @@ def parse_event_type(event):
 
 # Handle S3 events
 def s3_handler(event, context, metadata):
-    s3 = boto3.client(
-        "s3",
-        os.environ["AWS_REGION"],
-        config=botocore.config.Config(s3={"addressing_style": "path"}),
-    )
+    # Need to use path style to access s3 via VPC Endpoints
+    # https://github.com/gford1000-aws/lambda_s3_access_using_vpc_endpoint#boto3-specific-notes
+    if DD_USE_VPC:
+        s3 = boto3.client(
+            "s3",
+            os.environ["AWS_REGION"],
+            config=botocore.config.Config(s3={"addressing_style": "path"}),
+        )
+    else:
+        s3 = boto3.client("s3")
+    # if this is a S3 event carried in a SNS message, extract it and override the event
+    if "Sns" in event["Records"][0]:
+        event = json.loads(event["Records"][0]["Sns"]["Message"])
 
     # Get the object from the event and show its content type
     bucket = event["Records"][0]["s3"]["bucket"]["name"]

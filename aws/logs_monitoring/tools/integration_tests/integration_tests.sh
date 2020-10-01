@@ -13,9 +13,12 @@ UPDATE_SNAPSHOTS=false
 LOG_LEVEL=info
 LOGS_WAIT_SECONDS=10
 INTEGRATION_TESTS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-SNAPSHOT_DIR="${INTEGRATION_TESTS_DIR}/snapshots/*"
+SNAPSHOTS_DIR_NAME="snapshots"
+SNAPSHOT_DIR="${INTEGRATION_TESTS_DIR}/${SNAPSHOTS_DIR_NAME}/*"
 SNAPS=($SNAPSHOT_DIR)
 ADDITIONAL_LAMBDA=false
+CACHE_TEST=false 
+DD_FETCH_LAMBDA_TAGS="false"
 
 script_start_time=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 echo "Starting script time: $script_start_time"
@@ -63,6 +66,13 @@ do
 		ADDITIONAL_LAMBDA=true
 		shift
 		;;
+
+		# -c or --cache-test
+		# Run cache test
+		-c|--cache-test)
+		CACHE_TEST=true
+		shift
+		;;
 	esac
 done
 
@@ -80,6 +90,46 @@ if ! [ $SKIP_FORWARDER_BUILD == true ]; then
 	unzip aws-dd-forwarder-0.0.0 -d aws-dd-forwarder-0.0.0
 fi
 
+if [ $CACHE_TEST == true ]; then
+
+	SNAPSHOTS_DIR_NAME="snapshots-cache-test"
+	DD_FETCH_LAMBDA_TAGS="true"
+
+	# Deploy test lambda functiion with tags
+	AWS_LAMBDA_FUNCTION_INVOKED="cache_test_lambda"
+	TEST_LAMBDA_DIR="$INTEGRATION_TESTS_DIR/$AWS_LAMBDA_FUNCTION_INVOKED"
+
+	cd $TEST_LAMBDA_DIR
+	sls deploy
+
+	FORWARDER_ARN="$(aws sts get-caller-identity | jq '.Arn')"
+	AWS_ACCOUNT_ID="$(aws sts get-caller-identity | jq '.Account')"
+
+	# Deploy test bucket
+	DD_S3_BUCKET_NAME=tags-cache-test
+	cat > policy.json << EOF
+{
+"Statement": [
+	{
+		"Effect": "Allow",
+		"Principal": {
+			"AWS": FORWARDER_ARN
+		},
+		"Action": [
+			"s3:DeleteObject",
+			"s3:PutObject",
+			"s3:GetObject"
+		],
+		"Resource": "arn:aws:s3:::DD_S3_BUCKET_NAME/*"
+	}
+]
+}
+EOF
+	sed -i '' "s/DD_S3_BUCKET_NAME/${DD_S3_BUCKET_NAME}/g" policy.json
+	sed -i '' "s|FORWARDER_ARN|${FORWARDER_ARN}|g" policy.json
+	aws s3api create-bucket --bucket $DD_S3_BUCKET_NAME
+	aws s3api put-bucket-policy --bucket $DD_S3_BUCKET_NAME --policy file://policy.json
+fi
 
 # Deploy additional target Lambdas
 if [ $ADDITIONAL_LAMBDA == true ]; then
@@ -107,6 +157,10 @@ LOG_LEVEL=${LOG_LEVEL} \
 UPDATE_SNAPSHOTS=${UPDATE_SNAPSHOTS} \
 PYTHON_RUNTIME=${PYTHON_VERSION} \
 EXTERNAL_LAMBDAS=${EXTERNAL_LAMBDAS} \
+DD_S3_BUCKET_NAME=${DD_S3_BUCKET_NAME} \
+AWS_ACCOUNT_ID=${AWS_ACCOUNT_ID} \
+SNAPSHOTS_DIR_NAME="./${SNAPSHOTS_DIR_NAME}" \
+DD_FETCH_LAMBDA_TAGS=${DD_FETCH_LAMBDA_TAGS} \
 docker-compose up --build --abort-on-container-exit
 
 if [ $ADDITIONAL_LAMBDA == true ]; then
@@ -166,5 +220,16 @@ if [ $ADDITIONAL_LAMBDA == true ]; then
 		fi
 	done
 
+	sls remove
 	echo "SUCCESS: No difference found between input events and events in the additional target lambda"
+fi
+
+if [ $CACHE_TEST == true ]; then
+	cd $TEST_LAMBDA_DIR
+	sls remove
+
+	aws s3api delete-object --bucket $DD_S3_BUCKET_NAME --key "cache.json"
+	aws s3api delete-bucket --bucket $DD_S3_BUCKET_NAME
+
+	rm policy.json
 fi
