@@ -135,26 +135,6 @@ if DD_MULTILINE_LOG_REGEX_PATTERN:
         "^{}".format(DD_MULTILINE_LOG_REGEX_PATTERN)
     )
 
-# Used to identify and assign cloudwatch sources to logs
-CW_SOURCE_SUBSTRINGS = [
-    "/aws/codebuild",
-    "/aws/kinesis",
-    "/aws/docdb",
-    "route53",
-    "vpc",
-    "fargate",
-    "cloudtrail",
-]
-
-# Used to identify and assign s3 sources to logs
-S3_SOURCE_SUBSTRINGS = [
-    "amazon_codebuild",
-    "amazon_kinesis",
-    "amazon_dms",
-    "redshift",
-    "cloudfront",
-]
-
 # Used to build and pass aws.dd_forwarder.* telemetry tags
 DD_FORWARDER_TELEMETRY_TAGS = []
 DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX = "aws.dd_forwarder"
@@ -913,6 +893,9 @@ def awslogs_handler(event, context, metadata):
 
     # Set the source on the logs
     source = logs.get("logGroup", "cloudwatch")
+
+    # Use the logStream to identify if this is a CloudTrail event
+    # i.e. 123456779121_CloudTrail_us-east-1
     if "_CloudTrail_" in logs["logStream"]:
         source = "cloudtrail"
     metadata[DD_SOURCE] = parse_event_source(event, source)
@@ -1036,6 +1019,79 @@ def is_cloudtrail(key):
     return bool(match)
 
 
+def find_cloudwatch_source(log_group):
+    # e.g. /aws/lambda/helloDatadog
+    if "/aws/lambda" in log_group:
+        return "lambda"
+
+    # e.g. /aws/rds/instance/my-mariadb/error
+    if "/aws/rds" in log_group:
+        for engine in ["mariadb", "mysql"]:
+            if engine in log_group:
+                return engine
+        return "rds"
+
+    # e.g. Api-Gateway-Execution-Logs_xxxxxx/dev
+    if "api-gateway" in log_group:
+        return "apigateway"
+
+    # e.g. dms-tasks-test-instance
+    if "dms-tasks" in log_group:
+        return "dms"
+
+    # e.g. sns/us-east-1/123456779121/SnsTopicX
+    if "sns/" in log_group:
+        return "sns"
+
+    for source in [
+        "/aws/codebuild",  # e.g. /aws/codebuild/my-project
+        "/aws/kinesis",  # e.g. /aws/kinesisfirehose/dev
+        "/aws/docdb",  # e.g. /aws/docdb/yourClusterName/profile
+        "route53",  # this and the below substrings must be in your log group to be detected
+        "vpc",
+        "fargate",
+        "cloudtrail",
+    ]:
+        if source in log_group:
+            return source.replace("/aws/", "")
+
+    return "cloudwatch"
+
+
+def find_s3_source(key):
+    # e.g. AWSLogs/123456779121/elasticloadbalancing/us-east-1/2020/10/02/123456779121_elasticloadbalancing_us-east-1_app.alb.xxxxx.xx.xxx.xxx_x.log.gz
+    if "elasticloadbalancing" in key:
+        return "elb"
+
+    # e.g. AWSLogs/123456779121/vpcflowlogs/us-east-1/2020/10/02/123456779121_vpcflowlogs_us-east-1_fl-xxxxx.log.gz
+    if "vpcflowlogs" in key:
+        return "vpc"
+
+    # e.g. 2020/10/02/21/aws-waf-logs-testing-1-2020-10-02-21-25-30-x123x-x456x
+    if "aws-waf-logs" in key:
+        return "waf"
+
+    # e.g. AWSLogs/123456779121/redshift/us-east-1/2020/10/21/123456779121_redshift_us-east-1_mycluster_userlog_2020-10-21T18:01.gz
+    if "_redshift_" in key:
+        return "redshift"
+
+    # this substring must be in your target prefix to be detected
+    if "amazon_documentdb" in key:
+        return "docdb"
+
+    # the below substrings must be in your target prefix to be detected
+    for s3_source in [
+        "amazon_codebuild",
+        "amazon_kinesis",
+        "amazon_dms",
+        "cloudfront",
+    ]:
+        if s3_source in key:
+            return s3_source.replace("amazon_", "")
+
+    return "s3"
+
+
 def parse_event_source(event, key):
     """Parse out the source that will be assigned to the log in Datadog
     Args:
@@ -1046,29 +1102,7 @@ def parse_event_source(event, key):
 
     # Determines if the key matches any known sources for Cloudwatch logs
     if "awslogs" in event:
-        if "/aws/lambda" in lowercase_key:
-            return "lambda"
-
-        if "/aws/rds" in lowercase_key:
-            for engine in ["mariadb", "mysql"]:
-                if engine in lowercase_key:
-                    return engine
-            return "rds"
-
-        if "api-gateway" in lowercase_key:
-            return "apigateway"
-
-        if "dms-tasks" in lowercase_key:
-            return "dms"
-
-        if "sns/" in lowercase_key:
-            return "sns"
-
-        for cw_source in CW_SOURCE_SUBSTRINGS:
-            if cw_source in lowercase_key:
-                return cw_source.replace("/aws/", "")
-
-        return "cloudwatch"
+        return find_cloudwatch_source(lowercase_key)
 
     # Determines if the key matches any known sources for S3 logs
     if "Records" in event and len(event["Records"]) > 0:
@@ -1078,23 +1112,7 @@ def parse_event_source(event, key):
             ):
                 return "cloudtrail"
 
-            if "elasticloadbalancing" in lowercase_key:
-                return "elb"
-
-            if "vpcflowlogs" in lowercase_key:
-                return "vpc"
-
-            if "aws-waf-logs" in lowercase_key:
-                return "waf"
-
-            if "amazon_documentdb" in lowercase_key:
-                return "docdb"
-
-            for s3_source in S3_SOURCE_SUBSTRINGS:
-                if s3_source in lowercase_key:
-                    return s3_source.replace("amazon_", "")
-
-            return "s3"
+            return find_s3_source(lowercase_key)
 
     return "aws"
 

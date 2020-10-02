@@ -44,6 +44,148 @@ class TestParseEventSource(unittest.TestCase):
             parse_event_source({"awslogs": "logs"}, "/aws/rds/my-rds-resource"), "rds"
         )
 
+    def test_mariadb_event(self):
+        self.assertEqual(
+            parse_event_source({"awslogs": "logs"}, "/aws/rds/mariaDB-instance/error"),
+            "mariadb",
+        )
+
+    def test_mysql_event(self):
+        self.assertEqual(
+            parse_event_source({"awslogs": "logs"}, "/aws/rds/mySQL-instance/error"),
+            "mysql",
+        )
+
+    def test_lambda_event(self):
+        self.assertEqual(
+            parse_event_source({"awslogs": "logs"}, "/aws/lambda/postRestAPI"), "lambda"
+        )
+
+    def test_apigateway_event(self):
+        self.assertEqual(
+            parse_event_source(
+                {"awslogs": "logs"}, "Api-Gateway-Execution-Logs_a1b23c/test"
+            ),
+            "apigateway",
+        )
+
+    def test_dms_event(self):
+        self.assertEqual(
+            parse_event_source({"awslogs": "logs"}, "dms-tasks-test-instance"), "dms"
+        )
+        self.assertEqual(
+            parse_event_source(
+                {"Records": ["logs-from-s3"]}, "AWSLogs/amazon_dms/my-s3.json.gz"
+            ),
+            "dms",
+        )
+
+    def test_sns_event(self):
+        self.assertEqual(
+            parse_event_source(
+                {"awslogs": "logs"}, "sns/us-east-1/123456779121/SnsTopicX"
+            ),
+            "sns",
+        )
+
+    def test_codebuild_event(self):
+        self.assertEqual(
+            parse_event_source(
+                {"awslogs": "logs"}, "/aws/codebuild/new-project-sample"
+            ),
+            "codebuild",
+        )
+
+    def test_kinesis_event(self):
+        self.assertEqual(
+            parse_event_source({"awslogs": "logs"}, "/aws/kinesisfirehose/test"),
+            "kinesis",
+        )
+        self.assertEqual(
+            parse_event_source(
+                {"Records": ["logs-from-s3"]}, "AWSLogs/amazon_kinesis/my-s3.json.gz"
+            ),
+            "kinesis",
+        )
+
+    def test_docdb_event(self):
+        self.assertEqual(
+            parse_event_source({"awslogs": "logs"}, "/aws/docdb/testCluster/profile"),
+            "docdb",
+        )
+        self.assertEqual(
+            parse_event_source(
+                {"Records": ["logs-from-s3"]}, "/amazon_documentdb/dev/123abc.zip"
+            ),
+            "docdb",
+        )
+
+    def test_vpc_event(self):
+        self.assertEqual(
+            parse_event_source({"awslogs": "logs"}, "abc123_my_vpc_loggroup"), "vpc"
+        )
+        self.assertEqual(
+            parse_event_source(
+                {"Records": ["logs-from-s3"]},
+                "AWSLogs/123456779121/vpcflowlogs/us-east-1/2020/10/02/123456779121_vpcflowlogs_us-east-1_fl-xxxxx.log.gz",
+            ),
+            "vpc",
+        )
+
+    def test_elb_event(self):
+        self.assertEqual(
+            parse_event_source(
+                {"Records": ["logs-from-s3"]},
+                "AWSLogs/123456779121/elasticloadbalancing/us-east-1/2020/10/02/123456779121_elasticloadbalancing_us-east-1_app.alb.xxxxx.xx.xxx.xxx_x.log.gz",
+            ),
+            "elb",
+        )
+
+    def test_waf_event(self):
+        self.assertEqual(
+            parse_event_source(
+                {"Records": ["logs-from-s3"]},
+                "2020/10/02/21/aws-waf-logs-testing-1-2020-10-02-21-25-30-x123x-x456x",
+            ),
+            "waf",
+        )
+
+    def test_redshift_event(self):
+        self.assertEqual(
+            parse_event_source(
+                {"Records": ["logs-from-s3"]},
+                "AWSLogs/123456779121/redshift/us-east-1/2020/10/21/123456779121_redshift_us-east-1_mycluster_userlog_2020-10-21T18:01.gz",
+            ),
+            "redshift",
+        )
+
+    def test_route53_event(self):
+        self.assertEqual(
+            parse_event_source(
+                {"awslogs": "logs"},
+                "my-route53-loggroup123",
+            ),
+            "route53",
+        )
+
+    def test_fargate_event(self):
+        self.assertEqual(
+            parse_event_source(
+                {"awslogs": "logs"},
+                "/ecs/fargate-logs",
+            ),
+            "fargate",
+        )
+
+    def test_cloudfront_event(self):
+        self.assertEqual(
+            parse_event_source(
+                {"Records": ["logs-from-s3"]},
+                "AWSLogs/cloudfront/123456779121/test/01.gz",
+            ),
+            "cloudfront",
+        )
+
     def test_cloudwatch_source_if_none_found(self):
         self.assertEqual(parse_event_source({"awslogs": "logs"}, ""), "cloudwatch")
 
