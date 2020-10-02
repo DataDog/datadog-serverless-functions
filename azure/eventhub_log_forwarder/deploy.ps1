@@ -3,11 +3,11 @@ param
     $ResourceGroupName,
     $ResourceGroupLocation,
     $ApiKey,
-    $EventhubNamespace = 'datadog-eventhub-namespace',
-    $EventhubName = 'datadog-eventhub',
-    $FunctionAppName = 'datadog-functionapp',
-    $FunctionName = 'datadog-function',
-    $DiagnosticSettingname = 'datadog-activity-logs-diagnostic-setting'
+    $EventhubNamespace = "datadog-eventhub-namespace",
+    $EventhubName = "datadog-eventhub",
+    $FunctionAppName = "datadog-functionapp",
+    $FunctionName = "datadog-function",
+    $DiagnosticSettingname = "datadog-activity-logs-diagnostic-setting"
 )
 
 $parentTemplateURI = "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/eventhub_log_forwarder/parent_template.json"
@@ -25,10 +25,10 @@ $templateParameters = @{}
 $templateParameters.Add("functionCode", $code)
 $templateParameters.Add("apiKey", $apiKey)
 $templateParameters.Add("location", $ResourceGroupLocation)
-$templateParameters.Add('eventhubNamespace', $EventhubNamespace)
-$templateParameters.Add('eventHubName', $EventhubName)
-$templateParameters.Add('functionAppName', $FunctionAppName)
-$templateParameters.Add('functionName', $FunctionName)
+$templateParameters.Add("eventhubNamespace", $EventhubNamespace)
+$templateParameters.Add("eventHubName", $EventhubName)
+$templateParameters.Add("functionAppName", $FunctionAppName)
+$templateParameters.Add("functionName", $FunctionName)
 
 # deploy the parent template
 New-AzResourceGroupDeployment `
@@ -39,12 +39,12 @@ New-AzResourceGroupDeployment `
 
 # template parameters for activity log diagnostic settings
 $diagnosticSettingParameters = @{}
-$diagnosticSettingParameters.Add('eventHubNamespace', $EventhubNamespace)
-$diagnosticSettingParameters.Add('eventHubName', $EventhubName)
-$diagnosticSettingParameters.Add('settingName', $DiagnosticSettingname)
-$diagnosticSettingParameters.Add('resourceGroup', $ResourceGroupName)
+$diagnosticSettingParameters.Add("eventHubNamespace", $EventhubNamespace)
+$diagnosticSettingParameters.Add("eventHubName", $EventhubName)
+$diagnosticSettingParameters.Add("settingName", $DiagnosticSettingname)
+$diagnosticSettingParameters.Add("resourceGroup", $ResourceGroupName)
 
-# deploy the activity logs diagnostic settings, this needs to be deployed separately since it's not specific to the
+# deploy the activity logs diagnostic settings, this needs to be deployed separately since it is not specific to the
 # resource group
 New-AzDeployment `
     -TemplateUri $diagnosticSettingsTemplateURI `
