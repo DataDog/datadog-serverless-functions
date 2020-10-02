@@ -14,7 +14,8 @@ $parentTemplateURI = "https://raw.githubusercontent.com/DataDog/datadog-serverle
 $diagnosticSettingsTemplateURI = "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/eventhub_log_forwarder/activity_log_diagnostic_settings.json"
 $codePath = "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/activity_logs_monitoring/index.js"
 
-# pull latest function code down
+# since function templates require the files and code are inline in the template we have to pass this as a parameter
+# this line downloads the code as a string from the master branch on github.
 $code = (New-Object System.Net.WebClient).DownloadString($codePath)
 
 # create resource group
