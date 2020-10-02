@@ -52,7 +52,7 @@
   },
   "variables": {
     "storageAccountName": "[concat(uniquestring(resourceGroup().id), 'functions')]",
-    "connectionStringKey": "[concat('Datadog-',toLower(parameters('eventhubNamespace')),'-AccessKey')]",
+    "connectionStringKey": "[concat('Datadog-',parameters('eventhubNamespace'),'-AccessKey')]",
     "authRule": "[resourceId('Microsoft.EventHub/namespaces/authorizationRules', parameters('eventhubNamespace'),'RootManageSharedAccessKey')]",
   },
   "resources": [
