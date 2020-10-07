@@ -1020,30 +1020,27 @@ def is_cloudtrail(key):
 
 
 def find_cloudwatch_source(log_group):
-    # e.g. /aws/lambda/helloDatadog
-    if "/aws/lambda" in log_group:
-        return "lambda"
-
     # e.g. /aws/rds/instance/my-mariadb/error
-    if "/aws/rds" in log_group:
+    if log_group.startswith("/aws/rds"):
         for engine in ["mariadb", "mysql"]:
             if engine in log_group:
                 return engine
         return "rds"
 
     # e.g. Api-Gateway-Execution-Logs_xxxxxx/dev
-    if "api-gateway" in log_group:
+    if log_group.startswith("api-gateway"):
         return "apigateway"
 
     # e.g. dms-tasks-test-instance
-    if "dms-tasks" in log_group:
+    if log_group.startswith("dms-tasks"):
         return "dms"
 
     # e.g. sns/us-east-1/123456779121/SnsTopicX
-    if "sns/" in log_group:
+    if log_group.startswith("sns/"):
         return "sns"
 
     for source in [
+        "/aws/lambda",  # e.g. /aws/lambda/helloDatadog
         "/aws/codebuild",  # e.g. /aws/codebuild/my-project
         "/aws/kinesis",  # e.g. /aws/kinesisfirehose/dev
         "/aws/docdb",  # e.g. /aws/docdb/yourClusterName/profile
@@ -1080,14 +1077,14 @@ def find_s3_source(key):
         return "docdb"
 
     # the below substrings must be in your target prefix to be detected
-    for s3_source in [
+    for source in [
         "amazon_codebuild",
         "amazon_kinesis",
         "amazon_dms",
         "cloudfront",
     ]:
-        if s3_source in key:
-            return s3_source.replace("amazon_", "")
+        if source in key:
+            return source.replace("amazon_", "")
 
     return "s3"
 
@@ -1107,9 +1104,7 @@ def parse_event_source(event, key):
     # Determines if the key matches any known sources for S3 logs
     if "Records" in event and len(event["Records"]) > 0:
         if "s3" in event["Records"][0]:
-            if is_cloudtrail(str(key)) or (
-                "logGroup" in event and event["logGroup"] == "CloudTrail"
-            ):
+            if is_cloudtrail(str(key)):
                 return "cloudtrail"
 
             return find_s3_source(lowercase_key)
