@@ -109,7 +109,7 @@ Parameters:
   DdScrubbingRule:
     Type: String
     Default: ""
-    Description: Replace text matching the supplied regular expression with xxxxx (default) or DdScrubbingRuleReplacement (if supplied). Log scrubbing rule is applied to the full JSON-formatted log, including any metadata that is automatically added by the Lambda function. Each instance of a pattern match is replaced until no more matches are found in each log.
+    Description: Replace text matching the supplied regular expression with xxxxx (default) or DdScrubbingRuleReplacement (if supplied). Log scrubbing rule is applied to the full JSON-formatted log, including any metadata that is automatically added by the Lambda function. Each instance of a pattern match is replaced until no more matches are found in each log. Note, using inefficient regular expression, such as `.*`, may slow down the Lambda function.
   DdScrubbingRuleReplacement:
     Type: String
     Default: ""
@@ -117,11 +117,11 @@ Parameters:
   ExcludeAtMatch:
     Type: String
     Default: ""
-    Description: DO NOT send logs matching the supplied regular expression. If a log matches both the ExcludeAtMatch and IncludeAtMatch, it is excluded. Filtering rules are applied to the full JSON-formatted log, including any metadata that is automatically added by the function.
+    Description: DO NOT send logs matching the supplied regular expression. If a log matches both the ExcludeAtMatch and IncludeAtMatch, it is excluded. Filtering rules are applied to the full JSON-formatted log, including any metadata that is automatically added by the function. Note, using inefficient regular expression, such as `.*`, may slow down the Lambda function.
   IncludeAtMatch:
     Type: String
     Default: ""
-    Description: Only send logs matching the supplied regular expression and not excluded by ExcludeAtMatch.
+    Description: Only send logs matching the supplied regular expression and not excluded by ExcludeAtMatch. Note, using inefficient regular expression, such as `.*`, may slow down the Lambda function.
   DdMultilineLogRegexPattern:
     Type: String
     Default: ""
@@ -450,6 +450,11 @@ Resources:
               - SetDdUsePrivateLink
               - true
               - false
+          DD_USE_VPC:
+            Fn::If:
+              - UseVPC
+              - true
+              - false
           DD_ADDITIONAL_TARGET_LAMBDAS:
             Fn::If:
               - SetAdditionalTargetLambdas
@@ -750,6 +755,7 @@ Metadata:
           default: Advanced (Optional)
         Parameters:
           - DdFetchLambdaTags
+          - TagsCacheTTLSeconds
           - SourceZipUrl
           - PermissionsBoundaryArn
           - DdApiKeySecretArn
