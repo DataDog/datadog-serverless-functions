@@ -327,16 +327,18 @@ The CloudFormation Stack creates following IAM roles:
 - `DdScrubbingRule` - Replace text matching the supplied regular expression with `xxxxx` (default) or
   `DdScrubbingRuleReplacement` (if supplied). Log scrubbing rule is applied to the full JSON-formatted
   log, including any metadata that is automatically added by the Lambda function. Each instance of a
-  pattern match is replaced until no more matches are found in each log.
-- `DdScrubbingRuleReplacement` - Replace text matching DdScrubbingRule with the supplied text
+  pattern match is replaced until no more matches are found in each log. Note, using inefficient regular
+  expression, such as `.*`, may slow down the Lambda function.
+- `DdScrubbingRuleReplacement` - Replace text matching DdScrubbingRule with the supplied text.
 
 ### Log Filtering (Optional)
 
 - `ExcludeAtMatch` - DO NOT send logs matching the supplied regular expression. If a log matches both
   the ExcludeAtMatch and IncludeAtMatch, it is excluded. Filtering rules are applied to the full
-  JSON-formatted log, including any metadata that is automatically added by the function.
+  JSON-formatted log, including any metadata that is automatically added by the function. Note, using
+  inefficient regular expression, such as `.*`, may slow down the Lambda function.
 - `IncludeAtMatch` - Only send logs matching the supplied regular expression and not excluded by
-  ExcludeAtMatch.
+  ExcludeAtMatch. Note, using inefficient regular expression, such as `.*`, may slow down the Lambda function.
 
 ### Advanced (Optional)
 
