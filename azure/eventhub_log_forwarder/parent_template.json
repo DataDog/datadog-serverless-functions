@@ -90,6 +90,9 @@
           },
           "resourceGroup": {
             "value": "[parameters('resourceGroup')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
           }
         }
       },
