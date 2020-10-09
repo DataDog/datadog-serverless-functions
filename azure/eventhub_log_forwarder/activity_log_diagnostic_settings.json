@@ -39,7 +39,6 @@
             "type": "Microsoft.Insights/diagnosticSettings",
             "apiVersion": "2017-05-01-preview",
             "name": "[parameters('settingName')]",
-            "location": "global",
             "properties": {
                 "eventHubAuthorizationRuleId": "[variables('eventHubAuthorizationRuleId')]",
                 "eventHubName": "[parameters('eventHubName')]",
