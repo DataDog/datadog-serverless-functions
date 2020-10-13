@@ -1044,13 +1044,19 @@ def find_cloudwatch_source(log_group):
         "/aws/codebuild",  # e.g. /aws/codebuild/my-project
         "/aws/kinesis",  # e.g. /aws/kinesisfirehose/dev
         "/aws/docdb",  # e.g. /aws/docdb/yourClusterName/profile
-        "route53",  # this and the below substrings must be in your log group to be detected
+    ]:
+        if log_group.startswith(source):
+            return source.replace("/aws/", "")
+
+    # the below substrings must be in your log group to be detected
+    for source in [
+        "route53",
         "vpc",
         "fargate",
         "cloudtrail",
     ]:
         if source in log_group:
-            return source.replace("/aws/", "")
+            return source
 
     return "cloudwatch"
 
