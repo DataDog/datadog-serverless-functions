@@ -149,6 +149,8 @@ LOG_SOURCE_SUBSTRINGS = [
     "docdb",
     "fargate",
     "dms",
+    "eks",
+    "msk",
     "vpc",
     "sns",
     "waf",
