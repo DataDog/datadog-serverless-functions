@@ -186,6 +186,31 @@ class TestParseEventSource(unittest.TestCase):
             "cloudfront",
         )
 
+    def test_eks_event(self):
+        self.assertEqual(
+            parse_event_source(
+                {"awslogs": "logs"},
+                "/aws/eks/control-plane/cluster",
+            ),
+            "eks",
+        )
+
+    def test_msk_event(self):
+        self.assertEqual(
+            parse_event_source(
+                {"awslogs": "logs"},
+                "/myMSKLogGroup",
+            ),
+            "msk",
+        )
+        self.assertEqual(
+            parse_event_source(
+                {"Records": ["logs-from-s3"]},
+                "AWSLogs/amazon_msk/us-east-1/xxxxx.log.gz",
+            ),
+            "msk",
+        )
+
     def test_cloudwatch_source_if_none_found(self):
         self.assertEqual(parse_event_source({"awslogs": "logs"}, ""), "cloudwatch")
 
