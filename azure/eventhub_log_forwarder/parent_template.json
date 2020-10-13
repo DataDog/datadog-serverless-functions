@@ -16,12 +16,6 @@
         "description": "Name of Event Hub"
       }
     },
-    "resourceGroup": {
-        "type": "string",
-        "metadata": {
-            "description": "Name of the Resource Group of the EventHub"
-        }
-    },
     "functionCode": {
       "type": "string",
       "metadata": {
@@ -44,8 +38,7 @@
   },
   "variables": {
     "eventHubTemplateLink": "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/eventhub_log_forwarder/event_hub.json",
-    "diagnosticSettingTemplateLink": "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/eventhub_log_forwarder/activity_log_diagnostic_settings.json",
-    "functionAppTemplateLink": "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/eventhub_log_forwarder/function_template.json"
+    "functionAppTemplateLink": "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/1db05725d9d1fc78a57968e6f8f95053e1d994e0/azure/eventhub_log_forwarder/function_template.json"
   },
   "resources": [
     {
@@ -70,35 +63,6 @@
           }
         }
       }
-    },
-    {
-      "name": "diagnosticSettingTemplate",
-      "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2018-05-01",
-      "properties": {
-        "mode": "Incremental",
-        "templateLink": {
-          "uri": "[variables('diagnosticSettingTemplateLink')]",
-          "contentVersion": "1.0.0.0"
-        },
-        "parameters": {
-          "eventHubNamespace": {
-            "value": "[parameters('eventHubNamespace')]"
-          },
-          "eventHubName": {
-            "value": "[parameters('eventHubName')]"
-          },
-          "resourceGroup": {
-            "value": "[parameters('resourceGroup')]"
-          },
-          "location": {
-            "value": "[parameters('location')]"
-          }
-        }
-      },
-      "dependsOn": [
-        "[resourceId('Microsoft.Resources/deployments','eventHubTemplate')]"
-      ]
     },
     {
       "name": "functionAppTemplate",
@@ -129,7 +93,7 @@
         }
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Resources/deployments','diagnosticSettingTemplate')]"
+        "[resourceId('Microsoft.Resources/deployments','eventHubTemplate')]"
       ]
     }
   ],
