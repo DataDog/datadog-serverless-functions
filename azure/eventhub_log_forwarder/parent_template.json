@@ -16,6 +16,20 @@
         "description": "Name of Event Hub"
       }
     },
+    "functionAppName": {
+      "type": "string",
+      "defaultValue": "datadog-functionapp",
+      "metadata": {
+        "description": "The name of the function app "
+      }
+    },
+    "functionName": {
+      "type": "string",
+      "defaultValue": "datadog-function",
+      "metadata": {
+        "description": "The name of the function."
+      }
+    },
     "functionCode": {
       "type": "string",
       "metadata": {
@@ -38,7 +52,7 @@
   },
   "variables": {
     "eventHubTemplateLink": "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/eventhub_log_forwarder/event_hub.json",
-    "functionAppTemplateLink": "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/1db05725d9d1fc78a57968e6f8f95053e1d994e0/azure/eventhub_log_forwarder/function_template.json"
+    "functionAppTemplateLink": "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/eventhub_log_forwarder/function_template.json"
   },
   "resources": [
     {
@@ -81,6 +95,12 @@
           "eventHubName": {
             "value": "[parameters('eventHubName')]"
           },
+          "functionAppName": {
+            "value": "[parameters('functionAppName')]"
+          },
+          "functionName": {
+            "value": "[parameters('functionName')]"
+          },
           "functionCode": {
             "value": "[parameters('functionCode')]"
           },
@@ -96,6 +116,5 @@
         "[resourceId('Microsoft.Resources/deployments','eventHubTemplate')]"
       ]
     }
-  ],
-  "outputs": {}
+  ]
 }
