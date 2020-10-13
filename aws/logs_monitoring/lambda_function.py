@@ -1044,6 +1044,7 @@ def find_cloudwatch_source(log_group):
         "/aws/codebuild",  # e.g. /aws/codebuild/my-project
         "/aws/kinesis",  # e.g. /aws/kinesisfirehose/dev
         "/aws/docdb",  # e.g. /aws/docdb/yourClusterName/profile
+        "/aws/eks",  # e.g. /aws/eks/yourClusterName/profile
     ]:
         if log_group.startswith(source):
             return source.replace("/aws/", "")
@@ -1054,6 +1055,7 @@ def find_cloudwatch_source(log_group):
         "vpc",
         "fargate",
         "cloudtrail",
+        "msk",
     ]:
         if source in log_group:
             return source
@@ -1087,6 +1089,7 @@ def find_s3_source(key):
         "amazon_codebuild",
         "amazon_kinesis",
         "amazon_dms",
+        "amazon_msk",
         "cloudfront",
     ]:
         if source in key:
