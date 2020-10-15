@@ -7,7 +7,7 @@ param
     $EventhubName = "datadog-eventhub",
     $FunctionAppName = "datadog-functionapp",
     $FunctionName = "datadog-function",
-    $DiagnosticSettingname = "datadog-activity-logs-diagnostic-setting"
+    $DiagnosticSettingname = "datadog-activity-logs-diagnostic-setting-2"
 )
 
 $parentTemplateURI = "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/eventhub_log_forwarder/parent_template.json"
@@ -18,6 +18,7 @@ $codePath = "https://raw.githubusercontent.com/DataDog/datadog-serverless-functi
 # this line downloads the code as a string from the master branch on github.
 $code = (New-Object System.Net.WebClient).DownloadString($codePath)
 
+try  {
 # create resource group
 New-AzResourceGroup -Name $ResourceGroupName -Location $ResourceGroupLocation
 
@@ -36,9 +37,20 @@ New-AzResourceGroupDeployment `
     -TemplateUri $parentTemplateURI `
     -ResourceGroupName $ResourceGroupName `
     -TemplateParameterObject $templateParameters `
-    -Verbose
+    -Verbose `
+    -ErrorAction Stop
+
+}
+catch {
+    Write-Error "An error occurred while deploying parent template:"
+    Write-Error $_
+    Return
+}
 
 # template parameters for activity log diagnostic settings
+
+try {
+
 $diagnosticSettingParameters = @{}
 $diagnosticSettingParameters.Add("eventHubNamespace", $EventhubNamespace)
 $diagnosticSettingParameters.Add("eventHubName", $EventhubName)
@@ -51,4 +63,10 @@ New-AzDeployment `
     -TemplateUri $diagnosticSettingsTemplateURI `
     -TemplateParameterObject $diagnosticSettingParameters `
     -Location $ResourceGroupLocation `
-    -Verbose
+    -Verbose `
+    -ErrorAction Stop
+}
+catch {
+    Write-Error "An error occurred while deploying diagnostic settings template:"
+    Write-Error $_
+}
