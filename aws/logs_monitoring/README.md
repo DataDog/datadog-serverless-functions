@@ -98,6 +98,7 @@ If you can't install the Forwarder using the provided CloudFormation template, y
 3. If you need to forward logs from S3 buckets, add the `s3:GetObject` permission to the Lambda execution role.
 4. Set the environment variable `DD_ENHANCED_METRICS` to `false` on the Forwarder. This stops the Forwarder from generating enhanced metrics itself, but it will still forward custom metrics from other lambdas.
 5. Configure [triggers](https://docs.datadoghq.com/integrations/amazon_web_services/?tab=allpermissions#send-aws-service-logs-to-datadog).
+6. Create an S3 bucket, and set environment variable `DD_S3_BUCKET_NAME` to the bucket name. Also provide `s3:GetObject`, `s3:PutObject`, and `s3:DeleteObject` permissions on this bucket to the Lambda execution role. This bucket is used to store the Lambda tags cache.
 
 <!-- xxz tab xxx -->
 <!-- xxz tabs xxx -->
@@ -326,16 +327,18 @@ The CloudFormation Stack creates following IAM roles:
 - `DdScrubbingRule` - Replace text matching the supplied regular expression with `xxxxx` (default) or
   `DdScrubbingRuleReplacement` (if supplied). Log scrubbing rule is applied to the full JSON-formatted
   log, including any metadata that is automatically added by the Lambda function. Each instance of a
-  pattern match is replaced until no more matches are found in each log.
-- `DdScrubbingRuleReplacement` - Replace text matching DdScrubbingRule with the supplied text
+  pattern match is replaced until no more matches are found in each log. Note, using inefficient regular
+  expression, such as `.*`, may slow down the Lambda function.
+- `DdScrubbingRuleReplacement` - Replace text matching DdScrubbingRule with the supplied text.
 
 ### Log Filtering (Optional)
 
 - `ExcludeAtMatch` - DO NOT send logs matching the supplied regular expression. If a log matches both
   the ExcludeAtMatch and IncludeAtMatch, it is excluded. Filtering rules are applied to the full
-  JSON-formatted log, including any metadata that is automatically added by the function.
+  JSON-formatted log, including any metadata that is automatically added by the function. Note, using
+  inefficient regular expression, such as `.*`, may slow down the Lambda function.
 - `IncludeAtMatch` - Only send logs matching the supplied regular expression and not excluded by
-  ExcludeAtMatch.
+  ExcludeAtMatch. Note, using inefficient regular expression, such as `.*`, may slow down the Lambda function.
 
 ### Advanced (Optional)
 
