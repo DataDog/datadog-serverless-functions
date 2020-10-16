@@ -1,41 +1,30 @@
-$ResourceGroupName = 'datadog-log-forwarder-rg'# add resource name here #
-$ResourceGroupLocation = 'westus2' # add location here # westus2
-$ApiKey = # add datadog api key here
+Set-AzContext -SubscriptionId $SubscriptionId
 
-# change defaults if necessary
-$EventhubNamespace = "datadog-eventhub-namespace"
-$EventhubName = "datadog-eventhub"
-$FunctionAppName = "datadog-functionapp"
-$FunctionName = "datadog-function"
-$DiagnosticSettingname = "datadog-activity-logs-diagnostic-setting"
+$ResourceGroupName = If (Test-Path variable:ResourceGroupName) {$ResourceGroupName} Else {"datadog-log-forwarder-rg"}
+$ResourceGroupLocation = If (Test-Path variable:ResourceGroupLocation) {$ResourceGroupLocation} Else {"westus2"}
+$EventhubNamespace = If (Test-Path variable:EventhubNamespace) {$EventhubNamespace} Else {"datadog-eventhub-namespace"}
+$EventhubName = If (Test-Path variable:EventhubName) {$EventhubName} Else {"datadog-eventhub"}
+$FunctionAppName = If (Test-Path variable:FunctionAppName) {$FunctionAppName} Else {"datadog-functionapp"}
+$FunctionName = If (Test-Path variable:FunctionName) {$FunctionName} Else {"datadog-function"}
+$DiagnosticSettingname = If (Test-Path variable:DiagnosticSettingname) {$DiagnosticSettingname} Else {"datadog-activity-logs-diagnostic-setting"}
+$Site = If (Test-Path variable:Site) {$Site} Else {"datadoghq.com"}
 
-$parentTemplateURI = "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/eventhub_log_forwarder/parent_template.json"
-$diagnosticSettingsTemplateURI = "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/eventhub_log_forwarder/activity_log_diagnostic_settings.json"
-$codePath = "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/activity_logs_monitoring/index.js"
-
-# since function templates require the files and code are inline in the template we have to pass this as a parameter
-# this line downloads the code as a string from the master branch on github.
-$code = (New-Object System.Net.WebClient).DownloadString($codePath)
+$code = (New-Object System.Net.WebClient).DownloadString("https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/activity_logs_monitoring/index.js")
 
 try  {
-    # create resource group
     New-AzResourceGroup -Name $ResourceGroupName -Location $ResourceGroupLocation
 
-    # template parameters for parent template
-    $templateParameters = @{}
-    $templateParameters.Add("functionCode", $code)
-    $templateParameters.Add("apiKey", $ApiKey)
-    $templateParameters.Add("location", $ResourceGroupLocation)
-    $templateParameters.Add("eventhubNamespace", $EventhubNamespace)
-    $templateParameters.Add("eventHubName", $EventhubName)
-    $templateParameters.Add("functionAppName", $FunctionAppName)
-    $templateParameters.Add("functionName", $FunctionName)
-
-    # deploy the parent template
     New-AzResourceGroupDeployment `
-        -TemplateUri $parentTemplateURI `
+        -TemplateUri "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/eventhub_log_forwarder/parent_template.json" `
         -ResourceGroupName $ResourceGroupName `
-        -TemplateParameterObject $templateParameters `
+        -functionCode $code `
+        -apiKey $ApiKey `
+        -location $ResourceGroupLocation `
+        -eventhubNamespace $EventhubNamespace `
+        -eventHubName $EventhubName `
+        -functionAppName $FunctionAppName `
+        -functionName $FunctionName `
+        -site $Site
         -Verbose `
         -ErrorAction Stop
 }
@@ -45,20 +34,13 @@ catch {
     Return
 }
 
-# template parameters for activity log diagnostic settings
-
 try {
-    $diagnosticSettingParameters = @{}
-    $diagnosticSettingParameters.Add("eventHubNamespace", $EventhubNamespace)
-    $diagnosticSettingParameters.Add("eventHubName", $EventhubName)
-    $diagnosticSettingParameters.Add("settingName", $DiagnosticSettingname)
-    $diagnosticSettingParameters.Add("resourceGroup", $ResourceGroupName)
-
-    # deploy the activity logs diagnostic settings, this needs to be deployed separately since it is not specific to the
-    # resource group
     New-AzDeployment `
-        -TemplateUri $diagnosticSettingsTemplateURI `
-        -TemplateParameterObject $diagnosticSettingParameters `
+        -TemplateUri "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/eventhub_log_forwarder/activity_log_diagnostic_settings.json" `
+        -eventHubNamespace $EventhubNamespace `
+        -eventHubname $EventhubName `
+        -settingName $SettingName `
+        -resourceGroup $ResourceGroupName `
         -Location $ResourceGroupLocation `
         -Verbose `
         -ErrorAction Stop
