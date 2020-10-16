@@ -58,7 +58,7 @@
     }
   },
   "variables": {
-    "storageAccountName": "ddfunctionstorageacct-claudia",
+    "storageAccountName": "ddfunctionstorageacctclaudia",
     "connectionStringKey": "[concat('Datadog-',parameters('eventhubNamespace'),'-AccessKey')]",
     "authRule": "[resourceId('Microsoft.EventHub/namespaces/authorizationRules', parameters('eventhubNamespace'),'RootManageSharedAccessKey')]"
   },
