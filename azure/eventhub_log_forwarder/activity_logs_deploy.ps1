@@ -1,6 +1,7 @@
 Set-AzContext -SubscriptionId $SubscriptionId
 
 $ResourceGroupName = If (Test-Path variable:ResourceGroupName) {$ResourceGroupName} Else {"datadog-log-forwarder-rg"}
+Write-Host $ResourceGroupName
 $ResourceGroupLocation = If (Test-Path variable:ResourceGroupLocation) {$ResourceGroupLocation} Else {"westus2"}
 $EventhubNamespace = If (Test-Path variable:EventhubNamespace) {$EventhubNamespace} Else {"datadog-eventhub-namespace"}
 $EventhubName = If (Test-Path variable:EventhubName) {$EventhubName} Else {"datadog-eventhub"}
@@ -14,9 +15,21 @@ $code = (New-Object System.Net.WebClient).DownloadString("https://raw.githubuser
 try  {
     New-AzResourceGroup -Name $ResourceGroupName -Location $ResourceGroupLocation
 
+    $templateParameters = @{}
+    $templateParameters.Add("functionCode", $code)
+    $templateParameters.Add("apiKey", $ApiKey)
+    $templateParameters.Add("location", $ResourceGroupLocation)
+    $templateParameters.Add("eventhubNamespace", $EventhubNamespace)
+    $templateParameters.Add("eventHubName", $EventhubName)
+    $templateParameters.Add("functionAppName", $FunctionAppName)
+    $templateParameters.Add("functionName", $FunctionName)
+    $templateParameters.Add("datadogSite", $Site)
+
     New-AzResourceGroupDeployment `
-        -TemplateUri "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/eventhub_log_forwarder/parent_template.json" `
+        -TemplateUri "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/claudia/azure-ps1-deploy/azure/eventhub_log_forwarder/parent_template.json" `
         -ResourceGroupName $ResourceGroupName `
+        -Verbose `
+        -ErrorAction Stop `
         -functionCode $code `
         -apiKey $ApiKey `
         -location $ResourceGroupLocation `
@@ -24,9 +37,7 @@ try  {
         -eventHubName $EventhubName `
         -functionAppName $FunctionAppName `
         -functionName $FunctionName `
-        -site $Site `
-        -Verbose `
-        -ErrorAction Stop
+        -datadogSite $Site
 }
 catch {
     Write-Error "An error occurred while deploying parent template:"

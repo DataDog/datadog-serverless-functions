@@ -49,7 +49,7 @@
         "description": "Specify a location for the resources."
       }
     },
-    "site": {
+    "datadogSite": {
       "type": "string",
       "defaultValue": "datadoghq.com",
       "metadata": {
@@ -118,7 +118,7 @@
             "value": "[parameters('location')]"
           },
           "site": {
-            "value": "[parameters('site')]"
+            "value": "[parameters('datadogSite')]"
           }
         }
       },

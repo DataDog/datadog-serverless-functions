@@ -49,7 +49,7 @@
         "description": "Location for all resources."
       }
     },
-    "site": {
+    "datadogSite": {
       "type": "string",
       "defaultValue": "datadoghq.com",
       "metadata": {
@@ -102,7 +102,7 @@
             },
             {
               "name": "DD_SITE",
-              "value": "[parameters('site')]"
+              "value": "[parameters('datadogSite')]"
             },
             {
               "name": "AzureWebJobsStorage",
