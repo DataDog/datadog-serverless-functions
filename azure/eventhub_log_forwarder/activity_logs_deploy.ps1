@@ -28,8 +28,6 @@ try  {
     New-AzResourceGroupDeployment `
         -TemplateUri "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/claudia/azure-ps1-deploy/azure/eventhub_log_forwarder/parent_template.json" `
         -ResourceGroupName $ResourceGroupName `
-        -Verbose `
-        -ErrorAction Stop `
         -functionCode $code `
         -apiKey $ApiKey `
         -location $ResourceGroupLocation `
@@ -37,7 +35,9 @@ try  {
         -eventHubName $EventhubName `
         -functionAppName $FunctionAppName `
         -functionName $FunctionName `
-        -datadogSite $Site
+        -datadogSite $Site `
+        -Verbose `
+        -ErrorAction Stop
 }
 catch {
     Write-Error "An error occurred while deploying parent template:"

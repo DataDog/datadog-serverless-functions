@@ -117,7 +117,7 @@
           "location": {
             "value": "[parameters('location')]"
           },
-          "site": {
+          "datadogSite": {
             "value": "[parameters('datadogSite')]"
           }
         }
