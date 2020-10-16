@@ -8,7 +8,7 @@ $EventhubName = If (Test-Path variable:EventhubName) {$EventhubName} Else {"data
 $FunctionAppName = If (Test-Path variable:FunctionAppName) {$FunctionAppName} Else {"datadog-functionapp"}
 $FunctionName = If (Test-Path variable:FunctionName) {$FunctionName} Else {"datadog-function"}
 $DiagnosticSettingName = If (Test-Path variable:DiagnosticSettingname) {$DiagnosticSettingname} Else {"datadog-activity-logs-diagnostic-setting"}
-$Site = If (Test-Path variable:Site) {$Site} Else {"datadoghq.com"}
+$DatadogSite = If (Test-Path variable:DatadogSite) {$DatadogSite} Else {"datadoghq.com"}
 
 $code = (New-Object System.Net.WebClient).DownloadString("https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/activity_logs_monitoring/index.js")
 
@@ -23,10 +23,11 @@ try  {
     $templateParameters.Add("eventHubName", $EventhubName)
     $templateParameters.Add("functionAppName", $FunctionAppName)
     $templateParameters.Add("functionName", $FunctionName)
-    $templateParameters.Add("datadogSite", $Site)
+    $templateParameters.Add("datadogSite", $DatadogSite)
 
+    $parentTemplate = "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/claudia/azure-ps1-deploy/azure/eventhub_log_forwarder/parent_template.json"
     New-AzResourceGroupDeployment `
-        -TemplateUri "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/claudia/azure-ps1-deploy/azure/eventhub_log_forwarder/parent_template.json" `
+        -TemplateUri $parentTemplate `
         -ResourceGroupName $ResourceGroupName `
         -functionCode $code `
         -apiKey $ApiKey `
@@ -35,13 +36,17 @@ try  {
         -eventHubName $EventhubName `
         -functionAppName $FunctionAppName `
         -functionName $FunctionName `
-        -datadogSite $Site `
+        -datadogSite $DatadogSite `
         -Verbose `
         -ErrorAction Stop
+
 }
 catch {
     Write-Error "An error occurred while deploying parent template:"
     Write-Error $_
+    Write-Host $_.Exception.StatusMessage
+    Write-Host $_.Exception.RequestInformation.HttpStatusMessage
+    Write-Host ($_.Exception.RequestInformation.AzureError.Values | format-list -force | out-string)
     Return
 }
 
