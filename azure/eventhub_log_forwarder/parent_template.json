@@ -48,6 +48,13 @@
       "metadata": {
         "description": "Specify a location for the resources."
       }
+    },
+    "site": {
+      "type": "string",
+      "defaultValue": "datadoghq.com",
+      "metadata": {
+        "description": "Datadog site to send logs"
+      }
     }
   },
   "variables": {
@@ -109,6 +116,9 @@
           },
           "location": {
             "value": "[parameters('location')]"
+          },
+          "site": {
+            "value": "[parameters('site')]"
           }
         }
       },

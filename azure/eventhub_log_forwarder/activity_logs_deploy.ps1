@@ -6,7 +6,7 @@ $EventhubNamespace = If (Test-Path variable:EventhubNamespace) {$EventhubNamespa
 $EventhubName = If (Test-Path variable:EventhubName) {$EventhubName} Else {"datadog-eventhub"}
 $FunctionAppName = If (Test-Path variable:FunctionAppName) {$FunctionAppName} Else {"datadog-functionapp"}
 $FunctionName = If (Test-Path variable:FunctionName) {$FunctionName} Else {"datadog-function"}
-$DiagnosticSettingname = If (Test-Path variable:DiagnosticSettingname) {$DiagnosticSettingname} Else {"datadog-activity-logs-diagnostic-setting"}
+$DiagnosticSettingName = If (Test-Path variable:DiagnosticSettingname) {$DiagnosticSettingname} Else {"datadog-activity-logs-diagnostic-setting"}
 $Site = If (Test-Path variable:Site) {$Site} Else {"datadoghq.com"}
 
 $code = (New-Object System.Net.WebClient).DownloadString("https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/activity_logs_monitoring/index.js")
@@ -24,7 +24,7 @@ try  {
         -eventHubName $EventhubName `
         -functionAppName $FunctionAppName `
         -functionName $FunctionName `
-        -site $Site
+        -site $Site `
         -Verbose `
         -ErrorAction Stop
 }
@@ -38,8 +38,8 @@ try {
     New-AzDeployment `
         -TemplateUri "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/eventhub_log_forwarder/activity_log_diagnostic_settings.json" `
         -eventHubNamespace $EventhubNamespace `
-        -eventHubname $EventhubName `
-        -settingName $SettingName `
+        -eventHubName $EventhubName `
+        -settingName $DiagnosticSettingName `
         -resourceGroup $ResourceGroupName `
         -Location $ResourceGroupLocation `
         -Verbose `

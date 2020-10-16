@@ -48,6 +48,13 @@
       "metadata": {
         "description": "Location for all resources."
       }
+    },
+    "site": {
+      "type": "string",
+      "defaultValue": "datadoghq.com",
+      "metadata": {
+        "description": "Datadog site to send logs"
+      }
     }
   },
   "variables": {
@@ -92,6 +99,10 @@
             {
               "name": "DD_API_KEY",
               "value": "[parameters('apiKey')]"
+            },
+            {
+              "name": "DD_SITE",
+              "value": "[parameters('site')]"
             },
             {
               "name": "AzureWebJobsStorage",
