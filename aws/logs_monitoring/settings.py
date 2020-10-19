@@ -181,7 +181,6 @@ EXCLUDE_AT_MATCH = get_env_var("EXCLUDE_AT_MATCH", default=None)
 # DD API Key
 if "DD_API_KEY_SECRET_ARN" in os.environ:
     SECRET_ARN = os.environ["DD_API_KEY_SECRET_ARN"]
-    
     secretstring = boto3.client("secretsmanager").get_secret_value(SecretId=SECRET_ARN)[
         "SecretString"
     ]
