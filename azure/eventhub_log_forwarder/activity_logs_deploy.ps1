@@ -7,7 +7,7 @@ $EventhubNamespace = If (Test-Path variable:EventhubNamespace) {$EventhubNamespa
 $EventhubName = If (Test-Path variable:EventhubName) {$EventhubName} Else {"datadog-eventhub"}
 $FunctionAppName = If (Test-Path variable:FunctionAppName) {$FunctionAppName} Else {"datadog-functionapp"}
 $FunctionName = If (Test-Path variable:FunctionName) {$FunctionName} Else {"datadog-function"}
-$DiagnosticSettingName = If (Test-Path variable:DiagnosticSettingname) {$DiagnosticSettingname} Else {"datadog-activity-logs-diagnostic-setting"}
+$DiagnosticSettingName = If (Test-Path variable:DiagnosticSettingName) {$DiagnosticSettingName} Else {"datadog-activity-logs-diagnostic-setting"}
 $DatadogSite = If (Test-Path variable:DatadogSite) {$DatadogSite} Else {"datadoghq.com"}
 
 $code = (New-Object System.Net.WebClient).DownloadString("https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/activity_logs_monitoring/index.js")
