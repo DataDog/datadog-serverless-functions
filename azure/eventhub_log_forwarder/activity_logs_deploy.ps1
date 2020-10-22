@@ -1,4 +1,6 @@
-If (Test-Path variable:SubscriptionId) {} Else {Write-Error "`$SubscriptionId` must be set"}
+&{
+If (Test-Path variable:SubscriptionId) {} Else {Write-Error "`$SubscriptionId` must be set"; Return }
+If (Test-Path variable:ApiKey) {} Else {Write-Error "`$ApiKey` must be set"; Return }
 Set-AzContext -SubscriptionId $SubscriptionId
 
 $ResourceGroupName = If (Test-Path variable:ResourceGroupName) {$ResourceGroupName} Else {"datadog-log-forwarder-rg"}
@@ -14,6 +16,7 @@ $code = (New-Object System.Net.WebClient).DownloadString("https://raw.githubuser
 
 New-AzResourceGroup -Name $ResourceGroupName -Location $ResourceGroupLocation
 
+try {
 New-AzResourceGroupDeployment `
     -TemplateUri "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/eventhub_log_forwarder/parent_template.json" `
     -ResourceGroupName $ResourceGroupName `
@@ -25,8 +28,14 @@ New-AzResourceGroupDeployment `
     -functionAppName $FunctionAppName `
     -functionName $FunctionName `
     -datadogSite $DatadogSite `
-    -Verbose
+    -Verbose `
+    -ErrorAction Stop
+} catch {
+    Write-Error $_
+    Return
+}
 
+try {
 New-AzDeployment `
     -TemplateUri "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/eventhub_log_forwarder/activity_log_diagnostic_settings.json" `
     -eventHubNamespace $EventhubNamespace `
@@ -34,5 +43,10 @@ New-AzDeployment `
     -settingName $DiagnosticSettingName `
     -resourceGroup $ResourceGroupName `
     -Location $ResourceGroupLocation `
-    -Verbose
-
+    -Verbose `
+    -ErrorAction Stop
+} catch {
+    Write-Error $_
+    Return
+}
+}
