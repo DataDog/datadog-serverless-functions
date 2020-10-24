@@ -852,6 +852,13 @@ def s3_handler(event, context, metadata):
             )
             yield structured_line
     else:
+        # CloudWatch Server Access Logs are double gzipped in some cases
+        # We check if that's the case and unzip it once more
+        if key[-3:] == ".gz" or data[:2] == b"\x1f\x8b":
+            with gzip.GzipFile(fileobj=BytesIO(data)) as decompress_stream:
+                # Reading line by line avoid a bug where gzip would take a very long time (>5min) for
+                # file around 60MB gzipped
+                data = b"".join(BufferedReader(decompress_stream))
         # Check if using multiline log regex pattern
         # and determine whether line or pattern separated logs
         data = data.decode("utf-8")
