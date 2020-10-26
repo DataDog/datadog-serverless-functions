@@ -318,6 +318,7 @@ The CloudFormation Stack creates following IAM roles:
 - `DdFetchLambdaTags` - Let the Forwarder fetch Lambda tags using GetResources API calls and apply
   them to logs, metrics and traces. If set to true, permission `tag:GetResources` will be
   automatically added to the Lambda execution IAM role.
+- DdEnhancedMetrics - Enable Lambda Enhanced Metrics for further visibility into functions with additional enhanced metrics and metadata collected in real time and with higher granularity than standard CloudWatch metrics.
 
 ### Log Scrubbing (Optional)
 

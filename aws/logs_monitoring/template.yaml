@@ -147,6 +147,13 @@ Parameters:
       - true
       - false
     Description: Set to true to deploy the Forwarder to a VPC and send logs, metrics, and traces via AWS PrivateLink. When set to true, must also set VPCSecurityGroupIds and VPCSubnetIds. Find more details from https://dtdg.co/private-link.
+  DdEnhancedMetrics:
+    Type: String
+    Default: false
+    AllowedValues:
+      - true
+      - false
+    Description: Set to true to enable lambda enhanced metrics. Find more details from https://docs.datadoghq.com/serverless/enhanced_lambda_metrics/.
   DdUseVPC:
     Type: String
     Default: false
@@ -274,6 +281,10 @@ Conditions:
     Fn::Equals:
       - Ref: DdUsePrivateLink
       - true
+  SetDdEnhancedMetrics:
+    Fn::Equals:
+      - Ref: DdEnhancedMetrics
+      - true
   SetDdUseVPC:
     Fn::Equals:
       - Ref: DdUseVPC
@@ -345,7 +356,11 @@ Resources:
         dd_forwarder_version: !FindInMap [Constants, DdForwarder, Version]
       Environment:
         Variables:
-          DD_ENHANCED_METRICS: "false"
+          DD_ENHANCED_METRICS:
+            Fn::If:
+              - SetDdEnhancedMetrics
+              - true
+              - false
           DD_API_KEY_SECRET_ARN:
             Fn::If:
               - CreateDdApiKeySecret
@@ -755,6 +770,7 @@ Metadata:
           default: Advanced (Optional)
         Parameters:
           - DdFetchLambdaTags
+          - DdEnhancedMetrics
           - TagsCacheTTLSeconds
           - SourceZipUrl
           - PermissionsBoundaryArn
