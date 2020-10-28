@@ -801,6 +801,7 @@
               "cold_start:false",
               "memorysize:128",
               "runtime:nodejs12.x",
+              "datadog_lambda:6.6.6",
               "forwardername:test",
               "forwarder_memorysize:1536",
               "forwarder_version:<redacted from snapshot>",

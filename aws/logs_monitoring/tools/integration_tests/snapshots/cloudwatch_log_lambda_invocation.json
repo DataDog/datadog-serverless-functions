@@ -28,7 +28,7 @@
 		{
 			"id": "35311576111948622874033876462979853992919938886093242372",
 			"timestamp": 1583425836114,
-			"message":"{\"e\":1583425836.114,\"m\":\"aws.lambda.enhanced.invocations\",\"t\":[\"region:us-east-1\",\"account_id:601427279990\",\"functionname:hello-dog-node-dev-hello12x\",\"cold_start:false\",\"memorysize:128\",\"runtime:nodejs12.x\"],\"v\":1}\n"
+			"message":"{\"e\":1583425836.114,\"m\":\"aws.lambda.enhanced.invocations\",\"t\":[\"region:us-east-1\",\"account_id:601427279990\",\"functionname:hello-dog-node-dev-hello12x\",\"cold_start:false\",\"memorysize:128\",\"runtime:nodejs12.x\",\"datadog_lambda:6.6.6\"],\"v\":1}\n"
 		},
 		{
 			"id": "35311576112305434797210366433244425485282312670188929029",

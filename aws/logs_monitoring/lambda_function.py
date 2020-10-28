@@ -7,6 +7,7 @@ import base64
 import gzip
 import json
 import os
+import platform
 from collections import defaultdict
 
 import boto3
@@ -21,7 +22,7 @@ from io import BytesIO, BufferedReader
 import time
 from datadog_lambda.wrapper import datadog_lambda_wrapper
 from datadog_lambda.metric import lambda_stats
-from datadog import api
+from datadog import api, __version__ as datadogpy_version
 from trace_forwarder.connection import TraceConnection
 from enhanced_lambda_metrics import (
     get_enriched_lambda_log_tags,
@@ -57,6 +58,13 @@ from settings import (
 
 logger = logging.getLogger()
 logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
+
+datadogpy_ua = 'datadogpy/{version} (python {pyver}; os {os}; arch {arch})'.format(
+    version=datadogpy_version,
+    pyver=platform.python_version(),
+    os=platform.system().lower(),
+    arch=platform.machine().lower(),
+)
 
 try:
     import requests
@@ -702,27 +710,27 @@ def filter_logs(logs):
     return logs_to_send
 
 
-def get_prefix_user_agent_header(layer_version, runtime):
-    return 'datadog_lambda/{layer_version} (lambda_runtime {runtime})'.format(
-        layer_version=layer_version,
+def get_prefix_user_agent_header(library_version, runtime):
+    return 'datadog_lambda/{library_version} (lambda_runtime {runtime})'.format(
+        library_version=library_version,
         runtime=runtime,
     )
 
 
 def set_user_agent_header(tags):
     if _http_client:
+        library_version = None
+        runtime = None
         for tag in tags:
-            if "dd_lambda_layer:" in tag:
-                tag_key, tag_value = tag.split(":")
-                runtime, layer_version = tag_value.split("-")[1].split("_")
-                lambda_library_ua = get_prefix_user_agent_header(layer_version, runtime)
-                datadogpy_ua = api.http_client._get_user_agent_header()
-                user_agent = "{} {}".format(lambda_library_ua, datadogpy_ua)
-
-                _http_client._session.headers.update({'User-Agent': user_agent})
-        else:
-            _http_client._session.headers.update({'User-Agent': _get_user_agent_header()})
-
+            if "datadog_lambda:" in tag:
+                library_version = tag.split(":")[1]
+            if "runtime:" in tag:
+                runtime = tag.split(":")[1]
+        
+        if library_version and runtime:    
+            lambda_library_ua = get_prefix_user_agent_header(library_version, runtime)
+            user_agent = "{} {}".format(lambda_library_ua, datadogpy_ua)
+            _http_client._session.headers.update({'User-Agent': user_agent})
 
 
 def forward_metrics(metrics):

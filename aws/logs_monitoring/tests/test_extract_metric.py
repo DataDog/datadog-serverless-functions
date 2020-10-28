@@ -6,7 +6,9 @@ import unittest
 sys.modules["trace_forwarder.connection"] = MagicMock()
 sys.modules["datadog_lambda.wrapper"] = MagicMock()
 sys.modules["datadog_lambda.metric"] = MagicMock()
-sys.modules["datadog"] = MagicMock()
+datadog_mock = MagicMock()
+datadog_mock.__version__ = '6.6.6'
+sys.modules["datadog"] = datadog_mock
 sys.modules["requests"] = MagicMock()
 
 env_patch = patch.dict(
