@@ -91,6 +91,7 @@ if not validation_res.ok:
 api._api_key = DD_API_KEY
 api._api_host = DD_API_URL
 api._cacert = not DD_SKIP_SSL_VALIDATION
+_http_client = api.http_client.resolve_http_client()
 
 trace_connection = TraceConnection(
     DD_TRACE_INTAKE_URL, DD_API_KEY, DD_SKIP_SSL_VALIDATION
@@ -701,6 +702,29 @@ def filter_logs(logs):
     return logs_to_send
 
 
+def get_prefix_user_agent_header(layer_version, runtime):
+    return 'datadog_lambda/{layer_version} (lambda_runtime {runtime})'.format(
+        layer_version=layer_version,
+        runtime=runtime,
+    )
+
+
+def set_user_agent_header(tags):
+    if _http_client:
+        for tag in tags:
+            if "dd_lambda_layer:" in tag:
+                tag_key, tag_value = tag.split(":")
+                runtime, layer_version = tag_value.split("-")[1].split("_")
+                lambda_library_ua = get_prefix_user_agent_header(layer_version, runtime)
+                datadogpy_ua = api.http_client._get_user_agent_header()
+                user_agent = "{} {}".format(lambda_library_ua, datadogpy_ua)
+
+                _http_client._session.headers.update({'User-Agent': user_agent})
+        else:
+            _http_client._session.headers.update({'User-Agent': _get_user_agent_header()})
+
+
+
 def forward_metrics(metrics):
     """
     Forward custom metrics submitted via logs to Datadog in a background thread
@@ -711,6 +735,8 @@ def forward_metrics(metrics):
 
     for metric in metrics:
         try:
+            set_user_agent_header(metric["t"])
+
             lambda_stats.distribution(
                 metric["m"], metric["v"], timestamp=metric["e"], tags=metric["t"]
             )
