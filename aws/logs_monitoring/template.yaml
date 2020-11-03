@@ -15,7 +15,7 @@ Parameters:
     Type: String
     AllowedPattern: "arn:.*:secretsmanager:.*"
     Default: "arn:aws:secretsmanager:DEFAULT"
-    Description: The ARN of the secret storing the Datadog API key, if you already have it stored in Secrets Manager. You still need to set a dummy value for "DdApiKey" to satisfy the requirement, though that value won't be used.
+    Description: The ARN of the secret storing the Datadog API key, if you already have it stored in Secrets Manager. You must store the secret as a plaintext, rather than a key-value pair. You still need to set a dummy value for "DdApiKey" to satisfy the requirement, though that value won't be used.
   DdSite:
     Type: String
     Default: datadoghq.com
