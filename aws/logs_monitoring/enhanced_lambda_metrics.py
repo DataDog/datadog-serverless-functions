@@ -357,7 +357,7 @@ def acquire_s3_cache_lock():
         if last_modified_unix_time + DD_S3_CACHE_LOCK_TTL_SECONDS >= time():
             return False
     except Exception:
-        logger.exception("Unable to get cache lock file")
+        logger.debug("Unable to get cache lock file")
 
     # lock file doesn't exist, create file to acquire lock
     try:
