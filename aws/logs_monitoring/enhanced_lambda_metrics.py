@@ -331,7 +331,9 @@ def send_forwarder_internal_metrics(name, additional_tags=[]):
     """Send forwarder's internal metrics to DD"""
     prefix, tags = get_forwarder_telemetry_prefix_and_tags()
     lambda_stats.distribution(
-        "{}.{}".format(prefix, name), 1, tags=tags + additional_tags,
+        "{}.{}".format(prefix, name),
+        1,
+        tags=tags + additional_tags,
     )
 
 
@@ -676,7 +678,8 @@ def create_timeout_enhanced_metric(log_line):
         return []
 
     dd_metric = DatadogMetricPoint(
-        f"{ENHANCED_METRICS_NAMESPACE_PREFIX}.{TIMEOUTS_METRIC_NAME}", 1.0,
+        f"{ENHANCED_METRICS_NAMESPACE_PREFIX}.{TIMEOUTS_METRIC_NAME}",
+        1.0,
     )
     return [dd_metric]
 
@@ -699,6 +702,7 @@ def create_out_of_memory_enhanced_metric(log_line):
         return []
 
     dd_metric = DatadogMetricPoint(
-        f"{ENHANCED_METRICS_NAMESPACE_PREFIX}.{OUT_OF_MEMORY_METRIC_NAME}", 1.0,
+        f"{ENHANCED_METRICS_NAMESPACE_PREFIX}.{OUT_OF_MEMORY_METRIC_NAME}",
+        1.0,
     )
     return [dd_metric]
