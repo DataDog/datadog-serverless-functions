@@ -331,9 +331,7 @@ def send_forwarder_internal_metrics(name, additional_tags=[]):
     """Send forwarder's internal metrics to DD"""
     prefix, tags = get_forwarder_telemetry_prefix_and_tags()
     lambda_stats.distribution(
-        "{}.{}".format(prefix, name),
-        1,
-        tags=tags + additional_tags,
+        "{}.{}".format(prefix, name), 1, tags=tags + additional_tags,
     )
 
 
@@ -365,7 +363,7 @@ def acquire_s3_cache_lock():
         send_forwarder_internal_metrics("s3_cache_lock_acquired")
         logger.debug("S3 cache lock acquired")
     except ClientError:
-        logger.exception("Unable to write S3 cache lock file")
+        logger.debug("Unable to write S3 cache lock file", exc_info=True)
         return False
 
     return True
@@ -382,7 +380,7 @@ def release_s3_cache_lock():
         logger.debug("S3 cache lock released")
     except ClientError:
         send_forwarder_internal_metrics("s3_cache_lock_release_failure")
-        logger.exception("Unable to release S3 cache lock")
+        logger.debug("Unable to release S3 cache lock", exc_info=True)
 
 
 def write_cache_to_s3(data):
@@ -392,7 +390,7 @@ def write_cache_to_s3(data):
         s3_object.put(Body=(bytes(json.dumps(data).encode("UTF-8"))))
     except ClientError:
         send_forwarder_internal_metrics("s3_cache_write_failure")
-        logger.exception("Unable to write new cache to S3")
+        logger.debug("Unable to write new cache to S3", exc_info=True)
 
 
 def get_cache_from_s3():
@@ -405,7 +403,7 @@ def get_cache_from_s3():
         last_modified_unix_time = get_last_modified_time(file_content)
     except:
         send_forwarder_internal_metrics("s3_cache_fetch_failure")
-        logger.exception("Unable to fetch cache from S3")
+        logger.debug("Unable to fetch cache from S3", exc_info=True)
         return {}, -1
 
     return tags_cache, last_modified_unix_time
@@ -678,8 +676,7 @@ def create_timeout_enhanced_metric(log_line):
         return []
 
     dd_metric = DatadogMetricPoint(
-        f"{ENHANCED_METRICS_NAMESPACE_PREFIX}.{TIMEOUTS_METRIC_NAME}",
-        1.0,
+        f"{ENHANCED_METRICS_NAMESPACE_PREFIX}.{TIMEOUTS_METRIC_NAME}", 1.0,
     )
     return [dd_metric]
 
@@ -702,7 +699,6 @@ def create_out_of_memory_enhanced_metric(log_line):
         return []
 
     dd_metric = DatadogMetricPoint(
-        f"{ENHANCED_METRICS_NAMESPACE_PREFIX}.{OUT_OF_MEMORY_METRIC_NAME}",
-        1.0,
+        f"{ENHANCED_METRICS_NAMESPACE_PREFIX}.{OUT_OF_MEMORY_METRIC_NAME}", 1.0,
     )
     return [dd_metric]
