@@ -20,3 +20,4 @@ RUN rm -rf ./botocore*
 # These files are not directly used by the Forwarder.
 RUN rm ./ddtrace/commands/ddtrace_run.py
 RUN rm ./ddtrace/profiling/__main__.py
+RUN rm ./decorator.py
