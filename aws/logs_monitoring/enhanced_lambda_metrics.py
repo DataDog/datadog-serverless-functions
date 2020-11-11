@@ -357,7 +357,7 @@ def acquire_s3_cache_lock():
         if last_modified_unix_time + DD_S3_CACHE_LOCK_TTL_SECONDS >= time():
             return False
     except Exception:
-        logger.exception("Unable to get cache lock file")
+        logger.debug("Unable to get cache lock file")
 
     # lock file doesn't exist, create file to acquire lock
     try:
@@ -365,7 +365,7 @@ def acquire_s3_cache_lock():
         send_forwarder_internal_metrics("s3_cache_lock_acquired")
         logger.debug("S3 cache lock acquired")
     except ClientError:
-        logger.exception("Unable to write S3 cache lock file")
+        logger.debug("Unable to write S3 cache lock file", exc_info=True)
         return False
 
     return True
@@ -382,7 +382,7 @@ def release_s3_cache_lock():
         logger.debug("S3 cache lock released")
     except ClientError:
         send_forwarder_internal_metrics("s3_cache_lock_release_failure")
-        logger.exception("Unable to release S3 cache lock")
+        logger.debug("Unable to release S3 cache lock", exc_info=True)
 
 
 def write_cache_to_s3(data):
@@ -392,7 +392,7 @@ def write_cache_to_s3(data):
         s3_object.put(Body=(bytes(json.dumps(data).encode("UTF-8"))))
     except ClientError:
         send_forwarder_internal_metrics("s3_cache_write_failure")
-        logger.exception("Unable to write new cache to S3")
+        logger.debug("Unable to write new cache to S3", exc_info=True)
 
 
 def get_cache_from_s3():
@@ -405,7 +405,7 @@ def get_cache_from_s3():
         last_modified_unix_time = get_last_modified_time(file_content)
     except:
         send_forwarder_internal_metrics("s3_cache_fetch_failure")
-        logger.exception("Unable to fetch cache from S3")
+        logger.debug("Unable to fetch cache from S3", exc_info=True)
         return {}, -1
 
     return tags_cache, last_modified_unix_time
