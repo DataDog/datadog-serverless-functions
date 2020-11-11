@@ -281,7 +281,9 @@ def get_dd_tag_string_from_aws_dict(aws_key_value_tag_dict):
             ex: "creator:swf"
     """
     key = sanitize_aws_tag_string(aws_key_value_tag_dict["Key"], remove_colons=True)
-    value = sanitize_aws_tag_string(aws_key_value_tag_dict.get("Value"), remove_initial_digit=False)
+    value = sanitize_aws_tag_string(
+        aws_key_value_tag_dict.get("Value"), remove_initial_digit=False
+    )
     # Value is optional in DD and AWS
     if not value:
         return key
