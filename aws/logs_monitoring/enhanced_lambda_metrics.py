@@ -239,7 +239,7 @@ Dedupe = re.compile(r"_+", re.UNICODE).sub
 FixInit = re.compile(r"^[_\d]*", re.UNICODE).sub
 
 
-def sanitize_aws_tag_string(tag, remove_colons=False):
+def sanitize_aws_tag_string(tag, remove_colons=False, remove_initial_digit=True):
     """Convert characters banned from DD but allowed in AWS tags to underscores"""
     global Sanitize, Dedupe, FixInit
 
@@ -261,9 +261,10 @@ def sanitize_aws_tag_string(tag, remove_colons=False):
     if remove_colons:
         tag = tag.replace(":", "_")
     tag = Dedupe("_", Sanitize("_", tag.lower()))
-    first_char = tag[0]
-    if first_char == "_" or "0" <= first_char <= "9":
-        tag = FixInit("", tag)
+    if remove_initial_digit:
+        first_char = tag[0]
+        if first_char == "_" or "0" <= first_char <= "9":
+            tag = FixInit("", tag)
     tag = tag.rstrip("_")
     return tag
 
@@ -280,7 +281,7 @@ def get_dd_tag_string_from_aws_dict(aws_key_value_tag_dict):
             ex: "creator:swf"
     """
     key = sanitize_aws_tag_string(aws_key_value_tag_dict["Key"], remove_colons=True)
-    value = sanitize_aws_tag_string(aws_key_value_tag_dict.get("Value"))
+    value = sanitize_aws_tag_string(aws_key_value_tag_dict.get("Value"), remove_initial_digit=False)
     # Value is optional in DD and AWS
     if not value:
         return key
