@@ -215,6 +215,7 @@ if [ $ADDITIONAL_LAMBDA == true ]; then
 		done
 
 		if [ "$mismatch_found" = true ]; then
+				sls remove
 		    echo "FAILURE: A mismatch between new data and a snapshot was found and printed above."
 		    exit 1
 		fi
@@ -225,6 +226,7 @@ if [ $ADDITIONAL_LAMBDA == true ]; then
 fi
 
 if [ $CACHE_TEST == true ]; then
+	echo "Cleanning up cache resources"
 	cd $TEST_LAMBDA_DIR
 	sls remove
 
