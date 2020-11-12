@@ -215,7 +215,7 @@ if [ $ADDITIONAL_LAMBDA == true ]; then
 		done
 
 		if [ "$mismatch_found" = true ]; then
-				sls remove
+		    sls remove
 		    echo "FAILURE: A mismatch between new data and a snapshot was found and printed above."
 		    exit 1
 		fi

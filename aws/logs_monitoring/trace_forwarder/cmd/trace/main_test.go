@@ -50,6 +50,5 @@ func TestAggregateTracePayloadsByEnv(t *testing.T) {
 	input := []*pb.TracePayload{&payload1, &payload2, &payload3}
 	output := aggregateTracePayloadsByEnv(input)
 
-	print(output)
 	assert.Equal(t, len(output), 2)
 }
