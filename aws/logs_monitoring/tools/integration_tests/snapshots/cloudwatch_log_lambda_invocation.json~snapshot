@@ -588,6 +588,7 @@
                   "span.kind": "client"
                 },
                 "metrics": {
+                  "_dd1.sr.eausr": 1.0,
                   "_sample_rate": 1.0,
                   "_sampling_priority_v1": 2.0,
                   "_top_level": 1.0
@@ -653,6 +654,7 @@
                   "span.kind": "client"
                 },
                 "metrics": {
+
                   "_sample_rate": 1.0,
                   "_sampling_priority_v1": 2.0,
                   "_sublayers.duration.by_service.sublayer_service:hello-dog-node-dev-hello12x-dns": 460493896.0,
@@ -785,6 +787,7 @@
               "span.kind": "client"
             },
             "metrics": {
+              "_dd1.sr.eausr": 1.0,
               "_sample_rate": 1.0,
               "_sampling_priority_v1": 2.0,
               "_top_level": 1.0
@@ -850,7 +853,6 @@
               "span.kind": "client"
             },
             "metrics": {
-              "_dd1.sr.eausr": 1.0,
               "_sample_rate": 1.0,
               "_sampling_priority_v1": 2.0,
               "_sublayers.duration.by_service.sublayer_service:hello-dog-node-dev-hello12x-dns": 460493896.0,
