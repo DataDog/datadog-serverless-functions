@@ -27,24 +27,29 @@ func TestUnmarshalSerializedTraces(t *testing.T) {
 
 func TestAggregateTracePayloadsByEnv(t *testing.T) {
 	payload1 := pb.TracePayload{
-		HostName: "Host",
-		Env:      "Env1",
+		HostName: "",
+		Env:      "none",
 		Traces:   make([]*pb.APITrace, 0),
+		Transactions:   make([]*pb.Span, 0),
 	}
 
 	payload2 := pb.TracePayload{
-		HostName: "Host",
-		Env:      "Env1",
+		HostName: "",
+		Env:      "",
 		Traces:   make([]*pb.APITrace, 0),
+		Transactions:   make([]*pb.Span, 0),
 	}
 
 	payload3 := pb.TracePayload{
-		HostName: "Host",
-		Env:      "Env2",
+		HostName: "",
+		Env:      "",
 		Traces:   make([]*pb.APITrace, 0),
+		Transactions:   make([]*pb.Span, 0),
 	}
 
 	input := []*pb.TracePayload{&payload1, &payload2, &payload3}
 	output := aggregateTracePayloadsByEnv(input)
+
+	print(output)
 	assert.Equal(t, len(output), 2)
 }
