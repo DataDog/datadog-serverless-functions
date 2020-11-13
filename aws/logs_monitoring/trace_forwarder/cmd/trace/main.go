@@ -66,6 +66,12 @@ func ForwardTraces(serializedTraces string) int {
 	}
 
 	processedTracePayloads, err := processRawTracePayloads(rawTracePayloads)
+
+	if len(processedTracePayloads) == 0 {
+		fmt.Printf("No traces to forward")
+		return 0
+	}
+
 	if err != nil {
 		fmt.Printf("Couldn't forward traces: %v", err)
 		return 1

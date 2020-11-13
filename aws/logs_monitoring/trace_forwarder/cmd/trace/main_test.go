@@ -8,7 +8,9 @@
 package main
 
 import (
+	"os"
 	"testing"
+	"io/ioutil"
 
 	"github.com/DataDog/datadog-agent/pkg/trace/pb"
 	"github.com/stretchr/testify/assert"
@@ -51,4 +53,32 @@ func TestAggregateTracePayloadsByEnv(t *testing.T) {
 	output := aggregateTracePayloadsByEnv(input)
 
 	assert.Equal(t, len(output), 2)
+}
+
+func TestForwardTracesWithXRayRoot(t *testing.T) {
+	inputFile := "testdata/xray-parent.json"
+	file, err := os.Open(inputFile)
+	assert.NoError(t, err)
+	defer file.Close()
+
+	contents, err := ioutil.ReadAll(file)
+	input := string(contents)
+
+	assert.NoError(t, err, "Couldn't read contents of test file")
+
+	// We capture stout
+	originalStdout := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+
+	result := ForwardTraces(input)
+
+	w.Close()
+	out, _ := ioutil.ReadAll(r)
+	os.Stdout = originalStdout
+
+	outputLog := string(out)
+
+	assert.Equal(t, result, 0)
+	assert.Equal(t, outputLog, "No traces to forward")
 }

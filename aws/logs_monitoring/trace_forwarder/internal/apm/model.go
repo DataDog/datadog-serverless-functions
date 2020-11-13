@@ -124,6 +124,11 @@ func ParseTrace(content string) ([]*pb.TracePayload, error) {
 			payload.Traces = append(payload.Traces, apiTrace)
 		}
 
+		// We dont want to include TracePayloads with empty traces
+		if len(payload.Traces) == 0 {
+			continue
+		}
+
 		traces = append(traces, &payload)
 	}
 

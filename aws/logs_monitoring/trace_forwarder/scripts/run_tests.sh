@@ -12,5 +12,5 @@ set -e
 cd $(dirname "$0")/..
 
 docker build -t datadog-go-layer . --build-arg runtime=python:3.7
-docker run --rm datadog-go-layer go test -v ./...
+docker run --rm -e UPDATE_SNAPSHOTS=$UPDATE_SNAPSHOTS datadog-go-layer go test -v ./...
 
