@@ -66,7 +66,7 @@ func TestForwardTracesWithXRayRoot(t *testing.T) {
 
 	assert.NoError(t, err, "Couldn't read contents of test file")
 
-	// We capture stout
+	// We capture stdout
 	originalStdout := os.Stdout
 	r, w, _ := os.Pipe()
 	os.Stdout = w
