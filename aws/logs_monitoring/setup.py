@@ -17,8 +17,8 @@ setup(
     ],
     keywords="datadog aws lambda layer",
     python_requires=">=3.7, <3.9",
-    install_requires=["datadog-lambda==2.21.0"],
+    install_requires=["datadog-lambda==2.23.0"],
     extras_require={
-        "dev": ["nose2==0.9.2", "flake8==3.7.9", "requests==2.24.0", "boto3==1.15.5"]
+        "dev": ["nose2==0.9.2", "flake8==3.8.4", "requests==2.25.0", "boto3==1.16.18"]
     },
 )
