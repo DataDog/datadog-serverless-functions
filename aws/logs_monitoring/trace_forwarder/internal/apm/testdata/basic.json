@@ -42,7 +42,10 @@
             "http.url": "https://www.datadoghq.com/",
             "http.status_code": "200"
           },
-          "metrics": { "_dd.measured": 1 },
+          "metrics": {
+            "_dd.measured": 1,
+            "_dd1.sr.eausr": 1
+          },
           "type": "http"
         },
         {

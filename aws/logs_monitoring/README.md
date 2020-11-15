@@ -345,9 +345,7 @@ The CloudFormation Stack creates following IAM roles:
 - `SourceZipUrl` - DO NOT CHANGE unless you know what you are doing. Override the default location of
   the function source code.
 - `PermissionBoundaryArn` - ARN for the Permissions Boundary Policy
-- `DdApiKeySecretArn` - The ARN of the secret storing the Datadog API key, if you already have it
-  stored in Secrets Manager. You still need to set a dummy value for "DdApiKey" to satisfy the
-  requirement, though that value won't be used.
+- `DdApiKeySecretArn` - The ARN of the secret storing the Datadog API key, if you already have it stored in Secrets Manager. You must store the secret as a plaintext, rather than a key-value pair. You still need to set a dummy value for "DdApiKey" to satisfy the requirement, though that value won't be used.
 - `DdUsePrivateLink` - Set to true to enable sending logs and metrics via AWS PrivateLink. See
   https://dtdg.co/private-link.
 - `VPCSecurityGroupIds` - Comma separated list of VPC Security Group Ids. Used when AWS PrivateLink is

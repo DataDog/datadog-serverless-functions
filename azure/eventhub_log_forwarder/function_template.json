@@ -48,12 +48,19 @@
       "metadata": {
         "description": "Location for all resources."
       }
+    },
+    "datadogSite": {
+      "type": "string",
+      "defaultValue": "datadoghq.com",
+      "metadata": {
+        "description": "Datadog site to send logs"
+      }
     }
   },
   "variables": {
-    "storageAccountName": "[concat(uniquestring(resourceGroup().id), 'functions')]",
+    "storageAccountName": "[concat(uniquestring(resourceGroup().id), 'storageacct')]",
     "connectionStringKey": "[concat('Datadog-',parameters('eventhubNamespace'),'-AccessKey')]",
-    "authRule": "[resourceId('Microsoft.EventHub/namespaces/authorizationRules', parameters('eventhubNamespace'),'RootManageSharedAccessKey')]",
+    "authRule": "[resourceId('Microsoft.EventHub/namespaces/authorizationRules', parameters('eventhubNamespace'),'RootManageSharedAccessKey')]"
   },
   "resources": [
     {
@@ -92,6 +99,10 @@
             {
               "name": "DD_API_KEY",
               "value": "[parameters('apiKey')]"
+            },
+            {
+              "name": "DD_SITE",
+              "value": "[parameters('datadogSite')]"
             },
             {
               "name": "AzureWebJobsStorage",

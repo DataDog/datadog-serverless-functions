@@ -1,0 +1,116 @@
+{
+  "events": [
+    {
+      "content-type": "application/json",
+      "data": [
+        {
+          "aws": {
+            "awslogs": {
+              "logGroup": "aws-cloudtrail-logs-123456789123-c81b5193",
+              "logStream": "123456789123_CloudTrail_us-east-1",
+              "owner": "123456789123"
+            },
+            "function_version": "$LATEST",
+            "invoked_function_arn": "arn:aws:lambda:us-east-1:601427279990:function:test"
+          },
+          "ddsource": "cloudtrail",
+          "ddsourcecategory": "aws",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>",
+          "id": "35689263648391837472973739781728019701390240798247944192",
+          "message": "{\"eventVersion\":\"1.05\",\"userIdentity\":{\"type\":\"AssumedRole\",\"principalId\":\"AROA55TKTI7VKCG3ZB64V:DatadogAWSIntegration\",\"arn\":\"arn:aws:sts::123456789123:assumed-role/DatadogAWSIntegrationRole/DatadogAWSIntegration\",\"accountId\":\"123456789123\",\"accessKeyId\":\"ASIA55TKTI7VANF3DEVD\",\"sessionContext\":{\"sessionIssuer\":{\"type\":\"Role\",\"principalId\":\"AROA55TKTI7VKCG3ZB64V\",\"arn\":\"arn:aws:iam::123456789123:role/DatadogAWSIntegrationRole\",\"accountId\":\"123456789123\",\"userName\":\"DatadogAWSIntegrationRole\"},\"webIdFederationData\":{},\"attributes\":{\"mfaAuthenticated\":\"false\",\"creationDate\":\"2020-09-17T16:29:28Z\"}}},\"eventTime\":\"2020-09-17T16:44:11Z\",\"eventSource\":\"logs.amazonaws.com\",\"eventName\":\"DescribeLogStreams\",\"awsRegion\":\"us-east-1\",\"sourceIPAddress\":\"54.161.67.200\",\"userAgent\":\"Datadog\",\"requestParameters\":{\"logGroupName\":\"/aws/lambda/hello-dog-node-dev-hello12x\",\"descending\":true,\"orderBy\":\"LastEventTime\"},\"responseElements\":null,\"requestID\":\"<redacted from snapshot>\",\"eventID\":\"<redacted from snapshot>\",\"eventType\":\"AwsApiCall\",\"apiVersion\":\"20140328\",\"recipientAccountId\":\"123456789123\"}",
+          "service": "cloudtrail",
+          "timestamp": 1600361930988
+        },
+        {
+          "aws": {
+            "awslogs": {
+              "logGroup": "aws-cloudtrail-logs-123456789123-c81b5193",
+              "logStream": "123456789123_CloudTrail_us-east-1",
+              "owner": "123456789123"
+            },
+            "function_version": "$LATEST",
+            "invoked_function_arn": "arn:aws:lambda:us-east-1:601427279990:function:test"
+          },
+          "ddsource": "cloudtrail",
+          "ddsourcecategory": "aws",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>",
+          "id": "35689263648391837472973739781728019701390240798247944193",
+          "message": "{\"eventVersion\":\"1.05\",\"userIdentity\":{\"type\":\"Root\",\"principalId\":\"123456789123\",\"arn\":\"arn:aws:iam::123456789123:root\",\"accountId\":\"123456789123\",\"accessKeyId\":\"ASIA55TKTI7VJK52JDP3\",\"sessionContext\":{\"sessionIssuer\":{},\"webIdFederationData\":{},\"attributes\":{\"mfaAuthenticated\":\"false\",\"creationDate\":\"2020-09-17T14:19:46Z\"}}},\"eventTime\":\"2020-09-17T16:44:28Z\",\"eventSource\":\"health.amazonaws.com\",\"eventName\":\"DescribeEventAggregates\",\"awsRegion\":\"us-east-1\",\"sourceIPAddress\":\"68.194.150.7\",\"userAgent\":\"console.amazonaws.com\",\"requestParameters\":{\"aggregateField\":\"eventTypeCategory\",\"filter\":{\"eventStatusCodes\":[\"open\",\"upcoming\"],\"startTimes\":[{\"from\":\"Sep 10, 2020 4:44:28 PM\"}]}},\"responseElements\":null,\"requestID\":\"<redacted from snapshot>\",\"eventID\":\"<redacted from snapshot>\",\"eventType\":\"AwsApiCall\",\"recipientAccountId\":\"123456789123\"}",
+          "service": "cloudtrail",
+          "timestamp": 1600361930988
+        },
+        {
+          "aws": {
+            "awslogs": {
+              "logGroup": "aws-cloudtrail-logs-123456789123-c81b5193",
+              "logStream": "123456789123_CloudTrail_us-east-1",
+              "owner": "123456789123"
+            },
+            "function_version": "$LATEST",
+            "invoked_function_arn": "arn:aws:lambda:us-east-1:601427279990:function:test"
+          },
+          "ddsource": "cloudtrail",
+          "ddsourcecategory": "aws",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>",
+          "id": "35689263648391837472973739781728019701390240798247944194",
+          "message": "{\"eventVersion\":\"1.05\",\"userIdentity\":{\"type\":\"AssumedRole\",\"principalId\":\"AROA55TKTI7VKCG3ZB64V:DatadogAWSIntegration\",\"arn\":\"arn:aws:sts::123456789123:assumed-role/DatadogAWSIntegrationRole/DatadogAWSIntegration\",\"accountId\":\"123456789123\",\"accessKeyId\":\"ASIA55TKTI7VANF3DEVD\",\"sessionContext\":{\"sessionIssuer\":{\"type\":\"Role\",\"principalId\":\"AROA55TKTI7VKCG3ZB64V\",\"arn\":\"arn:aws:iam::123456789123:role/DatadogAWSIntegrationRole\",\"accountId\":\"123456789123\",\"userName\":\"DatadogAWSIntegrationRole\"},\"webIdFederationData\":{},\"attributes\":{\"mfaAuthenticated\":\"false\",\"creationDate\":\"2020-09-17T16:29:28Z\"}}},\"eventTime\":\"2020-09-17T16:44:10Z\",\"eventSource\":\"logs.amazonaws.com\",\"eventName\":\"DescribeLogStreams\",\"awsRegion\":\"us-east-1\",\"sourceIPAddress\":\"54.161.67.200\",\"userAgent\":\"Datadog\",\"requestParameters\":{\"logGroupName\":\"/aws/lambda/hello-dog-node-dev-hello10x\",\"descending\":true,\"orderBy\":\"LastEventTime\"},\"responseElements\":null,\"requestID\":\"<redacted from snapshot>\",\"eventID\":\"<redacted from snapshot>\",\"eventType\":\"AwsApiCall\",\"apiVersion\":\"20140328\",\"recipientAccountId\":\"123456789123\"}",
+          "service": "cloudtrail",
+          "timestamp": 1600361930988
+        }
+      ],
+      "path": "/v1/input/abcdefghijklmnopqrstuvwxyz012345",
+      "verb": "POST"
+    },
+    {
+      "content-type": "application/json",
+      "data": {
+        "series": [
+          {
+            "device": null,
+            "host": null,
+            "interval": 10,
+            "metric": "aws.dd_forwarder.incoming_events",
+            "points": "<redacted from snapshot>",
+            "tags": [
+              "forwardername:test",
+              "forwarder_memorysize:1536",
+              "forwarder_version:<redacted from snapshot>",
+              "event_type:awslogs"
+            ],
+            "type": "distribution"
+          },
+          {
+            "device": null,
+            "host": null,
+            "interval": 10,
+            "metric": "aws.dd_forwarder.logs_forwarded",
+            "points": "<redacted from snapshot>",
+            "tags": [
+              "forwardername:test",
+              "forwarder_memorysize:1536",
+              "forwarder_version:<redacted from snapshot>",
+              "event_type:awslogs"
+            ],
+            "type": "distribution"
+          },
+          {
+            "device": null,
+            "host": null,
+            "interval": 10,
+            "metric": "aws.dd_forwarder.metrics_forwarded",
+            "points": "<redacted from snapshot>",
+            "tags": [
+              "forwardername:test",
+              "forwarder_memorysize:1536",
+              "forwarder_version:<redacted from snapshot>",
+              "event_type:awslogs"
+            ],
+            "type": "distribution"
+          }
+        ]
+      },
+      "path": "/api/v1/distribution_points?api_key=abcdefghijklmnopqrstuvwxyz012345",
+      "verb": "POST"
+    }
+  ]
+}

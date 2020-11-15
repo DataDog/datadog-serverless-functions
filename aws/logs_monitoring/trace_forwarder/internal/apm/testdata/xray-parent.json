@@ -1,0 +1,36 @@
+{
+  "comment": "edge case",
+  "tags": "forwardername:datadog-forwarder-prod-org-447397,forwarder_memorysize:1024,forwarder_version:3.21.2,,account_id:601427279990,aws_account:601427279990,aws_cloudformation_logical-id:stockcheckerfunction,aws_cloudformation_stack-id:arn:aws:cloudformation:sa-east-1:601427279990:stack/stock-trader/5cce0d60-fa8a-11ea-af25-02ec8a020c46,aws_cloudformation_stack-name:stock-trader,env:reference,functionname:stockcheckerfunction,lambda_createdby:sam,region:sa-east-1,service:stock-trader",
+  "trace": {
+    "traces": [
+      [
+        {
+          "trace_id": "53DCCBD73F8D0D3B",
+          "parent_id": "D99A4DB9F549DAC0",
+          "span_id": "F98E98917B776BAD",
+          "service": "aws.lambda",
+          "resource": "StockCheckerFunction",
+          "name": "aws.lambda",
+          "error": 0,
+          "start": 1604619292588914051,
+          "duration": 103808,
+          "meta": {
+            "_dd.origin": "lambda",
+            "runtime-id": "2fca8125e38047e3a812ffba65924e81",
+            "cold_start": "false",
+            "function_arn": "arn:aws:lambda:sa-east-1:601427279990:function:stockcheckerfunction",
+            "function_version": "$LATEST",
+            "request_id": "acf2c587-ee79-42e7-9cf7-2a5218fa30ce",
+            "resource_names": "StockCheckerFunction",
+            "_dd.parent_source": "xray"
+          },
+          "metrics": {
+            "system.pid": 8,
+            "_sampling_priority_v1": 2
+          },
+          "type": "serverless"
+        }
+      ]
+    ]
+  }
+}
