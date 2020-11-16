@@ -1051,6 +1051,7 @@ def find_cloudwatch_source(log_group):
 
     # the below substrings must be in your log group to be detected
     for source in [
+        "network-firewall",
         "route53",
         "vpc",
         "fargate",
@@ -1090,6 +1091,7 @@ def find_s3_source(key):
         "amazon_kinesis",
         "amazon_dms",
         "amazon_msk",
+        "network-firewall",
         "cloudfront",
     ]:
         if source in key:
