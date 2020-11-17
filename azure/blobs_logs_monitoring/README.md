@@ -1,7 +1,7 @@
 # Datadog-Azure function
 
 The Datadog-Azure function is used to forward Azure logs to Datadog from new blob files added in
-a storage account. The function reads the file, plits lines on \n and sends each line as
+a storage account. The function reads the file, splits lines on \n and sends each line as
 a log entry to Datadog.
 
 ## Quick Start
