@@ -55,6 +55,13 @@
       "metadata": {
         "description": "Datadog site to send logs"
       }
+    },
+    "endpointSuffix": {
+     "type": "string",
+      "defaultValue": "core.windows.net",
+      "metadata": {
+        "description": "Endpoint suffix for storage account"
+      }
     }
   },
   "variables": {
@@ -119,6 +126,9 @@
           },
           "datadogSite": {
             "value": "[parameters('datadogSite')]"
+          },
+          "endpointSuffix": {
+            "value": "parameters('endpointSuffix)"
           }
         }
       },

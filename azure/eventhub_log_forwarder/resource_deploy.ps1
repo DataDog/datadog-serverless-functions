@@ -18,6 +18,9 @@ $code = (New-Object System.Net.WebClient).DownloadString("https://raw.githubuser
 
 New-AzResourceGroup -Name $ResourceGroupName -Location $ResourceGroupLocation
 
+$environment = Get-AzEnvironment -Name $Environment
+$endpointSuffix = $environment.StorageEndpointSuffix
+
 try {
 New-AzResourceGroupDeployment `
     -TemplateUri "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/eventhub_log_forwarder/parent_template.json" `
@@ -30,6 +33,7 @@ New-AzResourceGroupDeployment `
     -functionAppName $FunctionAppName `
     -functionName $FunctionName `
     -datadogSite $DatadogSite `
+    -endpointSuffix $endpointSuffix `
     -Verbose `
     -ErrorAction Stop
 } catch {
