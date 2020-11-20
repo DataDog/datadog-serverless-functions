@@ -16,7 +16,7 @@ if (-Not ($SubscriptionId -And $ApiKey)) { Throw "`SubscriptionId` and `ApiKey` 
 
 Set-AzContext -SubscriptionId $SubscriptionId
 
-$code = (New-Object System.Net.WebClient).DownloadString("https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/claudia/support-environment-suffixes-azure/azure/activity_logs_monitoring/index.js")
+$code = (New-Object System.Net.WebClient).DownloadString("https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/activity_logs_monitoring/index.js")
 
 New-AzResourceGroup -Name $ResourceGroupName -Location $ResourceGroupLocation
 
@@ -25,7 +25,7 @@ $endpointSuffix = $environment.StorageEndpointSuffix
 
 try {
 New-AzResourceGroupDeployment `
-    -TemplateUri "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/eventhub_log_forwarder/parent_template.json" `
+    -TemplateUri "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/claudia/support-environment-suffixes-azure/azure/eventhub_log_forwarder/parent_template.json" `
     -ResourceGroupName $ResourceGroupName `
     -functionCode $code `
     -apiKey $ApiKey `
