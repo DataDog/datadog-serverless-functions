@@ -7,7 +7,9 @@ param (
     $EventhubName = "datadog-eventhub-" + $ResourceGroupLocation,
     $FunctionAppName = "datadog-functionapp-" + $ResourceGroupLocation,
     $FunctionName = "datadog-function-" + $ResourceGroupLocation,
-    $DatadogSite = "datadoghq.com"
+    $DatadogSite = "datadoghq.com",
+    $Environment = "AzureCloud"
+
 )
 
 if (-Not ($SubscriptionId -And $ApiKey)) { Throw "`SubscriptionId` and `ApiKey` are required." }
