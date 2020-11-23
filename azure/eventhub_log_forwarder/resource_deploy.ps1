@@ -23,7 +23,7 @@ $endpointSuffix = $environment.StorageEndpointSuffix
 
 try {
 New-AzResourceGroupDeployment `
-    -TemplateUri "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/eventhub_log_forwarder/parent_template.json" `
+    -TemplateUri "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/claudia/support-environment-suffixes-azure/azure/eventhub_log_forwarder/parent_template.json" `
     -ResourceGroupName $ResourceGroupName `
     -functionCode $code `
     -apiKey $ApiKey `
