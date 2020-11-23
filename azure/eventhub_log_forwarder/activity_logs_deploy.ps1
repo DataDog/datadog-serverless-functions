@@ -8,7 +8,8 @@ param (
     $FunctionAppName = "datadog-functionapp",
     $FunctionName = "datadog-function",
     $DiagnosticSettingName = "datadog-activity-logs-diagnostic-setting",
-    $DatadogSite = "datadoghq.com"
+    $DatadogSite = "datadoghq.com",
+    $Environment = "AzureCloud"
 )
 
 if (-Not ($SubscriptionId -And $ApiKey)) { Throw "`SubscriptionId` and `ApiKey` are required." }
@@ -18,6 +19,9 @@ Set-AzContext -SubscriptionId $SubscriptionId
 $code = (New-Object System.Net.WebClient).DownloadString("https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/activity_logs_monitoring/index.js")
 
 New-AzResourceGroup -Name $ResourceGroupName -Location $ResourceGroupLocation
+
+$environment = Get-AzEnvironment -Name $Environment
+$endpointSuffix = $environment.StorageEndpointSuffix
 
 try {
 New-AzResourceGroupDeployment `
@@ -31,6 +35,7 @@ New-AzResourceGroupDeployment `
     -functionAppName $FunctionAppName `
     -functionName $FunctionName `
     -datadogSite $DatadogSite `
+    -endpointSuffix $endpointSuffix `
     -Verbose `
     -ErrorAction Stop
 } catch {
