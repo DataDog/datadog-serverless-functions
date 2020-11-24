@@ -8,6 +8,7 @@ sys.modules["datadog_lambda.wrapper"] = MagicMock()
 sys.modules["datadog_lambda.metric"] = MagicMock()
 sys.modules["datadog"] = MagicMock()
 sys.modules["requests"] = MagicMock()
+sys.modules["requests_futures.sessions"] = MagicMock()
 
 env_patch = patch.dict(os.environ, {"DD_API_KEY": "11111111111111111111111111111111"})
 env_patch.start()
