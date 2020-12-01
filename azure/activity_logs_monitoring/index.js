@@ -73,7 +73,6 @@ class Scrubber {
             }
         }
         this.rules = rules;
-        this.context = context;
     }
 
     scrub(record) {
