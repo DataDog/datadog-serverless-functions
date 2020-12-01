@@ -22,7 +22,7 @@ function setUp() {
     return forwarder;
 }
 
-DEFAULT_TEST_SCRUBBER_RULES = {
+const DEFAULT_TEST_SCRUBBER_RULES = {
     REDACT_IP: {
         pattern: /[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/,
         replacement: 'xxx.xxx.xxx.xxx'
@@ -455,7 +455,7 @@ describe('Azure Log Monitoring', function() {
                     replacement: 'xxx.xxx.xxx.xxx'
                 }
             };
-            var scrubber = new client.Scrubber(fakeContext(), test_rules);
+            scrubber = new client.Scrubber(fakeContext(), test_rules);
             rule = scrubber.rules[0];
             assert.equal(rule instanceof client.ScrubberRule, true);
             assert.equal(rule.name, 'REDACT_IP');
@@ -464,7 +464,7 @@ describe('Azure Log Monitoring', function() {
         });
         it('should scrub email from record', function() {
             expected = 'sender_email: xxxxx@xxxxx.com';
-            var scrubber = new client.Scrubber(
+            scrubber = new client.Scrubber(
                 fakeContext(),
                 DEFAULT_TEST_SCRUBBER_RULES
             );
@@ -473,7 +473,7 @@ describe('Azure Log Monitoring', function() {
         });
         it('should scrub ip address from record', function() {
             expected = 'client_ip: xxx.xxx.xxx.xxx';
-            var scrubber = new client.Scrubber(
+            scrubber = new client.Scrubber(
                 fakeContext(),
                 DEFAULT_TEST_SCRUBBER_RULES
             );
@@ -482,7 +482,7 @@ describe('Azure Log Monitoring', function() {
         });
         it('should scrub ip address and email from record', function() {
             expected = 'client_ip: xxx.xxx.xxx.xxx, email: xxxxx@xxxxx.com';
-            var scrubber = new client.Scrubber(
+            scrubber = new client.Scrubber(
                 fakeContext(),
                 DEFAULT_TEST_SCRUBBER_RULES
             );
@@ -494,7 +494,7 @@ describe('Azure Log Monitoring', function() {
         it('should scrub multiple ip address from string', function() {
             expected =
                 'client_ip: xxx.xxx.xxx.xxx, client_ip2: xxx.xxx.xxx.xxx';
-            var scrubber = new client.Scrubber(
+            scrubber = new client.Scrubber(
                 fakeContext(),
                 DEFAULT_TEST_SCRUBBER_RULES
             );
@@ -506,7 +506,7 @@ describe('Azure Log Monitoring', function() {
         it('should scrub multiple ip address and email from string', function() {
             expected =
                 'client_ip: xxx.xxx.xxx.xxx, client_ip2: xxx.xxx.xxx.xxx email: xxxxx@xxxxx.com email2: xxxxx@xxxxx.com';
-            var scrubber = new client.Scrubber(
+            scrubber = new client.Scrubber(
                 fakeContext(),
                 DEFAULT_TEST_SCRUBBER_RULES
             );
@@ -523,7 +523,7 @@ describe('Azure Log Monitoring', function() {
                     replacement: 'xxx.xxx.xxx.xxx'
                 }
             };
-            var scrubber = new client.Scrubber(fakeContext(), test_rules);
+            scrubber = new client.Scrubber(fakeContext(), test_rules);
             assert.equal(scrubber.rules.length, 0);
         });
         it('should not scrub when there are no rules defined', function() {
@@ -531,7 +531,7 @@ describe('Azure Log Monitoring', function() {
             test_rules = {};
             expected =
                 'client_ip: 12.123.23.12, client_ip2: 122.123.213.112 email: cdadamo@datadoghq.com email2: claudia@datadoghq.com';
-            var scrubber = new client.Scrubber(fakeContext(), test_rules);
+            scrubber = new client.Scrubber(fakeContext(), test_rules);
             actual = scrubber.scrub(
                 'client_ip: 12.123.23.12, client_ip2: 122.123.213.112 email: cdadamo@datadoghq.com email2: claudia@datadoghq.com'
             );
