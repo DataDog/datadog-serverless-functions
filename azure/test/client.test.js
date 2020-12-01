@@ -468,7 +468,7 @@ describe('Azure Log Monitoring', function() {
                 fakeContext(),
                 DEFAULT_TEST_SCRUBBER_RULES
             );
-            actual = scrubber.scrub('sender_email: cdadamo@datadoghq.com');
+            actual = scrubber.scrub('sender_email: hello@test.com');
             assert.equal(actual, expected);
         });
         it('should scrub ip address from record', function() {
@@ -487,7 +487,7 @@ describe('Azure Log Monitoring', function() {
                 DEFAULT_TEST_SCRUBBER_RULES
             );
             actual = scrubber.scrub(
-                'client_ip: 12.123.23.12, email: cdadamo@datadoghq.com'
+                'client_ip: 12.123.23.12, email: hello@test.com'
             );
             assert.equal(actual, expected);
         });
@@ -511,7 +511,7 @@ describe('Azure Log Monitoring', function() {
                 DEFAULT_TEST_SCRUBBER_RULES
             );
             actual = scrubber.scrub(
-                'client_ip: 12.123.23.12, client_ip2: 122.123.213.112 email: cdadamo@datadoghq.com email2: claudia@datadoghq.com'
+                'client_ip: 12.123.23.12, client_ip2: 122.123.213.112 email: hello@test.com email2: hello2@test.com'
             );
             assert.equal(actual, expected);
         });
@@ -530,10 +530,10 @@ describe('Azure Log Monitoring', function() {
             // if there are no rules, then the log should be the same before and after
             test_rules = {};
             expected =
-                'client_ip: 12.123.23.12, client_ip2: 122.123.213.112 email: cdadamo@datadoghq.com email2: claudia@datadoghq.com';
+                'client_ip: 12.123.23.12, client_ip2: 122.123.213.112 email: hello@test.com email2: hello2@test.com';
             scrubber = new client.Scrubber(fakeContext(), test_rules);
             actual = scrubber.scrub(
-                'client_ip: 12.123.23.12, client_ip2: 122.123.213.112 email: cdadamo@datadoghq.com email2: claudia@datadoghq.com'
+                'client_ip: 12.123.23.12, client_ip2: 122.123.213.112 email: hello@test.com email2: hello2@test.com'
             );
             assert.equal(actual, expected);
         });
