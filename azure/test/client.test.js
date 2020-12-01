@@ -22,6 +22,17 @@ function setUp() {
     return forwarder;
 }
 
+DEFAULT_TEST_SCRUBBER_RULES = {
+    REDACT_IP: {
+        pattern: /[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/,
+        replacement: 'xxx.xxx.xxx.xxx'
+    },
+    REDACT_EMAIL: {
+        pattern: /[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+/,
+        replacement: 'xxxxx@xxxxx.com'
+    }
+};
+
 describe('Azure Log Monitoring', function() {
     describe('#getLogFormat', function() {
         beforeEach(function() {
@@ -438,8 +449,13 @@ describe('Azure Log Monitoring', function() {
     });
     describe('#scrubPII', function() {
         it('should set up configs correctly', function() {
-            test_rules = {'REDACT_IP' : {'pattern': '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', 'replacement': 'xxx.xxx.xxx.xxx'}}
-            var scrubber = new client.Scrubber(fakeContext(), test_rules, true);
+            test_rules = {
+                REDACT_IP: {
+                    pattern: '[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}',
+                    replacement: 'xxx.xxx.xxx.xxx'
+                }
+            };
+            var scrubber = new client.Scrubber(fakeContext(), test_rules);
             rule = scrubber.rules[0];
             assert.equal(rule instanceof client.ScrubberRule, true);
             assert.equal(rule.name, 'REDACT_IP');
@@ -448,41 +464,78 @@ describe('Azure Log Monitoring', function() {
         });
         it('should scrub email from record', function() {
             expected = 'sender_email: xxxxx@xxxxx.com';
-            var scrubber = new client.Scrubber(fakeContext(), constants.SCRUBBER_RULE_CONFIGS, true);
+            var scrubber = new client.Scrubber(
+                fakeContext(),
+                DEFAULT_TEST_SCRUBBER_RULES
+            );
             actual = scrubber.scrub('sender_email: cdadamo@datadoghq.com');
             assert.equal(actual, expected);
-
         });
         it('should scrub ip address from record', function() {
             expected = 'client_ip: xxx.xxx.xxx.xxx';
-            var scrubber = new client.Scrubber(fakeContext(), constants.SCRUBBER_RULE_CONFIGS, true);
+            var scrubber = new client.Scrubber(
+                fakeContext(),
+                DEFAULT_TEST_SCRUBBER_RULES
+            );
             actual = scrubber.scrub('client_ip: 12.123.23.12');
             assert.equal(actual, expected);
-
         });
         it('should scrub ip address and email from record', function() {
             expected = 'client_ip: xxx.xxx.xxx.xxx, email: xxxxx@xxxxx.com';
-            var scrubber = new client.Scrubber(fakeContext(), constants.SCRUBBER_RULE_CONFIGS, true);
-            actual = scrubber.scrub('client_ip: 12.123.23.12, email: cdadamo@datadoghq.com');
+            var scrubber = new client.Scrubber(
+                fakeContext(),
+                DEFAULT_TEST_SCRUBBER_RULES
+            );
+            actual = scrubber.scrub(
+                'client_ip: 12.123.23.12, email: cdadamo@datadoghq.com'
+            );
             assert.equal(actual, expected);
         });
         it('should scrub multiple ip address from string', function() {
-            expected = 'client_ip: xxx.xxx.xxx.xxx, client_ip2: xxx.xxx.xxx.xxx';
-            var scrubber = new client.Scrubber(fakeContext(), constants.SCRUBBER_RULE_CONFIGS, true);
-            actual = scrubber.scrub('client_ip: 12.123.23.12, client_ip2: 122.123.213.112');
+            expected =
+                'client_ip: xxx.xxx.xxx.xxx, client_ip2: xxx.xxx.xxx.xxx';
+            var scrubber = new client.Scrubber(
+                fakeContext(),
+                DEFAULT_TEST_SCRUBBER_RULES
+            );
+            actual = scrubber.scrub(
+                'client_ip: 12.123.23.12, client_ip2: 122.123.213.112'
+            );
             assert.equal(actual, expected);
         });
         it('should scrub multiple ip address and email from string', function() {
-            expected = 'client_ip: xxx.xxx.xxx.xxx, client_ip2: xxx.xxx.xxx.xxx email: xxxxx@xxxxx.com email2: xxxxx@xxxxx.com';
-            var scrubber = new client.Scrubber(fakeContext(), constants.SCRUBBER_RULE_CONFIGS, true);
-            actual = scrubber.scrub('client_ip: 12.123.23.12, client_ip2: 122.123.213.112 email: cdadamo@datadoghq.com email2: claudia@datadoghq.com');
+            expected =
+                'client_ip: xxx.xxx.xxx.xxx, client_ip2: xxx.xxx.xxx.xxx email: xxxxx@xxxxx.com email2: xxxxx@xxxxx.com';
+            var scrubber = new client.Scrubber(
+                fakeContext(),
+                DEFAULT_TEST_SCRUBBER_RULES
+            );
+            actual = scrubber.scrub(
+                'client_ip: 12.123.23.12, client_ip2: 122.123.213.112 email: cdadamo@datadoghq.com email2: claudia@datadoghq.com'
+            );
             assert.equal(actual, expected);
         });
-       it('should handle malformed regexp correctly', function() {
+        it('should handle malformed regexp correctly', function() {
             // we don't want to break if we have a malformed regex, just want to skip it until the user fixes it
-            test_rules = {'REDACT_SOMETHING' : {'pattern': '[2-', 'replacement': 'xxx.xxx.xxx.xxx'}}
-            var scrubber = new client.Scrubber(fakeContext(), test_rules, true);
+            test_rules = {
+                REDACT_SOMETHING: {
+                    pattern: '[2-',
+                    replacement: 'xxx.xxx.xxx.xxx'
+                }
+            };
+            var scrubber = new client.Scrubber(fakeContext(), test_rules);
             assert.equal(scrubber.rules.length, 0);
         });
-    })
+        it('should not scrub when there are no rules defined', function() {
+            // if there are no rules, then the log should be the same before and after
+            test_rules = {};
+            expected =
+                'client_ip: 12.123.23.12, client_ip2: 122.123.213.112 email: cdadamo@datadoghq.com email2: claudia@datadoghq.com';
+            var scrubber = new client.Scrubber(fakeContext(), test_rules);
+            actual = scrubber.scrub(
+                'client_ip: 12.123.23.12, client_ip2: 122.123.213.112 email: cdadamo@datadoghq.com email2: claudia@datadoghq.com'
+            );
+            assert.equal(actual, expected);
+        });
+    });
 });

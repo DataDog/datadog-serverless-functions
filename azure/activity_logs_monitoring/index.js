@@ -27,53 +27,65 @@ const DD_TAGS = process.env.DD_TAGS || ''; // Replace '' by your comma-separated
 const DD_SERVICE = process.env.DD_SERVICE || 'azure';
 const DD_SOURCE = process.env.DD_SOURCE || 'azure';
 const DD_SOURCE_CATEGORY = process.env.DD_SOURCE_CATEGORY || 'azure';
-const SCRUB_PII = process.env.SCRUB_PII || false ; // Set to true to enable PII scrubbing for logs
+
+/*
+To scrub PII from your logs, uncomment the applicable configs below. If you'd like to scrub more than just
+emails and IP addresses, add your own config to this map in the format
+NAME: {pattern: <regex_pattern>, replacement: <string to replace matching text with>}
+*/
 const SCRUBBER_RULE_CONFIGS = {
-    'REDACT_IP' : {'pattern': /[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/, 'replacement': 'xxx.xxx.xxx.xxx'},
-    'REDACT_EMAIL':  {'pattern': /[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+/, 'replacement': 'xxxxx@xxxxx.com'}
-    // add additional rules here.
-    // format: NAME: {'pattern': regex pattern, 'replacement': string to replace matching text with}
-}
+    // REDACT_IP: {
+    //     pattern: /[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/,
+    //     replacement: 'xxx.xxx.xxx.xxx'
+    // },
+    // REDACT_EMAIL: {
+    //     pattern: /[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+/,
+    //     replacement: 'xxxxx@xxxxx.com'
+    // }
+};
 
 class ScrubberRule {
     constructor(name, pattern, replacement) {
         this.name = name;
         this.replacement = replacement;
-        this.regexp = RegExp(pattern, 'g')
+        this.regexp = RegExp(pattern, 'g');
     }
 }
 
 class Scrubber {
-    constructor(context, configs, scrub_pii) {
-        var rules = []
+    constructor(context, configs) {
+        var rules = [];
         for (const [name, settings] of Object.entries(configs)) {
             try {
-                rules.push(new ScrubberRule(name, settings['pattern'], settings['replacement']));
+                rules.push(
+                    new ScrubberRule(
+                        name,
+                        settings['pattern'],
+                        settings['replacement']
+                    )
+                );
             } catch {
                 context.log.error(
-                    `Regexp for rule ${name} pattern ${settings['pattern']} is malformed, skipping. Please update the pattern for this rule to be applied.`)
+                    `Regexp for rule ${name} pattern ${
+                        settings['pattern']
+                    } is malformed, skipping. Please update the pattern for this rule to be applied.`
+                );
             }
         }
         this.rules = rules;
         this.context = context;
-        this.scrub_pii = scrub_pii;
     }
 
     scrub(record) {
-        if (!this.scrub_pii) {
+        if (!this.rules) {
             return record;
         }
         this.rules.forEach(rule => {
             record = record.replace(rule.regexp, rule.replacement);
         });
-        return record
-    // called when stringifying the record before sending, so we don't need to handle
-    // json and non-json logs differently
-        // for each of the rules in the scrubber rule configs,
-    // use the regex to find and replace in the string
+        return record;
     }
 }
-
 
 class EventhubLogForwarder {
     constructor(context) {
@@ -89,15 +101,13 @@ class EventhubLogForwarder {
             },
             timeout: 2000
         };
-        this.scrubber = new Scrubber(this.context, SCRUBBER_RULE_CONFIGS, SCRUB_PII);
+        this.scrubber = new Scrubber(this.context, SCRUBBER_RULE_CONFIGS);
     }
 
     formatLogAndSend(messageType, record) {
         if (messageType == JSON_TYPE) {
-            //record = this.scrubber.scrubJSONLog(record);
             record = this.addTagsToJsonLog(record);
         } else {
-            //record = this.scrubber.scrubStringLog(record);
             record = this.addTagsToStringLog(record);
         }
         return this.sendWithRetry(record);
@@ -356,7 +366,6 @@ module.exports.forTests = {
         BUFFER_ARRAY,
         JSON_STRING,
         JSON_STRING_ARRAY,
-        INVALID,
-        SCRUBBER_RULE_CONFIGS
+        INVALID
     }
 };
