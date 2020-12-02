@@ -298,7 +298,7 @@ class EventhubLogForwarder {
 
     isSource(resourceIdPart) {
         // Determine if a section of a resource ID counts as a "source," in our case it means it starts with 'microsoft.'
-        return resourceIdPart.startsWith('microsoft.')
+        return resourceIdPart.startsWith('microsoft.');
     }
 
     formatSourceType(sourceType) {
