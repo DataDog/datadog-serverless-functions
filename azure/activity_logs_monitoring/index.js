@@ -5,7 +5,7 @@
 
 var https = require('https');
 
-const VERSION = '0.2.0';
+const VERSION = '0.2.1';
 
 const STRING = 'string'; // example: 'some message'
 const STRING_ARRAY = 'string-array'; // example: ['one message', 'two message', ...]
@@ -298,7 +298,7 @@ class EventhubLogForwarder {
 
     isSource(resourceIdPart) {
         // Determine if a section of a resource ID counts as a "source," in our case it means it starts with 'microsoft.'
-        return resourceIdPart.startsWith('microsoft.') ? true : false;
+        return resourceIdPart.startsWith('microsoft.')
     }
 
     formatSourceType(sourceType) {
