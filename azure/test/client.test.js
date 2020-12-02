@@ -292,6 +292,22 @@ describe('Azure Log Monitoring', function() {
                 this.forwarder.extractMetadataFromResource(record)
             );
         });
+         it('should correctly parse provider-only resource ids', function() {
+            record = {
+                resourceId:
+                    '/SUBSCRIPTIONS/12345678-1234-ABCD-1234-1234567890AB/PROVIDERS/MICROSOFT.RECOVERYSERVICES/SOMETHING/SOMETHINGELSE'
+            };
+            expectedMetadata = {
+                tags: [
+                    'subscription_id:12345678-1234-abcd-1234-1234567890ab',
+                ],
+                source: 'azure.recoveryservices'
+            };
+            assert.deepEqual(
+                expectedMetadata,
+                this.forwarder.extractMetadataFromResource(record)
+            );
+        });
     });
 
     function testHandleJSONLogs(forwarder, logs, expected) {
@@ -439,11 +455,6 @@ describe('Azure Log Monitoring', function() {
         it('should replace microsoft with azure', function() {
             expected = 'azure.bleh';
             actual = this.forwarder.formatSourceType('microsoft.bleh');
-            assert.equal(actual, expected);
-        });
-        it('should return empty source', function() {
-            expected = '';
-            actual = this.forwarder.formatSourceType('something');
             assert.equal(actual, expected);
         });
     });
