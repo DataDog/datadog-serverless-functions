@@ -285,6 +285,7 @@ class EventhubLogForwarder {
     }
 
     createResourceIdArray(record) {
+        // Convert the resource ID in the record to an array, handling beginning/ending slashes
         var resourceId = record.resourceId.toLowerCase().split('/');
         if (resourceId[0] === '') {
             resourceId = resourceId.slice(1);
@@ -296,6 +297,7 @@ class EventhubLogForwarder {
     }
 
     isSource(resourceIdPart) {
+        // Determine if a section of a resource ID counts as a "source," in our case it means it starts with 'microsoft.'
         return resourceIdPart.startsWith('microsoft.') ? true : false;
     }
 
@@ -327,6 +329,7 @@ class EventhubLogForwarder {
                     resourceId[2] === 'providers' &&
                     this.isSource(resourceId[3])
                 ) {
+                    // handle provider-only resource IDs
                     metadata.source = this.formatSourceType(resourceId[3]);
                 } else {
                     metadata.tags.push('resource_group:' + resourceId[3]);

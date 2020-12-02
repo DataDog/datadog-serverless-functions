@@ -292,15 +292,13 @@ describe('Azure Log Monitoring', function() {
                 this.forwarder.extractMetadataFromResource(record)
             );
         });
-         it('should correctly parse provider-only resource ids', function() {
+        it('should correctly parse provider-only resource ids', function() {
             record = {
                 resourceId:
                     '/SUBSCRIPTIONS/12345678-1234-ABCD-1234-1234567890AB/PROVIDERS/MICROSOFT.RECOVERYSERVICES/SOMETHING/SOMETHINGELSE'
             };
             expectedMetadata = {
-                tags: [
-                    'subscription_id:12345678-1234-abcd-1234-1234567890ab',
-                ],
+                tags: ['subscription_id:12345678-1234-abcd-1234-1234567890ab'],
                 source: 'azure.recoveryservices'
             };
             assert.deepEqual(
