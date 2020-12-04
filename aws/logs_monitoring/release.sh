@@ -18,6 +18,8 @@ else
     VERSION=$1
 fi
 
+BUNDLE_PATH=".forwarder/aws-dd-forwarder-${VERSION}.zip"
+
 # Check account parameter
 VALID_ACCOUNTS=("sandbox" "prod")
 if [ -z "$2" ]; then
@@ -28,7 +30,8 @@ if [[ ! "${VALID_ACCOUNTS[@]}" =~ $2 ]]; then
     echo "ERROR: The account parameter was invalid. Please choose sandbox or prod."
     exit 1
 fi
-ACCOUNT=$2
+
+ACCOUNT="${2}"
 if [ "$ACCOUNT" = "sandbox" ]; then
     BUCKET="datadog-cloudformation-template-sandbox"
 fi
@@ -84,36 +87,38 @@ if [ "$ACCOUNT" = "prod" ] ; then
     echo
     echo "Building the Forwarder bundle..."
     ./tools/build_bundle.sh "${VERSION}"
-    BUNDLE_PATH=".forwarder/aws-dd-forwarder-${VERSION}.zip"
 
     # Sign the bundle
     echo
     echo "Signing the Forwarder bundle..."
-    ./tools/sign_bundle.sh $BUNDLE_PATH prod
+    ./tools/sign_bundle.sh $BUNDLE_PATH $ACCOUNT
 
     # Create a GitHub release
     echo
     echo "Releasing aws-dd-forwarder-${VERSION} to GitHub..."
     go get github.com/github/hub
     hub release create -a $BUNDLE_PATH -m "aws-dd-forwarder-${VERSION}" aws-dd-forwarder-${VERSION}
+
+    # Set vars for use in the installation test
     TEMPLATE_URL="https://${BUCKET}.s3.amazonaws.com/aws/forwarder/latest.yaml"
     FORWARDER_SOURCE_URL="https://github.com/DataDog/datadog-serverless-functions/releases/download/aws-dd-forwarder-${VERSION}/aws-dd-forwarder-${VERSION}.zip'"
 else
     # Build the bundle
     echo
     echo "Building the Forwarder bundle..."
-    ./tools/build_bundle.sh "${VERSION}"
+    ./tools/build_bundle.sh $VERSION
 
     # Sign the bundle
     echo
     echo "Signing the Forwarder bundle..."
-    ./tools/sign_bundle.sh $BUNDLE_PATH sandbox
+    ./tools/sign_bundle.sh $BUNDLE_PATH $ACCOUNT
 
     # Upload the bundle to S3 instead of GitHub for a sandbox release
     echo
     echo "Uploading non-public sandbox version of Forwarder to S3..."
     aws s3 cp $BUNDLE_PATH s3://${BUCKET}/aws/forwarder-staging-zip/aws-dd-forwarder-${VERSION}.zip
 
+    # Set vars for use in the installation test
     TEMPLATE_URL="https://${BUCKET}.s3.amazonaws.com/aws/forwarder-staging/latest.yaml"
     FORWARDER_SOURCE_URL="s3://${BUCKET}/aws/forwarder-staging-zip/aws-dd-forwarder-${VERSION}.zip"
 fi

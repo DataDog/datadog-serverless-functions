@@ -59,5 +59,5 @@ mkdir $FORWARDER_DIR
 
 docker_build_zip ${PYTHON_VERSION} ${FORWARDER_DIR}/${FORWARDER_PREFIX}-${VERSION}.zip
 
-echo "Succesfully created Forwarder bundle!"
+echo "Successfully created Forwarder bundle!"
 ls $FORWARDER_DIR | xargs -I _ echo "${FORWARDER_DIR}/_"
