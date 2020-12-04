@@ -59,6 +59,10 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
         # Convert to lower
         self.assertEqual(sanitize_aws_tag_string("serVerLess"), "serverless")
         self.assertEqual(sanitize_aws_tag_string(""), "")
+        self.assertEqual(sanitize_aws_tag_string("6.6.6"), ".6.6")
+        self.assertEqual(
+            sanitize_aws_tag_string("6.6.6", remove_leading_digits=False), "6.6.6"
+        )
 
     def test_get_dd_tag_string_from_aws_dict(self):
         # Sanitize the key and value, combine them into a string

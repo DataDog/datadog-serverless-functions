@@ -8,7 +8,9 @@
 package main
 
 import (
+	"os"
 	"testing"
+	"io/ioutil"
 
 	"github.com/DataDog/datadog-agent/pkg/trace/pb"
 	"github.com/stretchr/testify/assert"
@@ -27,24 +29,56 @@ func TestUnmarshalSerializedTraces(t *testing.T) {
 
 func TestAggregateTracePayloadsByEnv(t *testing.T) {
 	payload1 := pb.TracePayload{
-		HostName: "Host",
-		Env:      "Env1",
+		HostName: "",
+		Env:      "none",
 		Traces:   make([]*pb.APITrace, 0),
+		Transactions:   make([]*pb.Span, 0),
 	}
 
 	payload2 := pb.TracePayload{
-		HostName: "Host",
-		Env:      "Env1",
+		HostName: "",
+		Env:      "",
 		Traces:   make([]*pb.APITrace, 0),
+		Transactions:   make([]*pb.Span, 0),
 	}
 
 	payload3 := pb.TracePayload{
-		HostName: "Host",
-		Env:      "Env2",
+		HostName: "",
+		Env:      "",
 		Traces:   make([]*pb.APITrace, 0),
+		Transactions:   make([]*pb.Span, 0),
 	}
 
 	input := []*pb.TracePayload{&payload1, &payload2, &payload3}
 	output := aggregateTracePayloadsByEnv(input)
+
 	assert.Equal(t, len(output), 2)
+}
+
+func TestForwardTracesWithXRayRoot(t *testing.T) {
+	inputFile := "testdata/xray-parent.json"
+	file, err := os.Open(inputFile)
+	assert.NoError(t, err)
+	defer file.Close()
+
+	contents, err := ioutil.ReadAll(file)
+	input := string(contents)
+
+	assert.NoError(t, err, "Couldn't read contents of test file")
+
+	// We capture stdout
+	originalStdout := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+
+	result := ForwardTraces(input)
+
+	w.Close()
+	out, _ := ioutil.ReadAll(r)
+	os.Stdout = originalStdout
+
+	outputLog := string(out)
+
+	assert.Equal(t, result, 0)
+	assert.Equal(t, outputLog, "No traces to forward")
 }

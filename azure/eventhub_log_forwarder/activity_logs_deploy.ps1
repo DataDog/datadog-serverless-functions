@@ -1,20 +1,27 @@
-&{
-If (Test-Path variable:SubscriptionId) {} Else {Write-Error "`$SubscriptionId` must be set"; Return }
-If (Test-Path variable:ApiKey) {} Else {Write-Error "`$ApiKey` must be set"; Return }
-Set-AzContext -SubscriptionId $SubscriptionId
+param (
+    $SubscriptionId,
+    $ApiKey,
+    $ResourceGroupName = "datadog-log-forwarder-rg",
+    $ResourceGroupLocation  = "westus2",
+    $EventhubNamespace = "datadog-eventhub-namespace",
+    $EventhubName = "datadog-eventhub",
+    $FunctionAppName = "datadog-functionapp",
+    $FunctionName = "datadog-function",
+    $DiagnosticSettingName = "datadog-activity-logs-diagnostic-setting",
+    $DatadogSite = "datadoghq.com",
+    $Environment = "AzureCloud"
+)
 
-$ResourceGroupName = If (Test-Path variable:ResourceGroupName) {$ResourceGroupName} Else {"datadog-log-forwarder-rg"}
-$ResourceGroupLocation = If (Test-Path variable:ResourceGroupLocation) {$ResourceGroupLocation} Else {"westus2"}
-$EventhubNamespace = If (Test-Path variable:EventhubNamespace) {$EventhubNamespace} Else {"datadog-eventhub-namespace"}
-$EventhubName = If (Test-Path variable:EventhubName) {$EventhubName} Else {"datadog-eventhub"}
-$FunctionAppName = If (Test-Path variable:FunctionAppName) {$FunctionAppName} Else {"datadog-functionapp"}
-$FunctionName = If (Test-Path variable:FunctionName) {$FunctionName} Else {"datadog-function"}
-$DiagnosticSettingName = If (Test-Path variable:DiagnosticSettingName) {$DiagnosticSettingName} Else {"datadog-activity-logs-diagnostic-setting"}
-$DatadogSite = If (Test-Path variable:DatadogSite) {$DatadogSite} Else {"datadoghq.com"}
+if (-Not ($SubscriptionId -And $ApiKey)) { Throw "`SubscriptionId` and `ApiKey` are required." }
+
+Set-AzContext -SubscriptionId $SubscriptionId
 
 $code = (New-Object System.Net.WebClient).DownloadString("https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/activity_logs_monitoring/index.js")
 
 New-AzResourceGroup -Name $ResourceGroupName -Location $ResourceGroupLocation
+
+$environment = Get-AzEnvironment -Name $Environment
+$endpointSuffix = $environment.StorageEndpointSuffix
 
 try {
 New-AzResourceGroupDeployment `
@@ -28,6 +35,7 @@ New-AzResourceGroupDeployment `
     -functionAppName $FunctionAppName `
     -functionName $FunctionName `
     -datadogSite $DatadogSite `
+    -endpointSuffix $endpointSuffix `
     -Verbose `
     -ErrorAction Stop
 } catch {
@@ -48,5 +56,4 @@ New-AzDeployment `
 } catch {
     Write-Error $_
     Return
-}
 }

@@ -8,6 +8,7 @@ import gzip
 import json
 import os
 from collections import defaultdict
+from concurrent.futures import as_completed
 
 import boto3
 import botocore
@@ -19,6 +20,8 @@ import ssl
 import logging
 from io import BytesIO, BufferedReader
 import time
+from requests_futures.sessions import FuturesSession
+
 from datadog_lambda.wrapper import datadog_lambda_wrapper
 from datadog_lambda.metric import lambda_stats
 from datadog import api
@@ -52,6 +55,7 @@ from settings import (
     DD_FORWARDER_VERSION,
     DD_ADDITIONAL_TARGET_LAMBDAS,
     DD_USE_VPC,
+    DD_MAX_WORKERS,
 )
 
 
@@ -253,6 +257,7 @@ class DatadogHTTPClient(object):
         self._timeout = timeout
         self._session = None
         self._ssl_validation = not skip_ssl_validation
+        self._futures = []
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug(
                 f"Initialized http client for logs intake: "
@@ -261,10 +266,17 @@ class DatadogHTTPClient(object):
             )
 
     def _connect(self):
-        self._session = requests.Session()
+        self._session = FuturesSession(max_workers=DD_MAX_WORKERS)
         self._session.headers.update(self._HEADERS)
 
     def _close(self):
+        # Resolve all the futures and log exceptions if any
+        for future in as_completed(self._futures):
+            try:
+                future.result()
+            except Exception:
+                logger.exception("Exception while forwarding logs")
+
         self._session.close()
 
     def send(self, logs):
@@ -277,26 +289,12 @@ class DatadogHTTPClient(object):
             raise Exception("could not scrub the payload")
         if DD_USE_COMPRESSION:
             data = compress_logs(data, DD_COMPRESSION_LEVEL)
-        try:
-            resp = self._session.post(
-                self._url, data, timeout=self._timeout, verify=self._ssl_validation
-            )
-        except Exception:
-            # most likely a network error
-            raise RetriableException()
-        if resp.status_code >= 500:
-            # server error
-            raise RetriableException()
-        elif resp.status_code >= 400:
-            # client error
-            raise Exception(
-                "client error, status: {}, reason {}".format(
-                    resp.status_code, resp.reason
-                )
-            )
-        else:
-            # success
-            return
+
+        # FuturesSession returns immediately with a future object
+        future = self._session.post(
+            self._url, data, timeout=self._timeout, verify=self._ssl_validation
+        )
+        self._futures.append(future)
 
     def __enter__(self):
         self._connect()
@@ -418,7 +416,7 @@ def forward_logs(logs):
         batcher = DatadogBatcher(256 * 1000, 256 * 1000, 1)
         cli = DatadogTCPClient(DD_URL, DD_PORT, DD_NO_SSL, DD_API_KEY, scrubber)
     else:
-        batcher = DatadogBatcher(256 * 1000, 2 * 1000 * 1000, 200)
+        batcher = DatadogBatcher(256 * 1000, 4 * 1000 * 1000, 400)
         cli = DatadogHTTPClient(
             DD_URL, DD_PORT, DD_NO_SSL, DD_SKIP_SSL_VALIDATION, DD_API_KEY, scrubber
         )
@@ -1051,6 +1049,7 @@ def find_cloudwatch_source(log_group):
 
     # the below substrings must be in your log group to be detected
     for source in [
+        "network-firewall",
         "route53",
         "vpc",
         "fargate",
@@ -1090,6 +1089,7 @@ def find_s3_source(key):
         "amazon_kinesis",
         "amazon_dms",
         "amazon_msk",
+        "network-firewall",
         "cloudfront",
     ]:
         if source in key:

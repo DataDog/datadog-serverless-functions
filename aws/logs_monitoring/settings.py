@@ -102,6 +102,9 @@ DD_SITE = get_env_var("DD_SITE", default="datadoghq.com")
 #
 DD_TAGS = get_env_var("DD_TAGS", "")
 
+## @param DD_MAX_WORKERS - Max number of workers sending logs concurrently
+DD_MAX_WORKERS = int(os.getenv("DD_MAX_WORKERS", 20))
+
 ## @param DD_API_URL - Url to use for  validating the the api key.
 DD_API_URL = get_env_var(
     "DD_API_URL",
@@ -212,7 +215,7 @@ DD_SOURCE = "ddsource"
 DD_CUSTOM_TAGS = "ddtags"
 DD_SERVICE = "service"
 DD_HOST = "host"
-DD_FORWARDER_VERSION = "3.21.0"
+DD_FORWARDER_VERSION = "3.22.0"
 
 # Additional target lambda invoked async with event data
 DD_ADDITIONAL_TARGET_LAMBDAS = get_env_var("DD_ADDITIONAL_TARGET_LAMBDAS", default=None)

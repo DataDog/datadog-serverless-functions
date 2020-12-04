@@ -239,7 +239,7 @@ Dedupe = re.compile(r"_+", re.UNICODE).sub
 FixInit = re.compile(r"^[_\d]*", re.UNICODE).sub
 
 
-def sanitize_aws_tag_string(tag, remove_colons=False):
+def sanitize_aws_tag_string(tag, remove_colons=False, remove_leading_digits=True):
     """Convert characters banned from DD but allowed in AWS tags to underscores"""
     global Sanitize, Dedupe, FixInit
 
@@ -261,9 +261,10 @@ def sanitize_aws_tag_string(tag, remove_colons=False):
     if remove_colons:
         tag = tag.replace(":", "_")
     tag = Dedupe("_", Sanitize("_", tag.lower()))
-    first_char = tag[0]
-    if first_char == "_" or "0" <= first_char <= "9":
-        tag = FixInit("", tag)
+    if remove_leading_digits:
+        first_char = tag[0]
+        if first_char == "_" or "0" <= first_char <= "9":
+            tag = FixInit("", tag)
     tag = tag.rstrip("_")
     return tag
 
@@ -280,7 +281,9 @@ def get_dd_tag_string_from_aws_dict(aws_key_value_tag_dict):
             ex: "creator:swf"
     """
     key = sanitize_aws_tag_string(aws_key_value_tag_dict["Key"], remove_colons=True)
-    value = sanitize_aws_tag_string(aws_key_value_tag_dict.get("Value"))
+    value = sanitize_aws_tag_string(
+        aws_key_value_tag_dict.get("Value"), remove_leading_digits=False
+    )
     # Value is optional in DD and AWS
     if not value:
         return key
@@ -357,7 +360,7 @@ def acquire_s3_cache_lock():
         if last_modified_unix_time + DD_S3_CACHE_LOCK_TTL_SECONDS >= time():
             return False
     except Exception:
-        logger.exception("Unable to get cache lock file")
+        logger.debug("Unable to get cache lock file")
 
     # lock file doesn't exist, create file to acquire lock
     try:
@@ -365,7 +368,7 @@ def acquire_s3_cache_lock():
         send_forwarder_internal_metrics("s3_cache_lock_acquired")
         logger.debug("S3 cache lock acquired")
     except ClientError:
-        logger.exception("Unable to write S3 cache lock file")
+        logger.debug("Unable to write S3 cache lock file", exc_info=True)
         return False
 
     return True
@@ -382,7 +385,7 @@ def release_s3_cache_lock():
         logger.debug("S3 cache lock released")
     except ClientError:
         send_forwarder_internal_metrics("s3_cache_lock_release_failure")
-        logger.exception("Unable to release S3 cache lock")
+        logger.debug("Unable to release S3 cache lock", exc_info=True)
 
 
 def write_cache_to_s3(data):
@@ -392,7 +395,7 @@ def write_cache_to_s3(data):
         s3_object.put(Body=(bytes(json.dumps(data).encode("UTF-8"))))
     except ClientError:
         send_forwarder_internal_metrics("s3_cache_write_failure")
-        logger.exception("Unable to write new cache to S3")
+        logger.debug("Unable to write new cache to S3", exc_info=True)
 
 
 def get_cache_from_s3():
@@ -405,7 +408,7 @@ def get_cache_from_s3():
         last_modified_unix_time = get_last_modified_time(file_content)
     except:
         send_forwarder_internal_metrics("s3_cache_fetch_failure")
-        logger.exception("Unable to fetch cache from S3")
+        logger.debug("Unable to fetch cache from S3", exc_info=True)
         return {}, -1
 
     return tags_cache, last_modified_unix_time

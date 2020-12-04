@@ -14,3 +14,10 @@ RUN find . -name \*.pyc -delete
 # Remove botocore (40MB) to reduce package size. aws-xray-sdk
 # installs it, while it's already provided by the Lambda Runtime.
 RUN rm -rf ./botocore*
+
+# Remove the following files from ddtrace, because they contain code
+# like `os.execl`, which cause security scans to fail for certain customers.
+# These files are not directly used by the Forwarder.
+RUN rm ./ddtrace/commands/ddtrace_run.py
+RUN rm ./ddtrace/profiling/__main__.py
+RUN rm ./decorator.py

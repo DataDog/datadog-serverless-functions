@@ -4,7 +4,7 @@ Description: Pushes logs, metrics and traces from AWS to Datadog.
 Mappings:
   Constants:
     DdForwarder:
-      Version: 3.21.0
+      Version: 3.22.0
 Parameters:
   DdApiKey:
     Type: String
@@ -15,7 +15,7 @@ Parameters:
     Type: String
     AllowedPattern: "arn:.*:secretsmanager:.*"
     Default: "arn:aws:secretsmanager:DEFAULT"
-    Description: The ARN of the secret storing the Datadog API key, if you already have it stored in Secrets Manager. You still need to set a dummy value for "DdApiKey" to satisfy the requirement, though that value won't be used.
+    Description: The ARN of the secret storing the Datadog API key, if you already have it stored in Secrets Manager. You must store the secret as a plaintext, rather than a key-value pair. You still need to set a dummy value for "DdApiKey" to satisfy the requirement, though that value won't be used.
   DdSite:
     Type: String
     Default: datadoghq.com
@@ -166,7 +166,11 @@ Parameters:
     Type: Number
     Default: 6
     AllowedValues: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-    Description: Set the compression level from 0 (no compression) to 9 (best compression).
+    Description: Set the compression level from 0 (no compression) to 9 (best compression) when sending logs.
+  DdMaxWorkers:
+    Type: Number
+    Default: 20
+    Description: Set the max number of workers sending logs concurrently.
   PermissionsBoundaryArn:
     Type: String
     Default: ""
@@ -295,6 +299,11 @@ Conditions:
       - Fn::Equals:
           - Ref: DdCompressionLevel
           - 6
+  SetDdMaxWorkers:
+    Fn::Not:
+      - Fn::Equals:
+          - Ref: DdMaxWorkers
+          - 20
   SetPermissionsBoundary:
     Fn::Not:
       - Fn::Equals:
@@ -357,6 +366,8 @@ Resources:
               - Ref: ForwarderBucket
               - Ref: AWS::NoValue
           DD_SITE:
+            Ref: DdSite
+          DD_:
             Ref: DdSite
           DD_TAGS:
             Fn::If:
@@ -444,6 +455,11 @@ Resources:
             Fn::If:
               - SetDdCompressionLevel
               - Ref: DdCompressionLevel
+              - Ref: AWS::NoValue
+          DD_MAX_WORKERS:
+            Fn::If:
+              - SetDdMaxWorkers
+              - Ref: DdMaxWorkers
               - Ref: AWS::NoValue
           DD_USE_PRIVATE_LINK:
             Fn::If:
@@ -738,6 +754,7 @@ Metadata:
           - DdSkipSslValidation
           - DdUseCompression
           - DdCompressionLevel
+          - DdMaxWorkers
           - DdForwardLog
       - Label:
           default: Log Scrubbing (Optional)

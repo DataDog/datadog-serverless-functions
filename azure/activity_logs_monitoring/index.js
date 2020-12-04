@@ -5,7 +5,7 @@
 
 var https = require('https');
 
-const VERSION = '0.1.2';
+const VERSION = '0.2.1';
 
 const STRING = 'string'; // example: 'some message'
 const STRING_ARRAY = 'string-array'; // example: ['one message', 'two message', ...]
@@ -28,6 +28,64 @@ const DD_SERVICE = process.env.DD_SERVICE || 'azure';
 const DD_SOURCE = process.env.DD_SOURCE || 'azure';
 const DD_SOURCE_CATEGORY = process.env.DD_SOURCE_CATEGORY || 'azure';
 
+/*
+To scrub PII from your logs, uncomment the applicable configs below. If you'd like to scrub more than just
+emails and IP addresses, add your own config to this map in the format
+NAME: {pattern: <regex_pattern>, replacement: <string to replace matching text with>}
+*/
+const SCRUBBER_RULE_CONFIGS = {
+    // REDACT_IP: {
+    //     pattern: /[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/,
+    //     replacement: 'xxx.xxx.xxx.xxx'
+    // },
+    // REDACT_EMAIL: {
+    //     pattern: /[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+/,
+    //     replacement: 'xxxxx@xxxxx.com'
+    // }
+};
+
+class ScrubberRule {
+    constructor(name, pattern, replacement) {
+        this.name = name;
+        this.replacement = replacement;
+        this.regexp = RegExp(pattern, 'g');
+    }
+}
+
+class Scrubber {
+    constructor(context, configs) {
+        var rules = [];
+        for (const [name, settings] of Object.entries(configs)) {
+            try {
+                rules.push(
+                    new ScrubberRule(
+                        name,
+                        settings['pattern'],
+                        settings['replacement']
+                    )
+                );
+            } catch {
+                context.log.error(
+                    `Regexp for rule ${name} pattern ${
+                        settings['pattern']
+                    } is malformed, skipping. Please update the pattern for this rule to be applied.`
+                );
+            }
+        }
+        this.rules = rules;
+    }
+
+    scrub(record) {
+        if (!this.rules) {
+            return record;
+        }
+        this.rules.forEach(rule => {
+            record = record.replace(rule.regexp, rule.replacement);
+        });
+        return record;
+    }
+}
+
 class EventhubLogForwarder {
     constructor(context) {
         this.context = context;
@@ -42,6 +100,7 @@ class EventhubLogForwarder {
             },
             timeout: 2000
         };
+        this.scrubber = new Scrubber(this.context, SCRUBBER_RULE_CONFIGS);
     }
 
     formatLogAndSend(messageType, record) {
@@ -87,7 +146,7 @@ class EventhubLogForwarder {
                 .on('error', error => {
                     reject(error);
                 });
-            req.write(JSON.stringify(record));
+            req.write(this.scrubber.scrub(JSON.stringify(record)));
             req.end();
         });
     }
@@ -225,12 +284,25 @@ class EventhubLogForwarder {
         return this.addTagsToJsonLog(jsonLog);
     }
 
-    formatSourceType(sourceType) {
-        if (sourceType.includes('microsoft.')) {
-            return sourceType.replace('microsoft.', 'azure.');
-        } else {
-            return '';
+    createResourceIdArray(record) {
+        // Convert the resource ID in the record to an array, handling beginning/ending slashes
+        var resourceId = record.resourceId.toLowerCase().split('/');
+        if (resourceId[0] === '') {
+            resourceId = resourceId.slice(1);
         }
+        if (resourceId[resourceId.length - 1] === '') {
+            resourceId.pop();
+        }
+        return resourceId;
+    }
+
+    isSource(resourceIdPart) {
+        // Determine if a section of a resource ID counts as a "source," in our case it means it starts with 'microsoft.'
+        return resourceIdPart.startsWith('microsoft.');
+    }
+
+    formatSourceType(sourceType) {
+        return sourceType.replace('microsoft.', 'azure.');
     }
 
     extractMetadataFromResource(record) {
@@ -241,13 +313,8 @@ class EventhubLogForwarder {
         ) {
             return metadata;
         }
-        var resourceId = record.resourceId.toLowerCase().split('/');
-        if (resourceId[0] === '') {
-            resourceId = resourceId.slice(1);
-        }
-        if (resourceId[resourceId.length - 1] === '') {
-            resourceId.pop();
-        }
+
+        var resourceId = this.createResourceIdArray(record);
 
         if (resourceId[0] === 'subscriptions') {
             if (resourceId.length > 1) {
@@ -258,13 +325,21 @@ class EventhubLogForwarder {
                 }
             }
             if (resourceId.length > 3) {
-                metadata.tags.push('resource_group:' + resourceId[3]);
-                if (resourceId.length == 4) {
-                    metadata.source = 'azure.resourcegroup';
-                    return metadata;
+                if (
+                    resourceId[2] === 'providers' &&
+                    this.isSource(resourceId[3])
+                ) {
+                    // handle provider-only resource IDs
+                    metadata.source = this.formatSourceType(resourceId[3]);
+                } else {
+                    metadata.tags.push('resource_group:' + resourceId[3]);
+                    if (resourceId.length == 4) {
+                        metadata.source = 'azure.resourcegroup';
+                        return metadata;
+                    }
                 }
             }
-            if (resourceId.length > 5 && resourceId[5]) {
+            if (resourceId.length > 5 && this.isSource(resourceId[5])) {
                 metadata.source = this.formatSourceType(resourceId[5]);
             }
         } else if (resourceId[0] === 'tenants') {
@@ -296,6 +371,8 @@ module.exports = async function(context, eventHubMessages) {
 
 module.exports.forTests = {
     EventhubLogForwarder,
+    Scrubber,
+    ScrubberRule,
     constants: {
         STRING,
         STRING_ARRAY,
