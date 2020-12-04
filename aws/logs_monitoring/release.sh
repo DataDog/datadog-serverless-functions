@@ -75,22 +75,23 @@ if [ "$PROD_RELEASE" = true ] ; then
 
     # Build the bundle
     ./tools/build_bundle.sh "${VERSION}"
+    BUNDLE_PATH=".forwarder/aws-dd-forwarder-${VERSION}.zip"
 
     if [ "$PROD_RELEASE" = true ] ; then
-        ./tools/sign_bundle.sh prod
+        ./tools/sign_bundle.sh $BUNDLE_PATH
     fi
 
     # Create a github release
     echo "Release aws-dd-forwarder-${VERSION} to github"
     go get github.com/github/hub
-    hub release create -a .forwarder/aws-dd-forwarder-${VERSION}.zip -m "aws-dd-forwarder-${VERSION}" aws-dd-forwarder-${VERSION}
+    hub release create -a $BUNDLE_PATH -m "aws-dd-forwarder-${VERSION}" aws-dd-forwarder-${VERSION}
     TEMPLATE_URL="https://${BUCKET}.s3.amazonaws.com/aws/forwarder/latest.yaml"
     FORWARDER_SOURCE_URL="https://github.com/DataDog/datadog-serverless-functions/releases/download/aws-dd-forwarder-${VERSION}/aws-dd-forwarder-${VERSION}.zip'"
 else
     echo "About to release non-public staging version of forwarder, upload aws-dd-forwarder-${VERSION} to s3, and upload the template.yaml to s3://${BUCKET}/aws/forwarder-staging/${VERSION}.yaml"
     # Upload to s3 instead of github
     ./tools/build_bundle.sh "${VERSION}"
-    aws s3 cp .forwarder/aws-dd-forwarder-${VERSION}.zip s3://${BUCKET}/aws/forwarder-staging-zip/aws-dd-forwarder-${VERSION}.zip
+    aws s3 cp $BUNDLE_PATH s3://${BUCKET}/aws/forwarder-staging-zip/aws-dd-forwarder-${VERSION}.zip
     TEMPLATE_URL="https://${BUCKET}.s3.amazonaws.com/aws/forwarder-staging/latest.yaml"
     FORWARDER_SOURCE_URL="s3://${BUCKET}/aws/forwarder-staging-zip/aws-dd-forwarder-${VERSION}.zip"
 fi
