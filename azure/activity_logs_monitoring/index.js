@@ -5,7 +5,7 @@
 
 var https = require('https');
 
-const VERSION = '0.2.0';
+const VERSION = '0.2.1';
 
 const STRING = 'string'; // example: 'some message'
 const STRING_ARRAY = 'string-array'; // example: ['one message', 'two message', ...]
@@ -284,12 +284,25 @@ class EventhubLogForwarder {
         return this.addTagsToJsonLog(jsonLog);
     }
 
-    formatSourceType(sourceType) {
-        if (sourceType.includes('microsoft.')) {
-            return sourceType.replace('microsoft.', 'azure.');
-        } else {
-            return '';
+    createResourceIdArray(record) {
+        // Convert the resource ID in the record to an array, handling beginning/ending slashes
+        var resourceId = record.resourceId.toLowerCase().split('/');
+        if (resourceId[0] === '') {
+            resourceId = resourceId.slice(1);
         }
+        if (resourceId[resourceId.length - 1] === '') {
+            resourceId.pop();
+        }
+        return resourceId;
+    }
+
+    isSource(resourceIdPart) {
+        // Determine if a section of a resource ID counts as a "source," in our case it means it starts with 'microsoft.'
+        return resourceIdPart.startsWith('microsoft.');
+    }
+
+    formatSourceType(sourceType) {
+        return sourceType.replace('microsoft.', 'azure.');
     }
 
     extractMetadataFromResource(record) {
@@ -300,13 +313,8 @@ class EventhubLogForwarder {
         ) {
             return metadata;
         }
-        var resourceId = record.resourceId.toLowerCase().split('/');
-        if (resourceId[0] === '') {
-            resourceId = resourceId.slice(1);
-        }
-        if (resourceId[resourceId.length - 1] === '') {
-            resourceId.pop();
-        }
+
+        var resourceId = this.createResourceIdArray(record);
 
         if (resourceId[0] === 'subscriptions') {
             if (resourceId.length > 1) {
@@ -317,13 +325,21 @@ class EventhubLogForwarder {
                 }
             }
             if (resourceId.length > 3) {
-                metadata.tags.push('resource_group:' + resourceId[3]);
-                if (resourceId.length == 4) {
-                    metadata.source = 'azure.resourcegroup';
-                    return metadata;
+                if (
+                    resourceId[2] === 'providers' &&
+                    this.isSource(resourceId[3])
+                ) {
+                    // handle provider-only resource IDs
+                    metadata.source = this.formatSourceType(resourceId[3]);
+                } else {
+                    metadata.tags.push('resource_group:' + resourceId[3]);
+                    if (resourceId.length == 4) {
+                        metadata.source = 'azure.resourcegroup';
+                        return metadata;
+                    }
                 }
             }
-            if (resourceId.length > 5 && resourceId[5]) {
+            if (resourceId.length > 5 && this.isSource(resourceId[5])) {
                 metadata.source = this.formatSourceType(resourceId[5]);
             }
         } else if (resourceId[0] === 'tenants') {
