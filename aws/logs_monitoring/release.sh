@@ -73,11 +73,16 @@ if [ "$PROD_RELEASE" = true ] ; then
     git commit -m "Bump version from ${CURRENT_VERSION} to ${VERSION}"
     git push origin master
 
+    # Build the bundle
+    ./tools/build_bundle.sh "${VERSION}"
+
+    if [ "$PROD_RELEASE" = true ] ; then
+        ./tools/sign_bundle.sh prod
+    fi
+
     # Create a github release
     echo "Release aws-dd-forwarder-${VERSION} to github"
     go get github.com/github/hub
-    ./tools/build_bundle.sh "${VERSION}"
-
     hub release create -a .forwarder/aws-dd-forwarder-${VERSION}.zip -m "aws-dd-forwarder-${VERSION}" aws-dd-forwarder-${VERSION}
     TEMPLATE_URL="https://${BUCKET}.s3.amazonaws.com/aws/forwarder/latest.yaml"
     FORWARDER_SOURCE_URL="https://github.com/DataDog/datadog-serverless-functions/releases/download/aws-dd-forwarder-${VERSION}/aws-dd-forwarder-${VERSION}.zip'"
