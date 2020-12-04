@@ -142,4 +142,7 @@ echo
 echo "Here is the CloudFormation quick launch URL:"
 echo "https://console.aws.amazon.com/cloudformation/home#/stacks/new?stackName=datadog-serverless&templateURL=${TEMPLATE_URL}"
 echo
-echo "Forwarder Release process complete!"
+echo "Forwarder release process complete!"
+if [ "$ACCOUNT" = "prod" ] ; then
+    echo "Don't forget to add release notes in GitHub!"
+else
