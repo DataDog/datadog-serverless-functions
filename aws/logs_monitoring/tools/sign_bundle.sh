@@ -5,13 +5,11 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2020 Datadog, Inc.
 
+# Usage: ./sign_bundle.sh <Bundle Path> <Account [sandbox|prod]>
+
 set -e
 
 SIGNING_PROFILE_NAME="DatadogLambdaSigningProfile"
-
-# This script will always sign the bundle using the prod account
-S3_BUCKET_NAME="dd-lambda-signing-bucket"
-REGION="us-east-1"
 
 # Get bundle path from arguments
 if [ -z "$1" ]; then
@@ -19,6 +17,25 @@ if [ -z "$1" ]; then
     exit 1
 fi
 BUNDLE_LOCAL_PATH=$1
+
+# Check account parameter
+VALID_ACCOUNTS=("sandbox" "prod")
+if [ -z "$2" ]; then
+    echo "ERROR: You must pass an account parameter to sign the bundle"
+    exit 1
+fi
+if [[ ! "${VALID_ACCOUNTS[@]}" =~ $2 ]]; then
+    echo "ERROR: The account parameter was invalid. Please choose sandbox or prod."
+    exit 1
+fi
+if [ "$2" = "sandbox" ]; then
+    REGION="sa-east-1"
+    S3_BUCKET_NAME="dd-lambda-signing-bucket-sandbox"
+fi
+if [ "$2" = "prod" ]; then
+    REGION="us-east-1"
+    S3_BUCKET_NAME="dd-lambda-signing-bucket"
+fi
 
 echo
 

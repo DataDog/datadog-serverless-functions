@@ -57,9 +57,7 @@ function docker_build_zip {
 rm -rf $FORWARDER_DIR
 mkdir $FORWARDER_DIR
 
-echo "Building layer for python${python_version}"
 docker_build_zip ${PYTHON_VERSION} ${FORWARDER_DIR}/${FORWARDER_PREFIX}-${VERSION}.zip
 
-
-echo "Done creating forwarder:"
+echo "Succesfully created Forwarder bundle!"
 ls $FORWARDER_DIR | xargs -I _ echo "${FORWARDER_DIR}/_"
