@@ -559,7 +559,7 @@ def add_metadata_to_lambda_log(event):
 
     # Function name is the seventh piece of the ARN
     function_name = lambda_log_arn.split(":")[6]
-    tags = [f"functionname:{function_name}", f"funtion_arn:{lambda_log_arn.lower()}"]
+    tags = [f"functionname:{function_name}"]
 
     # Get custom tags of the Lambda function
     custom_lambda_tags = get_enriched_lambda_log_tags(event)
@@ -643,6 +643,12 @@ def extract_metric(event):
             return None
         if not (isinstance(metric["v"], int) or isinstance(metric["v"], float)):
             return None
+
+        lambda_log_metadata = event.get("lambda", {})
+        lambda_log_arn = lambda_log_metadata.get("arn")
+
+        if lambda_log_arn:
+            metric["t"] += [f"funtion_arn:{lambda_log_arn.lower()}"]            
 
         metric["t"] += event[DD_CUSTOM_TAGS].split(",")
         return metric

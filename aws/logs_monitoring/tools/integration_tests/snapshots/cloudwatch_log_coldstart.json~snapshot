@@ -15,7 +15,7 @@
           },
           "ddsource": "lambda",
           "ddsourcecategory": "aws",
-          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:0000000000,aws_account:0000000000,functionname:storms-cloudwatch-event,funtion_arn:arn:aws:lambda:us-east-1:0000000000:function:storms-cloudwatch-event,region:us-east-1,service:storms-cloudwatch-event",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:0000000000,aws_account:0000000000,functionname:storms-cloudwatch-event,region:us-east-1,service:storms-cloudwatch-event",
           "host": "arn:aws:lambda:us-east-1:0000000000:function:storms-cloudwatch-event",
           "id": "35486831490800643125153606102923171443962457178576257024",
           "lambda": {
@@ -37,7 +37,7 @@
           },
           "ddsource": "lambda",
           "ddsourcecategory": "aws",
-          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:0000000000,aws_account:0000000000,functionname:storms-cloudwatch-event,funtion_arn:arn:aws:lambda:us-east-1:0000000000:function:storms-cloudwatch-event,region:us-east-1,service:storms-cloudwatch-event",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:0000000000,aws_account:0000000000,functionname:storms-cloudwatch-event,region:us-east-1,service:storms-cloudwatch-event",
           "host": "arn:aws:lambda:us-east-1:0000000000:function:storms-cloudwatch-event",
           "id": "35486831490867545360749197972347778598780402263094198273",
           "lambda": {
@@ -59,7 +59,7 @@
           },
           "ddsource": "lambda",
           "ddsourcecategory": "aws",
-          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:0000000000,aws_account:0000000000,functionname:storms-cloudwatch-event,funtion_arn:arn:aws:lambda:us-east-1:0000000000:function:storms-cloudwatch-event,region:us-east-1,service:storms-cloudwatch-event",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,env:none,account_id:0000000000,aws_account:0000000000,functionname:storms-cloudwatch-event,region:us-east-1,service:storms-cloudwatch-event",
           "host": "arn:aws:lambda:us-east-1:0000000000:function:storms-cloudwatch-event",
           "id": "35486831490867545360749197972347778598780402263094198274",
           "lambda": {
