@@ -559,7 +559,7 @@ def add_metadata_to_lambda_log(event):
 
     # Function name is the seventh piece of the ARN
     function_name = lambda_log_arn.split(":")[6]
-    tags = [f"functionname:{function_name}"]
+    tags = [f"functionname:{function_name}", f"funtion_arn:{lambda_log_arn}"]
 
     # Get custom tags of the Lambda function
     custom_lambda_tags = get_enriched_lambda_log_tags(event)
