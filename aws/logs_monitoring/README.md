@@ -273,6 +273,12 @@ The CloudFormation Stack creates following IAM roles:
 ]
 ```
 
+## Code Signing
+
+The Datadog Forwarder is signed by Datadog. You can verify the integrity of the Forwarder by [creating a Code Signing Configuration](https://docs.aws.amazon.com/lambda/latest/dg/configuration-codesigning.html#config-codesigning-config-console) that includes Datadog’s Signing Profile ARN (`arn:aws:signer:us-east-1:464622532012:/signing-profiles/DatadogLambdaSigningProfile/9vMI9ZAGLc`) and associating it with the Forwarder Lambda function.
+
+If you would like to verify the integrity of the Forwarder before you install it, please use the manual installation method and add the Code Signing Configuration to the Lambda function before uploading the Forwarder ZIP file. 
+
 ## CloudFormation Parameters
 
 ### Required

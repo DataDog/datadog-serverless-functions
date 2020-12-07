@@ -3,7 +3,7 @@
 # Unless explicitly stated otherwise all files in this repository are licensed
 # under the Apache License Version 2.0.
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
-# Copyright 2019 Datadog, Inc
+# Copyright 2020 Datadog, Inc
 
 set -e
 
@@ -57,9 +57,7 @@ function docker_build_zip {
 rm -rf $FORWARDER_DIR
 mkdir $FORWARDER_DIR
 
-echo "Building layer for python${python_version}"
 docker_build_zip ${PYTHON_VERSION} ${FORWARDER_DIR}/${FORWARDER_PREFIX}-${VERSION}.zip
 
-
-echo "Done creating forwarder:"
+echo "Successfully created Forwarder bundle!"
 ls $FORWARDER_DIR | xargs -I _ echo "${FORWARDER_DIR}/_"
