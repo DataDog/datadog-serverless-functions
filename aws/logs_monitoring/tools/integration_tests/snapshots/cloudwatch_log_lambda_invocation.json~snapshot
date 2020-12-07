@@ -654,7 +654,6 @@
                   "span.kind": "client"
                 },
                 "metrics": {
-
                   "_sample_rate": 1.0,
                   "_sampling_priority_v1": 2.0,
                   "_sublayers.duration.by_service.sublayer_service:hello-dog-node-dev-hello12x-dns": 460493896.0,
@@ -991,6 +990,7 @@
               "cold_start:false",
               "memorysize:128",
               "runtime:nodejs12.x",
+              "funtion_arn:arn:aws:lambda:us-east-1:0000000000:function:hello-dog-node-dev-hello12x",
               "forwardername:test",
               "forwarder_memorysize:1536",
               "forwarder_version:<redacted from snapshot>",
@@ -1011,6 +1011,7 @@
             "points": "<redacted from snapshot>",
             "tags": [
               "dd_lambda_layer:datadog-nodev12.14.1",
+              "funtion_arn:arn:aws:lambda:us-east-1:0000000000:function:hello-dog-node-dev-hello12x",
               "forwardername:test",
               "forwarder_memorysize:1536",
               "forwarder_version:<redacted from snapshot>",

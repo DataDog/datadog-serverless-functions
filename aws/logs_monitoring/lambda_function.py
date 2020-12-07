@@ -644,6 +644,12 @@ def extract_metric(event):
         if not (isinstance(metric["v"], int) or isinstance(metric["v"], float)):
             return None
 
+        lambda_log_metadata = event.get("lambda", {})
+        lambda_log_arn = lambda_log_metadata.get("arn")
+
+        if lambda_log_arn:
+            metric["t"] += [f"funtion_arn:{lambda_log_arn.lower()}"]
+
         metric["t"] += event[DD_CUSTOM_TAGS].split(",")
         return metric
     except Exception:
