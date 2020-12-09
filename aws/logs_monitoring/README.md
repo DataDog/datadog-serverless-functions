@@ -31,6 +31,8 @@ Once installed, you can subscribe the Forwarder to log sources, such as S3 bucke
 5. Set up triggers to the installed Forwarder either [automatically](https://docs.datadoghq.com/integrations/amazon_web_services/?tab=allpermissions#automatically-setup-triggers) or [manually](https://docs.datadoghq.com/integrations/amazon_web_services/?tab=allpermissions#manually-setup-triggers).
 6. Repeat the above steps in another region if you operate in multiple AWS regions.
 
+**Note:** If you had previously enabled your AWS Integration using the following [CloudFormation template](https://github.com/DataDog/cloudformation-template/tree/master/aws) from your AWS integration tile in Datadog, your account should already be provisioned with a Datadog Lambda Forwarder function.
+
 <!-- xxz tab xxx -->
 <!-- xxx tab "Terraform" xxx -->
 
