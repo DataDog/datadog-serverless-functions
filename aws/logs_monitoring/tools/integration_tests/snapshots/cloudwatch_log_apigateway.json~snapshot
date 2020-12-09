@@ -41,7 +41,7 @@
           "host": "API-Gateway-Execution-Logs_xxxxxxxxxx/production",
           "ingestionTime": 1607444452966,
           "logStreamName": "11111111111111111111111111111111",
-          "message": "(aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa) Verifying Usage Plan for request: <redacted from snapshot>. API Key:  API Stage: xst49ng2mf/production",
+          "message": "(aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa) Verifying Usage Plan for request: <redacted from snapshot>. API Key:  API Stage: xxxxxxxxxx/production",
           "service": "apigateway",
           "timestamp": 1607444432899
         },
