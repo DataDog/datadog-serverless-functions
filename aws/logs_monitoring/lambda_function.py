@@ -913,7 +913,7 @@ def awslogs_handler(event, context, metadata):
     }
 
     # Set host as log group where cloudwatch is source
-    if metadata[DD_SOURCE] == "cloudwatch":
+    if metadata[DD_SOURCE] == "cloudwatch" or metadata.get(DD_HOST, None) == None:
         metadata[DD_HOST] = aws_attributes["aws"]["awslogs"]["logGroup"]
 
     # When parsing rds logs, use the cloudwatch log group name to derive the

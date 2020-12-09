@@ -654,7 +654,6 @@
                   "span.kind": "client"
                 },
                 "metrics": {
-
                   "_sample_rate": 1.0,
                   "_sampling_priority_v1": 2.0,
                   "_sublayers.duration.by_service.sublayer_service:hello-dog-node-dev-hello12x-dns": 460493896.0,
