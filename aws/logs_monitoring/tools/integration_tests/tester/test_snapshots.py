@@ -106,7 +106,6 @@ class TestForwarderSnapshots(unittest.TestCase):
             )
             self.__class__.recorder_has_been_initialized = True
 
-
     def test_cloudwatch_log(self):
         input_filename = f"{snapshot_dir}/cloudwatch_log.json"
         snapshot_filename = f"{input_filename}~snapshot"
