@@ -21,9 +21,7 @@ RUN_ID=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c10)
 DD_API_KEY=RUN_ID
 
 CURRENT_VERSION="$(grep -o 'Version: \d\+\.\d\+\.\d\+' template.yaml | cut -d' ' -f2)"
-echo $CURRENT_VERSION
-echo $CURRENT_VERSION
-echo $CURRENT_VERSION
+
 # Make sure we aren't trying to do anything on Datadog's production account. We don't want our
 # integration tests to accidentally release a new version of the forwarder
 AWS_ACCOUNT="$(aws sts get-caller-identity --query Account --output text)"
