@@ -145,4 +145,5 @@ echo
 echo "Forwarder release process complete!"
 if [ "$ACCOUNT" = "prod" ] ; then
     echo "Don't forget to add release notes in GitHub!"
-else
+fi
+

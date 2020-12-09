@@ -20,7 +20,7 @@ RUN_ID=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c10)
 # Since we never run the log forwarder, api key can be anything.
 DD_API_KEY=RUN_ID
 
-CURRENT_VERSION="$(grep -o 'Version: \d\+\.\d\+\.\d\+' template.yaml | cut -d' ' -f2)-staging-${RUN_ID}"
+CURRENT_VERSION="$(grep -o 'Version: \d\+\.\d\+\.\d\+' template.yaml | cut -d' ' -f2)"
 
 # Make sure we aren't trying to do anything on Datadog's production account. We don't want our
 # integration tests to accidentally release a new version of the forwarder
@@ -31,7 +31,7 @@ if [ "$AWS_ACCOUNT" = "464622532012" ] ; then
 fi
 
 # Run script in this process. This gives us TEMPLATE_URL and FORWARDER_SOURCE_URL env vars
-. release.sh datadog-cloudformation-template-staging $CURRENT_VERSION
+. release.sh $CURRENT_VERSION sandbox
 
 function param {
     KEY=$1
