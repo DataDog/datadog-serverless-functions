@@ -140,22 +140,12 @@ func aggregateTracePayloadsByEnv(tracePayloads []*pb.TracePayload) []*pb.TracePa
 }
 
 func sendTracesToIntake(tracePayloads []*pb.TracePayload) error {
-	hadErr := false
 	for _, tracePayload := range tracePayloads {
 		err := edgeConnection.SendTraces(context.Background(), tracePayload, 3)
 		if err != nil {
 			fmt.Printf("Failed to send traces with error %v\n", err)
-			hadErr = true
+			return errors.New("Failed to send traces to intake")
 		}
-		stats := apm.ComputeAPMStats(tracePayload)
-		err = edgeConnection.SendStats(context.Background(), stats, 3)
-		if err != nil {
-			fmt.Printf("Failed to send trace stats with error %v\n", err)
-			hadErr = true
-		}
-	}
-	if hadErr {
-		return errors.New("Failed to send traces or stats to intake")
 	}
 	return nil
 }

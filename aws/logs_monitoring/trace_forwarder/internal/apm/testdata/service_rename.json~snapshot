@@ -16,7 +16,8 @@
       Start: (int64) 1586269721581541000,
       Duration: (int64) 555729248,
       Error: (int32) 0,
-      Meta: (map[string]string) (len=4) {
+      Meta: (map[string]string) (len=5) {
+       (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
        (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
        (string) (len=8) "language": (string) (len=10) "javascript",
        (string) (len=2) "my": (string) (len=5) "value",
@@ -38,7 +39,8 @@
       Start: (int64) 1586269722137387000,
       Duration: (int64) 11963,
       Error: (int32) 0,
-      Meta: (map[string]string) (len=4) {
+      Meta: (map[string]string) (len=5) {
+       (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
        (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
        (string) (len=8) "language": (string) (len=10) "javascript",
        (string) (len=2) "my": (string) (len=5) "value",
@@ -60,7 +62,8 @@
       Start: (int64) 1586269722137368600,
       Duration: (int64) 32959,
       Error: (int32) 0,
-      Meta: (map[string]string) (len=4) {
+      Meta: (map[string]string) (len=5) {
+       (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
        (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
        (string) (len=8) "language": (string) (len=10) "javascript",
        (string) (len=2) "my": (string) (len=5) "value",
@@ -82,7 +85,8 @@
       Start: (int64) 1586269722137421600,
       Duration: (int64) 9033,
       Error: (int32) 0,
-      Meta: (map[string]string) (len=4) {
+      Meta: (map[string]string) (len=5) {
+       (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
        (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
        (string) (len=8) "language": (string) (len=10) "javascript",
        (string) (len=2) "my": (string) (len=5) "value",
@@ -104,7 +108,8 @@
       Start: (int64) 1586269722137407200,
       Duration: (int64) 25391,
       Error: (int32) 0,
-      Meta: (map[string]string) (len=4) {
+      Meta: (map[string]string) (len=5) {
+       (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
        (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
        (string) (len=8) "language": (string) (len=10) "javascript",
        (string) (len=2) "my": (string) (len=5) "value",
@@ -126,7 +131,8 @@
       Start: (int64) 1586269722137314000,
       Duration: (int64) 120117,
       Error: (int32) 0,
-      Meta: (map[string]string) (len=3) {
+      Meta: (map[string]string) (len=4) {
+       (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
        (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
        (string) (len=8) "language": (string) (len=10) "javascript",
        (string) (len=2) "my": (string) (len=5) "value"
@@ -147,7 +153,8 @@
       Start: (int64) 1586269721581080000,
       Duration: (int64) 556922119,
       Error: (int32) 0,
-      Meta: (map[string]string) (len=5) {
+      Meta: (map[string]string) (len=6) {
+       (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
        (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
        (string) (len=11) "dns.address": (string) (len=13) "172.217.9.196",
        (string) (len=12) "dns.hostname": (string) (len=14) "www.google.com",
@@ -171,7 +178,8 @@
       Start: (int64) 1586269721580981500,
       Duration: (int64) 613575195,
       Error: (int32) 0,
-      Meta: (map[string]string) (len=7) {
+      Meta: (map[string]string) (len=8) {
+       (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
        (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
        (string) (len=2) "my": (string) (len=5) "value",
        (string) (len=8) "out.host": (string) (len=14) "www.google.com",
@@ -203,7 +211,8 @@
       Start: (int64) 1586269721580333800,
       Duration: (int64) 654928711,
       Error: (int32) 0,
-      Meta: (map[string]string) (len=6) {
+      Meta: (map[string]string) (len=7) {
+       (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
        (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
        (string) (len=11) "http.method": (string) (len=3) "GET",
        (string) (len=16) "http.status_code": (string) (len=3) "200",
@@ -233,7 +242,8 @@
       Start: (int64) 1586269721580143000,
       Duration: (int64) 674647949,
       Error: (int32) 0,
-      Meta: (map[string]string) (len=7) {
+      Meta: (map[string]string) (len=8) {
+       (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
        (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
        (string) (len=10) "cold_start": (string) (len=5) "false",
        (string) (len=12) "function_arn": (string) (len=74) "arn:aws:lambda:us-east-1:172597598159:function:hello-dog-node-dev-hello10x",
@@ -271,7 +281,8 @@
     Start: (int64) 1586269721581080000,
     Duration: (int64) 556922119,
     Error: (int32) 0,
-    Meta: (map[string]string) (len=5) {
+    Meta: (map[string]string) (len=6) {
+     (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
      (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
      (string) (len=11) "dns.address": (string) (len=13) "172.217.9.196",
      (string) (len=12) "dns.hostname": (string) (len=14) "www.google.com",
@@ -295,7 +306,8 @@
     Start: (int64) 1586269721580981500,
     Duration: (int64) 613575195,
     Error: (int32) 0,
-    Meta: (map[string]string) (len=7) {
+    Meta: (map[string]string) (len=8) {
+     (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
      (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
      (string) (len=2) "my": (string) (len=5) "value",
      (string) (len=8) "out.host": (string) (len=14) "www.google.com",
@@ -327,7 +339,8 @@
     Start: (int64) 1586269721580333800,
     Duration: (int64) 654928711,
     Error: (int32) 0,
-    Meta: (map[string]string) (len=6) {
+    Meta: (map[string]string) (len=7) {
+     (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
      (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
      (string) (len=11) "http.method": (string) (len=3) "GET",
      (string) (len=16) "http.status_code": (string) (len=3) "200",
@@ -357,7 +370,8 @@
     Start: (int64) 1586269721580143000,
     Duration: (int64) 674647949,
     Error: (int32) 0,
-    Meta: (map[string]string) (len=7) {
+    Meta: (map[string]string) (len=8) {
+     (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
      (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
      (string) (len=10) "cold_start": (string) (len=5) "false",
      (string) (len=12) "function_arn": (string) (len=74) "arn:aws:lambda:us-east-1:172597598159:function:hello-dog-node-dev-hello10x",

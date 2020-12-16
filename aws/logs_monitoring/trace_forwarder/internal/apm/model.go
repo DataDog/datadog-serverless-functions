@@ -45,6 +45,7 @@ type (
 
 const (
 	originMetadataKey       = "_dd.origin"
+	computeStatsKey         = "_dd.compute_stats"
 	parentSourceMetadataKey = "_dd.parent_source"
 	sourceXray              = "xray"
 )
@@ -83,6 +84,11 @@ func ParseTrace(content string) ([]*pb.TracePayload, error) {
 				sp.Meta = map[string]string{}
 			}
 			sp.Meta[originMetadataKey] = "lambda"
+
+			// Instruct the span intake pipeline to compute stats
+			// in the APM backend.
+			sp.Meta[computeStatsKey] = "1"
+
 			pbSpan := convertSpanToPB(sp)
 			// We skip root dd-trace spans that are parented to X-Ray,
 			// since those root spans are placeholders for the X-Ray
