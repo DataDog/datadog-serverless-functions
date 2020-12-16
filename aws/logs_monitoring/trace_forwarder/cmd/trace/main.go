@@ -120,9 +120,9 @@ func aggregateTracePayloadsByEnv(tracePayloads []*pb.TracePayload) []*pb.TracePa
 			existingPayload = val
 		} else {
 			existingPayload = &pb.TracePayload{
-				HostName: tracePayload.HostName,
-				Env:      tracePayload.Env,
-				Traces:   make([]*pb.APITrace, 0),
+				HostName:     tracePayload.HostName,
+				Env:          tracePayload.Env,
+				Traces:       make([]*pb.APITrace, 0),
 				Transactions: make([]*pb.Span, 0),
 			}
 			lookup[key] = existingPayload
@@ -140,12 +140,16 @@ func aggregateTracePayloadsByEnv(tracePayloads []*pb.TracePayload) []*pb.TracePa
 }
 
 func sendTracesToIntake(tracePayloads []*pb.TracePayload) error {
+	hadErr := false
 	for _, tracePayload := range tracePayloads {
 		err := edgeConnection.SendTraces(context.Background(), tracePayload, 3)
 		if err != nil {
 			fmt.Printf("Failed to send traces with error %v\n", err)
-			return errors.New("Failed to send traces to intake")
+			hadErr = true
 		}
+	}
+	if hadErr {
+		return errors.New("Failed to send traces to intake")
 	}
 	return nil
 }
