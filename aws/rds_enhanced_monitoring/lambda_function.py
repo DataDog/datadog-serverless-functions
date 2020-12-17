@@ -53,7 +53,7 @@ def _datadog_keys():
         DD_API_KEY = os.environ['DD_API_KEY']
         return {'api_key': DD_API_KEY}
 
-    raise ValueError("Datadog API key is not defined, see documentation for ")
+    raise ValueError("Datadog API key is not defined, see documentation for environment variable options")
 
 
 # Preload the keys so we can bail out early if they're misconfigured
