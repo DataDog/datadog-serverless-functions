@@ -12,6 +12,7 @@ from io import BufferedReader, BytesIO
 from urllib.request import Request, urlopen
 from urllib.parse import urlencode
 
+import botocore
 import boto3
 
 
@@ -22,6 +23,8 @@ def _datadog_keys():
     if 'kmsEncryptedKeys' in os.environ:
         KMS_ENCRYPTED_KEYS = os.environ['kmsEncryptedKeys']
         kms = boto3.client('kms')
+        # kmsEncryptedKeys should be created through the Lambda's encryption
+        # helpers and as such will have the EncryptionContext
         return json.loads(kms.decrypt(
             CiphertextBlob=base64.b64decode(KMS_ENCRYPTED_KEYS),
             EncryptionContext={'LambdaFunctionName': os.environ['AWS_LAMBDA_FUNCTION_NAME']},
@@ -41,10 +44,19 @@ def _datadog_keys():
 
     if 'DD_KMS_API_KEY' in os.environ:
         ENCRYPTED = os.environ['DD_KMS_API_KEY']
-        DD_API_KEY = boto3.client('kms').decrypt(
-            CiphertextBlob=base64.b64decode(ENCRYPTED),
-            EncryptionContext={'LambdaFunctionName': os.environ['AWS_LAMBDA_FUNCTION_NAME']},
-        )['Plaintext']
+
+        # For interop with other DD Lambdas taking in DD_KMS_API_KEY, we'll
+        # optionally try the EncryptionContext associated with this Lambda.
+        try:
+            DD_API_KEY = boto3.client('kms').decrypt(
+                CiphertextBlob=base64.b64decode(ENCRYPTED),
+                EncryptionContext={'LambdaFunctionName': os.environ['AWS_LAMBDA_FUNCTION_NAME']},
+            )['Plaintext']
+        except botocore.exceptions.ClientError:
+            DD_API_KEY = boto3.client('kms').decrypt(
+                CiphertextBlob=base64.b64decode(ENCRYPTED),
+            )['Plaintext']
+
         if type(DD_API_KEY) is bytes:
             DD_API_KEY = DD_API_KEY.decode('utf-8')
         return {'api_key': DD_API_KEY}
