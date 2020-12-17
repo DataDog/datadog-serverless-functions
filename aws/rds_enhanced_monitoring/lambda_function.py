@@ -24,7 +24,7 @@ def _datadog_keys():
         kms = boto3.client('kms')
         return json.loads(kms.decrypt(
             CiphertextBlob=base64.b64decode(KMS_ENCRYPTED_KEYS),
-            EncryptionContext={'LambdaFunctionName': os.environ['AWS_LAMBDA_FUNCTION_NAME']}
+            EncryptionContext={'LambdaFunctionName': os.environ['AWS_LAMBDA_FUNCTION_NAME']},
         )['Plaintext'])
 
     if 'DD_API_KEY_SECRET_ARN' in os.environ:
@@ -42,7 +42,8 @@ def _datadog_keys():
     if 'DD_KMS_API_KEY' in os.environ:
         ENCRYPTED = os.environ['DD_KMS_API_KEY']
         DD_API_KEY = boto3.client('kms').decrypt(
-            CiphertextBlob=base64.b64decode(ENCRYPTED)
+            CiphertextBlob=base64.b64decode(ENCRYPTED),
+            EncryptionContext={'LambdaFunctionName': os.environ['AWS_LAMBDA_FUNCTION_NAME']},
         )['Plaintext']
         if type(DD_API_KEY) is bytes:
             DD_API_KEY = DD_API_KEY.decode('utf-8')
