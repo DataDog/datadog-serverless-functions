@@ -196,6 +196,8 @@ d. **Not Recommended**: Plaintext
 
    - Set the relevant environment variable with the API key payload you generated in step 1.
 
+   - If you use Datadog's EU platform, set the environment variable `DD_SITE` to `datadoghq.eu`
+
 2. Subscribe to the appropriate log stream.
 
 # How to update the zip file for the AWS Serverless Apps
