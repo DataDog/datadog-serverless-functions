@@ -16,7 +16,8 @@
       Start: (int64) 1586269922945357000,
       Duration: (int64) 138997000,
       Error: (int32) 0,
-      Meta: (map[string]string) (len=4) {
+      Meta: (map[string]string) (len=5) {
+       (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
        (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
        (string) (len=11) "http.method": (string) (len=3) "GET",
        (string) (len=16) "http.status_code": (string) (len=3) "200",
@@ -38,7 +39,8 @@
       Start: (int64) 1586269923086220000,
       Duration: (int64) 100232000,
       Error: (int32) 0,
-      Meta: (map[string]string) (len=1) {
+      Meta: (map[string]string) (len=2) {
+       (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
        (string) (len=10) "_dd.origin": (string) (len=6) "lambda"
       },
       Metrics: (map[string]float64) (len=1) {
@@ -62,7 +64,8 @@
     Start: (int64) 1586269922945357000,
     Duration: (int64) 138997000,
     Error: (int32) 0,
-    Meta: (map[string]string) (len=4) {
+    Meta: (map[string]string) (len=5) {
+     (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
      (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
      (string) (len=11) "http.method": (string) (len=3) "GET",
      (string) (len=16) "http.status_code": (string) (len=3) "200",
@@ -84,7 +87,8 @@
     Start: (int64) 1586269923086220000,
     Duration: (int64) 100232000,
     Error: (int32) 0,
-    Meta: (map[string]string) (len=1) {
+    Meta: (map[string]string) (len=2) {
+     (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
      (string) (len=10) "_dd.origin": (string) (len=6) "lambda"
     },
     Metrics: (map[string]float64) (len=1) {
