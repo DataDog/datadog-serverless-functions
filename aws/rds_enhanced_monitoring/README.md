@@ -133,14 +133,35 @@ Process a RDS enhanced monitoring DATA_MESSAGE, coming from CLOUDWATCH LOGS
 
 # Setup
 
-1. Create a KMS key for the Datadog API key and app key
-   - Create a KMS key. Refer to the [AWS KMS Creating Keys][1] documentation for step by step instructions.
-   - Encrypt the token using the AWS CLI. `aws kms encrypt --key-id alias/<KMS key name> --plaintext '{"api_key":"<dd_api_key>", "app_key":"<dd_app_key>"}'`
-   - Make sure to save the base-64 encoded, encrypted key (`CiphertextBlob`). This is used for the `KMS_ENCRYPTED_KEYS` variable in all lambda functions.
-   - Optional: set the environment variable `DD_SITE` to `datadoghq.eu` to automatically forward data to your EU platform.
+#### Encrypt Your Datadog API Key
 
-2. Create and configure a lambda function
-   - In the AWS Console, create a `lambda_execution` policy, with the following policy:
+Before configuring your Lambda, first choose one of the following options to encrypt your Datadog API key.
+
+a. **Recommended**: AWS KMS
+   1. Refer to the [AWS KMS Creating Keys][1] documentation for step by step instructions on creating a key.
+   2. Encrypt your API key using the AWS CLI.
+   `aws kms encrypt --key-id alias/<KMS key name> --plaintext '<dd_api_key>'`
+   3. Store the `CiphertextBlob` as the `DD_KMS_API_KEY` environment variable in the next section.
+
+b. AWS Secrets Manager
+   1. Create a plaintext secret in AWS Secrets Manager using your API key as the value
+   2. Store the ARN of the secret as the `DD_API_KEY_SECRET_ARN` environment variable
+
+c. AWS SSM
+   1.  Create a parameter in AWS SSM using your API key as the value
+   2.  Store the Name of the parameter as the `DD_API_KEY_SSM_NAME` environment variable
+
+d. **Not Recommended**: Plaintext
+   1. Set your API key in plaintext as the `DD_API_KEY` environment variable.
+   2. This flow is insecure and not recommended for production use cases.
+
+#### Create the Lambda Function
+
+1. Create and configure a lambda function
+   - In the AWS Console, create a `lambda_execution` policy, with the following policy. If
+     you chose an option other than KMS above, substitute the KMS statement with the
+     appropriate permission for the service you used.
+
      ```
      {
         "Version": "2012-10-17",
@@ -171,10 +192,13 @@ Process a RDS enhanced monitoring DATA_MESSAGE, coming from CLOUDWATCH LOGS
 
    - Create a lambda function: skip the blueprint, name it `functionname`, set the runtime to `Python 3.7`, the handle to `lambda_function.lambda_handler`, and the role to `lambda_execution`.
 
-   - Copy the content of `functionname/lambda_function.py` in the code section, and make sure to update the `KMS_ENCRYPTED_KEYS` environment variable with the encrypted key generated in step 1.
+   - Copy the content of `functionname/lambda_function.py` in the code section
 
-3. Subscribe to the appropriate log stream.
+   - Set the relevant environment variable with the API key payload you generated in step 1.
 
+   - If you use Datadog's EU platform, set the environment variable `DD_SITE` to `datadoghq.eu`
+
+2. Subscribe to the appropriate log stream.
 
 # How to update the zip file for the AWS Serverless Apps
 
