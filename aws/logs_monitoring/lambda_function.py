@@ -960,6 +960,16 @@ def awslogs_handler(event, context, metadata):
                 if not env_tag_exists:
                     metadata[DD_CUSTOM_TAGS] += ",env:none"
 
+    # The EKS log group contains various sources from the K8S control plane.
+    # In order to have these automatically trigger the correct pipelines they
+    # need to send their events with the correct log source.
+    if metadata[DD_SOURCE] == "eks":
+        if logs["logStream"].startswith("kube-apiserver-audit-"):
+            metadata[DD_SOURCE] = "kubernetes.audit"
+        elif logs["logStream"].startswith("kube-scheduler-"):
+            metadata[DD_SOURCE] = "kube_scheduler"
+        # In case the conditions above don't match we maintain eks as the source
+
     # Create and send structured logs to Datadog
     for log in logs["logEvents"]:
         yield merge_dicts(log, aws_attributes)
