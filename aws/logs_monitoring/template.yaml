@@ -726,6 +726,15 @@ Outputs:
     Export:
       Name:
         Fn::Sub: ${AWS::StackName}-ForwarderArn
+  DatadogForwarderZipCopierArn:
+    Description: Datadog Forwarder Zip Copier Lambda Function ARN
+    Value:
+      Fn::GetAtt:
+        - ForwarderZipCopier
+        - Arn
+    Export:
+      Name:
+        Fn::Sub: ${AWS::StackName}-ForwarderZipCopierArn
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
