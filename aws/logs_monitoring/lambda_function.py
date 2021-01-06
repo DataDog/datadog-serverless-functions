@@ -635,8 +635,6 @@ def extract_trace_payload(event):
 
 def extract_metric(event):
     """Extract metric from an event if possible"""
-
-
     try:
         message = event["message"]
         if DD_LEGACY_MONITORING_LINE and message.strip().startswith("MONITORING|"):
