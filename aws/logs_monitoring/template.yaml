@@ -154,6 +154,14 @@ Parameters:
       - true
       - false
     Description: Set to true to deploy the Forwarder to a VPC and send logs, metrics, and traces via a proxy. When set to true, must also set VPCSecurityGroupIds and VPCSubnetIds.
+  DdParseLegacyMonitoringLogs:
+    Type: String
+    Default: false
+    AllowedValues:
+      - true
+      - false
+    Description: Set to true to enable the support for converting legacy MONITORING| formatted lines to distribution metrics. 
+
   VPCSecurityGroupIds:
     Type: CommaDelimitedList
     Default: ""
@@ -488,6 +496,11 @@ Resources:
               - SetDdTraceIntakeUrl
               - Ref: DdTraceIntakeUrl
               - Ref: AWS::NoValue
+          DD_PARSE_LEGACY_MONITORING_LOGS:
+            Fn::If:
+              - DdParseLegacyMonitoringLogs
+              - true
+              - false
       ReservedConcurrentExecutions:
         Ref: ReservedConcurrency
       PermissionsBoundary:
@@ -783,6 +796,7 @@ Metadata:
           - DdApiUrl
           - DdTraceIntakeUrl
           - AdditionalTargetLambdaArns
+          - DdParseLegacyMonitoringLogs
     ParameterLabels:
       DdApiKey:
         default: "DdApiKey *"

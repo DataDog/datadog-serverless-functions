@@ -56,7 +56,7 @@ from settings import (
     DD_ADDITIONAL_TARGET_LAMBDAS,
     DD_USE_VPC,
     DD_MAX_WORKERS,
-    DD_LEGACY_MONITORING_LINE,
+    DD_PARSE_LEGACY_MONITORING_LOGS,
 )
 
 
@@ -637,19 +637,20 @@ def extract_metric(event):
     """Extract metric from an event if possible"""
     try:
         message = event["message"]
-        if DD_LEGACY_MONITORING_LINE and message.strip().startswith("MONITORING|"):
+        # Legacy metric parsing, for easier migration to forwarder
+        if DD_PARSE_LEGACY_MONITORING_LOGS and message.strip().startswith("MONITORING|"):
             metric = extract_legacy_metric(message)
-            if metric:
-                return metric
-
-        metric = json.loads(message)
-        required_attrs = {"m", "v", "e", "t"}
-        if not all(attr in metric for attr in required_attrs):
-            return None
-        if not isinstance(metric["t"], list):
-            return None
-        if not (isinstance(metric["v"], int) or isinstance(metric["v"], float)):
-            return None
+            if not metric:
+                return None
+        else:
+            metric = json.loads(message)
+            required_attrs = {"m", "v", "e", "t"}
+            if not all(attr in metric for attr in required_attrs):
+                return None
+            if not isinstance(metric["t"], list):
+                return None
+            if not (isinstance(metric["v"], int) or isinstance(metric["v"], float)):
+                return None
 
         lambda_log_metadata = event.get("lambda", {})
         lambda_log_arn = lambda_log_metadata.get("arn")
