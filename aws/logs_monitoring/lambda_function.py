@@ -638,7 +638,9 @@ def extract_metric(event):
     try:
         message = event["message"]
         # Legacy metric parsing, for easier migration to forwarder
-        if DD_PARSE_LEGACY_MONITORING_LOGS and message.strip().startswith("MONITORING|"):
+        if DD_PARSE_LEGACY_MONITORING_LOGS and message.strip().startswith(
+            "MONITORING|"
+        ):
             metric = extract_legacy_metric(message)
             if not metric:
                 return None
@@ -663,20 +665,21 @@ def extract_metric(event):
     except Exception:
         return None
 
+
 def extract_legacy_metric(message):
     message = message.strip()
     values = message.split("|")
     if len(values) != 6:
         return None
     _, ts, value, type, name, tags = values
-    
+
     timestamp = int(float(ts))  # float to catch decimals
     # timestamp could be submitted in milliseconds, let's convert it back to seconds
     expected_len = len(str(int(time.time())))
     if len(str(timestamp)) == expected_len + 3:
         ts = int(str(timestamp)[:expected_len])
-    
-    tags = tags.strip('#').split(',')
+
+    tags = tags.strip("#").split(",")
     value = float(value)
     name = name + ".dist"
     return {
