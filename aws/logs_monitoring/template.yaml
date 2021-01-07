@@ -332,6 +332,10 @@ Conditions:
       - Fn::Equals:
           - Ref: DdTraceIntakeUrl
           - ""
+  SetDdParseLegacyMonitoringLogs:
+    Fn::Equals:
+      - Ref: DdParseLegacyMonitoringLogs
+      - true
 Resources:
   Forwarder:
     Type: AWS::Serverless::Function
@@ -498,7 +502,7 @@ Resources:
               - Ref: AWS::NoValue
           DD_PARSE_LEGACY_MONITORING_LOGS:
             Fn::If:
-              - DdParseLegacyMonitoringLogs
+              - SetDdParseLegacyMonitoringLogs
               - true
               - false
       ReservedConcurrentExecutions:
