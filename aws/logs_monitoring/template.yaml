@@ -160,7 +160,7 @@ Parameters:
     AllowedValues:
       - true
       - false
-    Description: Set to true to enable the support for converting legacy MONITORING| formatted lines to distribution metrics. 
+    Description: Set to true to enable the support for converting legacy MONITORING| formatted lines to distribution metrics. Metric names will have .dist appended.
 
   VPCSecurityGroupIds:
     Type: CommaDelimitedList
