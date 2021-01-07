@@ -1,0 +1,14 @@
+{
+    "messageType": "DATA_MESSAGE",
+    "owner": "601427279990",
+    "logGroup": "/aws/lambda/storms-cloudwatch-event",
+    "logStream": "2020/06/09/[$LATEST]b249865adaaf4fad80f95f8ad09725b8",
+    "subscriptionFilters": [
+      "myevent"
+    ],
+    "logEvents": [{
+        "id": "35903835830682871007042334764280625055966180753397841926",
+        "timestamp": 1609983680413,
+        "message": "MONITORING|1609983680.4133823|12|count|test_legacy_metric|#env:prod,event_name:\n"
+    }]
+}
