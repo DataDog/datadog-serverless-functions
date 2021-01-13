@@ -19,7 +19,7 @@ Parameters:
   DdSite:
     Type: String
     Default: datadoghq.com
-    Description: Define your Datadog Site to send data to. For the Datadog EU site, set to datadoghq.eu
+    Description: Define your Datadog Site to send data to. Possible values are `datadoghq.com`, `datadoghq.eu`, `us3.datadoghq.com` and `ddog-gov.com`.
     AllowedPattern: .+
     ConstraintDescription: DdSite is required
   FunctionName:

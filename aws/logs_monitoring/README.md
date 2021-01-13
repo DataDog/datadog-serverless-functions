@@ -232,8 +232,7 @@ The Datadog Forwarder is signed by Datadog. If you would like to verify the inte
 
 - `DdApiKey` - Your Datadog API Key. This can be found in Datadog, under Integrations > APIs > API Keys.
   The API Key will be stored in AWS Secrets Manager.
-- `DdSite` - The Datadog site that your metrics and logs will be sent to. Should either be `datadoghq.com`
-  or `datadoghq.eu`
+- `DdSite` - The Datadog site that your metrics and logs will be sent to. Possible values are `datadoghq.com`, `datadoghq.eu`, `us3.datadoghq.com` and `ddog-gov.com`.
 
 ### Lambda Function (Optional)
 
