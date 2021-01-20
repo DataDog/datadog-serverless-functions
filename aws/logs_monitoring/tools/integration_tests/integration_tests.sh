@@ -10,7 +10,7 @@ set -e
 PYTHON_VERSION="python3.7"
 SKIP_FORWARDER_BUILD=false
 UPDATE_SNAPSHOTS=false
-LOG_LEVEL=debug
+LOG_LEVEL=info
 LOGS_WAIT_SECONDS=10
 INTEGRATION_TESTS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 SNAPSHOTS_DIR_NAME="snapshots"
