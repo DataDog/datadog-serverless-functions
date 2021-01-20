@@ -56,7 +56,6 @@ from settings import (
     DD_ADDITIONAL_TARGET_LAMBDAS,
     DD_USE_VPC,
     DD_MAX_WORKERS,
-    DD_PARSE_LEGACY_MONITORING_LOGS,
 )
 
 
@@ -636,23 +635,14 @@ def extract_trace_payload(event):
 def extract_metric(event):
     """Extract metric from an event if possible"""
     try:
-        message = event["message"]
-        # Legacy metric parsing, for easier migration to forwarder
-        if DD_PARSE_LEGACY_MONITORING_LOGS and message.strip().startswith(
-            "MONITORING|"
-        ):
-            metric = extract_legacy_metric(message)
-            if not metric:
-                return None
-        else:
-            metric = json.loads(message)
-            required_attrs = {"m", "v", "e", "t"}
-            if not all(attr in metric for attr in required_attrs):
-                return None
-            if not isinstance(metric["t"], list):
-                return None
-            if not (isinstance(metric["v"], int) or isinstance(metric["v"], float)):
-                return None
+        metric = json.loads(event["message"])
+        required_attrs = {"m", "v", "e", "t"}
+        if not all(attr in metric for attr in required_attrs):
+            return None
+        if not isinstance(metric["t"], list):
+            return None
+        if not (isinstance(metric["v"], int) or isinstance(metric["v"], float)):
+            return None
 
         lambda_log_metadata = event.get("lambda", {})
         lambda_log_arn = lambda_log_metadata.get("arn")
@@ -664,30 +654,6 @@ def extract_metric(event):
         return metric
     except Exception:
         return None
-
-
-def extract_legacy_metric(message):
-    message = message.strip()
-    values = message.split("|")
-    if len(values) != 6:
-        return None
-    _, ts, value, type, name, tags = values
-
-    timestamp = int(float(ts))  # float to catch decimals
-    # timestamp could be submitted in milliseconds, let's convert it back to seconds
-    expected_len = len(str(int(time.time())))
-    if len(str(timestamp)) == expected_len + 3:
-        ts = int(str(timestamp)[:expected_len])
-
-    tags = tags.strip("#").split(",")
-    value = float(value)
-    name = name + ".dist"
-    return {
-        "m": name,
-        "v": value,
-        "e": timestamp,
-        "t": tags,
-    }
 
 
 def split(events):
