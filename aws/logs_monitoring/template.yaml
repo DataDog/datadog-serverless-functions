@@ -595,6 +595,24 @@ Resources:
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
+  ForwarderBucketPolicy:
+    Type: 'AWS::S3::BucketPolicy'
+    Properties:
+      Bucket: !Ref ForwarderBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowSSLRequestsOnly
+            Action:
+              - s3:*
+            Effect: Deny
+            Resource:
+              - !Sub "arn:aws:s3:::${ForwarderBucket}"
+              - !Sub "arn:aws:s3:::${ForwarderBucket}/*"
+            Condition:
+              Bool:
+                "aws:SecureTransport": "false"
+            Principal: "*"
   ForwarderZip:
     Type: Custom::ForwarderZip
     Properties:
