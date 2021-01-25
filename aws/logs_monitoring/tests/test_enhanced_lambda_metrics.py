@@ -1,10 +1,10 @@
 import unittest
-import mock
 import os
 from time import time
 from botocore.exceptions import ClientError
 
 from unittest.mock import patch
+from unittest import mock
 
 from enhanced_lambda_metrics import (
     sanitize_aws_tag_string,
