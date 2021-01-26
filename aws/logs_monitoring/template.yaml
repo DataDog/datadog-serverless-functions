@@ -607,8 +607,8 @@ Resources:
               - s3:*
             Effect: Deny
             Resource:
-              - !Sub "arn:aws:s3:::${ForwarderBucket}"
-              - !Sub "arn:aws:s3:::${ForwarderBucket}/*"
+              - !Sub "${ForwarderBucket.Arn}"
+              - !Sub "${ForwarderBucket.Arn}/*"
             Condition:
               Bool:
                 "aws:SecureTransport": "false"
