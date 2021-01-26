@@ -17,6 +17,7 @@ from StringIO import StringIO
 from collections import defaultdict, Counter
 
 import boto3
+import botocore
 
 print('Loading function')
 
@@ -25,7 +26,21 @@ DD_SITE = os.getenv("DD_SITE", default="datadoghq.com")
 # retrieve datadog options from KMS
 KMS_ENCRYPTED_KEYS = os.environ['kmsEncryptedKeys']
 kms = boto3.client('kms')
-datadog_keys = json.loads(kms.decrypt(CiphertextBlob=b64decode(KMS_ENCRYPTED_KEYS))['Plaintext'])
+
+try:
+    decrypted = kms.decrypt(
+        CiphertextBlob=b64decode(KMS_ENCRYPTED_KEYS),
+        EncryptionContext={'LambdaFunctionName': os.environ['AWS_LAMBDA_FUNCTION_NAME']},
+    )['Plaintext']
+except botocore.exceptions.ClientError:
+    decrypted = kms.decrypt(
+        CiphertextBlob=b64decode(KMS_ENCRYPTED_KEYS),
+    )['Plaintext']
+
+try:
+    datadog_keys = json.loads(decrypted)
+except ValueError:
+    datadog_keys = json.loads()
 
 # Alternatively set datadog keys directly
 # datadog_keys = {
