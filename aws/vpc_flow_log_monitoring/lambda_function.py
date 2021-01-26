@@ -37,10 +37,7 @@ except botocore.exceptions.ClientError:
         CiphertextBlob=b64decode(KMS_ENCRYPTED_KEYS),
     )['Plaintext']
 
-try:
-    datadog_keys = json.loads(decrypted)
-except ValueError:
-    datadog_keys = json.loads()
+datadog_keys = json.loads(decrypted)
 
 # Alternatively set datadog keys directly
 # datadog_keys = {
