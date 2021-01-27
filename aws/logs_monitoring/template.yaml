@@ -569,6 +569,24 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: "s3.amazonaws.com"
       SourceAccount: !Ref "AWS::AccountId"
+  SNSPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref "Forwarder"
+      Action: lambda:InvokeFunction
+      Principal: "sns.amazonaws.com"
+      SourceAccount: !Ref "AWS::AccountId"
+  CloudWatchEventsPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref "Forwarder"
+      Action: lambda:InvokeFunction
+      Principal:
+        Fn::If:
+          - IsAWSChina
+          - "events.amazonaws.com.cn"
+          - "events.amazonaws.com"
+      SourceAccount: !Ref "AWS::AccountId"
   LogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
