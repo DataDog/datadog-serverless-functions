@@ -6,6 +6,7 @@ import json
 import re
 import gzip
 from time import sleep
+from deepdiff import DeepDiff
 
 recorder_url = os.environ.get("RECORDER_URL", default="")
 forwarder_url = os.environ.get("FORWARDER_URL", default="")
@@ -88,7 +89,8 @@ class TestForwarderSnapshots(unittest.TestCase):
                 # snapshot_file.write(json.dumps(output_data, indent=2))
         else:
             message = f"Snapshots didn't match for {input_filename}. To update run `integration_tests.sh --update`."
-            self.assertEqual(output_data, snapshot_data, message)
+            d = DeepDiff(snapshot_data, output_data)
+            self.assertFalse(d, message)
             pass
 
     def setUp(self):
