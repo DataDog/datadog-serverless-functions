@@ -116,6 +116,11 @@ exclude_regex = compileRegex("EXCLUDE_AT_MATCH", EXCLUDE_AT_MATCH)
 
 rds_regex = re.compile("/aws/rds/(instance|cluster)/(?P<host>[^/]+)/(?P<name>[^/]+)")
 
+HOST_IDENTITY_REGEXP = re.compile(
+    r"^arn:aws:sts::.*?:assumed-role\/(?P<role>.*?)/(?P<host>i-[0-9a-f]{17})$"
+)
+
+
 if DD_MULTILINE_LOG_REGEX_PATTERN:
     try:
         multiline_regex = re.compile(
@@ -528,6 +533,30 @@ def extract_ddtags_from_message(event):
         event[DD_CUSTOM_TAGS] = f"{event[DD_CUSTOM_TAGS]},{extracted_ddtags}"
 
 
+def extract_arn_hostname(message):
+    """Extract the hostname from userIdentity.arn field if it matches AWS hostnames
+
+    >>> extract_arn_hostname(json.dumps(
+    >>> {"usertIdentity": {"arn": "arn:aws:sts::123456789123:assumed-role/DatadogAWSIntegrationRole/i-08014e4f62ccf762d"}})
+    >>> )
+    i-0123456789abcdef0
+    >>> extract_arn_hostname({"message": "test"})
+    None
+    """
+    if message is not None:
+        if isinstance(message, str):
+            try:
+                message = json.loads(message)
+            except json.JSONDecodeError:
+                return None
+        useridentify_arn = message.get("userIdentity", {}).get("arn")
+        if useridentify_arn is not None:
+            match = HOST_IDENTITY_REGEXP.match(useridentify_arn)
+            if match is not None:
+                return match.group("host")
+    return None
+
+
 def add_metadata_to_lambda_log(event):
     """Mutate log dict to add tags, host, and service metadata
 
@@ -760,12 +789,21 @@ def normalize_events(events, metadata):
     for event in events:
         events_counter += 1
         if isinstance(event, dict):
-            normalized.append(merge_dicts(event, metadata))
+            normalized_event = merge_dicts(event, metadata)
         elif isinstance(event, str):
-            normalized.append(merge_dicts({"message": event}, metadata))
+            normalized_event = merge_dicts({"message": event}, metadata)
         else:
             # drop this log
             continue
+
+        # in case it's a cloudtrail event replace the hostname with the
+        # hostname in the ARN if available.
+        if normalized_event.get(DD_SOURCE) == "cloudtrail":
+            extracted_arn_hostname = extract_arn_hostname(normalized_event["message"])
+            if extracted_arn_hostname is not None:
+                normalized_event[DD_HOST] = extracted_arn_hostname
+
+        normalized.append(normalized_event)
 
     """Submit count of total events"""
     lambda_stats.distribution(
