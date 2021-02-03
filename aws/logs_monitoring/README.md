@@ -292,6 +292,8 @@ The Datadog Forwarder is signed by Datadog. If you would like to verify the inte
 - `IncludeAtMatch` - Only send logs matching the supplied regular expression and not excluded by
   ExcludeAtMatch. Note, using inefficient regular expression, such as `.*`, may slow down the Lambda function.
 
+**Note:** To debug these regular expressions against your logs, turn on [debug logs](#troubleshooting).
+
 ### Advanced (Optional)
 
 - `SourceZipUrl` - DO NOT CHANGE unless you know what you are doing. Override the default location of

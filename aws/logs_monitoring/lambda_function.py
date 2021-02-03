@@ -694,13 +694,13 @@ def filter_logs(logs):
         try:
             if EXCLUDE_AT_MATCH is not None:
                 # if an exclude match is found, do not add log to logs_to_send
-                logger.debug(f"Applying EXCLUDE_AT_MATCH: {exclude_regex}")
+                logger.debug(f"Applying EXCLUDE_AT_MATCH: {EXCLUDE_AT_MATCH}")
                 if re.search(exclude_regex, log):
                     logger.debug("Exclude regex matched, excluding log event")
                     continue
             if INCLUDE_AT_MATCH is not None:
                 # if no include match is found, do not add log to logs_to_send
-                logger.debug(f"Applying INCLUDE_AT_MATCH: {include_regex}")
+                logger.debug(f"Applying INCLUDE_AT_MATCH: {INCLUDE_AT_MATCH}")
                 if not re.search(include_regex, log):
                     logger.debug("Include regex did not match, excluding log event")
                     continue
