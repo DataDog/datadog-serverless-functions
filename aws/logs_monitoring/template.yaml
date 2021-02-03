@@ -4,7 +4,7 @@ Description: Pushes logs, metrics and traces from AWS to Datadog.
 Mappings:
   Constants:
     DdForwarder:
-      Version: 3.28.0
+      Version: 3.28.3
 Parameters:
   DdApiKey:
     Type: String
@@ -569,6 +569,24 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: "s3.amazonaws.com"
       SourceAccount: !Ref "AWS::AccountId"
+  SNSPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref "Forwarder"
+      Action: lambda:InvokeFunction
+      Principal: "sns.amazonaws.com"
+      SourceAccount: !Ref "AWS::AccountId"
+  CloudWatchEventsPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref "Forwarder"
+      Action: lambda:InvokeFunction
+      Principal:
+        Fn::If:
+          - IsAWSChina
+          - "events.amazonaws.com.cn"
+          - "events.amazonaws.com"
+      SourceAccount: !Ref "AWS::AccountId"
   LogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
@@ -595,6 +613,24 @@ Resources:
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
+  ForwarderBucketPolicy:
+    Type: 'AWS::S3::BucketPolicy'
+    Properties:
+      Bucket: !Ref ForwarderBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowSSLRequestsOnly
+            Action:
+              - s3:*
+            Effect: Deny
+            Resource:
+              - !Sub "${ForwarderBucket.Arn}"
+              - !Sub "${ForwarderBucket.Arn}/*"
+            Condition:
+              Bool:
+                "aws:SecureTransport": "false"
+            Principal: "*"
   ForwarderZip:
     Type: Custom::ForwarderZip
     Properties:
