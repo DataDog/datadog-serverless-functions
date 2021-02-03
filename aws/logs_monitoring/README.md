@@ -286,11 +286,13 @@ The Datadog Forwarder is signed by Datadog. If you would like to verify the inte
 ### Log Filtering (Optional)
 
 - `ExcludeAtMatch` - DO NOT send logs matching the supplied regular expression. If a log matches both
-  the ExcludeAtMatch and IncludeAtMatch, it is excluded. Filtering rules are applied to the full
-  JSON-formatted log, including any metadata that is automatically added by the function. Note, using
-  inefficient regular expression, such as `.*`, may slow down the Lambda function.
+  the ExcludeAtMatch and IncludeAtMatch, it is excluded.
 - `IncludeAtMatch` - Only send logs matching the supplied regular expression and not excluded by
-  ExcludeAtMatch. Note, using inefficient regular expression, such as `.*`, may slow down the Lambda function.
+  ExcludeAtMatch.
+
+Filtering rules are applied to the full JSON-formatted log, including any metadata that is automatically
+added by the Forwarder. Using an inefficient regular expression, such as `.*`, may slow down the Forwarder.
+To debug these regular expressions against your logs, turn on [debug logs](#troubleshooting).
 
 ### Advanced (Optional)
 
