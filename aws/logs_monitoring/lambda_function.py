@@ -684,20 +684,25 @@ def filter_logs(logs):
     If no filtering rules exist, return all the logs.
     """
     if INCLUDE_AT_MATCH is None and EXCLUDE_AT_MATCH is None:
-        # convert to strings
         return logs
     # Add logs that should be sent to logs_to_send
     logs_to_send = []
-    # Test each log for exclusion and inclusion, if the criteria exist
     for log in logs:
+        if EXCLUDE_AT_MATCH is not None or INCLUDE_AT_MATCH is not None:
+            logger.debug("Filtering log event:")
+            logger.debug(log)
         try:
             if EXCLUDE_AT_MATCH is not None:
                 # if an exclude match is found, do not add log to logs_to_send
+                logger.debug(f"Applying EXCLUDE_AT_MATCH: {exclude_regex}")
                 if re.search(exclude_regex, log):
+                    logger.debug("Exclude regex matched, excluding log event")
                     continue
             if INCLUDE_AT_MATCH is not None:
                 # if no include match is found, do not add log to logs_to_send
+                logger.debug(f"Applying INCLUDE_AT_MATCH: {include_regex}")
                 if not re.search(include_regex, log):
+                    logger.debug("Include regex did not match, excluding log event")
                     continue
             logs_to_send.append(log)
         except ScrubbingException:
