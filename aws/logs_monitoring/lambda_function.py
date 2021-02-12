@@ -20,6 +20,7 @@ import ssl
 import logging
 from io import BytesIO, BufferedReader
 import time
+import requests
 from requests_futures.sessions import FuturesSession
 
 from datadog_lambda.wrapper import datadog_lambda_wrapper
@@ -62,17 +63,6 @@ from settings import (
 logger = logging.getLogger()
 logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
 
-try:
-    import requests
-except ImportError:
-    logger.error(
-        "Could not import the 'requests' package, please ensure the Datadog "
-        "Lambda Layer is installed. https://dtdg.co/forwarder-layer"
-    )
-    # Fallback to the botocore vendored version of requests, while ensuring
-    # customers have the Datadog Lambda Layer installed. The vendored version
-    # of requests is removed in botocore 1.13.x.
-    from botocore.vendored import requests
 
 # DD_API_KEY must be set
 if DD_API_KEY == "<YOUR_DATADOG_API_KEY>" or DD_API_KEY == "":
