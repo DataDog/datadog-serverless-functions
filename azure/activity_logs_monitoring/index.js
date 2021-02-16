@@ -276,11 +276,12 @@ class EventhubLogForwarder {
             ])
             .filter(Boolean)
             .join(',');
+        record['host'] = metadata.host;
         return record;
     }
 
     addTagsToStringLog(stringLog) {
-        var jsonLog = { message: stringLog };
+        var jsonLog = {message: stringLog};
         return this.addTagsToJsonLog(jsonLog);
     }
 
@@ -306,7 +307,7 @@ class EventhubLogForwarder {
     }
 
     extractMetadataFromResource(record) {
-        var metadata = { tags: [], source: '' };
+        var metadata = {tags: [], source: '', host: ''};
         if (
             record.resourceId === undefined ||
             typeof record.resourceId !== 'string'
@@ -341,6 +342,9 @@ class EventhubLogForwarder {
             }
             if (resourceId.length > 5 && this.isSource(resourceId[5])) {
                 metadata.source = this.formatSourceType(resourceId[5]);
+                const resourceName = resourceId[resourceId.length - 1];
+                metadata.host = resourceName;
+                metadata.tags.push('name:' + resourceName);
             }
         } else if (resourceId[0] === 'tenants') {
             if (resourceId.length > 3 && resourceId[3]) {
@@ -355,7 +359,7 @@ class EventhubLogForwarder {
     }
 }
 
-module.exports = async function(context, eventHubMessages) {
+module.exports = async function (context, eventHubMessages) {
     if (!DD_API_KEY || DD_API_KEY === '<DATADOG_API_KEY>') {
         context.log.error(
             'You must configure your API key before starting this function (see ## Parameters section)'
