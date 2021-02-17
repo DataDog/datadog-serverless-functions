@@ -117,7 +117,7 @@ exclude_regex = compileRegex("EXCLUDE_AT_MATCH", EXCLUDE_AT_MATCH)
 rds_regex = re.compile("/aws/rds/(instance|cluster)/(?P<host>[^/]+)/(?P<name>[^/]+)")
 
 HOST_IDENTITY_REGEXP = re.compile(
-    r"^arn:aws:sts::.*?:assumed-role\/(?P<role>.*?)/(?P<host>i-[0-9a-f]{17})$"
+    r"^arn:aws:sts::.*?:assumed-role\/(?P<role>.*?)/(?P<host>i-([0-9a-f]{8}|[0-9a-f]{17}))$"
 )
 
 
