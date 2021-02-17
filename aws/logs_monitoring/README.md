@@ -193,9 +193,9 @@ We love pull requests. Here's a quick guide.
 
 ## Advanced
 
-### Shipping logs to other lambda functions
+### Shipping Logs to Multiple Destinations
 
-You can ship logs to other Lambda functions using the `AdditionalTargetLambdaARNs` Cloudformation parameter. These additional Lambda functions will be called asynchronously with the same `event` the Datadog Forwarder receives.
+If you need to ship logs to multiple Datadog organizations or other destinations, configure the `AdditionalTargetLambdaARNs` Cloudformation parameter to let the Datadog Forwarder copy the incoming logs to the specified Lambda functions. These additional Lambda functions will be called asynchronously with the exact same `event` the Datadog Forwarder receives.
 
 ### AWS PrivateLink Support
 
