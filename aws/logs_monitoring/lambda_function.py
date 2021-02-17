@@ -799,7 +799,7 @@ def normalize_events(events, metadata):
         # in case it's a cloudtrail event replace the hostname with the
         # hostname in the ARN if available.
         if normalized_event.get(DD_SOURCE) == "cloudtrail":
-            extracted_arn_hostname = extract_arn_hostname(normalized_event["message"])
+            extracted_arn_hostname = extract_arn_hostname(normalized_event)
             if extracted_arn_hostname is not None:
                 normalized_event[DD_HOST] = extracted_arn_hostname
 
