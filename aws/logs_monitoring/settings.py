@@ -184,22 +184,26 @@ EXCLUDE_AT_MATCH = get_env_var("EXCLUDE_AT_MATCH", default=None)
 # DD API Key
 if "DD_API_KEY_SECRET_ARN" in os.environ:
     SECRET_ARN = os.environ["DD_API_KEY_SECRET_ARN"]
+    logger.debug(f"Fetching the Datadog API key from SecretsManager: {SECRET_ARN}")
     DD_API_KEY = boto3.client("secretsmanager").get_secret_value(SecretId=SECRET_ARN)[
         "SecretString"
     ]
 elif "DD_API_KEY_SSM_NAME" in os.environ:
     SECRET_NAME = os.environ["DD_API_KEY_SSM_NAME"]
+    logger.debug(f"Fetching the Datadog API key from SSM: {SECRET_NAME}")
     DD_API_KEY = boto3.client("ssm").get_parameter(
         Name=SECRET_NAME, WithDecryption=True
     )["Parameter"]["Value"]
 elif "DD_KMS_API_KEY" in os.environ:
     ENCRYPTED = os.environ["DD_KMS_API_KEY"]
+    logger.debug(f"Fetching the Datadog API key from KMS: {ENCRYPTED}")
     DD_API_KEY = boto3.client("kms").decrypt(
         CiphertextBlob=base64.b64decode(ENCRYPTED)
     )["Plaintext"]
     if type(DD_API_KEY) is bytes:
         DD_API_KEY = DD_API_KEY.decode("utf-8")
 elif "DD_API_KEY" in os.environ:
+    logger.debug("Fetching the Datadog API key from environment variable DD_API_KEY")
     DD_API_KEY = os.environ["DD_API_KEY"]
 
 # Strip any trailing and leading whitespace from the API key
