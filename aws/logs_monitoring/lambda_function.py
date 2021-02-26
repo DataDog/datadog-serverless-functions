@@ -74,9 +74,11 @@ if len(DD_API_KEY) != 32:
         "Please confirm that your API key is correct"
     )
 # Validate the API key
+logger.debug("Validating the Datadog API key")
 validation_res = requests.get(
     "{}/api/v1/validate?api_key={}".format(DD_API_URL, DD_API_KEY),
     verify=(not DD_SKIP_SSL_VALIDATION),
+    timeout=10,
 )
 if not validation_res.ok:
     raise Exception("The API key is not valid.")
@@ -376,6 +378,7 @@ def datadog_forwarder(event, context):
     """The actual lambda function entry point"""
     if logger.isEnabledFor(logging.DEBUG):
         logger.debug(f"Received Event:{json.dumps(event)}")
+        logger.debug(f"Forwarder version: {DD_FORWARDER_VERSION}")
 
     if DD_ADDITIONAL_TARGET_LAMBDAS:
         invoke_additional_target_lambdas(event)
