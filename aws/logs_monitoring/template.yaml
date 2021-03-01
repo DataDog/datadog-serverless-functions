@@ -762,6 +762,14 @@ Outputs:
     Export:
       Name:
         Fn::Sub: ${AWS::StackName}-ForwarderArn
+  DdApiKeySecretArn:
+    Description: ARN of SecretsManager Secret with Datadog API Key
+    Value:
+      Ref: DdApiKeySecret
+    Export:
+      Name:
+        Fn::Sub: ${AWS::StackName}-ApiKeySecretArn
+    Condition: CreateDdApiKeySecret
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
