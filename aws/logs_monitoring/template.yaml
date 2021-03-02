@@ -527,7 +527,7 @@ Resources:
                 Fn::If:
                   - CreateDdApiKeySecret
                   - Ref: DdApiKeySecret
-                  - Ref: DdApiKeySecretArn
+                  - !Sub "${DdApiKeySecretArn}*"
             - !If
               - SetDdFetchLambdaTags
               - Effect: Allow
