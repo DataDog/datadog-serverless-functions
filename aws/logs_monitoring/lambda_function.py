@@ -786,13 +786,12 @@ def normalize_events(events, metadata):
     for event in events:
         events_counter += 1
         if isinstance(event, dict):
-            normalized_event = merge_dicts(event, metadata)
+            normalized.append(merge_dicts(event, metadata))
         elif isinstance(event, str):
-            normalized_event = merge_dicts({"message": event}, metadata)
+            normalized.append(merge_dicts({"message": event}, metadata))
         else:
             # drop this log
             continue
-        normalized.append(normalized_event)
 
     """Submit count of total events"""
     lambda_stats.distribution(
