@@ -7,6 +7,7 @@ import base64
 import os
 
 import boto3
+import botocore.config
 import logging
 import re
 
@@ -181,23 +182,27 @@ SCRUBBING_RULE_CONFIGS = [
 INCLUDE_AT_MATCH = get_env_var("INCLUDE_AT_MATCH", default=None)
 EXCLUDE_AT_MATCH = get_env_var("EXCLUDE_AT_MATCH", default=None)
 
+# Set boto3 timeout
+boto3_config = botocore.config.Config(
+    connect_timeout=5, read_timeout=5, retries={"max_attempts": 2}
+)
 # DD API Key
 if "DD_API_KEY_SECRET_ARN" in os.environ:
     SECRET_ARN = os.environ["DD_API_KEY_SECRET_ARN"]
     logger.debug(f"Fetching the Datadog API key from SecretsManager: {SECRET_ARN}")
-    DD_API_KEY = boto3.client("secretsmanager").get_secret_value(SecretId=SECRET_ARN)[
-        "SecretString"
-    ]
+    DD_API_KEY = boto3.client("secretsmanager", config=boto3_config).get_secret_value(
+        SecretId=SECRET_ARN
+    )["SecretString"]
 elif "DD_API_KEY_SSM_NAME" in os.environ:
     SECRET_NAME = os.environ["DD_API_KEY_SSM_NAME"]
     logger.debug(f"Fetching the Datadog API key from SSM: {SECRET_NAME}")
-    DD_API_KEY = boto3.client("ssm").get_parameter(
+    DD_API_KEY = boto3.client("ssm", config=boto3_config).get_parameter(
         Name=SECRET_NAME, WithDecryption=True
     )["Parameter"]["Value"]
 elif "DD_KMS_API_KEY" in os.environ:
     ENCRYPTED = os.environ["DD_KMS_API_KEY"]
     logger.debug(f"Fetching the Datadog API key from KMS: {ENCRYPTED}")
-    DD_API_KEY = boto3.client("kms").decrypt(
+    DD_API_KEY = boto3.client("kms", config=boto3_config).decrypt(
         CiphertextBlob=base64.b64decode(ENCRYPTED)
     )["Plaintext"]
     if type(DD_API_KEY) is bytes:
