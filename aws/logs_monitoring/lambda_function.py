@@ -116,6 +116,11 @@ exclude_regex = compileRegex("EXCLUDE_AT_MATCH", EXCLUDE_AT_MATCH)
 
 rds_regex = re.compile("/aws/rds/(instance|cluster)/(?P<host>[^/]+)/(?P<name>[^/]+)")
 
+HOST_IDENTITY_REGEXP = re.compile(
+    r"^arn:aws:sts::.*?:assumed-role\/(?P<role>.*?)/(?P<host>i-([0-9a-f]{8}|[0-9a-f]{17}))$"
+)
+
+
 if DD_MULTILINE_LOG_REGEX_PATTERN:
     try:
         multiline_regex = re.compile(
@@ -485,6 +490,7 @@ def enrich(events):
     for event in events:
         add_metadata_to_lambda_log(event)
         extract_ddtags_from_message(event)
+        extract_host_from_cloudtrails(event)
 
     return events
 
@@ -526,6 +532,27 @@ def extract_ddtags_from_message(event):
                     logger.debug(f"Failed to extract ddtags from: {event}")
                 return
         event[DD_CUSTOM_TAGS] = f"{event[DD_CUSTOM_TAGS]},{extracted_ddtags}"
+
+
+def extract_host_from_cloudtrails(event):
+    """Extract the hostname from cloudtrail events userIdentity.arn field if it
+    matches AWS hostnames.
+    """
+    if event is not None and event.get(DD_SOURCE) == "cloudtrail":
+        message = event.get("message", {})
+        if isinstance(message, str):
+            try:
+                message = json.loads(message)
+            except json.JSONDecodeError:
+                logger.debug("Failed to decode cloudtrail message")
+                return
+
+        if isinstance(message, dict):
+            arn = message.get("userIdentity", {}).get("arn")
+            if arn is not None:
+                match = HOST_IDENTITY_REGEXP.match(arn)
+                if match is not None:
+                    event[DD_HOST] = match.group("host")
 
 
 def add_metadata_to_lambda_log(event):

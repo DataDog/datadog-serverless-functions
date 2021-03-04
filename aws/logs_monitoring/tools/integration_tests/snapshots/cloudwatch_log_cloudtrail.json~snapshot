@@ -59,6 +59,25 @@
           "message": "{\"eventVersion\":\"1.05\",\"userIdentity\":{\"type\":\"AssumedRole\",\"principalId\":\"AROA55TKTI7VKCG3ZB64V:DatadogAWSIntegration\",\"arn\":\"arn:aws:sts::123456789123:assumed-role/DatadogAWSIntegrationRole/DatadogAWSIntegration\",\"accountId\":\"123456789123\",\"accessKeyId\":\"ASIA55TKTI7VANF3DEVD\",\"sessionContext\":{\"sessionIssuer\":{\"type\":\"Role\",\"principalId\":\"AROA55TKTI7VKCG3ZB64V\",\"arn\":\"arn:aws:iam::123456789123:role/DatadogAWSIntegrationRole\",\"accountId\":\"123456789123\",\"userName\":\"DatadogAWSIntegrationRole\"},\"webIdFederationData\":{},\"attributes\":{\"mfaAuthenticated\":\"false\",\"creationDate\":\"2020-09-17T16:29:28Z\"}}},\"eventTime\":\"2020-09-17T16:44:10Z\",\"eventSource\":\"logs.amazonaws.com\",\"eventName\":\"DescribeLogStreams\",\"awsRegion\":\"us-east-1\",\"sourceIPAddress\":\"54.161.67.200\",\"userAgent\":\"Datadog\",\"requestParameters\":{\"logGroupName\":\"/aws/lambda/hello-dog-node-dev-hello10x\",\"descending\":true,\"orderBy\":\"LastEventTime\"},\"responseElements\":null,\"requestID\":\"<redacted from snapshot>\",\"eventID\":\"<redacted from snapshot>\",\"eventType\":\"AwsApiCall\",\"apiVersion\":\"20140328\",\"recipientAccountId\":\"123456789123\"}",
           "service": "cloudtrail",
           "timestamp": 1600361930988
+        },
+        {
+          "aws": {
+            "awslogs": {
+              "logGroup": "aws-cloudtrail-logs-123456789123-c81b5193",
+              "logStream": "123456789123_CloudTrail_us-east-1",
+              "owner": "123456789123"
+            },
+            "function_version": "$LATEST",
+            "invoked_function_arn": "arn:aws:lambda:us-east-1:0000000000:function:test"
+          },
+          "ddsource": "cloudtrail",
+          "ddsourcecategory": "aws",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>",
+          "host": "i-08014e4f62ccf762d",
+          "id": "35689263648391837472973739781728019701390240798247944195",
+          "message": "{\"eventVersion\":\"1.05\",\"userIdentity\":{\"type\":\"AssumedRole\",\"principalId\":\"AROA55TKTI7VKCG3ZB64V:DatadogAWSIntegration\",\"arn\":\"arn:aws:sts::123456789123:assumed-role/DatadogAWSIntegrationRole/i-08014e4f62ccf762d\",\"accountId\":\"123456789123\",\"accessKeyId\":\"ASIA55TKTI7VANF3DEVD\",\"sessionContext\":{\"sessionIssuer\":{\"type\":\"Role\",\"principalId\":\"AROA55TKTI7VKCG3ZB64V\",\"arn\":\"arn:aws:iam::123456789123:role/DatadogAWSIntegrationRole\",\"accountId\":\"123456789123\",\"userName\":\"DatadogAWSIntegrationRole\"},\"webIdFederationData\":{},\"attributes\":{\"mfaAuthenticated\":\"false\",\"creationDate\":\"2020-09-17T16:29:28Z\"}}},\"eventTime\":\"2020-09-17T16:44:10Z\",\"eventSource\":\"logs.amazonaws.com\",\"eventName\":\"DescribeLogStreams\",\"awsRegion\":\"us-east-1\",\"sourceIPAddress\":\"54.161.67.200\",\"userAgent\":\"Datadog\",\"requestParameters\":{\"logGroupName\":\"/aws/lambda/hello-dog-node-dev-hello10x\",\"descending\":true,\"orderBy\":\"LastEventTime\"},\"responseElements\":null,\"requestID\":\"<redacted from snapshot>\",\"eventID\":\"<redacted from snapshot>\",\"eventType\":\"AwsApiCall\",\"apiVersion\":\"20140328\",\"recipientAccountId\":\"123456789123\"}",
+          "service": "cloudtrail",
+          "timestamp": 1600361930988
         }
       ],
       "path": "/v1/input/abcdefghijklmnopqrstuvwxyz012345",
