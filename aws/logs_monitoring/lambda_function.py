@@ -544,6 +544,7 @@ def extract_host_from_cloudtrails(event):
             try:
                 message = json.loads(message)
             except json.JSONDecodeError:
+                logger.debug("Failed to decode cloudtrail message")
                 return
 
         if isinstance(message, dict):
