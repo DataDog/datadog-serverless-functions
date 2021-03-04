@@ -490,6 +490,7 @@ def enrich(events):
     for event in events:
         add_metadata_to_lambda_log(event)
         extract_ddtags_from_message(event)
+        extract_host_from_cloudtrails(event)
 
     return events
 
@@ -533,28 +534,24 @@ def extract_ddtags_from_message(event):
         event[DD_CUSTOM_TAGS] = f"{event[DD_CUSTOM_TAGS]},{extracted_ddtags}"
 
 
-def extract_arn_hostname(message):
-    """Extract the hostname from userIdentity.arn field if it matches AWS hostnames
-
-    >>> extract_arn_hostname(json.dumps(
-    >>> {"usertIdentity": {"arn": "arn:aws:sts::123456789123:assumed-role/DatadogAWSIntegrationRole/i-08014e4f62ccf762d"}})
-    >>> )
-    i-0123456789abcdef0
-    >>> extract_arn_hostname({"message": "test"})
-    None
+def extract_host_from_cloudtrails(event):
+    """Extract the hostname from cloudtrail events userIdentity.arn field if it
+    matches AWS hostnames.
     """
-    if message is not None:
+    if event is not None and event.get(DD_SOURCE) == "cloudtrail":
+        message = event.get("message", {})
         if isinstance(message, str):
             try:
                 message = json.loads(message)
             except json.JSONDecodeError:
-                return None
-        useridentify_arn = message.get("userIdentity", {}).get("arn")
-        if useridentify_arn is not None:
-            match = HOST_IDENTITY_REGEXP.match(useridentify_arn)
-            if match is not None:
-                return match.group("host")
-    return None
+                return
+
+        if isinstance(message, dict):
+            arn = message.get("userIdentity", {}).get("arn")
+            if arn is not None:
+                match = HOST_IDENTITY_REGEXP.match(arn)
+                if match is not None:
+                    event[DD_HOST] = match.group("host")
 
 
 def add_metadata_to_lambda_log(event):
@@ -795,14 +792,6 @@ def normalize_events(events, metadata):
         else:
             # drop this log
             continue
-
-        # in case it's a cloudtrail event replace the hostname with the
-        # hostname in the ARN if available.
-        if normalized_event.get(DD_SOURCE) == "cloudtrail":
-            extracted_arn_hostname = extract_arn_hostname(normalized_event)
-            if extracted_arn_hostname is not None:
-                normalized_event[DD_HOST] = extracted_arn_hostname
-
         normalized.append(normalized_event)
 
     """Submit count of total events"""
