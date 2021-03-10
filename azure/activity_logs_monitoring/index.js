@@ -174,7 +174,7 @@ class EventhubLogForwarder {
                 promises = this.handleJSONArrayLogs(logs, JSON_ARRAY);
                 break;
             case BUFFER_ARRAY:
-                this.handleJSONArrayLogs(logs, BUFFER_ARRAY);
+                promises = this.handleJSONArrayLogs(logs, BUFFER_ARRAY);
                 break;
             case JSON_STRING_ARRAY:
                 promises = this.handleJSONArrayLogs(logs, JSON_STRING_ARRAY);
