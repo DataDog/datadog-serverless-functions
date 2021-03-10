@@ -5,7 +5,7 @@
 
 var https = require('https');
 
-const VERSION = '0.2.1';
+const VERSION = '0.2.2';
 
 const STRING = 'string'; // example: 'some message'
 const STRING_ARRAY = 'string-array'; // example: ['one message', 'two message', ...]
@@ -174,7 +174,7 @@ class EventhubLogForwarder {
                 promises = this.handleJSONArrayLogs(logs, JSON_ARRAY);
                 break;
             case BUFFER_ARRAY:
-                this.handleJSONArrayLogs(logs, BUFFER_ARRAY);
+                promises = this.handleJSONArrayLogs(logs, BUFFER_ARRAY);
                 break;
             case JSON_STRING_ARRAY:
                 promises = this.handleJSONArrayLogs(logs, JSON_STRING_ARRAY);
@@ -189,7 +189,8 @@ class EventhubLogForwarder {
 
     handleJSONArrayLogs(logs, logsType) {
         var promises = [];
-        logs.forEach(message => {
+        for (var i = 0; i < logs.length; i++) {
+            var message = logs[i];
             if (logsType == JSON_STRING_ARRAY) {
                 try {
                     message = JSON.parse(message);
@@ -198,7 +199,7 @@ class EventhubLogForwarder {
                         'log is malformed json, sending as string'
                     );
                     promises.push(this.formatLogAndSend(STRING_TYPE, message));
-                    return;
+                    continue;
                 }
             }
             // If the message is a buffer object, the data type has been set to binary.
@@ -212,7 +213,7 @@ class EventhubLogForwarder {
                     promises.push(
                         this.formatLogAndSend(STRING_TYPE, message.toString())
                     );
-                    return;
+                    continue;
                 }
             }
             if (message.records != undefined) {
@@ -220,9 +221,9 @@ class EventhubLogForwarder {
                     promises.push(this.formatLogAndSend(JSON_TYPE, message))
                 );
             } else {
-                this.formatLogAndSend(JSON_TYPE, message);
+                promises.push(this.formatLogAndSend(JSON_TYPE, message));
             }
-        });
+        }
         return promises;
     }
 
