@@ -1096,7 +1096,7 @@ def find_cloudwatch_source(log_group):
         "fargate",
         "cloudtrail",
         "msk",
-        "elasticsearch"
+        "elasticsearch",
     ]:
         if source in log_group:
             return source

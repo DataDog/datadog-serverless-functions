@@ -198,7 +198,8 @@ class TestParseEventSource(unittest.TestCase):
 
     def test_elasticsearch_event(self):
         self.assertEqual(
-            parse_event_source({"awslogs": "logs"}, "/elasticsearch/domain"), "elasticsearch"
+            parse_event_source({"awslogs": "logs"}, "/elasticsearch/domain"),
+            "elasticsearch",
         )
 
     def test_msk_event(self):
