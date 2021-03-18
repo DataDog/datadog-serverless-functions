@@ -11,10 +11,7 @@ import botocore.config
 import logging
 import re
 
-
 logger = logging.getLogger()
-logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
-
 
 def get_env_var(envvar, default, boolean=False):
     """
