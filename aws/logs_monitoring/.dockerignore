@@ -1,6 +1,9 @@
 *
 !lambda_function.py
 !enhanced_lambda_metrics.py
+!logs.py
+!parsing.py
+!telemetry.py
 !settings.py
 !setup.py
 !template.yaml
