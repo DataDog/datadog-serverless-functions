@@ -46,29 +46,6 @@ class ScrubbingException(Exception):
     pass
 
 
-# Use for include, exclude, and scrubbing rules
-def compileRegex(rule, pattern):
-    if pattern is not None:
-        if pattern == "":
-            # If pattern is an empty string, raise exception
-            raise Exception(
-                "No pattern provided:\nAdd pattern or remove {} environment variable".format(
-                    rule
-                )
-            )
-        try:
-            return re.compile(pattern)
-        except Exception:
-            raise Exception(
-                "could not compile {} regex with pattern: {}".format(rule, pattern)
-            )
-
-
-include_regex = compileRegex("INCLUDE_AT_MATCH", INCLUDE_AT_MATCH)
-
-exclude_regex = compileRegex("EXCLUDE_AT_MATCH", EXCLUDE_AT_MATCH)
-
-
 def forward_logs(logs):
     """Forward logs to Datadog"""
     print("Forwarding logs!")
@@ -100,6 +77,27 @@ def forward_logs(logs):
         len(logs_to_forward),
         tags=get_forwarder_telemetry_tags(),
     )
+
+
+def compileRegex(rule, pattern):
+    if pattern is not None:
+        if pattern == "":
+            # If pattern is an empty string, raise exception
+            raise Exception(
+                "No pattern provided:\nAdd pattern or remove {} environment variable".format(
+                    rule
+                )
+            )
+        try:
+            return re.compile(pattern)
+        except Exception:
+            raise Exception(
+                "could not compile {} regex with pattern: {}".format(rule, pattern)
+            )
+
+
+include_regex = compileRegex("INCLUDE_AT_MATCH", INCLUDE_AT_MATCH)
+exclude_regex = compileRegex("EXCLUDE_AT_MATCH", EXCLUDE_AT_MATCH)
 
 
 # should only be called when INCLUDE_AT_MATCH and/or EXCLUDE_AT_MATCH exist
