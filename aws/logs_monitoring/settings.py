@@ -9,7 +9,6 @@ import os
 import boto3
 import botocore.config
 import logging
-import re
 
 logger = logging.getLogger()
 

@@ -5,7 +5,6 @@ import unittest
 import json
 from botocore.exceptions import ClientError
 
-
 sys.modules["trace_forwarder.connection"] = MagicMock()
 sys.modules["datadog_lambda.wrapper"] = MagicMock()
 sys.modules["datadog_lambda.metric"] = MagicMock()
@@ -21,8 +20,7 @@ env_patch = patch.dict(
     },
 )
 env_patch.start()
-from lambda_function import invoke_additional_target_lambdas
-
+from lambda_function import invoke_additional_target_lambdas, extract_metric
 env_patch.stop()
 
 
@@ -51,6 +49,22 @@ class TestInvokeAdditionalTargetLambdas(unittest.TestCase):
         boto3.client().invoke.assert_called_with(
             FunctionName="megadeth", InvocationType="Event", Payload=lambda_payload
         )
+
+class TestExtractMetric(unittest.TestCase):
+    def test_empty_event(self):
+        self.assertEqual(extract_metric({}), None)
+
+    def test_missing_keys(self):
+        self.assertEqual(extract_metric({"e": 0, "v": 1, "m": "foo"}), None)
+
+    def test_tags_instance(self):
+        self.assertEqual(extract_metric({"e": 0, "v": 1, "m": "foo", "t": 666}), None)
+
+    def test_value_instance(self):
+        self.assertEqual(extract_metric({"e": 0, "v": 1.1, "m": "foo", "t": []}), None)
+
+    def test_value_instance_float(self):
+        self.assertEqual(extract_metric({"e": 0, "v": None, "m": "foo", "t": []}), None)
 
 
 if __name__ == "__main__":

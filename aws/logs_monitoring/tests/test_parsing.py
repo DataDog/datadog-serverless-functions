@@ -12,7 +12,7 @@ sys.modules["requests_futures.sessions"] = MagicMock()
 
 env_patch = patch.dict(os.environ, {"DD_API_KEY": "11111111111111111111111111111111"})
 env_patch.start()
-from lambda_function import parse_event_source
+from parsing import parse_event_source
 
 env_patch.stop()
 
