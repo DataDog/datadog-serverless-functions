@@ -21,6 +21,7 @@ env_patch = patch.dict(
 )
 env_patch.start()
 from lambda_function import invoke_additional_target_lambdas, extract_metric
+
 env_patch.stop()
 
 
@@ -49,6 +50,7 @@ class TestInvokeAdditionalTargetLambdas(unittest.TestCase):
         boto3.client().invoke.assert_called_with(
             FunctionName="megadeth", InvocationType="Event", Payload=lambda_payload
         )
+
 
 class TestExtractMetric(unittest.TestCase):
     def test_empty_event(self):

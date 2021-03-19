@@ -20,7 +20,7 @@ from settings import (
 )
 from telemetry import (
     DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX,
-    get_forwarder_telemetry_tags
+    get_forwarder_telemetry_tags,
 )
 
 JITTER_MIN = 1
@@ -321,6 +321,7 @@ def parse_get_resources_response_for_tags_by_arn(get_resources_page):
         tags_by_arn[lowercase_function_arn] += tags
 
     return tags_by_arn
+
 
 def send_forwarder_internal_metrics(name, additional_tags=[]):
     """Send forwarder's internal metrics to DD"""

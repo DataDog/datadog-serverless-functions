@@ -57,6 +57,7 @@ cloudtrail_regex = re.compile(
     "\d+_CloudTrail_\w{2}-\w{4,9}-\d_\d{8}T\d{4}Z.+.json.gz$", re.I
 )
 
+
 def parse(event, context):
     """Parse Lambda input to normalized events"""
     metadata = generate_metadata(context)
@@ -87,6 +88,7 @@ def parse(event, context):
 
     return normalize_events(events, metadata)
 
+
 def generate_metadata(context):
     metadata = {
         "ddsourcecategory": "aws",
@@ -116,6 +118,7 @@ def generate_metadata(context):
 
     return metadata
 
+
 def parse_event_type(event):
     if "Records" in event and len(event["Records"]) > 0:
         if "s3" in event["Records"][0]:
@@ -141,6 +144,7 @@ def parse_event_type(event):
     elif "detail" in event:
         return "events"
     raise Exception("Event type not supported (see #Event supported section)")
+
 
 # Handle S3 events
 def s3_handler(event, context, metadata):
@@ -209,6 +213,7 @@ def s3_handler(event, context, metadata):
             }
             yield structured_line
 
+
 def parse_event_source(event, key):
     """Parse out the source that will be assigned to the log in Datadog
     Args:
@@ -230,6 +235,7 @@ def parse_event_source(event, key):
             return find_s3_source(lowercase_key)
 
     return "aws"
+
 
 def find_cloudwatch_source(log_group):
     # e.g. /aws/rds/instance/my-mariadb/error
@@ -276,9 +282,11 @@ def find_cloudwatch_source(log_group):
 
     return "cloudwatch"
 
+
 def is_cloudtrail(key):
     match = cloudtrail_regex.search(key)
     return bool(match)
+
 
 def find_s3_source(key):
     # e.g. AWSLogs/123456779121/elasticloadbalancing/us-east-1/2020/10/02/123456779121_elasticloadbalancing_us-east-1_app.alb.xxxxx.xx.xxx.xxx_x.log.gz
@@ -314,6 +322,7 @@ def find_s3_source(key):
             return source.replace("amazon_", "")
 
     return "s3"
+
 
 def parse_service_arn(source, key, bucket, context):
     if source == "elb":
@@ -381,6 +390,7 @@ def parse_service_arn(source, key, bucket, context):
                     region, accountID, clustername
                 )
     return
+
 
 # Handle CloudWatch logs
 def awslogs_handler(event, context, metadata):
@@ -472,6 +482,7 @@ def awslogs_handler(event, context, metadata):
     for log in logs["logEvents"]:
         yield merge_dicts(log, aws_attributes)
 
+
 def merge_dicts(a, b, path=None):
     if path is None:
         path = []
@@ -519,6 +530,7 @@ def sns_handler(event, metadata):
         structured_line = ev
         yield structured_line
 
+
 # Handle CloudWatch logs from Kinesis
 def kinesis_awslogs_handler(event, context, metadata):
     def reformat_record(record):
@@ -527,6 +539,7 @@ def kinesis_awslogs_handler(event, context, metadata):
     return itertools.chain.from_iterable(
         awslogs_handler(reformat_record(r), context, metadata) for r in event["Records"]
     )
+
 
 def normalize_events(events, metadata):
     normalized = []

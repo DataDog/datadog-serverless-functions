@@ -37,12 +37,14 @@ from settings import (
 
 logger = logging.getLogger()
 
+
 class RetriableException(Exception):
     pass
 
 
 class ScrubbingException(Exception):
     pass
+
 
 # Use for include, exclude, and scrubbing rules
 def compileRegex(rule, pattern):
@@ -65,6 +67,7 @@ def compileRegex(rule, pattern):
 include_regex = compileRegex("INCLUDE_AT_MATCH", INCLUDE_AT_MATCH)
 
 exclude_regex = compileRegex("EXCLUDE_AT_MATCH", EXCLUDE_AT_MATCH)
+
 
 def forward_logs(logs):
     """Forward logs to Datadog"""
@@ -98,6 +101,7 @@ def forward_logs(logs):
         tags=get_forwarder_telemetry_tags(),
     )
 
+
 # should only be called when INCLUDE_AT_MATCH and/or EXCLUDE_AT_MATCH exist
 def filter_logs(logs):
     """
@@ -129,6 +133,7 @@ def filter_logs(logs):
         except ScrubbingException:
             raise Exception("could not filter the payload")
     return logs_to_send
+
 
 class DatadogClient(object):
     """
@@ -169,6 +174,7 @@ def compress_logs(batch, level):
 
     return gzip.compress(bytes(batch, "utf-8"), compression_level)
 
+
 class DatadogScrubber(object):
     def __init__(self, configs):
         rules = []
@@ -189,10 +195,12 @@ class DatadogScrubber(object):
                 raise ScrubbingException()
         return payload
 
+
 class ScrubbingRule(object):
     def __init__(self, regex, placeholder):
         self.regex = regex
         self.placeholder = placeholder
+
 
 class DatadogBatcher(object):
     def __init__(self, max_item_size_bytes, max_batch_size_bytes, max_items_count):
@@ -232,6 +240,7 @@ class DatadogBatcher(object):
         if size_count > 0:
             batches.append(batch)
         return batches
+
 
 class DatadogTCPClient(object):
     """

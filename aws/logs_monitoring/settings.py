@@ -12,6 +12,7 @@ import logging
 
 logger = logging.getLogger()
 
+
 def get_env_var(envvar, default, boolean=False):
     """
     Return the value of the given environment variable with debug logging.

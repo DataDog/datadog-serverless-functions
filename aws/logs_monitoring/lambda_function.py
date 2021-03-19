@@ -8,6 +8,7 @@ import os
 import boto3
 import re
 import logging
+
 logger = logging.getLogger()
 logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
 
@@ -74,6 +75,7 @@ HOST_IDENTITY_REGEXP = re.compile(
     r"^arn:aws:sts::.*?:assumed-role\/(?P<role>.*?)/(?P<host>i-([0-9a-f]{8}|[0-9a-f]{17}))$"
 )
 
+
 def datadog_forwarder(event, context):
     """The actual lambda function entry point"""
     if logger.isEnabledFor(logging.DEBUG):
@@ -95,7 +97,9 @@ def datadog_forwarder(event, context):
 
     parse_and_submit_enhanced_metrics(logs)
 
+
 lambda_handler = datadog_lambda_wrapper(datadog_forwarder)
+
 
 def invoke_additional_target_lambdas(event):
     lambda_client = boto3.client("lambda")
@@ -116,6 +120,7 @@ def invoke_additional_target_lambdas(event):
 
     return
 
+
 def split(events):
     """Split events into metrics, logs, and trace payloads"""
     metrics, logs, trace_payloads = [], [], []
@@ -135,6 +140,7 @@ def split(events):
         )
 
     return metrics, logs, trace_payloads
+
 
 def extract_metric(event):
     """Extract metric from an event if possible"""
@@ -159,6 +165,7 @@ def extract_metric(event):
     except Exception:
         return None
 
+
 def extract_trace_payload(event):
     """Extract trace payload from an event if possible"""
     try:
@@ -169,6 +176,7 @@ def extract_trace_payload(event):
         return {"message": message, "tags": event[DD_CUSTOM_TAGS]}
     except Exception:
         return None
+
 
 def enrich(events):
     """Adds event-specific tags and attributes to each event
@@ -182,6 +190,7 @@ def enrich(events):
         extract_host_from_cloudtrails(event)
 
     return events
+
 
 def add_metadata_to_lambda_log(event):
     """Mutate log dict to add tags, host, and service metadata
@@ -237,6 +246,7 @@ def add_metadata_to_lambda_log(event):
 
     event[DD_CUSTOM_TAGS] = ",".join([event[DD_CUSTOM_TAGS]] + tags)
 
+
 def extract_ddtags_from_message(event):
     """When the logs intake pipeline detects a `message` field with a
     JSON content, it extracts the content to the top-level. The fields
@@ -275,6 +285,7 @@ def extract_ddtags_from_message(event):
                 return
         event[DD_CUSTOM_TAGS] = f"{event[DD_CUSTOM_TAGS]},{extracted_ddtags}"
 
+
 def extract_host_from_cloudtrails(event):
     """Extract the hostname from cloudtrail events userIdentity.arn field if it
     matches AWS hostnames.
@@ -294,6 +305,7 @@ def extract_host_from_cloudtrails(event):
                 match = HOST_IDENTITY_REGEXP.match(arn)
                 if match is not None:
                     event[DD_HOST] = match.group("host")
+
 
 def forward_metrics(metrics):
     """
@@ -319,6 +331,7 @@ def forward_metrics(metrics):
         len(metrics),
         tags=get_forwarder_telemetry_tags(),
     )
+
 
 def forward_traces(trace_payloads):
     if logger.isEnabledFor(logging.DEBUG):
