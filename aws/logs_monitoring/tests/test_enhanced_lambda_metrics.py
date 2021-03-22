@@ -13,7 +13,6 @@ from enhanced_lambda_metrics import (
     generate_enhanced_lambda_metrics,
     LambdaTagsCache,
     parse_get_resources_response_for_tags_by_arn,
-    create_timeout_enhanced_metric,
     create_out_of_memory_enhanced_metric,
     get_dd_tag_string_from_aws_dict,
 )
@@ -550,11 +549,11 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
 
         os.environ["DD_FETCH_LAMBDA_TAGS"] = "True"
 
-        generated_metrics = generate_enhanced_lambda_metrics(logs_input, tags_cache)
+        generate_enhanced_lambda_metrics(logs_input, tags_cache)
         mock_get_s3_cache.assert_called_once()
         mock_get_s3_cache.reset_mock()
 
-        generated_metrics = generate_enhanced_lambda_metrics(logs_input, tags_cache)
+        generate_enhanced_lambda_metrics(logs_input, tags_cache)
         mock_get_s3_cache.assert_not_called()
 
         del os.environ["DD_FETCH_LAMBDA_TAGS"]
@@ -596,7 +595,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
 
         os.environ["DD_FETCH_LAMBDA_TAGS"] = "True"
 
-        generated_metrics = generate_enhanced_lambda_metrics(logs_input, tags_cache)
+        generate_enhanced_lambda_metrics(logs_input, tags_cache)
         mock_get_s3_cache.assert_called_once()
         mock_get_s3_cache.reset_mock()
 
@@ -654,7 +653,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
 
         os.environ["DD_FETCH_LAMBDA_TAGS"] = "True"
 
-        generated_metrics = generate_enhanced_lambda_metrics(logs_input, tags_cache)
+        generate_enhanced_lambda_metrics(logs_input, tags_cache)
         mock_get_s3_cache.assert_called_once()
         mock_build_cache.assert_called_once()
         mock_write_cache.assert_called_once()
@@ -713,7 +712,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
 
         os.environ["DD_FETCH_LAMBDA_TAGS"] = "True"
 
-        generated_metrics = generate_enhanced_lambda_metrics(logs_input, tags_cache)
+        generate_enhanced_lambda_metrics(logs_input, tags_cache)
         mock_get_s3_cache.assert_called_once()
         mock_boto3.get_paginator.assert_called_once()
         paginator.paginate.assert_called_once()

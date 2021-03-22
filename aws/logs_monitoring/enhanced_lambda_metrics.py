@@ -1,3 +1,8 @@
+# Unless explicitly stated otherwise all files in this repository are licensed
+# under the Apache License Version 2.0.
+# This product includes software developed at Datadog (https://www.datadoghq.com/).
+# Copyright 2021 Datadog, Inc.
+
 import logging
 import os
 import re
@@ -17,6 +22,10 @@ from settings import (
     DD_TAGS_CACHE_TTL_SECONDS,
     DD_S3_CACHE_LOCK_FILENAME,
     DD_S3_CACHE_LOCK_TTL_SECONDS,
+)
+from telemetry import (
+    DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX,
+    get_forwarder_telemetry_tags,
 )
 
 JITTER_MIN = 1
@@ -319,24 +328,12 @@ def parse_get_resources_response_for_tags_by_arn(get_resources_page):
     return tags_by_arn
 
 
-def get_forwarder_telemetry_prefix_and_tags():
-    """Retrieves prefix and tags used when submitting telemetry metrics
-    Used to overcome circular import"""
-    from lambda_function import (
-        DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX,
-        DD_FORWARDER_TELEMETRY_TAGS,
-    )
-
-    return DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX, DD_FORWARDER_TELEMETRY_TAGS
-
-
 def send_forwarder_internal_metrics(name, additional_tags=[]):
     """Send forwarder's internal metrics to DD"""
-    prefix, tags = get_forwarder_telemetry_prefix_and_tags()
     lambda_stats.distribution(
-        "{}.{}".format(prefix, name),
+        "{}.{}".format(DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX, name),
         1,
-        tags=tags + additional_tags,
+        tags=get_forwarder_telemetry_tags() + additional_tags,
     )
 
 

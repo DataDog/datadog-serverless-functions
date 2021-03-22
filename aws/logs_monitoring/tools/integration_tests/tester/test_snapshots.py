@@ -5,7 +5,6 @@ import urllib.request
 import json
 import re
 import gzip
-from time import sleep
 from deepdiff import DeepDiff
 
 recorder_url = os.environ.get("RECORDER_URL", default="")

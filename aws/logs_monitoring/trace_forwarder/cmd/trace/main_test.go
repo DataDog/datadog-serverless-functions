@@ -3,14 +3,14 @@
  * under the Apache License Version 2.0.
  *
  * This product includes software developed at Datadog (https://www.datadoghq.com/).
- * Copyright 2020 Datadog, Inc.
+ * Copyright 2021 Datadog, Inc.
  */
 package main
 
 import (
+	"io/ioutil"
 	"os"
 	"testing"
-	"io/ioutil"
 
 	"github.com/DataDog/datadog-agent/pkg/trace/pb"
 	"github.com/stretchr/testify/assert"
@@ -29,24 +29,24 @@ func TestUnmarshalSerializedTraces(t *testing.T) {
 
 func TestAggregateTracePayloadsByEnv(t *testing.T) {
 	payload1 := pb.TracePayload{
-		HostName: "",
-		Env:      "none",
-		Traces:   make([]*pb.APITrace, 0),
-		Transactions:   make([]*pb.Span, 0),
+		HostName:     "",
+		Env:          "none",
+		Traces:       make([]*pb.APITrace, 0),
+		Transactions: make([]*pb.Span, 0),
 	}
 
 	payload2 := pb.TracePayload{
-		HostName: "",
-		Env:      "",
-		Traces:   make([]*pb.APITrace, 0),
-		Transactions:   make([]*pb.Span, 0),
+		HostName:     "",
+		Env:          "",
+		Traces:       make([]*pb.APITrace, 0),
+		Transactions: make([]*pb.Span, 0),
 	}
 
 	payload3 := pb.TracePayload{
-		HostName: "",
-		Env:      "",
-		Traces:   make([]*pb.APITrace, 0),
-		Transactions:   make([]*pb.Span, 0),
+		HostName:     "",
+		Env:          "",
+		Traces:       make([]*pb.APITrace, 0),
+		Transactions: make([]*pb.Span, 0),
 	}
 
 	input := []*pb.TracePayload{&payload1, &payload2, &payload3}
