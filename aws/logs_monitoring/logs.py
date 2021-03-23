@@ -98,6 +98,7 @@ def compileRegex(rule, pattern):
                 "could not compile {} regex with pattern: {}".format(rule, pattern)
             )
 
+
 def filter_logs(logs, include_pattern=None, exclude_pattern=None):
     """
     Applies log filtering rules.
@@ -115,14 +116,14 @@ def filter_logs(logs, include_pattern=None, exclude_pattern=None):
             if exclude_pattern is not None:
                 # if an exclude match is found, do not add log to logs_to_send
                 logger.debug(f"Applying exclude pattern: {exclude_pattern}")
-                exclude_regex = compileRegex("EXCLUDE_AT_MATCH", EXCLUDE_AT_MATCH)
+                exclude_regex = compileRegex("EXCLUDE_AT_MATCH", exclude_pattern)
                 if re.search(exclude_regex, log):
                     logger.debug("Exclude pattern matched, excluding log event")
                     continue
             if include_pattern is not None:
                 # if no include match is found, do not add log to logs_to_send
                 logger.debug(f"Applying include pattern: {include_pattern}")
-                include_regex = compileRegex("INCLUDE_AT_MATCH", INCLUDE_AT_MATCH)
+                include_regex = compileRegex("INCLUDE_AT_MATCH", include_pattern)
                 if not re.search(include_regex, log):
                     logger.debug("Include pattern did not match, excluding log event")
                     continue
