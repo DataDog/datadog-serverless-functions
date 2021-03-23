@@ -2,6 +2,7 @@ import unittest
 
 from logs import filter_logs
 
+# \"awsRegion\":\"us-east-1\"
 
 class TestFilterLogs(unittest.TestCase):
     example_logs = [
@@ -10,6 +11,18 @@ class TestFilterLogs(unittest.TestCase):
         "END RequestId: ...",
         "REPORT RequestId: ...",
     ]
+
+    def test_json_filtering(self):
+        json_logs = [r"\"awsRegion\":\"us-east-1\""]
+
+        filtered_logs = filter_logs(json_logs, include_pattern=r"\"awsRegion\":\"us-east-1\"")
+
+        self.assertEqual(
+            filtered_logs,
+            [
+                r"\"awsRegion\":\"us-east-1\"",
+            ],
+        )
 
     def test_http_filtering(self):
         http_logs = [
