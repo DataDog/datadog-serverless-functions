@@ -300,7 +300,7 @@ Some examples of regular expressions that can be used for log filtering:
 - Include CloudTrail error messages only: `errorMessage`
 - Include only logs containing an HTTP 4XX or 5XX error code: `\b[4|5][0-9][0-9]\b`
 - Include only CloudWatch logs where the `message` field contains a specific JSON key/value pair: `\\"awsRegion\\":\\"us-east-1\\"`
-  - The message field of a CloudWatch log event is encoded as a string. `{awsRegion: "us-east-1"}` is encoded as `{\"awsRegion\":\"us-east-1\"}`.
+  - The message field of a CloudWatch log event is encoded as a string. `{"awsRegion": "us-east-1"}` is encoded as `{\"awsRegion\":\"us-east-1\"}`.
     The pattern you provide must therefore include extra `\` escape characters.
 
 To test different patterns against your logs, turn on [debug logs](#troubleshooting).
