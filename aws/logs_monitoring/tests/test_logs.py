@@ -2,7 +2,6 @@ import unittest
 
 from logs import filter_logs
 
-# \"awsRegion\":\"us-east-1\"
 
 class TestFilterLogs(unittest.TestCase):
     example_logs = [
