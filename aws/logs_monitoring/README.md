@@ -287,11 +287,19 @@ The Datadog Forwarder is signed by Datadog. If you would like to verify the inte
 
 - `ExcludeAtMatch` - DO NOT send logs matching the supplied regular expression. If a log matches both
   the ExcludeAtMatch and IncludeAtMatch, it is excluded.
-- `IncludeAtMatch` - Only send logs matching the supplied regular expression and not excluded by
+- `IncludeAtMatch` - ONLY send logs matching the supplied regular expression, and not excluded by
   ExcludeAtMatch.
 
-Filtering rules are applied to the full JSON-formatted log, including any metadata that is automatically
-added by the Forwarder. Using an inefficient regular expression, such as `.*`, may slow down the Forwarder.
+Filtering rules are applied to the full JSON-formatted log, including any metadata that is automatically added by the Forwarder.
+However, transformations applied by [log pipelines](https://docs.datadoghq.com/logs/processing/pipelines/),
+which occur after logs are sent to Datadog, cannot be used to filter logs in the Forwarder.
+Using an inefficient regular expression, such as `.*`, may slow down the Forwarder.
+
+Some examples of regular expressions that can be used for log filtering:
+- Include (or exclude) Lambda platform logs: `^(START|REPORT|END)`
+- Include CloudTrail error messages only: `errorMessage`
+- Include only logs containing an HTTP 4XX or 5XX error code: `\b[4|5][0-9][0-9]\b`
+
 To debug these regular expressions against your logs, turn on [debug logs](#troubleshooting).
 
 ### Advanced (Optional)

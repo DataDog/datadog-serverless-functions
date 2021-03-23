@@ -48,7 +48,6 @@ class ScrubbingException(Exception):
 
 def forward_logs(logs):
     """Forward logs to Datadog"""
-    print("Forwarding logs!")
     if logger.isEnabledFor(logging.DEBUG):
         logger.debug(f"Forwarding {len(logs)} logs")
     logs_to_forward = filter_logs(list(map(json.dumps, logs)))
