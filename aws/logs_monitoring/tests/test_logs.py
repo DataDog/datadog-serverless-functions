@@ -2,9 +2,6 @@ import unittest
 import os
 from unittest.mock import patch
 
-from logs import filter_logs
-
-
 class TestFilterLogs(unittest.TestCase):
     example_logs = [
         "START RequestId: ...",
@@ -22,6 +19,7 @@ class TestFilterLogs(unittest.TestCase):
         with patch.dict(os.environ, {
             "INCLUDE_AT_MATCH": r"\b[4|5][0-9][0-9]\b",
         }):
+            from logs import filter_logs
             filtered_logs = filter_logs(http_logs)
 
         self.assertEqual(filtered_logs, [
@@ -32,6 +30,7 @@ class TestFilterLogs(unittest.TestCase):
         with patch.dict(os.environ, {
             "INCLUDE_AT_MATCH": r"^(START|END)",
         }):
+            from logs import filter_logs
             filtered_logs = filter_logs(self.example_logs)
 
         self.assertEqual(filtered_logs, [
@@ -43,6 +42,7 @@ class TestFilterLogs(unittest.TestCase):
         with patch.dict(os.environ, {
             "EXCLUDE_AT_MATCH": r"^(START|END)",
         }):
+            from logs import filter_logs
             filtered_logs = filter_logs(self.example_logs)
 
         self.assertEqual(filtered_logs, [
@@ -55,6 +55,7 @@ class TestFilterLogs(unittest.TestCase):
             "EXCLUDE_AT_MATCH": r"^END",
             "INCLUDE_AT_MATCH": r"^(START|END)",
         }):
+            from logs import filter_logs
             filtered_logs = filter_logs(self.example_logs)
 
         self.assertEqual(filtered_logs, [
@@ -62,5 +63,6 @@ class TestFilterLogs(unittest.TestCase):
         ])
 
     def test_no_filtering_rules(self):
+        from logs import filter_logs
         filtered_logs = filter_logs(self.example_logs)
         self.assertEqual(filtered_logs, self.example_logs)
