@@ -15,7 +15,7 @@ class TestFilterLogs(unittest.TestCase):
     def test_json_filtering(self):
         json_logs = [r"\"awsRegion\":\"us-east-1\""]
 
-        filtered_logs = filter_logs(json_logs, include_pattern=r'\\"awsRegion\\":\\"us-east-1\\"'
+        filtered_logs = filter_logs(json_logs, include_pattern=r'\\"awsRegion\\":\\"us-east-1\\"')
 
         self.assertEqual(
             filtered_logs,
