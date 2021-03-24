@@ -48,10 +48,13 @@ class ScrubbingException(Exception):
 
 def forward_logs(logs):
     """Forward logs to Datadog"""
-    print("Forwarding logs!")
     if logger.isEnabledFor(logging.DEBUG):
         logger.debug(f"Forwarding {len(logs)} logs")
-    logs_to_forward = filter_logs(list(map(json.dumps, logs)))
+    logs_to_forward = filter_logs(
+        list(map(json.dumps, logs)),
+        include_pattern=INCLUDE_AT_MATCH,
+        exclude_pattern=EXCLUDE_AT_MATCH,
+    )
     scrubber = DatadogScrubber(SCRUBBING_RULE_CONFIGS)
     if DD_USE_TCP:
         batcher = DatadogBatcher(256 * 1000, 256 * 1000, 1)
@@ -96,36 +99,33 @@ def compileRegex(rule, pattern):
             )
 
 
-include_regex = compileRegex("INCLUDE_AT_MATCH", INCLUDE_AT_MATCH)
-exclude_regex = compileRegex("EXCLUDE_AT_MATCH", EXCLUDE_AT_MATCH)
-
-
-# should only be called when INCLUDE_AT_MATCH and/or EXCLUDE_AT_MATCH exist
-def filter_logs(logs):
+def filter_logs(logs, include_pattern=None, exclude_pattern=None):
     """
     Applies log filtering rules.
     If no filtering rules exist, return all the logs.
     """
-    if INCLUDE_AT_MATCH is None and EXCLUDE_AT_MATCH is None:
+    if include_pattern is None and exclude_pattern is None:
         return logs
     # Add logs that should be sent to logs_to_send
     logs_to_send = []
     for log in logs:
-        if EXCLUDE_AT_MATCH is not None or INCLUDE_AT_MATCH is not None:
+        if exclude_pattern is not None or include_pattern is not None:
             logger.debug("Filtering log event:")
             logger.debug(log)
         try:
-            if EXCLUDE_AT_MATCH is not None:
+            if exclude_pattern is not None:
                 # if an exclude match is found, do not add log to logs_to_send
-                logger.debug(f"Applying EXCLUDE_AT_MATCH: {EXCLUDE_AT_MATCH}")
+                logger.debug(f"Applying exclude pattern: {exclude_pattern}")
+                exclude_regex = compileRegex("EXCLUDE_AT_MATCH", exclude_pattern)
                 if re.search(exclude_regex, log):
-                    logger.debug("Exclude regex matched, excluding log event")
+                    logger.debug("Exclude pattern matched, excluding log event")
                     continue
-            if INCLUDE_AT_MATCH is not None:
+            if include_pattern is not None:
                 # if no include match is found, do not add log to logs_to_send
-                logger.debug(f"Applying INCLUDE_AT_MATCH: {INCLUDE_AT_MATCH}")
+                logger.debug(f"Applying include pattern: {include_pattern}")
+                include_regex = compileRegex("INCLUDE_AT_MATCH", include_pattern)
                 if not re.search(include_regex, log):
-                    logger.debug("Include regex did not match, excluding log event")
+                    logger.debug("Include pattern did not match, excluding log event")
                     continue
             logs_to_send.append(log)
         except ScrubbingException:
