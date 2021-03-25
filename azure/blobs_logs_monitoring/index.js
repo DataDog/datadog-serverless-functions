@@ -81,13 +81,33 @@ function handleLogs(sender, logs, context) {
     var logsType = getLogFormat(logs);
     switch (logsType) {
         case STRING:
-            sender(addTagsToStringLog)(logs);
+            try {
+                logs = JSON.parse(logs);
+                if (logs.records !== undefined) {
+                    logs.records.forEach(sender(addTagsToJsonLog));
+                } else {
+                    sender(addTagsToJsonLog)(logs);
+                }
+            } catch {
+                sender(addTagsToStringLog)(logs);
+            }
             break;
         case JSON_OBJECT:
             sender(addTagsToJsonLog)(logs);
             break;
         case STRING_ARRAY:
-            logs.forEach(sender(addTagsToStringLog));
+            logs.forEach(message => {
+                try {
+                    message = JSON.parse(message);
+                    if (message.records !== undefined) {
+                        message.records.forEach(sender(addTagsToJsonLog));
+                    } else {
+                        sender(addTagsToJsonLog)(message);
+                    }
+                } catch {
+                    sender(addTagsToStringLog)(message);
+                }
+            });
             break;
         case JSON_RECORDS:
             logs.forEach(message => {
@@ -98,8 +118,10 @@ function handleLogs(sender, logs, context) {
             logs.forEach(sender(addTagsToJsonLog));
             break;
         case INVALID:
+            context.log.error('Log format is invalid: ', logs);
+            break;
         default:
-            context.log.warn('logs format is invalid');
+            context.log.error('Log format is invalid: ', logs);
             break;
     }
 }

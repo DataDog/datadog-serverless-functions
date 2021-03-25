@@ -180,8 +180,10 @@ class EventhubLogForwarder {
                 promises = this.handleJSONArrayLogs(logs, JSON_STRING_ARRAY);
                 break;
             case INVALID:
+                this.context.log.error('Log format is invalid: ', logs);
+                break;
             default:
-                this.context.log.warn('logs format is invalid');
+                this.context.log.error('Log format is invalid: ', logs);
                 break;
         }
         return promises;
