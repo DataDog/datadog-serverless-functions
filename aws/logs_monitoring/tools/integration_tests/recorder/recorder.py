@@ -2,6 +2,7 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
 import os
+import zlib
 
 from google.protobuf.json_format import MessageToDict
 import pb.trace_payload_pb2 as TracePayloadProtobuf
@@ -35,6 +36,8 @@ class RecorderHandler(BaseHTTPRequestHandler):
             if self.headers["Content-Length"] != None:
                 contents = self.rfile.read(int(self.headers["Content-Length"]))
                 if self.headers["Content-Type"] == "application/json":
+                    if self.headers["Content-Encoding"] == "deflate":
+                        contents = zlib.decompress(contents)
                     try:
                         data = json.loads(contents.decode())
                     except:

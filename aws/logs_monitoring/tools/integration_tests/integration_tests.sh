@@ -85,7 +85,7 @@ fi
 if ! [ $SKIP_FORWARDER_BUILD == true ]; then
 	cd $INTEGRATION_TESTS_DIR
 	cd ../
-	./build_bundle.sh 0.0.0
+	PYTHON_VERSION=${PYTHON_VERSION#python} ./build_bundle.sh 0.0.0
 	cd ../.forwarder
 	unzip aws-dd-forwarder-0.0.0 -d aws-dd-forwarder-0.0.0
 fi
