@@ -34,11 +34,14 @@ module.exports = function(context, blobContent) {
     var socket = getSocket(context);
     var sender = tagger => record => {
         record = tagger(record, context);
-        if (!send(socket, record)) {
-            // Retry once
-            socket = getSocket(context);
-            send(socket, record);
-        }
+        var flowLogs = createIndividualFlowlogs(record, context);
+        flowLogs.forEach(log => {
+            if (!send(socket, log)) {
+                // Retry once
+                socket = getSocket(context);
+                send(socket, log);
+            }
+        });
     };
 
     var logs;
@@ -62,6 +65,52 @@ module.exports = function(context, blobContent) {
     socket.end();
     context.done();
 };
+
+function createIndividualFlowlogs(record, context) {
+    // pulled from here:
+    // https://docs.microsoft.com/en-us/azure/network-watcher/network-watcher-nsg-flow-logging-overview#log-format
+    tupleNames = [
+        'flow_timestamp',
+        'source_ip',
+        'destination_ip',
+        'source_port',
+        'destination_port',
+        'protocol',
+        'traffic_flow',
+        'traffic_decision',
+        'flow_state',
+        'packets_to_dest',
+        'bytes_sent_to_dest',
+        'packets_to_source',
+        'bytes_sent_to_source'
+    ];
+    if (
+        record.properties === undefined ||
+        record.properties.flows === undefined
+    ) {
+        return [record];
+    }
+    var flowLogs = [];
+    var recordBase = record;
+    var flows = record['properties']['flows'];
+    delete recordBase.properties.flows;
+    flows.forEach(flowDict => {
+        flowDict['flows'].forEach(flow => {
+            flow['flowTuples'].forEach(tuple => {
+                var flowLog = { flow_tuple: {} };
+                var tupleParts = tuple.split(',');
+                for (i = 0; i < tupleParts.length; i++) {
+                    if (tupleParts[i] !== '') {
+                        flowLog['flow_tuple'][tupleNames[i]] = tupleParts[i];
+                    }
+                }
+                var finalFlowLog = Object.assign(flowLog, recordBase);
+                flowLogs.push(finalFlowLog);
+            });
+        });
+    });
+    return flowLogs;
+}
 
 function getSocket(context) {
     var socket = tls.connect({ port: DD_PORT, host: DD_URL });
