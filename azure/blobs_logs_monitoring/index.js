@@ -93,11 +93,11 @@ function createIndividualFlowlogs(record, context) {
     var flowLogs = [];
     var recordBase = record;
     var flows = record['properties']['flows'];
-    delete recordBase.properties.flows;
     flows.forEach(flowDict => {
+        var flowLog = { rule: flowDict['rule'] };
         flowDict['flows'].forEach(flow => {
+            flowLog['flow_tuple'] = {};
             flow['flowTuples'].forEach(tuple => {
-                var flowLog = { flow_tuple: {} };
                 var tupleParts = tuple.split(',');
                 for (i = 0; i < tupleParts.length; i++) {
                     if (tupleParts[i] !== '') {
@@ -105,6 +105,7 @@ function createIndividualFlowlogs(record, context) {
                     }
                 }
                 var finalFlowLog = Object.assign(flowLog, recordBase);
+                delete finalFlowLog.properties.flows;
                 flowLogs.push(finalFlowLog);
             });
         });
