@@ -5,7 +5,7 @@
 
 var https = require('https');
 
-const VERSION = '0.2.2';
+const VERSION = '0.2.3';
 
 const STRING = 'string'; // example: 'some message'
 const STRING_ARRAY = 'string-array'; // example: ['one message', 'two message', ...]
@@ -180,8 +180,10 @@ class EventhubLogForwarder {
                 promises = this.handleJSONArrayLogs(logs, JSON_STRING_ARRAY);
                 break;
             case INVALID:
+                this.context.log.error('Log format is invalid: ', logs);
+                break;
             default:
-                this.context.log.warn('logs format is invalid');
+                this.context.log.error('Log format is invalid: ', logs);
                 break;
         }
         return promises;
