@@ -58,6 +58,6 @@ class TestFilterLogs(unittest.TestCase):
             test_logs, exclude_pattern=r"(START|END|REPORT)/s"
         )
 
-        self.assert_equal(filtered_logs, [])
+        self.assertEqual(filtered_logs, [])
 
 
