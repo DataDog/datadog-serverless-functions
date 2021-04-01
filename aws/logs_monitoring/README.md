@@ -296,7 +296,7 @@ which occur after logs are sent to Datadog, cannot be used to filter logs in the
 Using an inefficient regular expression, such as `.*`, may slow down the Forwarder.
 
 Some examples of regular expressions that can be used for log filtering:
-- Include (or exclude) Lambda platform logs: `^(START|REPORT|END)`
+- Include (or exclude) Lambda platform logs: `"(START|REPORT|END)\s`
 - Include CloudTrail error messages only: `errorMessage`
 - Include only logs containing an HTTP 4XX or 5XX error code: `\b[4|5][0-9][0-9]\b`
 - Include only CloudWatch logs where the `message` field contains a specific JSON key/value pair: `\\"awsRegion\\":\\"us-east-1\\"`
