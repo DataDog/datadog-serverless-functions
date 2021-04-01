@@ -55,7 +55,7 @@ class TestFilterLogs(unittest.TestCase):
         ]
 
         filtered_logs = filter_logs(
-            test_logs, exclude_pattern=r"(START|END|REPORT)/s"
+            test_logs, exclude_pattern=r"(START|END|REPORT)\s"
         )
 
         self.assertEqual(filtered_logs, [])
