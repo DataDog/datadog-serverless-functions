@@ -245,8 +245,16 @@ def find_cloudwatch_source(log_group):
                 return engine
         return "rds"
 
-    # e.g. Api-Gateway-Execution-Logs_xxxxxx/dev
-    if log_group.startswith("api-gateway"):
+    if log_group.startswith(
+        (
+            # default location for rest api execution logs
+            "api-gateway",  # e.g. Api-Gateway-Execution-Logs_xxxxxx/dev
+            # default location set by serverless framework for rest api access logs
+            "/aws/api-gateway",  # e.g. /aws/api-gateway/my-project
+            # default location set by serverless framework for http api logs
+            "/aws/http-api",  # e.g. /aws/http-api/my-project
+        )
+    ):
         return "apigateway"
 
     # e.g. dms-tasks-test-instance
