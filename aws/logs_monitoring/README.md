@@ -99,7 +99,7 @@ If you can't install the Forwarder using the provided CloudFormation template, y
 5. Some AWS accounts are configured such that triggers will not automatically create resoucrce-based policies allowing Cloudwatch log groups to invoke the forwarder.
 It may be necessary to add the following resource-based policy to your forwarder, replacing `REGION`, `ACCOUNT`, and `FORWARDER` with the appropriate region, AWS Account number, and forwarder lambda name, respectively.
 This policy will allow any log group to invoke the forwarder. 
-`AWS:SourceArn` can be configured to your liking.`
+`AWS:SourceArn` can be configured to your liking.
 ```
 {
   "Version": "2012-10-17",
