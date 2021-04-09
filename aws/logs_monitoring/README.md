@@ -96,8 +96,34 @@ If you can't install the Forwarder using the provided CloudFormation template, y
 2. Save your Datadog API key in AWS Secrets Manager, set environment variable `DD_API_KEY_SECRET_ARN` with the secret ARN on the Lambda function, and add the `secretsmanager:GetSecretValue` permission to the Lambda execution role.
 3. If you need to forward logs from S3 buckets, add the `s3:GetObject` permission to the Lambda execution role.
 4. Set the environment variable `DD_ENHANCED_METRICS` to `false` on the Forwarder. This stops the Forwarder from generating enhanced metrics itself, but it will still forward custom metrics from other lambdas.
-5. Configure [triggers](https://docs.datadoghq.com/integrations/amazon_web_services/?tab=allpermissions#send-aws-service-logs-to-datadog).
-6. Create an S3 bucket, and set environment variable `DD_S3_BUCKET_NAME` to the bucket name. Also provide `s3:GetObject`, `s3:PutObject`, and `s3:DeleteObject` permissions on this bucket to the Lambda execution role. This bucket is used to store the Lambda tags cache.
+5. It may be necessary to add the following resource-based policy to your forwarder, replacing `REGION`, `ACCOUNT`, and `FORWARDER` with the appropriate region, AWS Account number, and forwarder lambda name, respectively.
+```
+{
+  "Version": "2012-10-17",
+  "Id": "default",
+  "Statement": [
+    {
+      "Resource": "arn:aws:lambda:REGION:ACCOUNT:function:FORWARDER",
+      "Effect": "Allow",
+      "Sid": "InvokePermissionsForAllLogGroups",
+      "Action": "lambda:InvokeFunction",
+      "Condition": {
+        "ArnLike": {
+          "AWS:SourceArn": "arn:aws:logs:REGION:ACCOUNT:log-group:/aws/lambda/*:*"
+        },
+        "StringEquals": {
+          "AWS:SourceAccount": "ACCOUNT"
+        }
+      },
+      "Principal": {
+        "Service": "logs.amazonaws.com"
+      }
+    }
+  ]
+}
+```
+6. Configure [triggers](https://docs.datadoghq.com/integrations/amazon_web_services/?tab=allpermissions#send-aws-service-logs-to-datadog).
+7. Create an S3 bucket, and set environment variable `DD_S3_BUCKET_NAME` to the bucket name. Also provide `s3:GetObject`, `s3:PutObject`, and `s3:DeleteObject` permissions on this bucket to the Lambda execution role. This bucket is used to store the Lambda tags cache.
 
 <!-- xxz tab xxx -->
 <!-- xxz tabs xxx -->
