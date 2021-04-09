@@ -96,7 +96,10 @@ If you can't install the Forwarder using the provided CloudFormation template, y
 2. Save your Datadog API key in AWS Secrets Manager, set environment variable `DD_API_KEY_SECRET_ARN` with the secret ARN on the Lambda function, and add the `secretsmanager:GetSecretValue` permission to the Lambda execution role.
 3. If you need to forward logs from S3 buckets, add the `s3:GetObject` permission to the Lambda execution role.
 4. Set the environment variable `DD_ENHANCED_METRICS` to `false` on the Forwarder. This stops the Forwarder from generating enhanced metrics itself, but it will still forward custom metrics from other lambdas.
-5. It may be necessary to add the following resource-based policy to your forwarder, replacing `REGION`, `ACCOUNT`, and `FORWARDER` with the appropriate region, AWS Account number, and forwarder lambda name, respectively.
+5. Some AWS accounts are configured such that triggers will not automatically create resoucrce-based policies allowing Cloudwatch log groups to invoke the forwarder.
+It may be necessary to add the following resource-based policy to your forwarder, replacing `REGION`, `ACCOUNT`, and `FORWARDER` with the appropriate region, AWS Account number, and forwarder lambda name, respectively.
+This policy will allow any log group to invoke the forwarder. 
+`AWS:SourceArn` can be configured to your liking.`
 ```
 {
   "Version": "2012-10-17",
