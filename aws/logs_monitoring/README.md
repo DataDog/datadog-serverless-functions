@@ -78,7 +78,6 @@ resource "aws_cloudformation_stack" "datadog_forwarder" {
   name         = "datadog-forwarder"
   capabilities = ["CAPABILITY_IAM", "CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND"]
   parameters   = {
-    DdApiKey           = "this_value_is_not_used"
     DdApiKeySecretArn  = "REPLACE ME WITH THE SECRETS ARN"
     FunctionName       = "datadog-forwarder"
   }
@@ -231,7 +230,8 @@ The Datadog Forwarder is signed by Datadog. If you would like to verify the inte
 ### Required
 
 - `DdApiKey` - Your Datadog API Key. This can be found in Datadog, under Integrations > APIs > API Keys.
-  The API Key will be stored in AWS Secrets Manager.
+  The API Key will be stored in AWS Secrets Manager. If you already have Datadog API Key stored in Secrets Manager, use `DdApiKeySecretArn` instead.
+- `DdApiKeySecretArn` - The ARN of the secret storing the Datadog API key, if you already have it stored in Secrets Manager. You must store the secret as a plaintext, rather than a key-value pair.
 - `DdSite` - The Datadog site that your metrics and logs will be sent to. Possible values are `datadoghq.com`, `datadoghq.eu`, `us3.datadoghq.com` and `ddog-gov.com`.
 
 ### Lambda Function (Optional)
@@ -310,7 +310,6 @@ To test different patterns against your logs, turn on [debug logs](#troubleshoot
 - `SourceZipUrl` - DO NOT CHANGE unless you know what you are doing. Override the default location of
   the function source code.
 - `PermissionBoundaryArn` - ARN for the Permissions Boundary Policy
-- `DdApiKeySecretArn` - The ARN of the secret storing the Datadog API key, if you already have it stored in Secrets Manager. You must store the secret as a plaintext, rather than a key-value pair. You still need to set a dummy value for "DdApiKey" to satisfy the requirement, though that value won't be used.
 - `DdUsePrivateLink` - Set to true to enable sending logs and metrics via AWS PrivateLink. See
   https://dtdg.co/private-link.
 - `VPCSecurityGroupIds` - Comma separated list of VPC Security Group Ids. Used when AWS PrivateLink is
