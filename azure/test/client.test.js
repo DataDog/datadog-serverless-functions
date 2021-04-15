@@ -15,10 +15,15 @@ function fakeContext() {
 
 function setUp() {
     var forwarder = new client.EventhubLogForwarder(fakeContext());
-    forwarder.sendWithRetry = function(record) {}; // do nothing
+    forwarder.sendWithRetry = sinon.spy();
 
-    forwarder.addTagsToJsonLog = sinon.spy();
-    forwarder.addTagsToStringLog = sinon.spy();
+    forwarder.addTagsToJsonLog = x => {
+        return Object.assign({ ddsource: 'none' }, x);
+    };
+    forwarder.addTagsToStringLog = x => {
+        return { ddsource: 'none', message: x };
+    };
+
     return forwarder;
 }
 
@@ -311,14 +316,20 @@ describe('Azure Log Monitoring', function() {
     function testHandleJSONLogs(forwarder, logs, expected) {
         forwarder.handleLogs(logs);
         expected.forEach(message => {
-            sinon.assert.calledWith(forwarder.addTagsToJsonLog, message);
+            sinon.assert.calledWith(
+                forwarder.sendWithRetry,
+                forwarder.addTagsToJsonLog(message)
+            );
         });
     }
 
     function testHandleStringLogs(forwarder, logs, expected) {
         forwarder.handleLogs(logs);
         expected.forEach(message => {
-            sinon.assert.calledWith(forwarder.addTagsToStringLog, message);
+            sinon.assert.calledWith(
+                forwarder.sendWithRetry,
+                forwarder.addTagsToStringLog(message)
+            );
         });
     }
 
