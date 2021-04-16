@@ -5,7 +5,7 @@
 
 var https = require('https');
 
-const VERSION = '0.2.3';
+const VERSION = '0.3.0';
 
 const STRING = 'string'; // example: 'some message'
 const STRING_ARRAY = 'string-array'; // example: ['one message', 'two message', ...]
@@ -43,6 +43,31 @@ const SCRUBBER_RULE_CONFIGS = {
     //     replacement: 'xxxxx@xxxxx.com'
     // }
 };
+
+/*
+To split array-type fields in your logs into individual logs, you can add sections to the map below. An example of
+a potential use case with azure.datafactory is there to show the format:
+{
+  source_type:
+    path: [list of fields in the log payload to iterate through to find the one to split],
+    keep_original_log: bool, if you'd like to preserve the original log in addition to the split ones or not
+}
+You can also set the DD_LOG_SPLITTING_CONFIG env var with a JSON string in this format.
+*/
+const DD_LOG_SPLITTING_CONFIG = {
+    // 'azure.datafactory': {
+    //     path: ['properties', 'Output', 'value'],
+    //     keep_original_log: true
+    // }
+};
+
+function getLogSplittingConfig() {
+    try {
+        return JSON.parse(process.env.DD_LOG_SPLITTING_CONFIG);
+    } catch {
+        return DD_LOG_SPLITTING_CONFIG;
+    }
+}
 
 class ScrubberRule {
     constructor(name, pattern, replacement) {
@@ -101,15 +126,70 @@ class EventhubLogForwarder {
             timeout: 2000
         };
         this.scrubber = new Scrubber(this.context, SCRUBBER_RULE_CONFIGS);
+        this.promises = [];
+        this.logSplittingConfig = getLogSplittingConfig();
+    }
+
+    findSplitRecords(record, fields) {
+        var tempRecord = record;
+        for (var i = 0; i < fields.length; i++) {
+            // loop through the fields to find the one we want to split
+            var fieldName = fields[i];
+            if (tempRecord[fieldName] !== undefined) {
+                tempRecord = tempRecord[fieldName];
+            } else {
+                this.context.log.error(
+                    'unable to split log based on log config, falling back to sending existing log.'
+                );
+                this.promises.push(this.sendWithRetry(record));
+                return null;
+            }
+        }
+        return tempRecord;
     }
 
     formatLogAndSend(messageType, record) {
         if (messageType == JSON_TYPE) {
-            record = this.addTagsToJsonLog(record);
+            var originalRecord = this.addTagsToJsonLog(record);
+            var source = originalRecord['ddsource'];
+            var config = this.logSplittingConfig[source];
+            if (config !== undefined) {
+                var fields = config.path;
+
+                if (config.keep_original_log) {
+                    this.promises.push(this.sendWithRetry(originalRecord));
+                }
+
+                var recordsToSplit = this.findSplitRecords(record, fields);
+                if (recordsToSplit === null) {
+                    return;
+                }
+
+                for (var j = 0; j < recordsToSplit.length; j++) {
+                    var splitRecord = recordsToSplit[j];
+                    if (typeof splitRecord === 'string') {
+                        try {
+                            splitRecord = JSON.parse(splitRecord);
+                        } catch (err) {
+                            splitRecord = { message: splitRecord };
+                        }
+                    }
+                    var newRecord = {
+                        ddsource: source,
+                        ddsourcecategory: originalRecord['ddsourcecategory'],
+                        service: originalRecord['service'],
+                        tags: originalRecord['tags']
+                    };
+                    Object.assign(newRecord, splitRecord);
+                    this.promises.push(this.sendWithRetry(newRecord));
+                }
+            } else {
+                this.promises.push(this.sendWithRetry(originalRecord));
+            }
         } else {
             record = this.addTagsToStringLog(record);
+            this.promises.push(this.sendWithRetry(record));
         }
-        return this.sendWithRetry(record);
     }
 
     sendWithRetry(record) {
@@ -152,32 +232,29 @@ class EventhubLogForwarder {
     }
 
     handleLogs(logs) {
-        var promises = [];
         var logsType = this.getLogFormat(logs);
         switch (logsType) {
             case STRING:
-                promises.push(this.formatLogAndSend(STRING_TYPE, logs));
+                this.formatLogAndSend(STRING_TYPE, logs);
                 break;
             case JSON_STRING:
                 logs = JSON.parse(logs);
-                promises.push(this.formatLogAndSend(JSON_TYPE, logs));
+                this.formatLogAndSend(JSON_TYPE, logs);
                 break;
             case JSON_OBJECT:
-                promises.push(this.formatLogAndSend(JSON_TYPE, logs));
+                this.formatLogAndSend(JSON_TYPE, logs);
                 break;
             case STRING_ARRAY:
-                logs.forEach(log =>
-                    promises.push(this.formatLogAndSend(STRING_TYPE, log))
-                );
+                logs.forEach(log => this.formatLogAndSend(STRING_TYPE, log));
                 break;
             case JSON_ARRAY:
-                promises = this.handleJSONArrayLogs(logs, JSON_ARRAY);
+                this.handleJSONArrayLogs(logs, JSON_ARRAY);
                 break;
             case BUFFER_ARRAY:
-                promises = this.handleJSONArrayLogs(logs, BUFFER_ARRAY);
+                this.handleJSONArrayLogs(logs, BUFFER_ARRAY);
                 break;
             case JSON_STRING_ARRAY:
-                promises = this.handleJSONArrayLogs(logs, JSON_STRING_ARRAY);
+                this.handleJSONArrayLogs(logs, JSON_STRING_ARRAY);
                 break;
             case INVALID:
                 this.context.log.error('Log format is invalid: ', logs);
@@ -186,11 +263,10 @@ class EventhubLogForwarder {
                 this.context.log.error('Log format is invalid: ', logs);
                 break;
         }
-        return promises;
+        return this.promises;
     }
 
     handleJSONArrayLogs(logs, logsType) {
-        var promises = [];
         for (var i = 0; i < logs.length; i++) {
             var message = logs[i];
             if (logsType == JSON_STRING_ARRAY) {
@@ -200,7 +276,7 @@ class EventhubLogForwarder {
                     this.context.log.warn(
                         'log is malformed json, sending as string'
                     );
-                    promises.push(this.formatLogAndSend(STRING_TYPE, message));
+                    this.formatLogAndSend(STRING_TYPE, message);
                     continue;
                 }
             }
@@ -212,21 +288,18 @@ class EventhubLogForwarder {
                     this.context.log.warn(
                         'log is malformed json, sending as string'
                     );
-                    promises.push(
-                        this.formatLogAndSend(STRING_TYPE, message.toString())
-                    );
+                    this.formatLogAndSend(STRING_TYPE, message.toString());
                     continue;
                 }
             }
             if (message.records != undefined) {
                 message.records.forEach(message =>
-                    promises.push(this.formatLogAndSend(JSON_TYPE, message))
+                    this.formatLogAndSend(JSON_TYPE, message)
                 );
             } else {
-                promises.push(this.formatLogAndSend(JSON_TYPE, message));
+                this.formatLogAndSend(JSON_TYPE, message);
             }
         }
-        return promises;
     }
 
     getLogFormat(logs) {
