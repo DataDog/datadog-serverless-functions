@@ -20,9 +20,45 @@ env_patch = patch.dict(
     },
 )
 env_patch.start()
-from lambda_function import invoke_additional_target_lambdas, extract_metric
+from lambda_function import (
+    invoke_additional_target_lambdas,
+    extract_metric,
+    extract_host_from_cloudtrails,
+    extract_host_from_guardduty,
+    extract_host_from_route53,
+)
 
 env_patch.stop()
+
+
+class TestExtractHostFromLogEvents(unittest.TestCase):
+    def test_parse_source_cloudtrail(self):
+        event = {
+            "ddsource": "cloudtrail",
+            "message": {
+                "userIdentity": {
+                    "arn": "arn:aws:sts::601427279990:assumed-role/gke-90725aa7-management/i-99999999"
+                }
+            },
+        }
+        extract_host_from_cloudtrails(event)
+        self.assertEqual(event["host"], "i-99999999")
+
+    def test_parse_source_guardduty(self):
+        event = {
+            "ddsource": "guardduty",
+            "detail": {"resource": {"instanceDetails": {"instanceId": "i-99999999"}}},
+        }
+        extract_host_from_guardduty(event)
+        self.assertEqual(event["host"], "i-99999999")
+
+    def test_parse_source_route53(self):
+        event = {
+            "ddsource": "route53",
+            "message": {"srcids": {"instance": "i-99999999"}},
+        }
+        extract_host_from_route53(event)
+        self.assertEqual(event["host"], "i-99999999")
 
 
 class TestInvokeAdditionalTargetLambdas(unittest.TestCase):

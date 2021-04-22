@@ -188,6 +188,8 @@ def enrich(events):
         add_metadata_to_lambda_log(event)
         extract_ddtags_from_message(event)
         extract_host_from_cloudtrails(event)
+        extract_host_from_guardduty(event)
+        extract_host_from_route53(event)
 
     return events
 
@@ -305,6 +307,31 @@ def extract_host_from_cloudtrails(event):
                 match = HOST_IDENTITY_REGEXP.match(arn)
                 if match is not None:
                     event[DD_HOST] = match.group("host")
+
+
+def extract_host_from_guardduty(event):
+    if event is not None and event.get(DD_SOURCE) == "guardduty":
+        host = event.get("detail", {}).get("resource")
+        if isinstance(host, dict):
+            host = host.get("instanceDetails", {}).get("instanceId")
+            if host is not None:
+                event[DD_HOST] = host
+
+
+def extract_host_from_route53(event):
+    if event is not None and event.get(DD_SOURCE) == "route53":
+        message = event.get("message", {})
+        if isinstance(message, str):
+            try:
+                message = json.loads(message)
+            except json.JSONDecodeError:
+                logger.debug("Failed to decode Route53 message")
+                return
+
+        if isinstance(message, dict):
+            host = message.get("srcids", {}).get("instance")
+            if host is not None:
+                event[DD_HOST] = host
 
 
 def forward_metrics(metrics):
