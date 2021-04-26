@@ -23,7 +23,10 @@ from enhanced_lambda_metrics import (
     parse_and_submit_enhanced_metrics,
 )
 from logs import forward_logs
-from parsing import parse
+from parsing import (
+    parse,
+    separate_security_hub_findings,
+)
 from telemetry import (
     DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX,
     get_forwarder_telemetry_tags,
@@ -85,7 +88,7 @@ def datadog_forwarder(event, context):
     if DD_ADDITIONAL_TARGET_LAMBDAS:
         invoke_additional_target_lambdas(event)
 
-    metrics, logs, trace_payloads = split(enrich(parse(event, context)))
+    metrics, logs, trace_payloads = split(transform(enrich(parse(event, context))))
 
     if DD_FORWARD_LOG:
         forward_logs(logs)
@@ -176,6 +179,22 @@ def extract_trace_payload(event):
         return {"message": message, "tags": event[DD_CUSTOM_TAGS]}
     except Exception:
         return None
+
+
+def transform(events):
+    """Performs transformations on complex events
+
+    Ex: handles special cases with nested arrays of JSON objects
+    Args:
+        events (dict[]): the list of event dicts we want to transform
+    """
+    for event in reversed(events):
+        findings = separate_security_hub_findings(event)
+        if findings:
+            events.remove(event)
+            events.extend(findings)
+
+    return events
 
 
 def enrich(events):
