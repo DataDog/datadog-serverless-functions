@@ -187,6 +187,10 @@ Parameters:
     Type: String
     Default: ""
     Description: The endpoint URL to forward the traces to, useful for forwarding traces through a proxy
+  DdForwarderBucketKMSEncryptionEnabled:
+    Type: String
+    Default: false
+    Description: Toggle for enabling KMS encryption on the forwarder when uploading it to s3 during installation
 Conditions:
   IsAWSChina:
     Fn::Equals:
@@ -324,6 +328,10 @@ Conditions:
       - Fn::Equals:
           - Ref: DdTraceIntakeUrl
           - ""
+  SetDdKMSEncryption:
+    Fn::Equals:
+      - Ref: DdForwarderBucketKMSEncryptionEnabled
+      - true
 Rules:
   MustSetDdApiKey:
     Assertions:
@@ -695,6 +703,7 @@ Resources:
         def copy_zip(source_zip_url, dest_zips_bucket):
             s3 = boto3.client('s3')
             s3_prelude = "s3://"
+            extra_args = {"ServerSideEncryption": "aws:kms"} if os.environ.get("DD_FORWARDER_BUCKET_KMS_ENABLED") == 'true' else {}
             filename = "aws-dd-forwarder-{}.zip".format(os.environ.get("DD_FORWARDER_VERSION"))
             if source_zip_url.startswith(s3_prelude):
                 parts = source_zip_url[len(s3_prelude):].split('/')
@@ -702,10 +711,10 @@ Resources:
                 key = '/'.join(parts[1:])
                 response = s3.get_object(Bucket=bucket, Key=key)
                 data = response["Body"]
-                s3.upload_fileobj(data, dest_zips_bucket, filename)
+                s3.upload_fileobj(data, dest_zips_bucket, filename, ExtraArgs=extra_args)
             else:
                 with urllib.request.urlopen(source_zip_url) as data:
-                    s3.upload_fileobj(data, dest_zips_bucket, filename)
+                    s3.upload_fileobj(data, dest_zips_bucket, filename, ExtraArgs=extra_args)
         def timeout(event, context):
             logging.error('Execution is about to time out, sending failure response to CloudFormation')
             send_cfn_resp(event, context, 'FAILED')
@@ -766,6 +775,11 @@ Resources:
       Environment:
         Variables:
           DD_FORWARDER_VERSION: !FindInMap [Constants, DdForwarder, Version]
+          DD_FORWARDER_BUCKET_KMS_ENABLED:
+            Fn::If:
+              - SetDdKMSEncryption
+              - true
+              - false
 Outputs:
   DatadogForwarderArn:
     Description: Datadog Forwarder Lambda Function ARN
