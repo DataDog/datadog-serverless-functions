@@ -5,8 +5,6 @@ import unittest
 import json
 import copy
 import io
-from botocore.exceptions import ClientError
-import base64
 import gzip
 
 sys.modules["trace_forwarder.connection"] = MagicMock()
