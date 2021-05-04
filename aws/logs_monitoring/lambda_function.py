@@ -310,7 +310,11 @@ def extract_ddtags_from_message(event):
 def extract_host_from_cloudtrails(event):
     """Extract the hostname from cloudtrail events userIdentity.arn field if it
     matches AWS hostnames.
+
+    In case of s3 events the fields of the event are not encoded in the
+    "message" field, but in the event object itself.
     """
+
     if event is not None and event.get(DD_SOURCE) == "cloudtrail":
         message = event.get("message", {})
         if isinstance(message, str):
@@ -319,6 +323,10 @@ def extract_host_from_cloudtrails(event):
             except json.JSONDecodeError:
                 logger.debug("Failed to decode cloudtrail message")
                 return
+
+        # deal with s3 input type events
+        if not message:
+            message = event
 
         if isinstance(message, dict):
             arn = message.get("userIdentity", {}).get("arn")
