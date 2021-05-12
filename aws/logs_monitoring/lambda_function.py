@@ -23,7 +23,10 @@ from enhanced_lambda_metrics import (
     parse_and_submit_enhanced_metrics,
 )
 from logs import forward_logs
-from parsing import parse
+from parsing import (
+    parse,
+    separate_security_hub_findings,
+)
 from telemetry import (
     DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX,
     get_forwarder_telemetry_tags,
@@ -85,7 +88,7 @@ def datadog_forwarder(event, context):
     if DD_ADDITIONAL_TARGET_LAMBDAS:
         invoke_additional_target_lambdas(event)
 
-    metrics, logs, trace_payloads = split(enrich(parse(event, context)))
+    metrics, logs, trace_payloads = split(transform(enrich(parse(event, context))))
 
     if DD_FORWARD_LOG:
         forward_logs(logs)
@@ -178,6 +181,22 @@ def extract_trace_payload(event):
         return None
 
 
+def transform(events):
+    """Performs transformations on complex events
+
+    Ex: handles special cases with nested arrays of JSON objects
+    Args:
+        events (dict[]): the list of event dicts we want to transform
+    """
+    for event in reversed(events):
+        findings = separate_security_hub_findings(event)
+        if findings:
+            events.remove(event)
+            events.extend(findings)
+
+    return events
+
+
 def enrich(events):
     """Adds event-specific tags and attributes to each event
 
@@ -188,6 +207,8 @@ def enrich(events):
         add_metadata_to_lambda_log(event)
         extract_ddtags_from_message(event)
         extract_host_from_cloudtrails(event)
+        extract_host_from_guardduty(event)
+        extract_host_from_route53(event)
 
     return events
 
@@ -289,7 +310,11 @@ def extract_ddtags_from_message(event):
 def extract_host_from_cloudtrails(event):
     """Extract the hostname from cloudtrail events userIdentity.arn field if it
     matches AWS hostnames.
+
+    In case of s3 events the fields of the event are not encoded in the
+    "message" field, but in the event object itself.
     """
+
     if event is not None and event.get(DD_SOURCE) == "cloudtrail":
         message = event.get("message", {})
         if isinstance(message, str):
@@ -299,12 +324,41 @@ def extract_host_from_cloudtrails(event):
                 logger.debug("Failed to decode cloudtrail message")
                 return
 
+        # deal with s3 input type events
+        if not message:
+            message = event
+
         if isinstance(message, dict):
             arn = message.get("userIdentity", {}).get("arn")
             if arn is not None:
                 match = HOST_IDENTITY_REGEXP.match(arn)
                 if match is not None:
                     event[DD_HOST] = match.group("host")
+
+
+def extract_host_from_guardduty(event):
+    if event is not None and event.get(DD_SOURCE) == "guardduty":
+        host = event.get("detail", {}).get("resource")
+        if isinstance(host, dict):
+            host = host.get("instanceDetails", {}).get("instanceId")
+            if host is not None:
+                event[DD_HOST] = host
+
+
+def extract_host_from_route53(event):
+    if event is not None and event.get(DD_SOURCE) == "route53":
+        message = event.get("message", {})
+        if isinstance(message, str):
+            try:
+                message = json.loads(message)
+            except json.JSONDecodeError:
+                logger.debug("Failed to decode Route53 message")
+                return
+
+        if isinstance(message, dict):
+            host = message.get("srcids", {}).get("instance")
+            if host is not None:
+                event[DD_HOST] = host
 
 
 def forward_metrics(metrics):

@@ -7,6 +7,7 @@ import base64
 import gzip
 import json
 import os
+import copy
 
 import boto3
 import botocore
@@ -245,8 +246,16 @@ def find_cloudwatch_source(log_group):
                 return engine
         return "rds"
 
-    # e.g. Api-Gateway-Execution-Logs_xxxxxx/dev
-    if log_group.startswith("api-gateway"):
+    if log_group.startswith(
+        (
+            # default location for rest api execution logs
+            "api-gateway",  # e.g. Api-Gateway-Execution-Logs_xxxxxx/dev
+            # default location set by serverless framework for rest api access logs
+            "/aws/api-gateway",  # e.g. /aws/api-gateway/my-project
+            # default location set by serverless framework for http api logs
+            "/aws/http-api",  # e.g. /aws/http-api/my-project
+        )
+    ):
         return "apigateway"
 
     # e.g. dms-tasks-test-instance
@@ -517,6 +526,48 @@ def cwevent_handler(event, metadata):
     metadata[DD_SERVICE] = metadata[DD_SOURCE]
 
     yield data
+
+
+def separate_security_hub_findings(event):
+    """Replace Security Hub event with series of events based on findings
+
+    Each event should contain one finding only.
+    This prevents having an unparsable array of objects in the final log.
+    """
+    if event.get(DD_SOURCE) != "securityhub" or not event.get("detail", {}).get(
+        "findings"
+    ):
+        return None
+    events = []
+    event_copy = copy.deepcopy(event)
+    # Copy findings before separating
+    findings = event_copy.get("detail", {}).get("findings")
+    if findings:
+        # Remove findings from the original event once we have a copy
+        del event_copy["detail"]["findings"]
+        # For each finding create a separate log event
+        for index, item in enumerate(findings):
+            # Copy the original event with source and other metadata
+            new_event = copy.deepcopy(event_copy)
+            current_finding = findings[index]
+            # Get the resources array from the current finding
+            resources = current_finding.get("Resources", {})
+            new_event["detail"]["finding"] = current_finding
+            new_event["detail"]["finding"]["resources"] = {}
+            # Separate objects in resources array into distinct attributes
+            if resources:
+                # Remove from current finding once we have a copy
+                del current_finding["Resources"]
+                for item in resources:
+                    current_resource = item
+                    # Capture the type and use it as the distinguishing key
+                    resource_type = current_resource.get("Type", {})
+                    del current_resource["Type"]
+                    new_event["detail"]["finding"]["resources"][
+                        resource_type
+                    ] = current_resource
+            events.append(new_event)
+    return events
 
 
 # Handle Sns events

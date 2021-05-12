@@ -4,18 +4,18 @@ Description: Pushes logs, metrics and traces from AWS to Datadog.
 Mappings:
   Constants:
     DdForwarder:
-      Version: 3.30.0
+      Version: 3.31.0
 Parameters:
   DdApiKey:
     Type: String
     NoEcho: true
-    AllowedPattern: .+
-    Description: The Datadog API key, which can be found from the APIs page (/account/settings#api). It will be stored in AWS Secrets Manager securely. If DdApiKeySecretArn is also set, this value will not be used. This value must still be set, however.
+    Default: ""
+    Description: The Datadog API key, which can be found from the APIs page (/account/settings#api). It will be stored in AWS Secrets Manager securely. If DdApiKeySecretArn is also set, this value is ignored.
   DdApiKeySecretArn:
     Type: String
     AllowedPattern: "arn:.*:secretsmanager:.*"
     Default: "arn:aws:secretsmanager:DEFAULT"
-    Description: The ARN of the secret storing the Datadog API key, if you already have it stored in Secrets Manager. You must store the secret as a plaintext, rather than a key-value pair. You still need to set a dummy value for "DdApiKey" to satisfy the requirement, though that value won't be used.
+    Description: The ARN of the secret storing the Datadog API key, if you already have it stored in Secrets Manager. You must store the secret as a plaintext, rather than a key-value pair.
   DdSite:
     Type: String
     Default: datadoghq.com
@@ -324,6 +324,20 @@ Conditions:
       - Fn::Equals:
           - Ref: DdTraceIntakeUrl
           - ""
+Rules:
+  MustSetDdApiKey:
+    Assertions:
+      - Assert:
+          Fn::Or:
+            - Fn::Not:
+              - Fn::Equals:
+                - Ref: DdApiKey
+                - ""
+            - Fn::Not:
+              - Fn::Equals:
+                - Ref: DdApiKeySecretArn
+                - "arn:aws:secretsmanager:DEFAULT"
+        AssertDescription: DdApiKey or DdApiKeySecretArn must be set
 Resources:
   Forwarder:
     Type: AWS::Serverless::Function
@@ -777,6 +791,7 @@ Metadata:
           default: Required
         Parameters:
           - DdApiKey
+          - DdApiKeySecretArn
           - DdSite
       - Label:
           default: Lambda Function (Optional)
@@ -819,7 +834,6 @@ Metadata:
           - TagsCacheTTLSeconds
           - SourceZipUrl
           - PermissionsBoundaryArn
-          - DdApiKeySecretArn
           - DdUsePrivateLink
           - DdUseVPC
           - VPCSecurityGroupIds
@@ -830,5 +844,7 @@ Metadata:
     ParameterLabels:
       DdApiKey:
         default: "DdApiKey *"
+      DdApiKeySecretArn:
+        default: "DdApiKeySecretArn *"
       DdSite:
         default: "DdSite *"

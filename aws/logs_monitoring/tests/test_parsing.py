@@ -12,7 +12,7 @@ sys.modules["requests_futures.sessions"] = MagicMock()
 
 env_patch = patch.dict(os.environ, {"DD_API_KEY": "11111111111111111111111111111111"})
 env_patch.start()
-from parsing import parse_event_source
+from parsing import parse_event_source, separate_security_hub_findings
 
 env_patch.stop()
 
@@ -67,6 +67,14 @@ class TestParseEventSource(unittest.TestCase):
             parse_event_source(
                 {"awslogs": "logs"}, "Api-Gateway-Execution-Logs_a1b23c/test"
             ),
+            "apigateway",
+        )
+        self.assertEqual(
+            parse_event_source({"awslogs": "logs"}, "/aws/api-gateway/my-project"),
+            "apigateway",
+        )
+        self.assertEqual(
+            parse_event_source({"awslogs": "logs"}, "/aws/http-api/my-project"),
             "apigateway",
         )
 
@@ -223,6 +231,151 @@ class TestParseEventSource(unittest.TestCase):
 
     def test_s3_source_if_none_found(self):
         self.assertEqual(parse_event_source({"Records": ["logs-from-s3"]}, ""), "s3")
+
+
+class TestParseSecurityHubEvents(unittest.TestCase):
+    def test_security_hub_no_findings(self):
+        event = {"ddsource": "securityhub"}
+        self.assertEqual(
+            separate_security_hub_findings(event),
+            None,
+        )
+
+    def test_security_hub_one_finding_no_resources(self):
+        event = {
+            "ddsource": "securityhub",
+            "detail": {"findings": [{"myattribute": "somevalue"}]},
+        }
+        self.assertEqual(
+            separate_security_hub_findings(event),
+            [
+                {
+                    "ddsource": "securityhub",
+                    "detail": {
+                        "finding": {"myattribute": "somevalue", "resources": {}}
+                    },
+                }
+            ],
+        )
+
+    def test_security_hub_two_findings_one_resource_each(self):
+        event = {
+            "ddsource": "securityhub",
+            "detail": {
+                "findings": [
+                    {
+                        "myattribute": "somevalue",
+                        "Resources": [
+                            {"Region": "us-east-1", "Type": "AwsEc2SecurityGroup"}
+                        ],
+                    },
+                    {
+                        "myattribute": "somevalue",
+                        "Resources": [
+                            {"Region": "us-east-1", "Type": "AwsEc2SecurityGroup"}
+                        ],
+                    },
+                ]
+            },
+        }
+        self.assertEqual(
+            separate_security_hub_findings(event),
+            [
+                {
+                    "ddsource": "securityhub",
+                    "detail": {
+                        "finding": {
+                            "myattribute": "somevalue",
+                            "resources": {
+                                "AwsEc2SecurityGroup": {"Region": "us-east-1"}
+                            },
+                        }
+                    },
+                },
+                {
+                    "ddsource": "securityhub",
+                    "detail": {
+                        "finding": {
+                            "myattribute": "somevalue",
+                            "resources": {
+                                "AwsEc2SecurityGroup": {"Region": "us-east-1"}
+                            },
+                        }
+                    },
+                },
+            ],
+        )
+
+    def test_security_hub_multiple_findings_multiple_resources(self):
+        event = {
+            "ddsource": "securityhub",
+            "detail": {
+                "findings": [
+                    {
+                        "myattribute": "somevalue",
+                        "Resources": [
+                            {"Region": "us-east-1", "Type": "AwsEc2SecurityGroup"}
+                        ],
+                    },
+                    {
+                        "myattribute": "somevalue",
+                        "Resources": [
+                            {"Region": "us-east-1", "Type": "AwsEc2SecurityGroup"},
+                            {"Region": "us-east-1", "Type": "AwsOtherSecurityGroup"},
+                        ],
+                    },
+                    {
+                        "myattribute": "somevalue",
+                        "Resources": [
+                            {"Region": "us-east-1", "Type": "AwsEc2SecurityGroup"},
+                            {"Region": "us-east-1", "Type": "AwsOtherSecurityGroup"},
+                            {"Region": "us-east-1", "Type": "AwsAnotherSecurityGroup"},
+                        ],
+                    },
+                ]
+            },
+        }
+        self.assertEqual(
+            separate_security_hub_findings(event),
+            [
+                {
+                    "ddsource": "securityhub",
+                    "detail": {
+                        "finding": {
+                            "myattribute": "somevalue",
+                            "resources": {
+                                "AwsEc2SecurityGroup": {"Region": "us-east-1"}
+                            },
+                        }
+                    },
+                },
+                {
+                    "ddsource": "securityhub",
+                    "detail": {
+                        "finding": {
+                            "myattribute": "somevalue",
+                            "resources": {
+                                "AwsEc2SecurityGroup": {"Region": "us-east-1"},
+                                "AwsOtherSecurityGroup": {"Region": "us-east-1"},
+                            },
+                        }
+                    },
+                },
+                {
+                    "ddsource": "securityhub",
+                    "detail": {
+                        "finding": {
+                            "myattribute": "somevalue",
+                            "resources": {
+                                "AwsEc2SecurityGroup": {"Region": "us-east-1"},
+                                "AwsOtherSecurityGroup": {"Region": "us-east-1"},
+                                "AwsAnotherSecurityGroup": {"Region": "us-east-1"},
+                            },
+                        }
+                    },
+                },
+            ],
+        )
 
 
 if __name__ == "__main__":
