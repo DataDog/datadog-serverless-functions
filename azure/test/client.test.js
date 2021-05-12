@@ -14,8 +14,7 @@ function fakeContext() {
 }
 
 function setUp() {
-    var forwarder = new client.EventhubLogForwarder(fakeContext());
-//    forwarder.sendWithRetry = sinon.spy();
+    var forwarder = new client.EventhubLogHandler(fakeContext());
 
     forwarder.addTagsToJsonLog = x => {
         return Object.assign({ ddsource: 'none' }, x);
@@ -316,21 +315,11 @@ describe('Azure Log Monitoring', function() {
     function testHandleJSONLogs(forwarder, logs, expected) {
         actual = forwarder.handleLogs(logs);
         assert.deepEqual(actual, expected);
-        //        expected.forEach(message => {
-        //            assert.equal(expected, forwarder.addTagsToStringLog(message))
-        //        });
     }
 
     function testHandleStringLogs(forwarder, logs, expected) {
         actual = forwarder.handleLogs(logs);
-                assert.deepEqual(actual, expected);
-
-//        expected.forEach(message => {
-//            sinon.assert.calledWith(
-//                forwarder.sendWithRetry,
-//                forwarder.addTagsToStringLog(message)
-//            );
-//        });
+        assert.deepEqual(actual, expected);
     }
 
     describe('#handleLogs', function() {
@@ -340,7 +329,7 @@ describe('Azure Log Monitoring', function() {
 
         it('should handle string properly', function() {
             log = 'hello';
-            expected = [{ ddsource: "none", message: 'hello' }];
+            expected = [{ ddsource: 'none', message: 'hello' }];
             assert.equal(this.forwarder.getLogFormat(log), constants.STRING);
             testHandleStringLogs(this.forwarder, log, expected);
         });
@@ -367,7 +356,10 @@ describe('Azure Log Monitoring', function() {
 
         it('should handle string-array properly', function() {
             log = ['one message', 'two message'];
-            expected = [{ddsource: 'none', message:'one message'}, {ddsource: 'none', message:'two message'}];
+            expected = [
+                { ddsource: 'none', message: 'one message' },
+                { ddsource: 'none', message: 'two message' }
+            ];
             assert.equal(
                 this.forwarder.getLogFormat(log),
                 constants.STRING_ARRAY
@@ -377,7 +369,10 @@ describe('Azure Log Monitoring', function() {
 
         it('should handle json-records properly', function() {
             log = [{ records: [{ hello: 'there' }, { goodbye: 'now' }] }];
-            expected = [{ ddsource: 'none', hello: 'there' }, { ddsource: 'none', goodbye: 'now' }];
+            expected = [
+                { ddsource: 'none', hello: 'there' },
+                { ddsource: 'none', goodbye: 'now' }
+            ];
             assert.equal(
                 this.forwarder.getLogFormat(log),
                 constants.JSON_ARRAY
@@ -387,7 +382,10 @@ describe('Azure Log Monitoring', function() {
 
         it('should handle json-array properly', function() {
             log = [{ hello: 'there' }, { goodbye: 'now' }];
-            expected = [{ ddsource: 'none', hello: 'there' }, { ddsource: 'none', goodbye: 'now' }];
+            expected = [
+                { ddsource: 'none', hello: 'there' },
+                { ddsource: 'none', goodbye: 'now' }
+            ];
             assert.equal(
                 this.forwarder.getLogFormat(log),
                 constants.JSON_ARRAY
@@ -417,7 +415,7 @@ describe('Azure Log Monitoring', function() {
 
         it('should handle buffer array with malformed string', function() {
             log = [Buffer.from('{"time": "xy')];
-            expected = [{ddsource: 'none', message: '{"time": "xy'}];
+            expected = [{ ddsource: 'none', message: '{"time": "xy' }];
             assert.equal(
                 this.forwarder.getLogFormat(log),
                 constants.BUFFER_ARRAY
@@ -427,7 +425,10 @@ describe('Azure Log Monitoring', function() {
 
         it('should handle json-string-array properly records', function() {
             log = ['{"records": [{ "time": "xyz"}, {"time": "abc"}]}'];
-            expected = [{ ddsource: 'none', time: 'xyz' }, { ddsource: 'none', time: 'abc' }];
+            expected = [
+                { ddsource: 'none', time: 'xyz' },
+                { ddsource: 'none', time: 'abc' }
+            ];
             assert.equal(
                 this.forwarder.getLogFormat(log),
                 constants.JSON_STRING_ARRAY
@@ -447,7 +448,10 @@ describe('Azure Log Monitoring', function() {
 
         it('should handle json-string-array with malformed string', function() {
             log = ['{"time": "xyz"}', '{"time": "xy'];
-            expected = [{ddsource: 'none', time: "xyz"}, {ddsource: 'none', message:'{"time": "xy'}];
+            expected = [
+                { ddsource: 'none', time: 'xyz' },
+                { ddsource: 'none', message: '{"time": "xy' }
+            ];
             assert.equal(
                 this.forwarder.getLogFormat(log),
                 constants.JSON_STRING_ARRAY

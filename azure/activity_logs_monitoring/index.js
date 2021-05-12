@@ -132,6 +132,111 @@ class Batcher {
     }
 }
 
+class HTTPClient {
+    constructor(context) {
+        this.context = context;
+        this.httpOptions = {
+            hostname: DD_HTTP_URL,
+            port: DD_HTTP_PORT,
+            path: '/v1/input',
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'DD-API-KEY': DD_API_KEY
+            }
+        };
+        this.scrubber = new Scrubber(this.context, SCRUBBER_RULE_CONFIGS);
+        this.promises = [];
+    }
+
+    handle(record) {
+        this.promises.push(this.sendWithRetry(record));
+    }
+
+    async sendAll() {
+        var results = await Promise.all(
+            this.promises.map(p => p.catch(e => context.log.error(e)))
+        );
+        return results;
+    }
+
+    sendWithRetry(record) {
+        return new Promise((resolve, reject) => {
+            return this.send(record)
+                .then(res => {
+                    resolve(true);
+                })
+                .catch(err => {
+                    this.send(record)
+                        .then(res => {
+                            resolve(true);
+                        })
+                        .catch(err => {
+                            reject(
+                                `unable to send request after 2 tries, err: ${err}`
+                            );
+                        });
+                });
+        });
+    }
+
+    send(record) {
+        return new Promise((resolve, reject) => {
+            const req = https
+                .request(this.httpOptions, resp => {
+                    if (resp.statusCode < 200 || resp.statusCode > 299) {
+                        reject(`invalid status code ${resp.statusCode}`);
+                    } else {
+                        resolve(true);
+                    }
+                })
+                .on('error', error => {
+                    reject(error);
+                });
+            req.write(this.scrubber.scrub(JSON.stringify(record)));
+            req.end();
+        });
+    }
+}
+
+class TCPClient {
+    constructor(context) {
+        this.context = context;
+        this.tcpOptions = { port: DD_TCP_PORT, host: DD_TCP_URL };
+        this.scrubber = new Scrubber(this.context, SCRUBBER_RULE_CONFIGS);
+    }
+
+    getSocket(context) {
+        var socket = tls.connect(this.tcpOptions);
+        socket.on('error', err => {
+            this.context.log.error(err.toString());
+            socket.end();
+        });
+
+        return socket;
+    }
+    send(socket, record) {
+        return socket.write(
+            DD_API_KEY +
+                ' ' +
+                this.scrubber.scrub(JSON.stringify(record[0])) +
+                '\n'
+        );
+    }
+
+    sendBatches(batches) {
+        var socket = this.getSocket(this.context);
+        for (var i = 0; i < batches.length; i++) {
+            if (!this.send(socket, batches[i])) {
+                // Retry once
+                socket = getSocket(this.context);
+                this.send(socket, batches[i]);
+            }
+        }
+        socket.end();
+    }
+}
+
 class Scrubber {
     constructor(context, configs) {
         var rules = [];
@@ -166,20 +271,9 @@ class Scrubber {
     }
 }
 
-class EventhubLogForwarder {
+class EventhubLogHandler {
     constructor(context) {
         this.context = context;
-        this.http_options = {
-            hostname: DD_HTTP_URL,
-            port: DD_HTTP_PORT,
-            path: '/v1/input',
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'DD-API-KEY': DD_API_KEY
-            },
-        };
-        this.scrubber = new Scrubber(this.context, SCRUBBER_RULE_CONFIGS);
         this.logSplittingConfig = getLogSplittingConfig();
         this.records = [];
     }
@@ -244,59 +338,6 @@ class EventhubLogForwarder {
             record = this.addTagsToStringLog(record);
             this.records.push(record);
         }
-    }
-
-    sendWithRetry(record) {
-        return new Promise((resolve, reject) => {
-            return this.send(record)
-                .then(res => {
-                    resolve(true);
-                })
-                .catch(err => {
-                    this.send(record)
-                        .then(res => {
-                            resolve(true);
-                        })
-                        .catch(err => {
-                            reject(
-                                `unable to send request after 2 tries, err: ${err}`
-                            );
-                        });
-                });
-        });
-    }
-
-    send(record) {
-        return new Promise((resolve, reject) => {
-            const req = https
-                .request(this.http_options, resp => {
-                    if (resp.statusCode < 200 || resp.statusCode > 299) {
-                        reject(`invalid status code ${resp.statusCode}`);
-                    } else {
-                        resolve(true);
-                    }
-                })
-                .on('error', error => {
-                    reject(error);
-                });
-            req.write(this.scrubber.scrub(JSON.stringify(record)));
-            req.end();
-        });
-    }
-
-    createBatches(logs) {
-        var parsedLogs = this.handleLogs(logs);
-        if (USE_TCP) {
-            return new Batcher(this.context, 256 * 1000, 256 * 1000, 1).batch(
-                parsedLogs
-            );
-        }
-        return new Batcher(
-            this.context,
-            256 * 1000,
-            4 * 1000 * 1000,
-            400
-        ).batch(parsedLogs);
     }
 
     handleLogs(logs) {
@@ -499,20 +540,6 @@ class EventhubLogForwarder {
     }
 }
 
-function getSocket(context) {
-    var socket = tls.connect({ port: DD_TCP_PORT, host: DD_TCP_URL });
-    socket.on('error', err => {
-        context.log.error(err.toString());
-        socket.end();
-    });
-
-    return socket;
-}
-function sendTCP(socket, record) {
-    record = record[0];
-    return socket.write(DD_API_KEY + ' ' + JSON.stringify(record) + '\n');
-}
-
 module.exports = async function(context, eventHubMessages) {
     if (!DD_API_KEY || DD_API_KEY === '<DATADOG_API_KEY>') {
         context.log.error(
@@ -521,38 +548,45 @@ module.exports = async function(context, eventHubMessages) {
         return;
     }
     try {
-        var forwarder = new EventhubLogForwarder(context);
-        var batches = forwarder.createBatches(eventHubMessages);
+        var handler = new EventhubLogHandler(context);
+        var parsedLogs = handler.handleLogs(eventHubMessages);
     } catch (err) {
-        context.log.error('Error raised when creating batches', err);
+        context.log.error('Error raised when parsing logs', err);
         throw err;
     }
     if (USE_TCP) {
-        var socket = getSocket(context);
-        for (i = 0; i < batches.length; i++) {
-            if (!sendTCP(socket, batches[i])) {
-                // Retry once
-                socket = getSocket(context);
-                sendTCP(socket, batches[i]);
-            }
-        }
-        socket.end();
+        var batches = new Batcher(
+            this.context,
+            256 * 1000,
+            256 * 1000,
+            1
+        ).batch(parsedLogs);
+        new TCPClient(this.context).sendBatches(batches);
     } else {
-        var promises = [];
+        var batches = new Batcher(
+            this.context,
+            256 * 1000,
+            4 * 1000 * 1000,
+            400
+        ).batch(parsedLogs);
+
+        var client = new HTTPClient(context);
         for (i = 0; i < batches.length; i++) {
-            promises.push(forwarder.sendWithRetry(batches[i]));
+            client.handle(batches[i]);
         }
-        var results = await Promise.all(
-            promises.map(p => p.catch(e => context.log.error(e)))
-        );
+
+        var results = await client.sendAll();
+
         if (results.every(v => v === true) !== true) {
-            context.log.error('some messages were unable to be sent.');
+            context.log.error(
+                'some messages were unable to be sent. See other logs for more details.'
+            );
         }
     }
 };
 
 module.exports.forTests = {
-    EventhubLogForwarder,
+    EventhubLogHandler,
     Scrubber,
     ScrubberRule,
     Batcher,
