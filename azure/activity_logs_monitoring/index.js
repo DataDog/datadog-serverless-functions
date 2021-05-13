@@ -231,7 +231,7 @@ class TCPClient {
         for (var i = 0; i < batches.length; i++) {
             if (!this.send(socket, batches[i])) {
                 // Retry once
-                socket = getSocket(this.context);
+                socket = this.getSocket(this.context);
                 this.send(socket, batches[i]);
             }
         }
