@@ -571,6 +571,20 @@ describe('Batching', function() {
             expected = [[{ hi: 'bye' }], ['bleh']];
             assert.deepEqual(actual, expected);
         });
+        it('should return two batches because of batch size bytes', function() {
+            batcher = new client.Batcher(5, 12, 10);
+            logs = [{ hi: 'bye' }, 'bleh'];
+            actual = batcher.batch(logs);
+            expected = [[{ hi: 'bye' }], ['bleh']];
+            assert.deepEqual(actual, expected);
+        });
+        it('should drop message based on message bytes size', function() {
+            batcher = new client.Batcher(5, 5, 1);
+            logs = [{ hi: 'bye' }, 'bleh'];
+            actual = batcher.batch(logs);
+            expected = [['bleh']];
+            assert.deepEqual(actual, expected);
+        });
     });
     describe('#getSizeInBytes', function() {
         it('should return 5 for string', function() {
