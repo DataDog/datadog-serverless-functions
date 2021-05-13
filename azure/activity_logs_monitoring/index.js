@@ -93,7 +93,8 @@ class Batcher {
         var batch = [];
         var sizeBytes = 0;
         var sizeCount = 0;
-        items.forEach(item => {
+        for (var i = 0; i < items.length; i++) {
+            var item = items[i];
             var itemSizeBytes = this.getSizeInBytes(item);
             if (
                 sizeCount > 0 &&
@@ -111,7 +112,7 @@ class Batcher {
                 sizeBytes += itemSizeBytes;
                 sizeCount += 1;
             }
-        });
+        }
 
         if (sizeCount > 0) {
             batches.push(batch);
