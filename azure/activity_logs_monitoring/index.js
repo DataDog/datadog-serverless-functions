@@ -128,7 +128,7 @@ class Batcher {
         if (typeof string !== 'string') {
             string = JSON.stringify(string);
         }
-        return string.length;
+        return Buffer.byteLength(string, 'utf8');
     }
 }
 
@@ -154,10 +154,9 @@ class HTTPClient {
     }
 
     async sendAll() {
-        var results = await Promise.all(
+        return await Promise.all(
             this.promises.map(p => p.catch(e => context.log.error(e)))
         );
-        return results;
     }
 
     sendWithRetry(record) {
@@ -551,7 +550,7 @@ module.exports = async function(context, eventHubMessages) {
         var handler = new EventhubLogHandler(context);
         var parsedLogs = handler.handleLogs(eventHubMessages);
     } catch (err) {
-        context.log.error('Error raised when parsing logs', err);
+        context.log.error('Error raised when parsing logs: ', err);
         throw err;
     }
     if (USE_TCP) {
@@ -579,7 +578,7 @@ module.exports = async function(context, eventHubMessages) {
 
         if (results.every(v => v === true) !== true) {
             context.log.error(
-                'some messages were unable to be sent. See other logs for more details.'
+                'Some messages were unable to be sent. See other logs for details.'
             );
         }
     }
