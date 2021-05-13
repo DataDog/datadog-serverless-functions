@@ -82,12 +82,7 @@ class ScrubberRule {
 }
 
 class Batcher {
-    constructor(
-        context,
-        maxItemSizeBytes,
-        maxBatchSizeBytes,
-        maxItemsCount
-    ) {
+    constructor(context, maxItemSizeBytes, maxBatchSizeBytes, maxItemsCount) {
         this.maxItemSizeBytes = maxItemSizeBytes;
         this.maxBatchSizeBytes = maxBatchSizeBytes;
         this.maxItemsCount = maxItemsCount;
@@ -146,16 +141,22 @@ class HTTPClient {
             }
         };
         this.scrubber = new Scrubber(this.context, SCRUBBER_RULE_CONFIGS);
-        this.promises = [];
+        this.batcher = new Batcher(
+            this.context,
+            256 * 1000,
+            4 * 1000 * 1000,
+            400
+        );
     }
 
-    handle(record) {
-        this.promises.push(this.sendWithRetry(record));
-    }
-
-    async sendAll() {
+    async sendAll(records) {
+        var batches = this.batcher.batch(records);
+        var promises = [];
+        for (var i = 0; i < batches.length; i++) {
+            promises.push(this.sendWithRetry(batches[i]));
+        }
         return await Promise.all(
-            this.promises.map(p => p.catch(e => context.log.error(e)))
+            promises.map(p => p.catch(e => context.log.error(e)))
         );
     }
 
@@ -203,6 +204,7 @@ class TCPClient {
         this.context = context;
         this.tcpOptions = { port: DD_TCP_PORT, host: DD_TCP_URL };
         this.scrubber = new Scrubber(this.context, SCRUBBER_RULE_CONFIGS);
+        this.batcher = new Batcher(this.context, 256 * 1000, 256 * 1000, 1);
     }
 
     getSocket(context) {
@@ -223,7 +225,8 @@ class TCPClient {
         );
     }
 
-    sendBatches(batches) {
+    sendAll(records) {
+        var batches = this.batcher.batch(records);
         var socket = this.getSocket(this.context);
         for (var i = 0; i < batches.length; i++) {
             if (!this.send(socket, batches[i])) {
@@ -554,27 +557,9 @@ module.exports = async function(context, eventHubMessages) {
         throw err;
     }
     if (USE_TCP) {
-        var batches = new Batcher(
-            this.context,
-            256 * 1000,
-            256 * 1000,
-            1
-        ).batch(parsedLogs);
-        new TCPClient(this.context).sendBatches(batches);
+        new TCPClient(this.context).sendAll(parsedLogs);
     } else {
-        var batches = new Batcher(
-            this.context,
-            256 * 1000,
-            4 * 1000 * 1000,
-            400
-        ).batch(parsedLogs);
-
-        var client = new HTTPClient(context);
-        for (i = 0; i < batches.length; i++) {
-            client.handle(batches[i]);
-        }
-
-        var results = await client.sendAll();
+        var results = await new HTTPClient(this.context).sendAll(parsedLogs);
 
         if (results.every(v => v === true) !== true) {
             context.log.error(
