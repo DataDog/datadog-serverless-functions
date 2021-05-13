@@ -84,41 +84,41 @@ class ScrubberRule {
 class Batcher {
     constructor(
         context,
-        max_item_size_bytes,
-        max_batch_size_bytes,
-        max_items_count
+        maxItemSizeBytes,
+        maxBatchSizeBytes,
+        maxItemsCount
     ) {
-        this.max_item_size_bytes = max_item_size_bytes;
-        this.max_batch_size_bytes = max_batch_size_bytes;
-        this.max_items_count = max_items_count;
+        this.maxItemSizeBytes = maxItemSizeBytes;
+        this.maxBatchSizeBytes = maxBatchSizeBytes;
+        this.maxItemsCount = maxItemsCount;
     }
 
     batch(items) {
         var batches = [];
         var batch = [];
-        var size_bytes = 0;
-        var size_count = 0;
+        var sizeBytes = 0;
+        var sizeCount = 0;
         items.forEach(item => {
-            var item_size_bytes = this.getSizeInBytes(item);
+            var itemSizeBytes = this.getSizeInBytes(item);
             if (
-                size_count > 0 &&
-                (size_count >= this.max_items_count ||
-                    size_bytes + item_size_bytes > this.max_batch_size_bytes)
+                sizeCount > 0 &&
+                (sizeCount >= this.maxItemsCount ||
+                    sizeBytes + itemSizeBytes > this.maxBatchSizeBytes)
             ) {
                 batches.push(batch);
                 batch = [];
-                size_bytes = 0;
-                size_count = 0;
+                sizeBytes = 0;
+                sizeCount = 0;
             }
-            // all items exceeding max_item_size_bytes are dropped here
-            if (item_size_bytes <= this.max_item_size_bytes) {
+            // all items exceeding maxItemSizeBytes are dropped here
+            if (itemSizeBytes <= this.maxItemSizeBytes) {
                 batch.push(item);
-                size_bytes += item_size_bytes;
-                size_count += 1;
+                sizeBytes += itemSizeBytes;
+                sizeCount += 1;
             }
         });
 
-        if (size_count > 0) {
+        if (sizeCount > 0) {
             batches.push(batch);
         }
         return batches;
