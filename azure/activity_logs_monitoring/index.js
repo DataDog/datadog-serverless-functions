@@ -4,8 +4,9 @@
 // Copyright 2021 Datadog, Inc.
 
 var https = require('https');
+var tls = require('tls');
 
-const VERSION = '0.3.0';
+const VERSION = '0.4.0';
 
 const STRING = 'string'; // example: 'some message'
 const STRING_ARRAY = 'string-array'; // example: ['one message', 'two message', ...]
@@ -21,12 +22,15 @@ const STRING_TYPE = 'string';
 
 const DD_API_KEY = process.env.DD_API_KEY || '<DATADOG_API_KEY>';
 const DD_SITE = process.env.DD_SITE || 'datadoghq.com';
-const DD_URL = process.env.DD_URL || 'http-intake.logs.' + DD_SITE;
-const DD_PORT = process.env.DD_PORT || 443;
+const DD_HTTP_URL = process.env.DD_HTTP_URL || 'http-intake.logs.' + DD_SITE;
+const DD_HTTP_PORT = process.env.DD_HTTP_PORT || 443;
+const DD_TCP_URL = process.env.DD_TCP_URL || 'functions-intake.logs.' + DD_SITE;
+const DD_TCP_PORT = DD_SITE === 'datadoghq.eu' ? 443 : 10516;
 const DD_TAGS = process.env.DD_TAGS || ''; // Replace '' by your comma-separated list of tags
 const DD_SERVICE = process.env.DD_SERVICE || 'azure';
 const DD_SOURCE = process.env.DD_SOURCE || 'azure';
 const DD_SOURCE_CATEGORY = process.env.DD_SOURCE_CATEGORY || 'azure';
+const USE_TCP = process.env.DD_USE_TCP || false;
 
 /*
 To scrub PII from your logs, uncomment the applicable configs below. If you'd like to scrub more than just
@@ -77,6 +81,165 @@ class ScrubberRule {
     }
 }
 
+class Batcher {
+    constructor(context, maxItemSizeBytes, maxBatchSizeBytes, maxItemsCount) {
+        this.maxItemSizeBytes = maxItemSizeBytes;
+        this.maxBatchSizeBytes = maxBatchSizeBytes;
+        this.maxItemsCount = maxItemsCount;
+    }
+
+    batch(items) {
+        var batches = [];
+        var batch = [];
+        var sizeBytes = 0;
+        var sizeCount = 0;
+        for (var i = 0; i < items.length; i++) {
+            var item = items[i];
+            var itemSizeBytes = this.getSizeInBytes(item);
+            if (
+                sizeCount > 0 &&
+                (sizeCount >= this.maxItemsCount ||
+                    sizeBytes + itemSizeBytes > this.maxBatchSizeBytes)
+            ) {
+                batches.push(batch);
+                batch = [];
+                sizeBytes = 0;
+                sizeCount = 0;
+            }
+            // all items exceeding maxItemSizeBytes are dropped here
+            if (itemSizeBytes <= this.maxItemSizeBytes) {
+                batch.push(item);
+                sizeBytes += itemSizeBytes;
+                sizeCount += 1;
+            }
+        }
+
+        if (sizeCount > 0) {
+            batches.push(batch);
+        }
+        return batches;
+    }
+
+    getSizeInBytes(string) {
+        if (typeof string !== 'string') {
+            string = JSON.stringify(string);
+        }
+        return Buffer.byteLength(string, 'utf8');
+    }
+}
+
+class HTTPClient {
+    constructor(context) {
+        this.context = context;
+        this.httpOptions = {
+            hostname: DD_HTTP_URL,
+            port: DD_HTTP_PORT,
+            path: '/v1/input',
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'DD-API-KEY': DD_API_KEY
+            }
+        };
+        this.scrubber = new Scrubber(this.context, SCRUBBER_RULE_CONFIGS);
+        this.batcher = new Batcher(
+            this.context,
+            256 * 1000,
+            4 * 1000 * 1000,
+            400
+        );
+    }
+
+    async sendAll(records) {
+        var batches = this.batcher.batch(records);
+        var promises = [];
+        for (var i = 0; i < batches.length; i++) {
+            promises.push(this.sendWithRetry(batches[i]));
+        }
+        return await Promise.all(
+            promises.map(p => p.catch(e => context.log.error(e)))
+        );
+    }
+
+    sendWithRetry(record) {
+        return new Promise((resolve, reject) => {
+            return this.send(record)
+                .then(res => {
+                    resolve(true);
+                })
+                .catch(err => {
+                    this.send(record)
+                        .then(res => {
+                            resolve(true);
+                        })
+                        .catch(err => {
+                            reject(
+                                `unable to send request after 2 tries, err: ${err}`
+                            );
+                        });
+                });
+        });
+    }
+
+    send(record) {
+        return new Promise((resolve, reject) => {
+            const req = https
+                .request(this.httpOptions, resp => {
+                    if (resp.statusCode < 200 || resp.statusCode > 299) {
+                        reject(`invalid status code ${resp.statusCode}`);
+                    } else {
+                        resolve(true);
+                    }
+                })
+                .on('error', error => {
+                    reject(error);
+                });
+            req.write(this.scrubber.scrub(JSON.stringify(record)));
+            req.end();
+        });
+    }
+}
+
+class TCPClient {
+    constructor(context) {
+        this.context = context;
+        this.tcpOptions = { port: DD_TCP_PORT, host: DD_TCP_URL };
+        this.scrubber = new Scrubber(this.context, SCRUBBER_RULE_CONFIGS);
+        this.batcher = new Batcher(this.context, 256 * 1000, 256 * 1000, 1);
+    }
+
+    getSocket(context) {
+        var socket = tls.connect(this.tcpOptions);
+        socket.on('error', err => {
+            this.context.log.error(err.toString());
+            socket.end();
+        });
+
+        return socket;
+    }
+    send(socket, record) {
+        return socket.write(
+            DD_API_KEY +
+                ' ' +
+                this.scrubber.scrub(JSON.stringify(record[0])) +
+                '\n'
+        );
+    }
+
+    sendAll(records) {
+        var batches = this.batcher.batch(records);
+        var socket = this.getSocket(this.context);
+        for (var i = 0; i < batches.length; i++) {
+            if (!this.send(socket, batches[i])) {
+                // Retry once
+                socket = this.getSocket(this.context);
+                this.send(socket, batches[i]);
+            }
+        }
+        socket.end();
+    }
+}
+
 class Scrubber {
     constructor(context, configs) {
         var rules = [];
@@ -111,23 +274,11 @@ class Scrubber {
     }
 }
 
-class EventhubLogForwarder {
+class EventhubLogHandler {
     constructor(context) {
         this.context = context;
-        this.options = {
-            hostname: DD_URL,
-            port: 443,
-            path: '/v1/input',
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'DD-API-KEY': DD_API_KEY
-            },
-            timeout: 2000
-        };
-        this.scrubber = new Scrubber(this.context, SCRUBBER_RULE_CONFIGS);
-        this.promises = [];
         this.logSplittingConfig = getLogSplittingConfig();
+        this.records = [];
     }
 
     findSplitRecords(record, fields) {
@@ -141,14 +292,14 @@ class EventhubLogForwarder {
                 this.context.log.error(
                     'unable to split log based on log config, falling back to sending existing log.'
                 );
-                this.promises.push(this.sendWithRetry(record));
+                this.records.push(record);
                 return null;
             }
         }
         return tempRecord;
     }
 
-    formatLogAndSend(messageType, record) {
+    formatLog(messageType, record) {
         if (messageType == JSON_TYPE) {
             var originalRecord = this.addTagsToJsonLog(record);
             var source = originalRecord['ddsource'];
@@ -157,7 +308,7 @@ class EventhubLogForwarder {
                 var fields = config.path;
 
                 if (config.keep_original_log) {
-                    this.promises.push(this.sendWithRetry(originalRecord));
+                    this.records.push(originalRecord);
                 }
 
                 var recordsToSplit = this.findSplitRecords(record, fields);
@@ -181,71 +332,32 @@ class EventhubLogForwarder {
                         tags: originalRecord['tags']
                     };
                     Object.assign(newRecord, splitRecord);
-                    this.promises.push(this.sendWithRetry(newRecord));
+                    this.records.push(newRecord);
                 }
             } else {
-                this.promises.push(this.sendWithRetry(originalRecord));
+                this.records.push(originalRecord);
             }
         } else {
             record = this.addTagsToStringLog(record);
-            this.promises.push(this.sendWithRetry(record));
+            this.records.push(record);
         }
-    }
-
-    sendWithRetry(record) {
-        return new Promise((resolve, reject) => {
-            return this.send(record)
-                .then(res => {
-                    resolve();
-                })
-                .catch(err => {
-                    setTimeout(() => {
-                        this.send(record)
-                            .then(resolve)
-                            .catch(err => {
-                                this.context.log.error(
-                                    `unable to send request after 2 tries, err: ${err}`
-                                );
-                                reject();
-                            });
-                    }, 1000);
-                });
-        });
-    }
-
-    send(record) {
-        return new Promise((resolve, reject) => {
-            const req = https
-                .request(this.options, resp => {
-                    if (resp.statusCode < 200 || resp.statusCode > 299) {
-                        reject(`invalid status code ${resp.statusCode}`);
-                    } else {
-                        resolve();
-                    }
-                })
-                .on('error', error => {
-                    reject(error);
-                });
-            req.write(this.scrubber.scrub(JSON.stringify(record)));
-            req.end();
-        });
     }
 
     handleLogs(logs) {
         var logsType = this.getLogFormat(logs);
         switch (logsType) {
             case STRING:
-                this.formatLogAndSend(STRING_TYPE, logs);
+                this.formatLog(STRING_TYPE, logs);
                 break;
             case JSON_STRING:
                 logs = JSON.parse(logs);
-                this.formatLogAndSend(JSON_TYPE, logs);
+                this.formatLog(JSON_TYPE, logs);
                 break;
             case JSON_OBJECT:
-                this.formatLogAndSend(JSON_TYPE, logs);
+                this.formatLog(JSON_TYPE, logs);
                 break;
             case STRING_ARRAY:
-                logs.forEach(log => this.formatLogAndSend(STRING_TYPE, log));
+                logs.forEach(log => this.formatLog(STRING_TYPE, log));
                 break;
             case JSON_ARRAY:
                 this.handleJSONArrayLogs(logs, JSON_ARRAY);
@@ -263,7 +375,7 @@ class EventhubLogForwarder {
                 this.context.log.error('Log format is invalid: ', logs);
                 break;
         }
-        return this.promises;
+        return this.records;
     }
 
     handleJSONArrayLogs(logs, logsType) {
@@ -276,7 +388,7 @@ class EventhubLogForwarder {
                     this.context.log.warn(
                         'log is malformed json, sending as string'
                     );
-                    this.formatLogAndSend(STRING_TYPE, message);
+                    this.formatLog(STRING_TYPE, message);
                     continue;
                 }
             }
@@ -288,16 +400,16 @@ class EventhubLogForwarder {
                     this.context.log.warn(
                         'log is malformed json, sending as string'
                     );
-                    this.formatLogAndSend(STRING_TYPE, message.toString());
+                    this.formatLog(STRING_TYPE, message.toString());
                     continue;
                 }
             }
             if (message.records != undefined) {
                 message.records.forEach(message =>
-                    this.formatLogAndSend(JSON_TYPE, message)
+                    this.formatLog(JSON_TYPE, message)
                 );
             } else {
-                this.formatLogAndSend(JSON_TYPE, message);
+                this.formatLog(JSON_TYPE, message);
             }
         }
     }
@@ -438,17 +550,31 @@ module.exports = async function(context, eventHubMessages) {
         );
         return;
     }
-    var promises = new EventhubLogForwarder(context).handleLogs(
-        eventHubMessages
-    );
+    try {
+        var handler = new EventhubLogHandler(context);
+        var parsedLogs = handler.handleLogs(eventHubMessages);
+    } catch (err) {
+        context.log.error('Error raised when parsing logs: ', err);
+        throw err;
+    }
+    if (USE_TCP) {
+        new TCPClient(this.context).sendAll(parsedLogs);
+    } else {
+        var results = await new HTTPClient(this.context).sendAll(parsedLogs);
 
-    return Promise.all(promises.map(p => p.catch(e => e)));
+        if (results.every(v => v === true) !== true) {
+            context.log.error(
+                'Some messages were unable to be sent. See other logs for details.'
+            );
+        }
+    }
 };
 
 module.exports.forTests = {
-    EventhubLogForwarder,
+    EventhubLogHandler,
     Scrubber,
     ScrubberRule,
+    Batcher,
     constants: {
         STRING,
         STRING_ARRAY,
