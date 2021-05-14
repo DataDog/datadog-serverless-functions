@@ -4,9 +4,8 @@
 // Copyright 2021 Datadog, Inc.
 
 var https = require('https');
-var tls = require('tls');
 
-const VERSION = '0.4.0';
+const VERSION = '0.5.0';
 
 const STRING = 'string'; // example: 'some message'
 const STRING_ARRAY = 'string-array'; // example: ['one message', 'two message', ...]
@@ -22,15 +21,12 @@ const STRING_TYPE = 'string';
 
 const DD_API_KEY = process.env.DD_API_KEY || '<DATADOG_API_KEY>';
 const DD_SITE = process.env.DD_SITE || 'datadoghq.com';
-const DD_HTTP_URL = process.env.DD_HTTP_URL || 'http-intake.logs.' + DD_SITE;
-const DD_HTTP_PORT = process.env.DD_HTTP_PORT || 443;
-const DD_TCP_URL = process.env.DD_TCP_URL || 'functions-intake.logs.' + DD_SITE;
-const DD_TCP_PORT = DD_SITE === 'datadoghq.eu' ? 443 : 10516;
+const DD_HTTP_URL = process.env.DD_URL || 'http-intake.logs.' + DD_SITE;
+const DD_HTTP_PORT = process.env.DD_PORT || 443;
 const DD_TAGS = process.env.DD_TAGS || ''; // Replace '' by your comma-separated list of tags
 const DD_SERVICE = process.env.DD_SERVICE || 'azure';
 const DD_SOURCE = process.env.DD_SOURCE || 'azure';
 const DD_SOURCE_CATEGORY = process.env.DD_SOURCE_CATEGORY || 'azure';
-const USE_TCP = process.env.DD_USE_TCP || false;
 
 /*
 To scrub PII from your logs, uncomment the applicable configs below. If you'd like to scrub more than just
@@ -197,46 +193,6 @@ class HTTPClient {
             req.write(this.scrubber.scrub(JSON.stringify(record)));
             req.end();
         });
-    }
-}
-
-class TCPClient {
-    constructor(context) {
-        this.context = context;
-        this.tcpOptions = { port: DD_TCP_PORT, host: DD_TCP_URL };
-        this.scrubber = new Scrubber(this.context, SCRUBBER_RULE_CONFIGS);
-        this.batcher = new Batcher(this.context, 256 * 1000, 256 * 1000, 1);
-    }
-
-    getSocket(context) {
-        var socket = tls.connect(this.tcpOptions);
-        socket.on('error', err => {
-            this.context.log.error(err.toString());
-            socket.end();
-        });
-
-        return socket;
-    }
-    send(socket, record) {
-        return socket.write(
-            DD_API_KEY +
-                ' ' +
-                this.scrubber.scrub(JSON.stringify(record[0])) +
-                '\n'
-        );
-    }
-
-    sendAll(records) {
-        var batches = this.batcher.batch(records);
-        var socket = this.getSocket(this.context);
-        for (var i = 0; i < batches.length; i++) {
-            if (!this.send(socket, batches[i])) {
-                // Retry once
-                socket = this.getSocket(this.context);
-                this.send(socket, batches[i]);
-            }
-        }
-        socket.end();
     }
 }
 
@@ -557,16 +513,12 @@ module.exports = async function(context, eventHubMessages) {
         context.log.error('Error raised when parsing logs: ', err);
         throw err;
     }
-    if (USE_TCP) {
-        new TCPClient(this.context).sendAll(parsedLogs);
-    } else {
-        var results = await new HTTPClient(this.context).sendAll(parsedLogs);
+    var results = await new HTTPClient(this.context).sendAll(parsedLogs);
 
-        if (results.every(v => v === true) !== true) {
-            context.log.error(
-                'Some messages were unable to be sent. See other logs for details.'
-            );
-        }
+    if (results.every(v => v === true) !== true) {
+        context.log.error(
+            'Some messages were unable to be sent. See other logs for details.'
+        );
     }
 };
 
