@@ -26,6 +26,7 @@ from logs import forward_logs
 from parsing import (
     parse,
     separate_security_hub_findings,
+    parse_aws_waf_logs,
 )
 from telemetry import (
     DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX,
@@ -194,6 +195,10 @@ def transform(events):
             events.remove(event)
             events.extend(findings)
 
+        waf = parse_aws_waf_logs(event)
+        if waf != event:
+            events.remove(event)
+            events.append(waf)
     return events
 
 

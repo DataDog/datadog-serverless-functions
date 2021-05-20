@@ -528,6 +528,119 @@ def cwevent_handler(event, metadata):
     yield data
 
 
+def parse_aws_waf_logs(event):
+    """Parse out complex arrays of objects in AWS WAF logs
+
+    Attributes to convert:
+        httpRequest.headers
+        nonTerminatingMatchingRules
+        rateBasedRuleList
+        ruleGroupList
+
+    This prevents having an unparsable array of objects in the final log.
+    """
+    if event.get(DD_SOURCE) != "waf":
+        return event
+
+    event_copy = copy.deepcopy(event)
+
+    message = event_copy.get("message", {})
+    if isinstance(message, str):
+        try:
+            message = json.loads(message)
+        except json.JSONDecodeError:
+            logger.debug("Failed to decode waf message")
+            return
+
+    headers = message.get("httpRequest", {}).get("headers")
+    if headers and isinstance(headers, list):
+        header_obj = {}
+        for header in headers:
+            if "name" in header and "value" in header:
+                header_obj.update({header["name"]: header["value"]})
+        message["httpRequest"]["headers"] = header_obj
+
+    # Iterate through rules in ruleGroupList and nest them under the group id
+    # ruleGroupList has three attributes that need to be handled separately
+    rule_groups = message.get("ruleGroupList", {})
+    if rule_groups and isinstance(rule_groups, list):
+        message["ruleGroupList"] = {}
+        for rule_group in rule_groups:
+            group_id = None
+            if "ruleGroupId" in rule_group and rule_group["ruleGroupId"]:
+                group_id = rule_group.pop("ruleGroupId", None)
+            if not group_id in message["ruleGroupList"]:
+                message["ruleGroupList"][group_id] = {}
+
+            # Extract the terminating rule and nest it under its own id
+            if "terminatingRule" in rule_group and rule_group["terminatingRule"]:
+                terminating_rule = rule_group.pop("terminatingRule", None)
+                if "ruleId" in terminating_rule and terminating_rule["ruleId"]:
+                    rule_id = terminating_rule.pop("ruleId", None)
+                    if not "terminatingRule" in message["ruleGroupList"][group_id]:
+                        message["ruleGroupList"][group_id]["terminatingRule"] = {}
+                    message["ruleGroupList"][group_id]["terminatingRule"].update(
+                        {rule_id: terminating_rule}
+                    )
+
+            # Iterate through array of non-terminating rules and nest each under its own id
+            if "nonTerminatingMatchingRules" in rule_group and isinstance(
+                rule_group["nonTerminatingMatchingRules"], list
+            ):
+                non_terminating_rules = rule_group.pop(
+                    "nonTerminatingMatchingRules", None
+                )
+                if non_terminating_rules and isinstance(non_terminating_rules, list):
+                    for rule in non_terminating_rules:
+                        if "ruleId" in rule and rule["ruleId"]:
+                            rule_id = rule.pop("ruleId", None)
+                            if (
+                                not "nonTerminatingMatchingRules"
+                                in message["ruleGroupList"][group_id]
+                            ):
+                                message["ruleGroupList"][group_id][
+                                    "nonTerminatingMatchingRules"
+                                ] = {}
+                            message["ruleGroupList"][group_id][
+                                "nonTerminatingMatchingRules"
+                            ].update({rule_id: rule})
+
+            # Iterate through array of excluded rules and nest each under its own id
+            if "excludedRules" in rule_group and isinstance(
+                rule_group["excludedRules"], list
+            ):
+                excluded_rules = rule_group.pop("excludedRules", None)
+                for rule in excluded_rules:
+                    if "ruleId" in rule and rule["ruleId"]:
+                        rule_id = rule.pop("ruleId", None)
+                        if not "excludedRules" in message["ruleGroupList"][group_id]:
+                            message["ruleGroupList"][group_id]["excludedRules"] = {}
+                        message["ruleGroupList"][group_id]["excludedRules"].update(
+                            {rule_id: rule}
+                        )
+
+    rate_based_rules = message.get("rateBasedRuleList", {})
+    if rate_based_rules and isinstance(rate_based_rules, list):
+        rule_obj = {}
+        for rule in rate_based_rules:
+            if "rateBasedRuleName" in rule and rule["rateBasedRuleName"]:
+                name = rule.pop("rateBasedRuleName", None)
+                rule_obj.update({name: rule})
+        message["rateBasedRuleList"] = rule_obj
+
+    non_terminating_rules = message.get("nonTerminatingMatchingRules", {})
+    if non_terminating_rules and isinstance(non_terminating_rules, list):
+        rule_obj = {}
+        for rule in non_terminating_rules:
+            if "ruleId" in rule and rule["ruleId"]:
+                rule_id = rule.pop("ruleId", None)
+                rule_obj.update({rule_id: rule})
+        message["nonTerminatingMatchingRules"] = rule_obj
+
+    event_copy["message"] = message
+    return event_copy
+
+
 def separate_security_hub_findings(event):
     """Replace Security Hub event with series of events based on findings
 
