@@ -568,7 +568,7 @@ def parse_aws_waf_logs(event):
             group_id = None
             if "ruleGroupId" in rule_group and rule_group["ruleGroupId"]:
                 group_id = rule_group.pop("ruleGroupId", None)
-            if not group_id in message["ruleGroupList"]:
+            if group_id not in message["ruleGroupList"]:
                 message["ruleGroupList"][group_id] = {}
 
             # Extract the terminating rule and nest it under its own id
@@ -588,8 +588,8 @@ def parse_aws_waf_logs(event):
                     "nonTerminatingMatchingRules", None
                 )
                 if (
-                    not "nonTerminatingMatchingRules"
-                    in message["ruleGroupList"][group_id]
+                    "nonTerminatingMatchingRules"
+                    not in message["ruleGroupList"][group_id]
                 ):
                     message["ruleGroupList"][group_id][
                         "nonTerminatingMatchingRules"
@@ -603,7 +603,7 @@ def parse_aws_waf_logs(event):
                 rule_group["excludedRules"], list
             ):
                 excluded_rules = rule_group.pop("excludedRules", None)
-                if not "excludedRules" in message["ruleGroupList"][group_id]:
+                if "excludedRules" not in message["ruleGroupList"][group_id]:
                     message["ruleGroupList"][group_id]["excludedRules"] = {}
                 message["ruleGroupList"][group_id]["excludedRules"].update(
                     convert_rule_to_nested_json(excluded_rules)
