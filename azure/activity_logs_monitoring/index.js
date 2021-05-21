@@ -5,7 +5,7 @@
 
 var https = require('https');
 
-const VERSION = '0.5.0';
+const VERSION = '0.5.1';
 
 const STRING = 'string'; // example: 'some message'
 const STRING_ARRAY = 'string-array'; // example: ['one message', 'two message', ...]
@@ -153,7 +153,7 @@ class HTTPClient {
             promises.push(this.sendWithRetry(batches[i]));
         }
         return await Promise.all(
-            promises.map(p => p.catch(e => context.log.error(e)))
+            promises.map(p => p.catch(e => this.context.log.error(e)))
         );
     }
 
