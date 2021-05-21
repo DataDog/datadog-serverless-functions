@@ -513,7 +513,7 @@ module.exports = async function(context, eventHubMessages) {
         context.log.error('Error raised when parsing logs: ', err);
         throw err;
     }
-    var results = await new HTTPClient(this.context).sendAll(parsedLogs);
+    var results = await new HTTPClient(context).sendAll(parsedLogs);
 
     if (results.every(v => v === true) !== true) {
         context.log.error(
