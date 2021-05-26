@@ -241,14 +241,10 @@ def parse_event_source(event, key):
 def find_cloudwatch_source(log_group):
     # e.g. /aws/rds/instance/my-mariadb/error
     if log_group.startswith("/aws/rds"):
-        return next(
-            (
-                engine
-                for engine in ["mariadb", "mysql", "postgresql"]
-                if engine in log_group
-            ),
-            "rds",
-        )
+        for engine in ["mariadb", "mysql", "postgresql"]:
+            if engine in log_group:
+                return engine
+        return "rds"
 
     if log_group.startswith(
         (
