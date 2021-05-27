@@ -55,10 +55,10 @@ a potential use case with azure.datafactory is there to show the format:
 You can also set the DD_LOG_SPLITTING_CONFIG env var with a JSON string in this format.
 */
 const DD_LOG_SPLITTING_CONFIG = {
-//     'azure.datafactory': {
-//         paths: [['properties', 'Output', 'value'], ...],
-//         keep_original_log: true
-//     }
+    // 'azure.datafactory': {
+    //     paths: [['properties', 'Output', 'value']],
+    //     keep_original_log: true
+    // }
 };
 
 function getLogSplittingConfig() {
@@ -258,16 +258,15 @@ class EventhubLogHandler {
             var config = this.logSplittingConfig[source];
             if (config !== undefined) {
                 var logSplit = false;
-                var paths = config.paths;
 
-                for (var i = 0; i < paths.length; i++) {
-                    var fields = paths[i]
+                for (var i = 0; i < config.paths.length; i++) {
+                    var fields = config.paths[i];
                     var recordsToSplit = this.findSplitRecords(record, fields);
                     if (recordsToSplit === null) {
                         continue;
                     }
-                    logSplit = true;
 
+                    logSplit = true;
                     for (var j = 0; j < recordsToSplit.length; j++) {
                         var splitRecord = recordsToSplit[j];
                         if (typeof splitRecord === 'string') {
@@ -279,17 +278,21 @@ class EventhubLogHandler {
                         }
                         var newRecord = {
                             ddsource: source,
-                            ddsourcecategory: originalRecord['ddsourcecategory'],
+                            ddsourcecategory:
+                                originalRecord['ddsourcecategory'],
                             service: originalRecord['service'],
-                            ddtags: originalRecord['ddtags'],
-                            time: originalRecord['time']
+                            ddtags: originalRecord['ddtags']
                         };
+                        if (originalRecord['time'] !== undefined) {
+                            newRecord['time'] = originalRecord['time'];
+                        }
                         Object.assign(newRecord, splitRecord);
                         this.records.push(newRecord);
                     }
-
                 }
                 if (logSplit !== true || config.keep_original_log) {
+                    // keep the original log if we didn't actually split any fields, or if we've set
+                    // keep_original_log to preserve the full log when we split
                     this.records.push(originalRecord);
                 }
             } else {
