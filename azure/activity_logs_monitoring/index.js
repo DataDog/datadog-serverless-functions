@@ -49,16 +49,16 @@ To split array-type fields in your logs into individual logs, you can add sectio
 a potential use case with azure.datafactory is there to show the format:
 {
   source_type:
-    path: [list of fields in the log payload to iterate through to find the one to split],
+    paths: [list of [list of fields in the log payload to iterate through to find the one to split]],
     keep_original_log: bool, if you'd like to preserve the original log in addition to the split ones or not
 }
 You can also set the DD_LOG_SPLITTING_CONFIG env var with a JSON string in this format.
 */
 const DD_LOG_SPLITTING_CONFIG = {
-    // 'azure.datafactory': {
-    //     path: ['properties', 'Output', 'value'],
-    //     keep_original_log: true
-    // }
+//     'azure.datafactory': {
+//         paths: [['properties', 'Output', 'value'], ...],
+//         keep_original_log: true
+//     }
 };
 
 function getLogSplittingConfig() {
@@ -245,10 +245,6 @@ class EventhubLogHandler {
             if (tempRecord[fieldName] !== undefined) {
                 tempRecord = tempRecord[fieldName];
             } else {
-                this.context.log.error(
-                    'unable to split log based on log config, falling back to sending existing log.'
-                );
-                this.records.push(record);
                 return null;
             }
         }
@@ -261,34 +257,40 @@ class EventhubLogHandler {
             var source = originalRecord['ddsource'];
             var config = this.logSplittingConfig[source];
             if (config !== undefined) {
-                var fields = config.path;
+                var logSplit = false;
+                var paths = config.paths;
 
-                if (config.keep_original_log) {
-                    this.records.push(originalRecord);
-                }
-
-                var recordsToSplit = this.findSplitRecords(record, fields);
-                if (recordsToSplit === null) {
-                    return;
-                }
-
-                for (var j = 0; j < recordsToSplit.length; j++) {
-                    var splitRecord = recordsToSplit[j];
-                    if (typeof splitRecord === 'string') {
-                        try {
-                            splitRecord = JSON.parse(splitRecord);
-                        } catch (err) {
-                            splitRecord = { message: splitRecord };
-                        }
+                for (var i = 0; i < paths.length; i++) {
+                    var fields = paths[i]
+                    var recordsToSplit = this.findSplitRecords(record, fields);
+                    if (recordsToSplit === null) {
+                        continue;
                     }
-                    var newRecord = {
-                        ddsource: source,
-                        ddsourcecategory: originalRecord['ddsourcecategory'],
-                        service: originalRecord['service'],
-                        tags: originalRecord['tags']
-                    };
-                    Object.assign(newRecord, splitRecord);
-                    this.records.push(newRecord);
+                    logSplit = true;
+
+                    for (var j = 0; j < recordsToSplit.length; j++) {
+                        var splitRecord = recordsToSplit[j];
+                        if (typeof splitRecord === 'string') {
+                            try {
+                                splitRecord = JSON.parse(splitRecord);
+                            } catch (err) {
+                                splitRecord = { message: splitRecord };
+                            }
+                        }
+                        var newRecord = {
+                            ddsource: source,
+                            ddsourcecategory: originalRecord['ddsourcecategory'],
+                            service: originalRecord['service'],
+                            ddtags: originalRecord['ddtags'],
+                            time: originalRecord['time']
+                        };
+                        Object.assign(newRecord, splitRecord);
+                        this.records.push(newRecord);
+                    }
+
+                }
+                if (logSplit !== true || config.keep_original_log) {
+                    this.records.push(originalRecord);
                 }
             } else {
                 this.records.push(originalRecord);
