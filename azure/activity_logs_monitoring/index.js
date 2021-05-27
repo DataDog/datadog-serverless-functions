@@ -257,7 +257,7 @@ class EventhubLogHandler {
             var source = originalRecord['ddsource'];
             var config = this.logSplittingConfig[source];
             if (config !== undefined) {
-                var logSplit = false;
+                var splitFieldFound = false;
 
                 for (var i = 0; i < config.paths.length; i++) {
                     var fields = config.paths[i];
@@ -266,7 +266,7 @@ class EventhubLogHandler {
                         continue;
                     }
 
-                    logSplit = true;
+                    splitFieldFound = true;
                     for (var j = 0; j < recordsToSplit.length; j++) {
                         var splitRecord = recordsToSplit[j];
                         if (typeof splitRecord === 'string') {
@@ -290,7 +290,7 @@ class EventhubLogHandler {
                         this.records.push(newRecord);
                     }
                 }
-                if (logSplit !== true || config.keep_original_log) {
+                if (splitFieldFound !== true || config.keep_original_log) {
                     // keep the original log if we didn't actually split any fields, or if we've set
                     // keep_original_log to preserve the full log when we split
                     this.records.push(originalRecord);
