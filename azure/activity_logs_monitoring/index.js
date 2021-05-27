@@ -290,9 +290,9 @@ class EventhubLogHandler {
                         this.records.push(newRecord);
                     }
                 }
-                if (splitFieldFound !== true || config.keep_original_log) {
-                    // keep the original log if we didn't actually split any fields, or if we've set
-                    // keep_original_log to preserve the full log when we split
+                if (config.keep_original_log || splitFieldFound !== true) {
+                    // keep the original log if it is set in the config
+                    // if it is false in the config, we should still write the log when we don't split
                     this.records.push(originalRecord);
                 }
             } else {
