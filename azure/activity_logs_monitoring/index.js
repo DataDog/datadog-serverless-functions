@@ -264,7 +264,7 @@ class EventhubLogHandler {
                     var recordsToSplit = this.findSplitRecords(record, fields);
                     if (
                         recordsToSplit === null ||
-                        recordsToSplit instanceof Array !== true
+                        !(recordsToSplit instanceof Array)
                     ) {
                         // if we were unable find the field or if the field isn't an array, skip it
                         continue;
@@ -280,7 +280,7 @@ class EventhubLogHandler {
                             }
                         }
 
-                        if (splitRecord instanceof Map === false) {
+                        if (!(splitRecord instanceof Map)) {
                             // if it's not a map, then just send as a string
                             splitRecord = {
                                 message: JSON.stringify(splitRecord)
