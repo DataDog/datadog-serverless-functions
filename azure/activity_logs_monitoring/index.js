@@ -5,7 +5,7 @@
 
 var https = require('https');
 
-const VERSION = '0.5.1';
+const VERSION = '0.5.2';
 
 const STRING = 'string'; // example: 'some message'
 const STRING_ARRAY = 'string-array'; // example: ['one message', 'two message', ...]
@@ -49,14 +49,14 @@ To split array-type fields in your logs into individual logs, you can add sectio
 a potential use case with azure.datafactory is there to show the format:
 {
   source_type:
-    path: [list of fields in the log payload to iterate through to find the one to split],
+    paths: [list of [list of fields in the log payload to iterate through to find the one to split]],
     keep_original_log: bool, if you'd like to preserve the original log in addition to the split ones or not
 }
 You can also set the DD_LOG_SPLITTING_CONFIG env var with a JSON string in this format.
 */
 const DD_LOG_SPLITTING_CONFIG = {
     // 'azure.datafactory': {
-    //     path: ['properties', 'Output', 'value'],
+    //     paths: [['properties', 'Output', 'value']],
     //     keep_original_log: true
     // }
 };
@@ -245,10 +245,6 @@ class EventhubLogHandler {
             if (tempRecord[fieldName] !== undefined) {
                 tempRecord = tempRecord[fieldName];
             } else {
-                this.context.log.error(
-                    'unable to split log based on log config, falling back to sending existing log.'
-                );
-                this.records.push(record);
                 return null;
             }
         }
@@ -261,34 +257,53 @@ class EventhubLogHandler {
             var source = originalRecord['ddsource'];
             var config = this.logSplittingConfig[source];
             if (config !== undefined) {
-                var fields = config.path;
+                var splitFieldFound = false;
 
-                if (config.keep_original_log) {
-                    this.records.push(originalRecord);
-                }
-
-                var recordsToSplit = this.findSplitRecords(record, fields);
-                if (recordsToSplit === null) {
-                    return;
-                }
-
-                for (var j = 0; j < recordsToSplit.length; j++) {
-                    var splitRecord = recordsToSplit[j];
-                    if (typeof splitRecord === 'string') {
-                        try {
-                            splitRecord = JSON.parse(splitRecord);
-                        } catch (err) {
-                            splitRecord = { message: splitRecord };
-                        }
+                for (var i = 0; i < config.paths.length; i++) {
+                    var fields = config.paths[i];
+                    var recordsToSplit = this.findSplitRecords(record, fields);
+                    if (
+                        recordsToSplit === null ||
+                        !(recordsToSplit instanceof Array)
+                    ) {
+                        // if we were unable find the field or if the field isn't an array, skip it
+                        continue;
                     }
-                    var newRecord = {
-                        ddsource: source,
-                        ddsourcecategory: originalRecord['ddsourcecategory'],
-                        service: originalRecord['service'],
-                        tags: originalRecord['tags']
-                    };
-                    Object.assign(newRecord, splitRecord);
-                    this.records.push(newRecord);
+                    splitFieldFound = true;
+                    for (var j = 0; j < recordsToSplit.length; j++) {
+                        var splitRecord = recordsToSplit[j];
+                        if (typeof splitRecord === 'string') {
+                            try {
+                                splitRecord = JSON.parse(splitRecord);
+                            } catch (err) {
+                                splitRecord = { message: splitRecord };
+                            }
+                        }
+
+                        if (!(splitRecord instanceof Map)) {
+                            // if it's not a map, then just send as a string
+                            splitRecord = {
+                                message: JSON.stringify(splitRecord)
+                            };
+                        }
+                        var newRecord = {
+                            ddsource: source,
+                            ddsourcecategory:
+                                originalRecord['ddsourcecategory'],
+                            service: originalRecord['service'],
+                            ddtags: originalRecord['ddtags']
+                        };
+                        if (originalRecord['time'] !== undefined) {
+                            newRecord['time'] = originalRecord['time'];
+                        }
+                        Object.assign(newRecord, splitRecord);
+                        this.records.push(newRecord);
+                    }
+                }
+                if (config.keep_original_log || splitFieldFound !== true) {
+                    // keep the original log if it is set in the config
+                    // if it is false in the config, we should still write the log when we don't split
+                    this.records.push(originalRecord);
                 }
             } else {
                 this.records.push(originalRecord);

@@ -67,7 +67,7 @@ An example of an azure.datafactory use case is provided in the code and commente
 ```
 {
   source_type:
-    path: [list of fields in the log payload to iterate through to find the one to split],
+    paths: [list of [list of fields in the log payload to iterate through to find the one to split]],
     keep_original_log: bool, if you'd like to preserve the original log in addition to the split ones or not
 }
 ```
