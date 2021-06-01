@@ -262,10 +262,13 @@ class EventhubLogHandler {
                 for (var i = 0; i < config.paths.length; i++) {
                     var fields = config.paths[i];
                     var recordsToSplit = this.findSplitRecords(record, fields);
-                    if (recordsToSplit === null) {
+                    if (
+                        recordsToSplit === null ||
+                        recordsToSplit instanceof Array !== true
+                    ) {
+                        // if we were unable find the field or if the field isn't an array, skip it
                         continue;
                     }
-
                     splitFieldFound = true;
                     for (var j = 0; j < recordsToSplit.length; j++) {
                         var splitRecord = recordsToSplit[j];
@@ -275,6 +278,13 @@ class EventhubLogHandler {
                             } catch (err) {
                                 splitRecord = { message: splitRecord };
                             }
+                        }
+
+                        if (splitRecord instanceof Map === false) {
+                            // if it's not a map, then just send as a string
+                            splitRecord = {
+                                message: JSON.stringify(splitRecord)
+                            };
                         }
                         var newRecord = {
                             ddsource: source,
