@@ -295,8 +295,6 @@ Conditions:
     Fn::Or:
       - Condition: SetDdUsePrivateLink
       - Condition: SetDdUseVPC
-      - Condition: SetDdHttpProxyURL
-
   SetDdForwardLog:
     Fn::Equals:
       - Ref: DdForwardLog
