@@ -157,7 +157,7 @@ Parameters:
   DdHttpProxyURL:
     Type: String
     Default: ""
-    Description: "For web proxy support when using a vpC, sets the HTTP_PROXY and HTTPS_PROXY values. Don't use this in combination with AWS Private Link. When set, must also set VPCSecurityGroupIds and VPCSubnetIds."
+    Description: "For web proxy support when using a VPC, sets the HTTP_PROXY and HTTPS_PROXY values. Don't use this in combination with AWS Private Link. When set, must also set VPCSecurityGroupIds and VPCSubnetIds."
   VPCSecurityGroupIds:
     Type: CommaDelimitedList
     Default: ""
@@ -288,9 +288,9 @@ Conditions:
       - true
   SetDdHttpProxyURL:
     Fn::Not:
-      Fn::Equals:
-        - Ref: DdHttpProxyURL
-        - ""
+      - Fn::Equals:
+          - Ref: DdHttpProxyURL
+          - ""
   UseVPC:
     Fn::Or:
       - Condition: SetDdUsePrivateLink
@@ -857,6 +857,7 @@ Metadata:
           - PermissionsBoundaryArn
           - DdUsePrivateLink
           - DdUseVPC
+          - DdHttpProxyURL
           - VPCSecurityGroupIds
           - VPCSubnetIds
           - DdApiUrl
