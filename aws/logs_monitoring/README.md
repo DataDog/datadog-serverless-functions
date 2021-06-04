@@ -220,15 +220,17 @@ If you must deploy the Forwarder to a VPC without direct public internet access,
 2. Update your proxy with following configurations ([HAProxy](https://github.com/DataDog/datadog-serverless-functions/blob/master/aws/logs_monitoring/proxy_conf/haproxy.txt) or [Nginx](https://github.com/DataDog/datadog-serverless-functions/blob/master/aws/logs_monitoring/proxy_conf/nginx.txt)). If you are using another proxy, or Web Proxy, whitelist the datadog domain eg. .datadoghq.com .
 3. When installing the Forwarder with the CloudFormation template, set `DdUseVPC`, `VPCSecurityGroupIds` and `VPCSubnetIds`.
 4. Ensure the `DdFetchLambdaTags` option is disabled, because AWS VPC does not yet offer an endpoint for the Resource Groups Tagging API.
-5. If using a HAProxy of Nginx
+5.
 
-- Set `DdApiUrl` to `http://<proxy_host>:3834` or `https://<proxy_host>:3834`.
-- Set `DdTraceIntakeUrl` to `http://<proxy_host>:3835` or `https://<proxy_host>:3835`.
-- Set `DdUrl` to `<proxy_host>` and `DdPort` to `3837`.
+- If using HAProxy or Nginx
 
-6. Otheriwse, if using Web Proxy
+  - Set `DdApiUrl` to `http://<proxy_host>:3834` or `https://<proxy_host>:3834`.
+  - Set `DdTraceIntakeUrl` to `http://<proxy_host>:3835` or `https://<proxy_host>:3835`.
+  - Set `DdUrl` to `<proxy_host>` and `DdPort` to `3837`.
 
-- Set `DdHttpProxyURL` to your proxy endpoint. Eg. `http://<proxy_host>:<port>`, or if your proxy has a username and password `http://<username>:<password>@<proxy_host>:<port>`
+- Otherwise, if using Web Proxy
+
+  - Set `DdHttpProxyURL` to your proxy endpoint. Eg. `http://<proxy_host>:<port>`, or if your proxy has a username and password `http://<username>:<password>@<proxy_host>:<port>`
 
 7. Set `DdNoSsl` to `true` if connecting to the proxy using `http`.
 8. Set `DdSkipSslValidation` to `true` if connecting to the proxy using `https` with a self-signed certificate.
@@ -353,7 +355,7 @@ To test different patterns against your logs, turn on [debug logs](#troubleshoot
 : Set to true to enable sending logs and metrics via AWS PrivateLink. See https://dtdg.co/private-link.
 
 `DdHttpProxyURL`
-: For web proxy support, sets the HTTP_PROXY and HTTPS_PROXY values. Don't use this in combination with AWS Private Link. Make sure to also set DdSkipSslValidation to true, and
+: Sets the standard web proxy environment variables HTTP_PROXY and HTTPS_PROXY. These are the url endpoints your proxy server exposes. Don't use this in combination with AWS Private Link. Make sure to also set DdSkipSslValidation to true.
 
 `VPCSecurityGroupIds`
 : Comma separated list of VPC Security Group Ids. Used when AWS PrivateLink is enabled.

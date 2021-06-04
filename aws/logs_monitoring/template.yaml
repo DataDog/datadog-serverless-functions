@@ -157,7 +157,7 @@ Parameters:
   DdHttpProxyURL:
     Type: String
     Default: ""
-    Description: "For web proxy support when using a VPC, sets the HTTP_PROXY and HTTPS_PROXY values. Don't use this in combination with AWS Private Link."
+    Description: "Sets the standard web proxy environment variables HTTP_PROXY and HTTPS_PROXY. These are the url endpoints your proxy server exposes. Don't use this in combination with AWS Private Link. Make sure to also set DdSkipSslValidation to true."
   VPCSecurityGroupIds:
     Type: CommaDelimitedList
     Default: ""
