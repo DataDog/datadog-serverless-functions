@@ -154,6 +154,10 @@ Parameters:
       - true
       - false
     Description: Set to true to deploy the Forwarder to a VPC and send logs, metrics, and traces via a proxy. When set to true, must also set VPCSecurityGroupIds and VPCSubnetIds.
+  DdHttpProxyURL:
+    Type: String
+    Default: ""
+    Description: "Sets the standard web proxy environment variables HTTP_PROXY and HTTPS_PROXY. These are the url endpoints your proxy server exposes. Don't use this in combination with AWS Private Link. Make sure to also set DdSkipSslValidation to true."
   VPCSecurityGroupIds:
     Type: CommaDelimitedList
     Default: ""
@@ -282,6 +286,11 @@ Conditions:
     Fn::Equals:
       - Ref: DdUseVPC
       - true
+  SetDdHttpProxyURL:
+    Fn::Not:
+      - Fn::Equals:
+          - Ref: DdHttpProxyURL
+          - ""
   UseVPC:
     Fn::Or:
       - Condition: SetDdUsePrivateLink
@@ -330,13 +339,13 @@ Rules:
       - Assert:
           Fn::Or:
             - Fn::Not:
-              - Fn::Equals:
-                - Ref: DdApiKey
-                - ""
+                - Fn::Equals:
+                    - Ref: DdApiKey
+                    - ""
             - Fn::Not:
-              - Fn::Equals:
-                - Ref: DdApiKeySecretArn
-                - "arn:aws:secretsmanager:DEFAULT"
+                - Fn::Equals:
+                    - Ref: DdApiKeySecretArn
+                    - "arn:aws:secretsmanager:DEFAULT"
         AssertDescription: DdApiKey or DdApiKeySecretArn must be set
 Resources:
   Forwarder:
@@ -485,6 +494,16 @@ Resources:
               - UseVPC
               - true
               - false
+          HTTP_PROXY:
+            Fn::If:
+              - SetDdHttpProxyURL
+              - Ref: DdHttpProxyURL
+              - Ref: AWS::NoValue
+          HTTPS_PROXY:
+            Fn::If:
+              - SetDdHttpProxyURL
+              - Ref: DdHttpProxyURL
+              - Ref: AWS::NoValue
           DD_ADDITIONAL_TARGET_LAMBDAS:
             Fn::If:
               - SetAdditionalTargetLambdas
@@ -628,7 +647,7 @@ Resources:
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
   ForwarderBucketPolicy:
-    Type: 'AWS::S3::BucketPolicy'
+    Type: "AWS::S3::BucketPolicy"
     Properties:
       Bucket: !Ref ForwarderBucket
       PolicyDocument:
@@ -836,6 +855,7 @@ Metadata:
           - PermissionsBoundaryArn
           - DdUsePrivateLink
           - DdUseVPC
+          - DdHttpProxyURL
           - VPCSecurityGroupIds
           - VPCSubnetIds
           - DdApiUrl

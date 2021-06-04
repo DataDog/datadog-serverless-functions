@@ -39,7 +39,7 @@ function param {
     echo "{\"ParameterKey\":\"${KEY}\",\"ParameterValue\":${VALUE}}"
 }
 
-PARAM_LIST=[$(param DdApiKey \"${DD_API_KEY}\"),$(param DdSite \"datadoghq.com\"),$(param SourceZipUrl \"${FORWARDER_SOURCE_URL}\")]
+PARAM_LIST=[$(param DdApiKey \"${DD_API_KEY}\"),$(param DdSite \"datadoghq.com\"),$(param SourceZipUrl \"${FORWARDER_SOURCE_URL}\"),$(param ReservedConcurrency \"1\")]
 echo "Setting params ${PARAM_LIST}"
 
 # Create an instance of the stack
