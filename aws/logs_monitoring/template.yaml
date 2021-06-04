@@ -154,6 +154,10 @@ Parameters:
       - true
       - false
     Description: Set to true to deploy the Forwarder to a VPC and send logs, metrics, and traces via a proxy. When set to true, must also set VPCSecurityGroupIds and VPCSubnetIds.
+  DdHttpProxyURL:
+    Type: String
+    Default: ""
+    Description: "For web proxy support when using a vpC, sets the HTTP_PROXY and HTTPS_PROXY values. Don't use this in combination with AWS Private Link. When set, must also set VPCSecurityGroupIds and VPCSubnetIds."
   VPCSecurityGroupIds:
     Type: CommaDelimitedList
     Default: ""
@@ -282,10 +286,17 @@ Conditions:
     Fn::Equals:
       - Ref: DdUseVPC
       - true
+  SetDdHttpProxyURL:
+    Fn::Not:
+      Fn::Equals:
+        - Ref: DdHttpProxyURL
+        - ""
   UseVPC:
     Fn::Or:
       - Condition: SetDdUsePrivateLink
       - Condition: SetDdUseVPC
+      - Condition: SetDdHttpProxyURL
+
   SetDdForwardLog:
     Fn::Equals:
       - Ref: DdForwardLog
@@ -330,13 +341,13 @@ Rules:
       - Assert:
           Fn::Or:
             - Fn::Not:
-              - Fn::Equals:
-                - Ref: DdApiKey
-                - ""
+                - Fn::Equals:
+                    - Ref: DdApiKey
+                    - ""
             - Fn::Not:
-              - Fn::Equals:
-                - Ref: DdApiKeySecretArn
-                - "arn:aws:secretsmanager:DEFAULT"
+                - Fn::Equals:
+                    - Ref: DdApiKeySecretArn
+                    - "arn:aws:secretsmanager:DEFAULT"
         AssertDescription: DdApiKey or DdApiKeySecretArn must be set
 Resources:
   Forwarder:
@@ -485,6 +496,16 @@ Resources:
               - UseVPC
               - true
               - false
+          HTTP_PROXY:
+            Fn::If:
+              - SetDdHttpProxyURL
+              - Ref: DdHttpProxyURL
+              - Ref: AWS::NoValue
+          HTTPS_PROXY:
+            Fn::If:
+              - SetDdHttpProxyURL
+              - Ref: DdHttpProxyURL
+              - Ref: AWS::NoValue
           DD_ADDITIONAL_TARGET_LAMBDAS:
             Fn::If:
               - SetAdditionalTargetLambdas
@@ -628,7 +649,7 @@ Resources:
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
   ForwarderBucketPolicy:
-    Type: 'AWS::S3::BucketPolicy'
+    Type: "AWS::S3::BucketPolicy"
     Properties:
       Bucket: !Ref ForwarderBucket
       PolicyDocument:
