@@ -281,13 +281,18 @@ class EventhubLogHandler {
                             } catch (err) {}
                         }
                         var formattedSplitRecord = {};
+                        var tempformattedSplitRecord = formattedSplitRecord;
                         // re-create the same section with only the split log
                         for (var k = 0; k < fields.length; k++) {
                             if (k === fields.length - 1) {
                                 // if it is the last field, add the split record
-                                formattedSplitRecord[fields[k]] = splitRecord;
+                                tempformattedSplitRecord[
+                                    fields[k]
+                                ] = splitRecord;
                             } else {
-                                formattedSplitRecord[fields[k]] = {};
+                                tempformattedSplitRecord[fields[k]] = {};
+                                tempformattedSplitRecord =
+                                    tempformattedSplitRecord[fields[k]];
                             }
                         }
                         formattedSplitRecord = {
