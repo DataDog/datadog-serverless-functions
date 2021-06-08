@@ -273,7 +273,6 @@ class EventhubLogHandler {
                     }
                     splitFieldFound = true;
 
-                    var fieldPrefix = fields.join('_');
                     for (var j = 0; j < recordsToSplit.length; j++) {
                         var splitRecord = recordsToSplit[j];
                         if (typeof splitRecord === 'string') {
@@ -281,21 +280,20 @@ class EventhubLogHandler {
                                 splitRecord = JSON.parse(splitRecord);
                             } catch (err) {}
                         }
-                        var namedSplitRecord = {};
-                        if (
-                            typeof splitRecord === 'string' ||
-                            typeof splitRecord === 'number'
-                        ) {
-                            namedSplitRecord[fieldPrefix] = splitRecord;
-                        } else {
-                            for (const [key, value] of Object.entries(
-                                splitRecord
-                            )) {
-                                namedSplitRecord[
-                                    fieldPrefix + '_' + key
-                                ] = value;
+                        var formattedSplitRecord = {};
+                        // re-create the same section with only the split log
+                        for (var k = 0; k < fields.length; k++) {
+                            if (k === fields.length - 1) {
+                                // if it is the last field, add the split record
+                                formattedSplitRecord[fields[k]] = splitRecord;
+                            } else {
+                                formattedSplitRecord[fields[k]] = {};
                             }
                         }
+                        formattedSplitRecord = {
+                            parsed_arrays: formattedSplitRecord
+                        };
+
                         if (config.preserve_fields) {
                             var newRecord = {};
                             Object.assign(newRecord, originalRecord);
@@ -311,7 +309,7 @@ class EventhubLogHandler {
                                 newRecord['time'] = originalRecord['time'];
                             }
                         }
-                        Object.assign(newRecord, namedSplitRecord);
+                        Object.assign(newRecord, formattedSplitRecord);
                         this.records.push(newRecord);
                     }
                 }
