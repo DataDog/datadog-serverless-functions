@@ -297,8 +297,7 @@ class EventhubLogHandler {
                         };
 
                         if (config.preserve_fields) {
-                            var newRecord = {};
-                            Object.assign(newRecord, originalRecord);
+                            var newRecord = { ...originalRecord };
                         } else {
                             var newRecord = {
                                 ddsource: source,
