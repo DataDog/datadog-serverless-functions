@@ -241,7 +241,7 @@ def parse_event_source(event, key):
 def find_cloudwatch_source(log_group):
     # e.g. /aws/rds/instance/my-mariadb/error
     if log_group.startswith("/aws/rds"):
-        for engine in ["mariadb", "mysql"]:
+        for engine in ["mariadb", "mysql", "postgresql"]:
             if engine in log_group:
                 return engine
         return "rds"
@@ -441,16 +441,13 @@ def awslogs_handler(event, context, metadata):
 
     # When parsing rds logs, use the cloudwatch log group name to derive the
     # rds instance name, and add the log name of the stream ingested
-    if metadata[DD_SOURCE] in ["rds", "mariadb", "mysql"]:
+    if metadata[DD_SOURCE] in ["rds", "mariadb", "mysql", "postgresql"]:
         match = rds_regex.match(logs["logGroup"])
         if match is not None:
             metadata[DD_HOST] = match.group("host")
             metadata[DD_CUSTOM_TAGS] = (
                 metadata[DD_CUSTOM_TAGS] + ",logname:" + match.group("name")
             )
-            # We can intuit the sourcecategory in some cases
-            if match.group("name") == "postgresql":
-                metadata[DD_CUSTOM_TAGS] + ",sourcecategory:" + match.group("name")
 
     # For Lambda logs we want to extract the function name,
     # then rebuild the arn of the monitored lambda using that name.
