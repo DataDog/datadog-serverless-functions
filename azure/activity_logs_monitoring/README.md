@@ -62,12 +62,14 @@ To scrub PII from your logs, uncomment the SCRUBBER_RULE_CONFIG code. If you'd l
 - **Log Splitting**
 
 To split array-type fields in your logs into individual logs, you can add sections to the DD_LOG_SPLITTING_CONFIG map in the code or by setting the DD_LOG_SPLITTING_CONFIG env variable (which must be a json string in the same format).
+This will create an attribute in your logs called "parsed_arrays", which contains the fields in the format of the original log with the split log value.
 
 An example of an azure.datafactory use case is provided in the code and commented out. The format is as follows:
 ```
 {
   source_type:
     paths: [list of [list of fields in the log payload to iterate through to find the one to split]],
-    keep_original_log: bool, if you'd like to preserve the original log in addition to the split ones or not
+    keep_original_log: bool, if you'd like to preserve the original log in addition to the split ones or not,
+    preserve_fields: bool, whether or not to keep the original log fields in the new split logs
 }
 ```

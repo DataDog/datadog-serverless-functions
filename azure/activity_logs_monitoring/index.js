@@ -5,7 +5,7 @@
 
 var https = require('https');
 
-const VERSION = '0.5.2';
+const VERSION = '0.5.3';
 
 const STRING = 'string'; // example: 'some message'
 const STRING_ARRAY = 'string-array'; // example: ['one message', 'two message', ...]
@@ -50,14 +50,16 @@ a potential use case with azure.datafactory is there to show the format:
 {
   source_type:
     paths: [list of [list of fields in the log payload to iterate through to find the one to split]],
-    keep_original_log: bool, if you'd like to preserve the original log in addition to the split ones or not
+    keep_original_log: bool, if you'd like to preserve the original log in addition to the split ones or not,
+    preserve_fields: bool, whether or not to keep the original log fields in the new split logs
 }
 You can also set the DD_LOG_SPLITTING_CONFIG env var with a JSON string in this format.
 */
 const DD_LOG_SPLITTING_CONFIG = {
     // 'azure.datafactory': {
     //     paths: [['properties', 'Output', 'value']],
-    //     keep_original_log: true
+    //     keep_original_log: true,
+    //     preserve_fields: true
     // }
 };
 
@@ -270,33 +272,45 @@ class EventhubLogHandler {
                         continue;
                     }
                     splitFieldFound = true;
+
                     for (var j = 0; j < recordsToSplit.length; j++) {
                         var splitRecord = recordsToSplit[j];
                         if (typeof splitRecord === 'string') {
                             try {
                                 splitRecord = JSON.parse(splitRecord);
-                            } catch (err) {
-                                splitRecord = { message: splitRecord };
+                            } catch (err) {}
+                        }
+                        var formattedSplitRecord = {};
+                        var temp = formattedSplitRecord;
+                        // re-create the same nested attributes with only the split log
+                        for (var k = 0; k < fields.length; k++) {
+                            if (k === fields.length - 1) {
+                                // if it is the last field, add the split record
+                                temp[fields[k]] = splitRecord;
+                            } else {
+                                temp[fields[k]] = {};
+                                temp = temp[fields[k]];
                             }
                         }
-
-                        if (!(splitRecord instanceof Map)) {
-                            // if it's not a map, then just send as a string
-                            splitRecord = {
-                                message: JSON.stringify(splitRecord)
-                            };
-                        }
-                        var newRecord = {
-                            ddsource: source,
-                            ddsourcecategory:
-                                originalRecord['ddsourcecategory'],
-                            service: originalRecord['service'],
-                            ddtags: originalRecord['ddtags']
+                        formattedSplitRecord = {
+                            parsed_arrays: formattedSplitRecord
                         };
-                        if (originalRecord['time'] !== undefined) {
-                            newRecord['time'] = originalRecord['time'];
+
+                        if (config.preserve_fields) {
+                            var newRecord = { ...originalRecord };
+                        } else {
+                            var newRecord = {
+                                ddsource: source,
+                                ddsourcecategory:
+                                    originalRecord['ddsourcecategory'],
+                                service: originalRecord['service'],
+                                ddtags: originalRecord['ddtags']
+                            };
+                            if (originalRecord['time'] !== undefined) {
+                                newRecord['time'] = originalRecord['time'];
+                            }
                         }
-                        Object.assign(newRecord, splitRecord);
+                        Object.assign(newRecord, formattedSplitRecord);
                         this.records.push(newRecord);
                     }
                 }
