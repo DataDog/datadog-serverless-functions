@@ -39,7 +39,7 @@ function param {
     echo "{\"ParameterKey\":\"${KEY}\",\"ParameterValue\":${VALUE}}"
 }
 
-PARAM_LIST=[$(param DdApiKey \"${DD_API_KEY}\"),$(param DdSite \"datadoghq.com\"),$(param SourceZipUrl \"${FORWARDER_SOURCE_URL}\"),$(param ReservedConcurrency \"1\")]
+PARAM_LIST=[$(param DdApiKey \"${DD_API_KEY}\"),$(param DdSite \"datadoghq.com\"),$(param ReservedConcurrency \"1\")]
 echo "Setting params ${PARAM_LIST}"
 
 # Create an instance of the stack
@@ -54,4 +54,4 @@ aws cloudformation wait stack-create-complete --stack-name $STACK_NAME --region 
 echo "Completed stack creation"
 
 echo "Cleaning up stack"
-aws cloudformation delete-stack --stack-name $STACK_NAME  --region $AWS_REGION
+#aws cloudformation delete-stack --stack-name $STACK_NAME  --region $AWS_REGION
