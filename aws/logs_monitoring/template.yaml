@@ -5,6 +5,7 @@ Mappings:
   Constants:
     DdForwarder:
       Version: 3.32.0
+      LayerVersion: 1
 Parameters:
   DdApiKey:
     Type: String
@@ -59,6 +60,10 @@ Parameters:
     AllowedValues:
       - true
       - false
+  LayerARN:
+    Type: String
+    Default: ""
+    Description: DO NOT CHANGE unless you know what you are doing. Version of the layer ARN containing the forwarder code.
   DdTags:
     Type: String
     Default: ""
@@ -203,6 +208,10 @@ Conditions:
     Fn::Equals:
       - Ref: AWS::Partition
       - "aws-cn"
+  IsGovCloud:
+    Fn::Equals:
+      - Ref: AWS::Partition
+      - "aws-us-gov"
   UseZipCopier:
     Fn::Or:
       - Condition: IsAWSChina
@@ -305,6 +314,11 @@ Conditions:
       - Fn::Equals:
           - Ref: DdHttpProxyURL
           - ""
+  SetLayerARN:
+    Fn::Not:
+      - Fn::Equals:
+          - Ref: LayerARN
+          - ""
   UseVPC:
     Fn::Or:
       - Condition: SetDdUsePrivateLink
@@ -374,6 +388,24 @@ Resources:
       Description: Pushes logs, metrics and traces from AWS to Datadog.
       Role: !GetAtt "ForwarderRole.Arn"
       Handler: lambda_function.lambda_handler
+      Layers:
+        Fn::If:
+          - UseZipCopier
+          - []
+          - - Fn::If:
+                - SetLayerARN
+                - !Ref LayerARN
+                - Fn::Join:
+                    - ":"
+                    - - arn
+                      - !Ref AWS::Partition
+                      - lambda
+                      - !Ref AWS::Region
+                      - Fn::If: [IsGovCloud, "002406178527", "464622532012"]
+                      - layer
+                      - Datadog-Forwarder
+                      - Fn::FindInMap: [Constants, DdForwarder, LayerVersion]
+
       Code:
         Fn::If:
           - UseZipCopier

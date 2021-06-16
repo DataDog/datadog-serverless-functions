@@ -4,6 +4,8 @@
 
 set -e
 
+LAYER_NAME="Datadog-Forwarder"
+
 # Read the current version
 CURRENT_VERSION=$(grep -o 'Version: \d\+\.\d\+\.\d\+' template.yaml | cut -d' ' -f2)
 
@@ -39,8 +41,24 @@ if [ "$ACCOUNT" = "prod" ]; then
     BUCKET="datadog-cloudformation-template"
 fi
 
+get_max_layer_version() {
+    last_layer_version=$(aws lambda list-layer-versions --layer-name $LAYER_NAME --region us-west-2 | jq -r ".LayerVersions | .[0] |  .Version")
+    if [ "$last_layer_version" == "null" ]; then
+        echo 0
+    else
+        echo $last_layer_version
+    fi
+}
+
 # Validate identity
 aws sts get-caller-identity
+
+CURRENT_ACCOUNT="$(aws sts get-caller-identity --query Account --output text)"
+CURRENT_VERSION=$(get_max_layer_version)
+NEXT_LAYER_VERSION=$(($CURRENT_VERSION +1))
+
+echo
+echo "Current layer version is $CURRENT_VERSION, next layer version is $NEXT_LAYER_VERSION"
 
 # Validate the template
 echo
@@ -76,6 +94,7 @@ if [ "$ACCOUNT" = "prod" ] ; then
     echo "Bumping the version number to ${VERSION}..."
     perl -pi -e "s/DD_FORWARDER_VERSION = \"[0-9\.]+/DD_FORWARDER_VERSION = \"${VERSION}/g" settings.py
     perl -pi -e "s/Version: [0-9\.]+/Version: ${VERSION}/g" template.yaml
+    perl -pi -e "s/LayerVersion: [0-9\.]+/LayerVersion: ${NEXT_LAYER_VERSION}/g" template.yaml
 
     # Commit version number changes to git
     echo "Committing version number change..."
@@ -98,6 +117,11 @@ if [ "$ACCOUNT" = "prod" ] ; then
     echo "Releasing aws-dd-forwarder-${VERSION} to GitHub..."
     go get github.com/github/hub
     hub release create -a $BUNDLE_PATH -m "aws-dd-forwarder-${VERSION}" aws-dd-forwarder-${VERSION}
+    
+    # Upload the sandbox layers
+    echo
+    echo "Uploading layers"
+    ./tools/publish_prod.sh $NEXT_LAYER_VERSION $VERSION
 
     # Set vars for use in the installation test
     TEMPLATE_URL="https://${BUCKET}.s3.amazonaws.com/aws/forwarder/latest.yaml"
@@ -117,6 +141,11 @@ else
     echo
     echo "Uploading non-public sandbox version of Forwarder to S3..."
     aws s3 cp $BUNDLE_PATH s3://${BUCKET}/aws/forwarder-staging-zip/aws-dd-forwarder-${VERSION}.zip
+    
+    # Upload the sandbox layers
+    echo
+    echo "Uploading layers"
+    ./tools/publish_sandbox.sh $NEXT_LAYER_VERSION $VERSION
 
     # Set vars for use in the installation test
     TEMPLATE_URL="https://${BUCKET}.s3.amazonaws.com/aws/forwarder-staging/latest.yaml"
