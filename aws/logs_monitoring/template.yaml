@@ -56,14 +56,14 @@ Parameters:
   InstallFromLayer:
     Type: String
     Default: true
-    Description: DO NOT CHANGE unless you know what you are doing. Disable to use legacy installation flow, (via Github), for regions where Lambda layers aren't supported.
+    Description: Disable to use legacy installation flow, (via Github), for regions where Lambda layers aren't supported, such as regions in China.
     AllowedValues:
       - true
       - false
   LayerARN:
     Type: String
     Default: ""
-    Description: DO NOT CHANGE unless you know what you are doing. Version of the layer ARN containing the forwarder code.
+    Description: DO NOT CHANGE unless you know what you are doing. ARN for the layer containing the forwarder code.
   DdTags:
     Type: String
     Default: ""
