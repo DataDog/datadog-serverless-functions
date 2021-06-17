@@ -365,6 +365,10 @@ To test different patterns against your logs, turn on [debug logs](#troubleshoot
 
 `AdditionalTargetLambdaARNs`
 : Comma separated list of Lambda ARNs that will get called asynchronously with the same `event` the Datadog Forwarder receives.
+`InstallFromLayer`
+: Disable to use legacy installation flow, (via Github), for regions where Lambda layers aren't supported, such as regions in China. Defaults to true.
+`LayerARN`
+: ARN for the layer containing the forwarder code. If empty, the script will use the version of the layer the forwarder was published with. Defaults to empty.
 
 ## Permissions
 

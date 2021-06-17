@@ -63,7 +63,7 @@ Parameters:
   LayerARN:
     Type: String
     Default: ""
-    Description: DO NOT CHANGE unless you know what you are doing. ARN for the layer containing the forwarder code.
+    Description: ARN for the layer containing the forwarder code. If empty, the script will use the version of the layer the forwarder was published with.
   DdTags:
     Type: String
     Default: ""
