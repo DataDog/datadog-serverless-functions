@@ -417,7 +417,7 @@ Resources:
                     DdForwarderVersion:
                       !FindInMap [Constants, DdForwarder, Version],
                   }
-          - ZipFile: println("Hello")
+          - ZipFile: " "
 
       MemorySize:
         Ref: MemorySize
@@ -938,6 +938,7 @@ Metadata:
           - TagsCacheTTLSeconds
           - SourceZipUrl
           - InstallFromLayer
+          - LayerARN
           - PermissionsBoundaryArn
           - DdUsePrivateLink
           - DdUseVPC

@@ -64,12 +64,14 @@ publish_test() {
     echo "Completed stack creation"
 
     echo "Cleaning up stack"
-    #aws cloudformation delete-stack --stack-name $STACK_NAME  --region $AWS_REGION
+    aws cloudformation delete-stack --stack-name $STACK_NAME  --region $AWS_REGION
 }
 
-#echo
-#echo "Running Publish with Zip Copier test"
-#publish_test $(param SourceZipUrl \"${FORWARDER_SOURCE_URL}\")
+echo
+echo "Running Publish with Zip Copier test"
+publish_test $(param SourceZipUrl \"${FORWARDER_SOURCE_URL}\")
+
+RUN_ID=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c10)
 
 echo
 echo "Running Publish with Layer test"

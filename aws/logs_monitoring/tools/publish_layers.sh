@@ -14,7 +14,7 @@ set -e
 trap "pkill -P $$; exit 1;" INT
 
 PYTHON_VERSIONS_FOR_AWS_CLI=("python3.7")
-LAYER_PATHS=(".forwarder/aws-dd-forwarder-${FORWARDER_VERSION}.zip")
+LAYER_PATHS=(".forwarder/aws-dd-forwarder-${FORWARDER_VERSION}-layer.zip")
 AVAILABLE_LAYERS=("Datadog-Forwarder")
 AVAILABLE_REGIONS=$(aws ec2 describe-regions | jq -r '.[] | .[] | .RegionName')
 

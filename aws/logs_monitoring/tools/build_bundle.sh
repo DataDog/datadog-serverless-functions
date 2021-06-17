@@ -34,12 +34,13 @@ function make_path_absolute {
 
 function docker_build_zip {
     # Args: [python version] [zip destination]
-
     destination=$(make_path_absolute $2)
+    layer_destination=$(make_path_absolute $3)
 
     # Install datadogpy in a docker container to avoid the mess from switching
     # between different python runtimes.
     temp_dir=$(mktemp -d)
+
     docker build --file "${DIR}/Dockerfile_bundle" -t "datadog-bundle:$1" .. --no-cache \
         --build-arg runtime=$1
 
@@ -51,13 +52,25 @@ function docker_build_zip {
     (cd $temp_dir && zip -q -r $destination ./)
 
     rm -rf $temp_dir
-    echo "Done creating archive $destination"
+    echo "Done creating forwarder zip archive $destination"
+
+    temp_dir=$(mktemp -d)
+    SUB_DIRECTORY=python
+    mkdir $temp_dir/$SUB_DIRECTORY
+
+    # Run the image by runtime tag, tar its generatd `python` directory to sdout,
+    # then extract it to a temp directory.
+    docker run datadog-bundle:$1 tar cf - . | tar -xf - -C $temp_dir/$SUB_DIRECTORY
+
+    # Zip to destination, and keep directory structure as based in $temp_dir
+    (cd $temp_dir && zip -q -r $layer_destination ./)
+    echo "Done creating layer zip archive $layer_destination"
 }
 
 rm -rf $FORWARDER_DIR
 mkdir $FORWARDER_DIR
 
-docker_build_zip ${PYTHON_VERSION} ${FORWARDER_DIR}/${FORWARDER_PREFIX}-${VERSION}.zip
+docker_build_zip ${PYTHON_VERSION} ${FORWARDER_DIR}/${FORWARDER_PREFIX}-${VERSION}.zip  ${FORWARDER_DIR}/${FORWARDER_PREFIX}-${VERSION}-layer.zip
 
 echo "Successfully created Forwarder bundle!"
 ls $FORWARDER_DIR | xargs -I _ echo "${FORWARDER_DIR}/_"
