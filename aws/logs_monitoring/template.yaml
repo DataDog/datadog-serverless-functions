@@ -217,7 +217,7 @@ Conditions:
       - Condition: IsAWSChina
       - Condition: SetSourceZipUrl
       - Fn::Equals:
-          - InstallFromLayer
+          - Ref: InstallFromLayer
           - "false"
   CreateDdApiKeySecret:
     Fn::Equals:
