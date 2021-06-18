@@ -53,10 +53,10 @@ Parameters:
     Type: String
     Default: ""
     Description: DO NOT CHANGE unless you know what you are doing. Override the default location of the function source code.
-  InstallFromLayer:
+  InstallAsLayer:
     Type: String
     Default: true
-    Description: Disable to use legacy installation flow, (via Github), for regions where Lambda layers aren't supported, such as regions in China.
+    Description: hether to use the layer based installation flow. Set to false to use our legacy installation flow, which installs a second function that copies the forwarder code from Github to an S3 bucket. Disable this option if installing into AWS China regions, where we don't publish layers. Defaults to true.
     AllowedValues:
       - true
       - false
@@ -215,10 +215,10 @@ Conditions:
   UseZipCopier:
     Fn::Or:
       - Condition: IsAWSChina
-      - Condition: SetSourceZipUrl
-      - Fn::Equals:
-          - Ref: InstallFromLayer
-          - "false"
+      - Fn::And:
+          - Fn::Equals: [!Ref InstallAsLayer, "false"]
+          - Fn::Not:
+              - Condition: SetLayerARN
   CreateDdApiKeySecret:
     Fn::Equals:
       - Ref: DdApiKeySecretArn
@@ -937,7 +937,7 @@ Metadata:
           - DdFetchLambdaTags
           - TagsCacheTTLSeconds
           - SourceZipUrl
-          - InstallFromLayer
+          - InstallAsLayer
           - LayerARN
           - PermissionsBoundaryArn
           - DdUsePrivateLink

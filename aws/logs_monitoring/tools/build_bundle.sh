@@ -34,7 +34,7 @@ function make_path_absolute {
 
 function docker_build_zip {
     # Args: [python version] [zip destination]
-    destination=$(make_path_absolute $2)
+    zip_destination=$(make_path_absolute $2)
     layer_destination=$(make_path_absolute $3)
 
     # Install datadogpy in a docker container to avoid the mess from switching
@@ -44,21 +44,21 @@ function docker_build_zip {
     docker build --file "${DIR}/Dockerfile_bundle" -t "datadog-bundle:$1" .. --no-cache \
         --build-arg runtime=$1
 
-    # Run the image by runtime tag, tar its generatd `python` directory to sdout,
+    # Run the image by runtime tag, tar its generated `python` directory to sdout,
     # then extract it to a temp directory.
     docker run datadog-bundle:$1 tar cf - . | tar -xf - -C $temp_dir
 
     # Zip to destination, and keep directory structure as based in $temp_dir
-    (cd $temp_dir && zip -q -r $destination ./)
+    (cd $temp_dir && zip -q -r $zip_destination ./)
 
     rm -rf $temp_dir
-    echo "Done creating forwarder zip archive $destination"
+    echo "Done creating forwarder zip archive $zip_destination"
 
     temp_dir=$(mktemp -d)
     SUB_DIRECTORY=python
     mkdir $temp_dir/$SUB_DIRECTORY
 
-    # Run the image by runtime tag, tar its generatd `python` directory to sdout,
+    # Run the image by runtime tag, tar its generated `python` directory to sdout,
     # then extract it to a temp directory.
     docker run datadog-bundle:$1 tar cf - . | tar -xf - -C $temp_dir/$SUB_DIRECTORY
 

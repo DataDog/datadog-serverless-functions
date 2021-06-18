@@ -5,7 +5,7 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2019 Datadog, Inc.
 
-# Publish the datadog python lambda layer across regions, using the AWS CLI
+# Publish the datadog forwarder layer across regions, using the AWS CLI
 # Usage: VERSION=5 REGIONS=us-east-1 LAYERS=Datadog-Python27 publish_layers.sh
 # VERSION is required.
 set -e
@@ -56,19 +56,19 @@ else
 fi
 
 # Determine the target layer version
-if [ -z "$VERSION" ]; then
+if [ -z "$LAYER_VERSION" ]; then
     echo "Layer version not specified"
     echo ""
     echo "EXITING SCRIPT."
     exit 1
 else
-    echo "Layer version specified: $VERSION"
+    echo "Layer version specified: $LAYER_VERSION"
 fi
 
 if [ "$NO_INPUT" = true ] ; then
-    echo "Publishing version $VERSION of layers ${LAYERS[*]} to regions ${REGIONS[*]}"
+    echo "Publishing version $LAYER_VERSION of layers ${LAYERS[*]} to regions ${REGIONS[*]}"
 else
-    read -p "Ready to publish version $VERSION of layers ${LAYERS[*]} to regions ${REGIONS[*]} (y/n)?" CONT
+    read -p "Ready to publish version $LAYER_VERSION of layers ${LAYERS[*]} to regions ${REGIONS[*]} (y/n)?" CONT
     if [ "$CONT" != "y" ]; then
         echo "Exiting"
         exit 1
@@ -111,11 +111,11 @@ do
     # Publish the layers for each version of python
     for layer_name in "${LAYERS[@]}"; do
         latest_version=$(aws lambda list-layer-versions --region $region --layer-name $layer_name --query 'LayerVersions[0].Version || `0`')
-        if [ $latest_version -ge $VERSION ]; then
-            echo "Layer $layer_name version $VERSION already exists in region $region, skipping..."
+        if [ $latest_version -ge $LAYER_VERSION ]; then
+            echo "Layer $layer_name version $LAYER_VERSION already exists in region $region, skipping..."
             continue
-        elif [ $latest_version -lt $((VERSION-1)) ]; then
-            read -p "WARNING: The latest version of layer $layer_name in region $region is $latest_version, publish all the missing versions including $VERSION or EXIT the script (y/n)?" CONT
+        elif [ $latest_version -lt $((LAYER_VERSION-1)) ]; then
+            read -p "WARNING: The latest version of layer $layer_name in region $region is $latest_version, publish all the missing versions including $LAYER_VERSION or EXIT the script (y/n)?" CONT
             if [ "$CONT" != "y" ]; then
                 echo "Exiting"
                 exit 1
@@ -126,15 +126,15 @@ do
         aws_version_key="${PYTHON_VERSIONS_FOR_AWS_CLI[$index]}"
         layer_path="${LAYER_PATHS[$index]}"
 
-        while [ $latest_version -lt $VERSION ]; do
+        while [ $latest_version -lt $LAYER_VERSION ]; do
             latest_version=$(publish_layer $region $layer_name $aws_version_key $layer_path)
             echo "Published version $latest_version for layer $layer_name in region $region"
 
             # This shouldn't happen unless someone manually deleted the latest version, say 28
             # and then try to republish it again. The published version is actually be 29, because
             # Lambda layers are immutable and AWS will skip deleted version and use the next number. 
-            if [ $latest_version -gt $VERSION ]; then
-                echo "ERROR: Published version $latest_version is greater than the desired version $VERSION!"
+            if [ $latest_version -gt $LAYER_VERSION ]; then
+                echo "ERROR: Published version $latest_version is greater than the desired version $LAYER_VERSION!"
                 echo "Exiting"
                 exit 1
             fi

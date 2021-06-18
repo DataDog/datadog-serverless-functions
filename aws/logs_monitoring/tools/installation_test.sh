@@ -69,11 +69,11 @@ publish_test() {
 
 echo
 echo "Running Publish with Zip Copier test"
-publish_test $(param SourceZipUrl \"${FORWARDER_SOURCE_URL}\")
+publish_test "$(param SourceZipUrl \"${FORWARDER_SOURCE_URL}\"),$(param InstallAsLayer \"false\")"
 
 RUN_ID=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c10)
 
 echo
 echo "Running Publish with Layer test"
-LAYER_ARN="arn:aws:lambda:${AWS_REGION}:${CURRENT_ACCOUNT}:layer:${LAYER_NAME}:${NEXT_LAYER_VERSION}"
+LAYER_ARN="arn:aws:lambda:${AWS_REGION}:${CURRENT_ACCOUNT}:layer:${LAYER_NAME}:${LAYER_VERSION}"
 publish_test $(param LayerARN \"${LAYER_ARN}\")
