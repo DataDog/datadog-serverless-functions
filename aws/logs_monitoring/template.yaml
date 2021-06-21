@@ -56,7 +56,7 @@ Parameters:
   InstallAsLayer:
     Type: String
     Default: true
-    Description: hether to use the layer based installation flow. Set to false to use our legacy installation flow, which installs a second function that copies the forwarder code from Github to an S3 bucket. Disable this option if installing into AWS China regions, where we don't publish layers. Defaults to true.
+    Description: Whether to use the layer-based installation flow. Set to false to use our legacy installation flow, which installs a second function that copies the forwarder code from Github to an S3 bucket. Defaults to true.
     AllowedValues:
       - true
       - false

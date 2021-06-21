@@ -81,7 +81,7 @@ if [ "$ACCOUNT" = "prod" ] ; then
 
     # Confirm to proceed
     echo
-    read -p "About to bump the version from ${CURRENT_VERSION} to ${FORWARDER_VERSION}, create a release aws-dd-forwarder-${FORWARDER_VERSION} on GitHub and upload the template.yaml to s3://${BUCKET}/aws/forwarder/${FORWARDER_VERSION}.yaml. Continue (y/n)?" CONT
+    read -p "About to bump the version from ${CURRENT_VERSION} to ${FORWARDER_VERSION}, create a release of aws-dd-forwarder-${FORWARDER_VERSION} on GitHub, upload the template.yaml to s3://${BUCKET}/aws/forwarder/${FORWARDER_VERSION}.yaml and create lambda layer version ${LAYER_VERSION}. Continue (y/n)?" CONT
     if [ "$CONT" != "y" ]; then
         echo "Exiting..."
         exit 1
