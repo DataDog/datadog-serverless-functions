@@ -5,6 +5,7 @@ Mappings:
   Constants:
     DdForwarder:
       Version: 3.32.0
+      LayerVersion: 1
 Parameters:
   DdApiKey:
     Type: String
@@ -52,6 +53,17 @@ Parameters:
     Type: String
     Default: ""
     Description: DO NOT CHANGE unless you know what you are doing. Override the default location of the function source code.
+  InstallAsLayer:
+    Type: String
+    Default: true
+    Description: Whether to use the layer-based installation flow. Set to false to use our legacy installation flow, which installs a second function that copies the forwarder code from Github to an S3 bucket. Defaults to true.
+    AllowedValues:
+      - true
+      - false
+  LayerARN:
+    Type: String
+    Default: ""
+    Description: ARN for the layer containing the forwarder code. If empty, the script will use the version of the layer the forwarder was published with.
   DdTags:
     Type: String
     Default: ""
@@ -196,6 +208,17 @@ Conditions:
     Fn::Equals:
       - Ref: AWS::Partition
       - "aws-cn"
+  IsGovCloud:
+    Fn::Equals:
+      - Ref: AWS::Partition
+      - "aws-us-gov"
+  UseZipCopier:
+    Fn::Or:
+      - Condition: IsAWSChina
+      - Fn::And:
+          - Fn::Equals: [!Ref InstallAsLayer, "false"]
+          - Fn::Not:
+              - Condition: SetLayerARN
   CreateDdApiKeySecret:
     Fn::Equals:
       - Ref: DdApiKeySecretArn
@@ -291,6 +314,11 @@ Conditions:
       - Fn::Equals:
           - Ref: DdHttpProxyURL
           - ""
+  SetLayerARN:
+    Fn::Not:
+      - Fn::Equals:
+          - Ref: LayerARN
+          - ""
   UseVPC:
     Fn::Or:
       - Condition: SetDdUsePrivateLink
@@ -349,8 +377,8 @@ Rules:
         AssertDescription: DdApiKey or DdApiKeySecretArn must be set
 Resources:
   Forwarder:
-    Type: AWS::Serverless::Function
-    DependsOn: ForwarderZip
+    Type: AWS::Lambda::Function
+    DependsOn: ForwarderZipReady
     Properties:
       FunctionName:
         Fn::If:
@@ -358,23 +386,47 @@ Resources:
           - Ref: FunctionName
           - Ref: AWS::NoValue
       Description: Pushes logs, metrics and traces from AWS to Datadog.
+      Role: !GetAtt "ForwarderRole.Arn"
       Handler: lambda_function.lambda_handler
+      Layers:
+        Fn::If:
+          - UseZipCopier
+          - []
+          - - Fn::If:
+                - SetLayerARN
+                - !Ref LayerARN
+                - Fn::Join:
+                    - ":"
+                    - - arn
+                      - !Ref AWS::Partition
+                      - lambda
+                      - !Ref AWS::Region
+                      - Fn::If: [IsGovCloud, "002406178527", "464622532012"]
+                      - layer
+                      - Datadog-Forwarder
+                      - Fn::FindInMap: [Constants, DdForwarder, LayerVersion]
+
+      Code:
+        Fn::If:
+          - UseZipCopier
+          - S3Bucket: !Ref ForwarderBucket
+            S3Key:
+              Fn::Sub:
+                - "aws-dd-forwarder-${DdForwarderVersion}.zip"
+                - {
+                    DdForwarderVersion:
+                      !FindInMap [Constants, DdForwarder, Version],
+                  }
+          - ZipFile: " "
+
       MemorySize:
         Ref: MemorySize
       Runtime: python3.7
       Timeout:
         Ref: Timeout
-      CodeUri:
-        Bucket: !Ref ForwarderBucket
-        Key:
-          Fn::Sub:
-            - "aws-dd-forwarder-${DdForwarderVersion}.zip"
-            - {
-                DdForwarderVersion:
-                  !FindInMap [Constants, DdForwarder, Version],
-              }
       Tags:
-        dd_forwarder_version: !FindInMap [Constants, DdForwarder, Version]
+        - Key: "dd_forwarder_version"
+          Value: !FindInMap [Constants, DdForwarder, Version]
       Environment:
         Variables:
           DD_ENHANCED_METRICS: "false"
@@ -523,67 +575,94 @@ Resources:
               - Ref: AWS::NoValue
       ReservedConcurrentExecutions:
         Ref: ReservedConcurrency
-      PermissionsBoundary:
-        Fn::If:
-          - SetPermissionsBoundary
-          - Ref: PermissionsBoundaryArn
-          - Ref: AWS::NoValue
       VpcConfig:
         Fn::If:
           - UseVPC
           - SecurityGroupIds: !Ref VPCSecurityGroupIds
             SubnetIds: !Ref VPCSubnetIds
           - Ref: AWS::NoValue
+
+  ForwarderRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      PermissionsBoundary:
+        Fn::If:
+          - SetPermissionsBoundary
+          - Ref: PermissionsBoundaryArn
+          - Ref: AWS::NoValue
       Policies:
-        - Version: "2012-10-17"
-          Statement:
-            - Effect: Allow
-              Action:
-                - s3:*
-              Resource:
-                - Fn::Join:
-                    - "/"
-                    - - Fn::GetAtt: "ForwarderBucket.Arn"
-                      - "*"
-            - Effect: Allow
-              Action:
-                - s3:GetObject
-              Resource: "*"
-            - Effect: Allow
-              Action:
-                - kms:Decrypt
-              Resource: "*"
-            - Effect: Allow
-              Action:
-                - secretsmanager:GetSecretValue
-              Resource:
-                Fn::If:
-                  - CreateDdApiKeySecret
-                  - Ref: DdApiKeySecret
-                  - !Sub "${DdApiKeySecretArn}*"
-            - !If
-              - SetDdFetchLambdaTags
-              - Effect: Allow
-                Action:
-                  - tag:GetResources
+        - PolicyName: ForwarderRolePolicy0
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Action:
+                  - s3:*
+                Resource:
+                  - Fn::Join:
+                      - "/"
+                      - - Fn::GetAtt: ForwarderBucket.Arn
+                        - "*"
+                Effect: Allow
+              - Action:
+                  - s3:GetObject
                 Resource: "*"
-              - Ref: AWS::NoValue
-            - !If
-              - UseVPC
-              - Effect: Allow
-                Action:
-                  - ec2:CreateNetworkInterface
-                  - ec2:DescribeNetworkInterfaces
-                  - ec2:DeleteNetworkInterface
+                Effect: Allow
+              - Action:
+                  - kms:Decrypt
                 Resource: "*"
-              - Ref: AWS::NoValue
-            - !If
-              - SetAdditionalTargetLambdas
-              - Effect: Allow
-                Action:
-                  - lambda:InvokeFunction
-                Resource: !Ref AdditionalTargetLambdaArns
-              - Ref: AWS::NoValue
+                Effect: Allow
+              - Action:
+                  - secretsmanager:GetSecretValue
+                Resource:
+                  Fn::If:
+                    - CreateDdApiKeySecret
+                    - Ref: DdApiKeySecret
+                    - Fn::Sub: "${DdApiKeySecretArn}*"
+                Effect: Allow
+              - Fn::If:
+                  - SetDdFetchLambdaTags
+                  - Action:
+                      - tag:GetResources
+                    Resource: "*"
+                    Effect: Allow
+                  - Ref: AWS::NoValue
+              - Fn::If:
+                  - UseVPC
+                  - Action:
+                      - ec2:CreateNetworkInterface
+                      - ec2:DescribeNetworkInterfaces
+                      - ec2:DeleteNetworkInterface
+                    Resource: "*"
+                    Effect: Allow
+                  - Ref: AWS::NoValue
+              - Fn::If:
+                  - SetAdditionalTargetLambdas
+                  - Action:
+                      - lambda:InvokeFunction
+                    Resource:
+                      Ref: AdditionalTargetLambdaArns
+                    Effect: Allow
+                  - Ref: AWS::NoValue
+      Tags:
+        - Value:
+            Fn::FindInMap:
+              - Constants
+              - DdForwarder
+              - Version
+          Key: dd_forwarder_version
+
   CloudWatchLogsPermission:
     Type: AWS::Lambda::Permission
     Properties:
@@ -666,6 +745,7 @@ Resources:
             Principal: "*"
   ForwarderZip:
     Type: Custom::ForwarderZip
+    Condition: UseZipCopier
     Properties:
       ServiceToken: !GetAtt "ForwarderZipCopier.Arn"
       DestZipsBucket: !Ref "ForwarderBucket"
@@ -681,6 +761,7 @@ Resources:
                 }
   ForwarderZipCopier:
     Type: AWS::Serverless::Function
+    Condition: UseZipCopier
     Properties:
       Description: Copies Datadog Forwarder zip to the destination S3 bucket
       Handler: index.handler
@@ -785,6 +866,10 @@ Resources:
       Environment:
         Variables:
           DD_FORWARDER_VERSION: !FindInMap [Constants, DdForwarder, Version]
+  ForwarderZipReady:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    Metadata:
+      ForwarderZipCopierReady: !If [UseZipCopier, !Ref ForwarderZip, ""]
 Outputs:
   DatadogForwarderArn:
     Description: Datadog Forwarder Lambda Function ARN
@@ -852,6 +937,8 @@ Metadata:
           - DdFetchLambdaTags
           - TagsCacheTTLSeconds
           - SourceZipUrl
+          - InstallAsLayer
+          - LayerARN
           - PermissionsBoundaryArn
           - DdUsePrivateLink
           - DdUseVPC
