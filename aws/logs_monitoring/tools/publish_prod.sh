@@ -3,16 +3,16 @@
 # Use with `./publish_prod.sh <DESIRED_NEW_VERSION>
 
 set -e
-unset $AWS_VAULT
+unset AWS_VAULT
 
 # Ensure on main, and pull the latest
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
-if [ $BRANCH != "main" ]; then
-    echo "Not on main, aborting"
+if [ $BRANCH != "master" ]; then
+    echo "Not on master, aborting"
     exit 1
 else
-    echo "Updating main"
-    git pull origin main
+    echo "Updating master"
+    git pull origin master
 fi
 
 # Ensure no uncommitted changes
