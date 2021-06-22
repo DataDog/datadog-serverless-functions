@@ -358,7 +358,7 @@ To test different patterns against your logs, turn on [debug logs](#troubleshoot
 : Sets the standard web proxy environment variables HTTP_PROXY and HTTPS_PROXY. These are the url endpoints your proxy server exposes. Don't use this in combination with AWS Private Link. Make sure to also set DdSkipSslValidation to true.
 
 `DdNoProxy`
-: Sets the standard web proxy environment variable NO_PROXY. It is a comma separated list of domain names that should be excluded from the web proxy.
+: Sets the standard web proxy environment variable NO_PROXY. It is a comma-separated list of domain names that should be excluded from the web proxy.
 
 `VPCSecurityGroupIds`
 : Comma separated list of VPC Security Group Ids. Used when AWS PrivateLink is enabled.
