@@ -170,6 +170,10 @@ Parameters:
     Type: String
     Default: ""
     Description: "Sets the standard web proxy environment variables HTTP_PROXY and HTTPS_PROXY. These are the url endpoints your proxy server exposes. Don't use this in combination with AWS Private Link. Make sure to also set DdSkipSslValidation to true."
+  DdNoProxy:
+    Type: String
+    Default: ""
+    Description: "Sets the standard web proxy environment variable NO_PROXY. It is a comma separated list of domain names that should be excluded from the web proxy."
   VPCSecurityGroupIds:
     Type: CommaDelimitedList
     Default: ""
@@ -313,6 +317,11 @@ Conditions:
     Fn::Not:
       - Fn::Equals:
           - Ref: DdHttpProxyURL
+          - ""
+  SetDdNoProxy:
+    Fn::Not:
+      - Fn::Equals:
+          - Ref: DdNoProxy
           - ""
   SetLayerARN:
     Fn::Not:
@@ -555,6 +564,11 @@ Resources:
             Fn::If:
               - SetDdHttpProxyURL
               - Ref: DdHttpProxyURL
+              - Ref: AWS::NoValue
+          NO_PROXY:
+            Fn::If:
+              - SetDdNoProxy
+              - Ref: DdNoProxy
               - Ref: AWS::NoValue
           DD_ADDITIONAL_TARGET_LAMBDAS:
             Fn::If:
@@ -943,6 +957,7 @@ Metadata:
           - DdUsePrivateLink
           - DdUseVPC
           - DdHttpProxyURL
+          - DdNoProxy
           - VPCSecurityGroupIds
           - VPCSubnetIds
           - DdApiUrl
