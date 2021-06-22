@@ -173,7 +173,7 @@ Parameters:
   DdNoProxy:
     Type: String
     Default: ""
-    Description: "Sets the standard web proxy environment variable NO_PROXY. It is a comma separated list of domain names that should be excluded from the web proxy."
+    Description: "Sets the standard web proxy environment variable NO_PROXY. It is a comma-separated list of domain names that should be excluded from the web proxy."
   VPCSecurityGroupIds:
     Type: CommaDelimitedList
     Default: ""
