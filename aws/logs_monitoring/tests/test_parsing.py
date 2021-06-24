@@ -238,6 +238,17 @@ class TestParseEventSource(unittest.TestCase):
 
 
 class TestParseAwsWafLogs(unittest.TestCase):
+    def test_waf_string_invalid_json(self):
+        event = "This is not valid JSON."
+        self.assertEqual(parse_aws_waf_logs(event), "This is not valid JSON.")
+
+    def test_waf_string_json(self):
+        event = '{"ddsource":"waf","message":"This is a string of JSON"}'
+        self.assertEqual(
+            parse_aws_waf_logs(event),
+            {"ddsource": "waf", "message": "This is a string of JSON"},
+        )
+
     def test_waf_headers(self):
         event = {
             "ddsource": "waf",

@@ -539,6 +539,12 @@ def parse_aws_waf_logs(event):
 
     This prevents having an unparsable array of objects in the final log.
     """
+    if isinstance(event, str):
+        try:
+            event = json.loads(event)
+        except json.JSONDecodeError:
+            logger.debug("Argument provided for waf parser is not valid JSON")
+            return event
     if event.get(DD_SOURCE) != "waf":
         return event
 
@@ -550,15 +556,11 @@ def parse_aws_waf_logs(event):
             message = json.loads(message)
         except json.JSONDecodeError:
             logger.debug("Failed to decode waf message")
-            return
+            return event
 
     headers = message.get("httpRequest", {}).get("headers")
-    if headers and isinstance(headers, list):
-        header_obj = {}
-        for header in headers:
-            if "name" in header and "value" in header:
-                header_obj.update({header["name"]: header["value"]})
-        message["httpRequest"]["headers"] = header_obj
+    if headers:
+        message["httpRequest"]["headers"] = convert_rule_to_nested_json(headers)
 
     # Iterate through rules in ruleGroupList and nest them under the group id
     # ruleGroupList has three attributes that need to be handled separately
@@ -575,13 +577,11 @@ def parse_aws_waf_logs(event):
             # Extract the terminating rule and nest it under its own id
             if "terminatingRule" in rule_group and rule_group["terminatingRule"]:
                 terminating_rule = rule_group.pop("terminatingRule", None)
-                if "ruleId" in terminating_rule and terminating_rule["ruleId"]:
-                    rule_id = terminating_rule.pop("ruleId", None)
-                    if not "terminatingRule" in message["ruleGroupList"][group_id]:
-                        message["ruleGroupList"][group_id]["terminatingRule"] = {}
-                    message["ruleGroupList"][group_id]["terminatingRule"].update(
-                        {rule_id: terminating_rule}
-                    )
+                if not "terminatingRule" in message["ruleGroupList"][group_id]:
+                    message["ruleGroupList"][group_id]["terminatingRule"] = {}
+                message["ruleGroupList"][group_id]["terminatingRule"].update(
+                    convert_rule_to_nested_json(terminating_rule)
+                )
 
             # Iterate through array of non-terminating rules and nest each under its own id
             if "nonTerminatingMatchingRules" in rule_group and isinstance(
@@ -590,55 +590,60 @@ def parse_aws_waf_logs(event):
                 non_terminating_rules = rule_group.pop(
                     "nonTerminatingMatchingRules", None
                 )
-                if non_terminating_rules and isinstance(non_terminating_rules, list):
-                    for rule in non_terminating_rules:
-                        if "ruleId" in rule and rule["ruleId"]:
-                            rule_id = rule.pop("ruleId", None)
-                            if (
-                                not "nonTerminatingMatchingRules"
-                                in message["ruleGroupList"][group_id]
-                            ):
-                                message["ruleGroupList"][group_id][
-                                    "nonTerminatingMatchingRules"
-                                ] = {}
-                            message["ruleGroupList"][group_id][
-                                "nonTerminatingMatchingRules"
-                            ].update({rule_id: rule})
+                if (
+                    not "nonTerminatingMatchingRules"
+                    in message["ruleGroupList"][group_id]
+                ):
+                    message["ruleGroupList"][group_id][
+                        "nonTerminatingMatchingRules"
+                    ] = {}
+                message["ruleGroupList"][group_id][
+                    "nonTerminatingMatchingRules"
+                ].update(convert_rule_to_nested_json(non_terminating_rules))
 
             # Iterate through array of excluded rules and nest each under its own id
             if "excludedRules" in rule_group and isinstance(
                 rule_group["excludedRules"], list
             ):
                 excluded_rules = rule_group.pop("excludedRules", None)
-                for rule in excluded_rules:
-                    if "ruleId" in rule and rule["ruleId"]:
-                        rule_id = rule.pop("ruleId", None)
-                        if not "excludedRules" in message["ruleGroupList"][group_id]:
-                            message["ruleGroupList"][group_id]["excludedRules"] = {}
-                        message["ruleGroupList"][group_id]["excludedRules"].update(
-                            {rule_id: rule}
-                        )
+                if not "excludedRules" in message["ruleGroupList"][group_id]:
+                    message["ruleGroupList"][group_id]["excludedRules"] = {}
+                message["ruleGroupList"][group_id]["excludedRules"].update(
+                    convert_rule_to_nested_json(excluded_rules)
+                )
 
     rate_based_rules = message.get("rateBasedRuleList", {})
-    if rate_based_rules and isinstance(rate_based_rules, list):
-        rule_obj = {}
-        for rule in rate_based_rules:
-            if "rateBasedRuleName" in rule and rule["rateBasedRuleName"]:
-                name = rule.pop("rateBasedRuleName", None)
-                rule_obj.update({name: rule})
-        message["rateBasedRuleList"] = rule_obj
+    if rate_based_rules:
+        message["rateBasedRuleList"] = convert_rule_to_nested_json(rate_based_rules)
 
     non_terminating_rules = message.get("nonTerminatingMatchingRules", {})
-    if non_terminating_rules and isinstance(non_terminating_rules, list):
-        rule_obj = {}
-        for rule in non_terminating_rules:
-            if "ruleId" in rule and rule["ruleId"]:
-                rule_id = rule.pop("ruleId", None)
-                rule_obj.update({rule_id: rule})
-        message["nonTerminatingMatchingRules"] = rule_obj
+    if non_terminating_rules:
+        message["nonTerminatingMatchingRules"] = convert_rule_to_nested_json(
+            non_terminating_rules
+        )
 
     event_copy["message"] = message
     return event_copy
+
+
+def convert_rule_to_nested_json(rule):
+    key = None
+    result_obj = {}
+    if not isinstance(rule, list):
+        if "ruleId" in rule and rule["ruleId"]:
+            key = rule.pop("ruleId", None)
+            result_obj.update({key: rule})
+            return result_obj
+    for entry in rule:
+        if "ruleId" in entry and entry["ruleId"]:
+            key = entry.pop("ruleId", None)
+        elif "rateBasedRuleName" in entry and entry["rateBasedRuleName"]:
+            key = entry.pop("rateBasedRuleName", None)
+        elif "name" in entry and "value" in entry:
+            key = entry["name"]
+            entry = entry["value"]
+        result_obj.update({key: entry})
+    return result_obj
 
 
 def separate_security_hub_findings(event):
