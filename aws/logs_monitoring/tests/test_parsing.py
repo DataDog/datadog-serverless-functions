@@ -1,3 +1,6 @@
+import base64
+import gzip
+import json
 from unittest.mock import MagicMock, patch
 import os
 import sys
@@ -12,11 +15,8 @@ sys.modules["requests_futures.sessions"] = MagicMock()
 
 env_patch = patch.dict(os.environ, {"DD_API_KEY": "11111111111111111111111111111111"})
 env_patch.start()
-from parsing import (
-    parse_event_source,
-    separate_security_hub_findings,
-    parse_aws_waf_logs,
-)
+
+from parsing import awslogs_handler, parse_event_source, separate_security_hub_findings, parse_aws_waf_logs
 
 env_patch.stop()
 
@@ -59,6 +59,14 @@ class TestParseEventSource(unittest.TestCase):
         self.assertEqual(
             parse_event_source({"awslogs": "logs"}, "/aws/rds/mySQL-instance/error"),
             "mysql",
+        )
+
+    def test_postgresql_event(self):
+        self.assertEqual(
+            parse_event_source(
+                {"awslogs": "logs"}, "/aws/rds/instance/datadog/postgresql"
+            ),
+            "postgresql",
         )
 
     def test_lambda_event(self):
@@ -626,6 +634,65 @@ class TestParseSecurityHubEvents(unittest.TestCase):
                     },
                 },
             ],
+        )
+
+
+class TestAWSLogsHandler(unittest.TestCase):
+    def test_awslogs_handler_rds_postgresql(self):
+        event = {
+            "awslogs": {
+                "data": base64.b64encode(
+                    gzip.compress(
+                        bytes(
+                            json.dumps(
+                                {
+                                    "owner": "123456789012",
+                                    "logGroup": "/aws/rds/instance/datadog/postgresql",
+                                    "logStream": "datadog.0",
+                                    "logEvents": [
+                                        {
+                                            "id": "31953106606966983378809025079804211143289615424298221568",
+                                            "timestamp": 1609556645000,
+                                            "message": "2021-01-02 03:04:05 UTC::@:[5306]:LOG:  database system is ready to accept connections",
+                                        }
+                                    ],
+                                }
+                            ),
+                            "utf-8",
+                        )
+                    )
+                )
+            }
+        }
+        context = None
+        metadata = {"ddsource": "postgresql", "ddtags": "env:dev"}
+
+        self.assertEqual(
+            [
+                {
+                    "aws": {
+                        "awslogs": {
+                            "logGroup": "/aws/rds/instance/datadog/postgresql",
+                            "logStream": "datadog.0",
+                            "owner": "123456789012",
+                        }
+                    },
+                    "id": "31953106606966983378809025079804211143289615424298221568",
+                    "message": "2021-01-02 03:04:05 UTC::@:[5306]:LOG:  database system is ready "
+                    "to accept connections",
+                    "timestamp": 1609556645000,
+                }
+            ],
+            list(awslogs_handler(event, context, metadata)),
+        )
+        self.assertEqual(
+            {
+                "ddsource": "postgresql",
+                "ddtags": "env:dev,logname:postgresql",
+                "host": "datadog",
+                "service": "postgresql",
+            },
+            metadata,
         )
 
 

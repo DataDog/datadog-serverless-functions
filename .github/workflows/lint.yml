@@ -27,7 +27,10 @@ jobs:
           pip install black
           black --check ./aws/logs_monitoring
 
-      - name: Lint CloudFormation template with cfn-lint
-        uses: scottbrenner/cfn-lint-action@master
-        with:
-          args: "aws/logs_monitoring/template.yaml"
+      - name: Setup Cloud Formation Linter with Latest Version
+        uses: scottbrenner/cfn-lint-action@v2
+
+      - name: Print the Cloud Formation Linter Version & run Linter.
+        run: |
+          cfn-lint --version
+          cfn-lint -t aws/logs_monitoring/template.yaml

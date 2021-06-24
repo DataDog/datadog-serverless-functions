@@ -189,6 +189,7 @@ func (con *traceEdgeConnection) sendPayloadToTraceEdge(ctx context.Context, apiK
 func NewClient(InsecureSkipVerify bool) *http.Client {
 	transport := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: InsecureSkipVerify},
+		Proxy:           http.ProxyFromEnvironment,
 	}
 
 	return &http.Client{Timeout: traceEdgeTimout, Transport: transport}

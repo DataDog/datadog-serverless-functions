@@ -14,8 +14,7 @@ function fakeContext() {
 }
 
 function setUp() {
-    var forwarder = new client.EventhubLogForwarder(fakeContext());
-    forwarder.sendWithRetry = sinon.spy();
+    var forwarder = new client.EventhubLogHandler(fakeContext());
 
     forwarder.addTagsToJsonLog = x => {
         return Object.assign({ ddsource: 'none' }, x);
@@ -314,23 +313,13 @@ describe('Azure Log Monitoring', function() {
     });
 
     function testHandleJSONLogs(forwarder, logs, expected) {
-        forwarder.handleLogs(logs);
-        expected.forEach(message => {
-            sinon.assert.calledWith(
-                forwarder.sendWithRetry,
-                forwarder.addTagsToJsonLog(message)
-            );
-        });
+        actual = forwarder.handleLogs(logs);
+        assert.deepEqual(actual, expected);
     }
 
     function testHandleStringLogs(forwarder, logs, expected) {
-        forwarder.handleLogs(logs);
-        expected.forEach(message => {
-            sinon.assert.calledWith(
-                forwarder.sendWithRetry,
-                forwarder.addTagsToStringLog(message)
-            );
-        });
+        actual = forwarder.handleLogs(logs);
+        assert.deepEqual(actual, expected);
     }
 
     describe('#handleLogs', function() {
@@ -340,14 +329,14 @@ describe('Azure Log Monitoring', function() {
 
         it('should handle string properly', function() {
             log = 'hello';
-            expected = ['hello'];
+            expected = [{ ddsource: 'none', message: 'hello' }];
             assert.equal(this.forwarder.getLogFormat(log), constants.STRING);
             testHandleStringLogs(this.forwarder, log, expected);
         });
 
         it('should handle json-string properly', function() {
             log = '{"hello": "there"}';
-            expected = [{ hello: 'there' }];
+            expected = [{ ddsource: 'none', hello: 'there' }];
             assert.equal(
                 this.forwarder.getLogFormat(log),
                 constants.JSON_STRING
@@ -357,7 +346,7 @@ describe('Azure Log Monitoring', function() {
 
         it('should handle json-object properly', function() {
             log = { hello: 'there' };
-            expected = [{ hello: 'there' }];
+            expected = [{ ddsource: 'none', hello: 'there' }];
             assert.equal(
                 this.forwarder.getLogFormat(log),
                 constants.JSON_OBJECT
@@ -367,7 +356,10 @@ describe('Azure Log Monitoring', function() {
 
         it('should handle string-array properly', function() {
             log = ['one message', 'two message'];
-            expected = ['one message', 'two message'];
+            expected = [
+                { ddsource: 'none', message: 'one message' },
+                { ddsource: 'none', message: 'two message' }
+            ];
             assert.equal(
                 this.forwarder.getLogFormat(log),
                 constants.STRING_ARRAY
@@ -377,7 +369,10 @@ describe('Azure Log Monitoring', function() {
 
         it('should handle json-records properly', function() {
             log = [{ records: [{ hello: 'there' }, { goodbye: 'now' }] }];
-            expected = [{ hello: 'there' }, { goodbye: 'now' }];
+            expected = [
+                { ddsource: 'none', hello: 'there' },
+                { ddsource: 'none', goodbye: 'now' }
+            ];
             assert.equal(
                 this.forwarder.getLogFormat(log),
                 constants.JSON_ARRAY
@@ -387,7 +382,10 @@ describe('Azure Log Monitoring', function() {
 
         it('should handle json-array properly', function() {
             log = [{ hello: 'there' }, { goodbye: 'now' }];
-            expected = [{ hello: 'there' }, { goodbye: 'now' }];
+            expected = [
+                { ddsource: 'none', hello: 'there' },
+                { ddsource: 'none', goodbye: 'now' }
+            ];
             assert.equal(
                 this.forwarder.getLogFormat(log),
                 constants.JSON_ARRAY
@@ -397,7 +395,7 @@ describe('Azure Log Monitoring', function() {
 
         it('should handle buffer array properly', function() {
             log = [Buffer.from('{"records": [{ "test": "testing"}]}')];
-            expected = [{ test: 'testing' }];
+            expected = [{ ddsource: 'none', test: 'testing' }];
             assert.equal(
                 this.forwarder.getLogFormat(log),
                 constants.BUFFER_ARRAY
@@ -407,7 +405,7 @@ describe('Azure Log Monitoring', function() {
 
         it('should handle buffer array without records properly', function() {
             log = [Buffer.from('{ "test": "example"}')];
-            expected = [{ test: 'example' }];
+            expected = [{ ddsource: 'none', test: 'example' }];
             assert.equal(
                 this.forwarder.getLogFormat(log),
                 constants.BUFFER_ARRAY
@@ -417,7 +415,7 @@ describe('Azure Log Monitoring', function() {
 
         it('should handle buffer array with malformed string', function() {
             log = [Buffer.from('{"time": "xy')];
-            expected = ['{"time": "xy'];
+            expected = [{ ddsource: 'none', message: '{"time": "xy' }];
             assert.equal(
                 this.forwarder.getLogFormat(log),
                 constants.BUFFER_ARRAY
@@ -427,7 +425,10 @@ describe('Azure Log Monitoring', function() {
 
         it('should handle json-string-array properly records', function() {
             log = ['{"records": [{ "time": "xyz"}, {"time": "abc"}]}'];
-            expected = [{ time: 'xyz' }];
+            expected = [
+                { ddsource: 'none', time: 'xyz' },
+                { ddsource: 'none', time: 'abc' }
+            ];
             assert.equal(
                 this.forwarder.getLogFormat(log),
                 constants.JSON_STRING_ARRAY
@@ -437,7 +438,7 @@ describe('Azure Log Monitoring', function() {
 
         it('should handle json-string-array properly no records', function() {
             log = ['{"time": "xyz"}'];
-            expected = [{ time: 'xyz' }];
+            expected = [{ ddsource: 'none', time: 'xyz' }];
             assert.equal(
                 this.forwarder.getLogFormat(log),
                 constants.JSON_STRING_ARRAY
@@ -447,13 +448,14 @@ describe('Azure Log Monitoring', function() {
 
         it('should handle json-string-array with malformed string', function() {
             log = ['{"time": "xyz"}', '{"time": "xy'];
-            expected = ['{"time": "xy'];
+            expected = [
+                { ddsource: 'none', time: 'xyz' },
+                { ddsource: 'none', message: '{"time": "xy' }
+            ];
             assert.equal(
                 this.forwarder.getLogFormat(log),
                 constants.JSON_STRING_ARRAY
             );
-            // just assert that the string method is called for the second message,
-            // we don't care about the first one for this test
             testHandleStringLogs(this.forwarder, log, expected);
         });
     });
@@ -555,6 +557,49 @@ describe('Azure Log Monitoring', function() {
             actual = scrubber.scrub(
                 'client_ip: 12.123.23.12, client_ip2: 122.123.213.112 email: hello@test.com email2: hello2@test.com'
             );
+            assert.equal(actual, expected);
+        });
+    });
+});
+
+describe('Batching', function() {
+    describe('#batch', function() {
+        it('should return two batches because of size', function() {
+            batcher = new client.Batcher(15, 15, 1);
+            logs = [{ hi: 'bye' }, 'bleh'];
+            actual = batcher.batch(logs);
+            expected = [[{ hi: 'bye' }], ['bleh']];
+            assert.deepEqual(actual, expected);
+        });
+        it('should return two batches because of batch size bytes', function() {
+            batcher = new client.Batcher(5, 12, 10);
+            logs = [{ hi: 'bye' }, 'bleh'];
+            actual = batcher.batch(logs);
+            expected = [[{ hi: 'bye' }], ['bleh']];
+            assert.deepEqual(actual, expected);
+        });
+        it('should drop message based on message bytes size', function() {
+            batcher = new client.Batcher(5, 5, 1);
+            logs = [{ hi: 'bye' }, 'bleh'];
+            actual = batcher.batch(logs);
+            expected = [['bleh']];
+            assert.deepEqual(actual, expected);
+        });
+    });
+    describe('#getSizeInBytes', function() {
+        it('should return 5 for string', function() {
+            batcher = new client.Batcher(15, 15, 1);
+            log = 'aaaaa';
+            actual = batcher.getSizeInBytes(log);
+            expected = 5;
+            assert.equal(actual, expected);
+        });
+
+        it('should return 7 for object', function() {
+            batcher = new client.Batcher(15, 15, 1);
+            log = { a: 2 };
+            actual = batcher.getSizeInBytes(log);
+            expected = 7;
             assert.equal(actual, expected);
         });
     });
