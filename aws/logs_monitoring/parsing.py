@@ -169,8 +169,9 @@ def s3_handler(event, context, metadata):
 
     source = parse_event_source(event, key)
     metadata[DD_SOURCE] = source
-    ##default service to source value
-    metadata[DD_SERVICE] = source
+
+    metadata[DD_SERVICE] = get_service_from_tags(metadata)
+
     ##Get the ARN of the service and set it as the hostname
     hostname = parse_service_arn(source, key, bucket, context)
     if hostname:
@@ -213,6 +214,18 @@ def s3_handler(event, context, metadata):
                 "message": line,
             }
             yield structured_line
+
+
+def get_service_from_tags(metadata):
+    # Get service from dd_custom_tags if it exists
+    tagsplit = metadata[DD_CUSTOM_TAGS].split(",")
+    for tag in tagsplit:
+        tag_name, tag_value = tag.split(":")
+        if tag_name == "service":
+            return tag_value
+
+    # Default service to source value
+    return metadata[DD_SOURCE]
 
 
 def parse_event_source(event, key):
@@ -421,8 +434,7 @@ def awslogs_handler(event, context, metadata):
         source = "cloudtrail"
     metadata[DD_SOURCE] = parse_event_source(event, source)
 
-    # Default service to source value
-    metadata[DD_SERVICE] = metadata[DD_SOURCE]
+    metadata[DD_SERVICE] = get_service_from_tags(metadata)
 
     # Build aws attributes
     aws_attributes = {
@@ -519,8 +531,8 @@ def cwevent_handler(event, metadata):
         metadata[DD_SOURCE] = service[1]
     else:
         metadata[DD_SOURCE] = "cloudwatch"
-    ##default service to source value
-    metadata[DD_SERVICE] = metadata[DD_SOURCE]
+
+    metadata[DD_SERVICE] = get_service_from_tags(metadata)
 
     yield data
 
