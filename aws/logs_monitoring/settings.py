@@ -217,6 +217,8 @@ DD_MULTILINE_LOG_REGEX_PATTERN = get_env_var(
     "DD_MULTILINE_LOG_REGEX_PATTERN", default=None
 )
 
+DD_USE_SERVICE_NAME_FROM_S3_BUCKET_TAGS = get_env_var("DD_USE_SERVICE_NAME_FROM_S3_BUCKET_TAGS", "false", boolean=True)
+
 DD_SOURCE = "ddsource"
 DD_CUSTOM_TAGS = "ddtags"
 DD_SERVICE = "service"

@@ -32,6 +32,7 @@ from settings import (
     DD_HOST,
     DD_FORWARDER_VERSION,
     DD_USE_VPC,
+    DD_USE_SERVICE_NAME_FROM_S3_BUCKET_TAGS,
 )
 
 
@@ -171,6 +172,18 @@ def s3_handler(event, context, metadata):
     metadata[DD_SOURCE] = source
     ##default service to source value
     metadata[DD_SERVICE] = source
+
+    if DD_USE_SERVICE_NAME_FROM_S3_BUCKET_TAGS:
+        try:
+            bucket_tags = s3.get_bucket_tagging(Bucket=bucket)
+            for tag in bucket_tags["TagSet"]:
+                if tag["Key"] == "ddservice":
+                    metadata[DD_SERVICE] = tag["Value"]
+                    break
+        except botocore.exceptions.ClientError as error:
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(f"DD_USE_SERVICE_NAME_FROM_S3_BUCKET_TAGS activated, but an error occured: {error.response['Error']['Message']}")
+
     ##Get the ARN of the service and set it as the hostname
     hostname = parse_service_arn(source, key, bucket, context)
     if hostname:
