@@ -19,6 +19,7 @@ env_patch = patch.dict(
     {
         "DD_API_KEY": "11111111111111111111111111111111",
         "DD_ADDITIONAL_TARGET_LAMBDAS": "ironmaiden,megadeth",
+        "DD_SERVICE_NAME": "overridden-service-name",
     },
 )
 env_patch.start()
@@ -124,7 +125,7 @@ class TestS3CloudwatchParsing(unittest.TestCase):
             {
                 "ddsource": "cloudtrail",
                 "ddsourcecategory": "aws",
-                "service": "cloudtrail",
+                "service": "overridden-service-name",
                 "aws": {
                     "s3": {
                         "bucket": payload["s3"]["bucket"]["name"],

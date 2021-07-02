@@ -290,6 +290,9 @@ SSL encrypted TCP connection, set this parameter to true.
 `DdPort`
 : The endpoint port to forward the logs to, useful for forwarding logs through a proxy.
 
+`DdServiceName`
+: Allow to override the service name of the forwarded logs.
+
 `DdSkipSslValidation`
 : Send logs over HTTPS, while NOT validating the certificate provided by the endpoint. This will still encrypt the traffic between the forwarder and the log intake endpoint, but will not verify if the destination SSL certificate is valid.
 

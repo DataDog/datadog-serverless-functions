@@ -442,7 +442,7 @@ class TestAWSLogsHandler(unittest.TestCase):
                 "ddsource": "postgresql",
                 "ddtags": "env:dev,logname:postgresql",
                 "host": "datadog",
-                "service": "postgresql",
+                "service": "overridden-service-name",
             },
             metadata,
         )

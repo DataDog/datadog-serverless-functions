@@ -29,6 +29,7 @@ from settings import (
     DD_SOURCE,
     DD_CUSTOM_TAGS,
     DD_SERVICE,
+    DD_SERVICE_NAME,
     DD_HOST,
     DD_FORWARDER_VERSION,
     DD_USE_VPC,
@@ -171,6 +172,10 @@ def s3_handler(event, context, metadata):
     metadata[DD_SOURCE] = source
     ##default service to source value
     metadata[DD_SERVICE] = source
+
+    if DD_SERVICE_NAME:
+        metadata[DD_SERVICE] = DD_SERVICE_NAME
+
     ##Get the ARN of the service and set it as the hostname
     hostname = parse_service_arn(source, key, bucket, context)
     if hostname:
@@ -424,6 +429,9 @@ def awslogs_handler(event, context, metadata):
     # Default service to source value
     metadata[DD_SERVICE] = metadata[DD_SOURCE]
 
+    if DD_SERVICE_NAME:
+        metadata[DD_SERVICE] = DD_SERVICE_NAME
+
     # Build aws attributes
     aws_attributes = {
         "aws": {
@@ -521,6 +529,9 @@ def cwevent_handler(event, metadata):
         metadata[DD_SOURCE] = "cloudwatch"
     ##default service to source value
     metadata[DD_SERVICE] = metadata[DD_SOURCE]
+
+    if DD_SERVICE_NAME:
+        metadata[DD_SERVICE] = DD_SERVICE_NAME
 
     yield data
 

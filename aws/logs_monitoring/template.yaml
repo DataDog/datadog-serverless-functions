@@ -64,6 +64,10 @@ Parameters:
     Type: String
     Default: ""
     Description: ARN for the layer containing the forwarder code. If empty, the script will use the version of the layer the forwarder was published with.
+  DdServiceName:
+    Type: String
+    Default: ""
+    Description: Allow to override the service name of the forwarded logs
   DdTags:
     Type: String
     Default: ""
@@ -241,6 +245,11 @@ Conditions:
     Fn::Equals:
       - !Select [0, !Split ["/", !Ref SourceZipUrl]]
       - "s3:"
+  SetDdServiceName:
+    Fn::Not:
+      - Fn::Equals:
+          - Ref: DdServiceName
+          - ""
   SetDdTags:
     Fn::Not:
       - Fn::Equals:
@@ -448,6 +457,11 @@ Resources:
             Fn::If:
               - SetDdFetchLambdaTags
               - Ref: ForwarderBucket
+              - Ref: AWS::NoValue
+          DD_SERVICE_NAME:
+            Fn::If:
+              - SetDdServiceName
+              - Ref: DdServiceName
               - Ref: AWS::NoValue
           DD_SITE:
             Ref: DdSite
@@ -922,6 +936,7 @@ Metadata:
       - Label:
           default: Log Forwarding (Optional)
         Parameters:
+          - DdServiceName
           - DdTags
           - DdMultilineLogRegexPattern
           - DdUseTcp
