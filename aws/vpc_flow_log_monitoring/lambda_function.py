@@ -3,21 +3,18 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2021 Datadog, Inc.
 
-from __future__ import print_function
 
-import os
 import gzip
 import json
-import re
+import os
 import time
-import urllib
-import urllib2
+import urllib.request, urllib.parse, urllib.error
 from base64 import b64decode
-from StringIO import StringIO
 from collections import defaultdict, Counter
 
 import boto3
 import botocore
+from io import StringIO
 
 print('Loading function')
 
@@ -39,20 +36,23 @@ except botocore.exceptions.ClientError:
 
 datadog_keys = json.loads(decrypted)
 
+
 # Alternatively set datadog keys directly
 # datadog_keys = {
 #     "api_key": "abcd",
 #     "app_key": "efgh",
 # }
 
+
 def process_message(message, tags, timestamp, node_ip):
-    version, account_id, interface_id, srcaddr, dstaddr, srcport, dstport, protocol, packets, _bytes, start, end, action, log_status = message.split(" ")
+    version, account_id, interface_id, srcaddr, dstaddr, srcport, dstport, protocol, packets, _bytes, start, end, action, log_status = message.split(
+        " ")
 
     detailed_tags = [
-        "interface_id:%s" % interface_id,
-        "protocol:%s" % protocol_id_to_name(protocol),
-        "ip:%s" % node_ip,
-    ] + tags
+                        "interface_id:%s" % interface_id,
+                        "protocol:%s" % protocol_id_to_name(protocol),
+                        "ip:%s" % node_ip,
+                    ] + tags
     if srcaddr == node_ip:
         detailed_tags.append("direction:outbound")
     if dstaddr == node_ip:
@@ -282,9 +282,9 @@ class Stats(object):
     def flush(self):
         percentiles_to_submit = [0, 50, 90, 95, 99, 100]
         series = []
-        for metric_name, count_payload in self.counts.iteritems():
-            for tag_set, datapoints in count_payload.iteritems():
-                points = [(ts, val) for ts, val in datapoints.iteritems()]
+        for metric_name, count_payload in self.counts.items():
+            for tag_set, datapoints in count_payload.items():
+                points = [(ts, val) for ts, val in datapoints.items()]
                 series.append(
                     {
                         'metric': metric_name,
@@ -294,16 +294,16 @@ class Stats(object):
                     }
                 )
 
-        for metric_name, histogram_payload in self.histograms.iteritems():
-            for tag_set, datapoints in histogram_payload.iteritems():
+        for metric_name, histogram_payload in self.histograms.items():
+            for tag_set, datapoints in histogram_payload.items():
                 percentiles = defaultdict(list)
-                for ts, values in datapoints.iteritems():
+                for ts, values in datapoints.items():
                     values.sort()
                     total_points = len(values)
                     for pct in percentiles_to_submit:
                         percentiles[pct].append((ts, values[max(0, int((pct - 1) * total_points / 100))]))
 
-                for pct, points in percentiles.iteritems():
+                for pct, points in percentiles.items():
                     metric_suffix = 'p%s' % pct
                     if pct == 0:
                         metric_suffix = 'min'
@@ -326,12 +326,13 @@ class Stats(object):
             'series': series,
         }
 
-        creds = urllib.urlencode(datadog_keys)
+        creds = urllib.parse.urlencode(datadog_keys)
         data = json.dumps(metrics_dict)
         url = '%s?%s' % (datadog_keys.get('api_host', 'https://app.%s/api/v1/series' % DD_SITE), creds)
-        req = urllib2.Request(url, data, {'Content-Type': 'application/json'})
-        response = urllib2.urlopen(req)
+        req = urllib.request.Request(url, bytes(data), {'Content-Type': 'application/json'})
+        response = urllib.request.urlopen(req)
         print('INFO Submitted data with status {}'.format(response.getcode()))
+
 
 stats = Stats()
 
