@@ -21,20 +21,19 @@ print('Loading function')
 DD_SITE = os.getenv("DD_SITE", default="datadoghq.com")
 
 # retrieve datadog options from KMS
-KMS_ENCRYPTED_KEYS = os.environ['kmsEncryptedKeys']
-kms = boto3.client('kms')
+# print(os.environ)
 
-try:
-    decrypted = kms.decrypt(
-        CiphertextBlob=b64decode(KMS_ENCRYPTED_KEYS),
-        EncryptionContext={'LambdaFunctionName': os.environ['AWS_LAMBDA_FUNCTION_NAME']},
-    )['Plaintext']
-except botocore.exceptions.ClientError:
-    decrypted = kms.decrypt(
-        CiphertextBlob=b64decode(KMS_ENCRYPTED_KEYS),
-    )['Plaintext']
+# TODO add try catch?
 
-datadog_keys = json.loads(decrypted)
+ENCRYPTED = os.environ['kmsEncryptedKeys']
+# Decrypt code should run once and variables stored outside of the function
+# handler so that these are decrypted once per container
+DECRYPTED = boto3.client('kms').decrypt(
+    CiphertextBlob=b64decode(ENCRYPTED),
+    EncryptionContext={'LambdaFunctionName': os.environ['AWS_LAMBDA_FUNCTION_NAME']}
+)['Plaintext'].decode('utf-8')
+
+datadog_keys = json.loads(DECRYPTED)
 
 
 # Alternatively set datadog keys directly
@@ -329,7 +328,7 @@ class Stats(object):
         creds = urllib.parse.urlencode(datadog_keys)
         data = json.dumps(metrics_dict)
         url = '%s?%s' % (datadog_keys.get('api_host', 'https://app.%s/api/v1/series' % DD_SITE), creds)
-        req = urllib.request.Request(url, bytes(data), {'Content-Type': 'application/json'})
+        req = urllib.request.Request(url, bytes(data, 'utf-8'), {'Content-Type': 'application/json'})
         response = urllib.request.urlopen(req)
         print('INFO Submitted data with status {}'.format(response.getcode()))
 
@@ -339,7 +338,8 @@ stats = Stats()
 
 def lambda_handler(event, context):
     # event is a dict containing a base64 string gzipped
-    event = json.loads(gzip.GzipFile(fileobj=StringIO(event['awslogs']['data'].decode('base64'))).read())
+    # TODO UNCOMMENT AFTER TESTING!: while testing, the event is not GZipped, so it'll be passed as a raw json string from the console input
+    # event = json.loads(gzip.GzipFile(fileobj=StringIO(event['awslogs']['data'].decode('base64'))).read())
     function_arn = context.invoked_function_arn
     # 'arn:aws:lambda:us-east-1:1234123412:function:VPCFlowLogs'
     region, account = function_arn.split(':', 5)[3:5]
