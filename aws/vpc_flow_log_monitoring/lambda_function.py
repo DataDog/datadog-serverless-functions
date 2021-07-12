@@ -3,55 +3,91 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2021 Datadog, Inc.
 
-
+import os
 import gzip
 import json
-import os
+import re
 import time
-import urllib.request, urllib.parse, urllib.error
-from base64 import b64decode
+import base64
+from io import BufferedReader, BytesIO
 from collections import defaultdict, Counter
+from urllib.request import Request, urlopen
+from urllib.parse import urlencode
 
 import boto3
 import botocore
-from io import StringIO
 
 print('Loading function')
 
 DD_SITE = os.getenv("DD_SITE", default="datadoghq.com")
 
-# retrieve datadog options from KMS
-# print(os.environ)
+def _datadog_keys():
+    if 'kmsEncryptedKeys' in os.environ:
+        KMS_ENCRYPTED_KEYS = os.environ['kmsEncryptedKeys']
+        kms = boto3.client('kms')
+        # kmsEncryptedKeys should be created through the Lambda's encryption
+        # helpers and as such will have the EncryptionContext
+        return json.loads(kms.decrypt(
+            CiphertextBlob=base64.b64decode(KMS_ENCRYPTED_KEYS),
+            EncryptionContext={'LambdaFunctionName': os.environ['AWS_LAMBDA_FUNCTION_NAME']},
+        )['Plaintext'])
 
-# TODO add try catch?
+    if 'DD_API_KEY_SECRET_ARN' in os.environ:
+        SECRET_ARN = os.environ['DD_API_KEY_SECRET_ARN']
+        DD_API_KEY = boto3.client('secretsmanager').get_secret_value(SecretId=SECRET_ARN)['SecretString']
+        return {'api_key': DD_API_KEY}
 
-ENCRYPTED = os.environ['kmsEncryptedKeys']
-# Decrypt code should run once and variables stored outside of the function
-# handler so that these are decrypted once per container
-DECRYPTED = boto3.client('kms').decrypt(
-    CiphertextBlob=b64decode(ENCRYPTED),
-    EncryptionContext={'LambdaFunctionName': os.environ['AWS_LAMBDA_FUNCTION_NAME']}
-)['Plaintext'].decode('utf-8')
+    if 'DD_API_KEY_SSM_NAME' in os.environ:
+        SECRET_NAME = os.environ['DD_API_KEY_SSM_NAME']
+        DD_API_KEY = boto3.client('ssm').get_parameter(
+            Name=SECRET_NAME, WithDecryption=True
+        )['Parameter']['Value']
+        return {'api_key': DD_API_KEY}
 
-datadog_keys = json.loads(DECRYPTED)
+    if 'DD_KMS_API_KEY' in os.environ:
+        ENCRYPTED = os.environ['DD_KMS_API_KEY']
+
+        # For interop with other DD Lambdas taking in DD_KMS_API_KEY, we'll
+        # optionally try the EncryptionContext associated with this Lambda.
+        try:
+            DD_API_KEY = boto3.client('kms').decrypt(
+                CiphertextBlob=base64.b64decode(ENCRYPTED),
+                EncryptionContext={'LambdaFunctionName': os.environ['AWS_LAMBDA_FUNCTION_NAME']},
+            )['Plaintext']
+        except botocore.exceptions.ClientError:
+            DD_API_KEY = boto3.client('kms').decrypt(
+                CiphertextBlob=base64.b64decode(ENCRYPTED),
+            )['Plaintext']
+
+        if type(DD_API_KEY) is bytes:
+            DD_API_KEY = DD_API_KEY.decode('utf-8')
+        return {'api_key': DD_API_KEY}
+
+    if 'DD_API_KEY' in os.environ:
+        DD_API_KEY = os.environ['DD_API_KEY']
+        return {'api_key': DD_API_KEY}
+
+    raise ValueError("Datadog API key is not defined, see documentation for environment variable options")
 
 
+# Preload the keys so we can bail out early if they're misconfigured
 # Alternatively set datadog keys directly
 # datadog_keys = {
 #     "api_key": "abcd",
 #     "app_key": "efgh",
 # }
+datadog_keys = _datadog_keys()
+print('INFO Lambda function initialized, ready to send metrics')
 
 
 def process_message(message, tags, timestamp, node_ip):
-    version, account_id, interface_id, srcaddr, dstaddr, srcport, dstport, protocol, packets, _bytes, start, end, action, log_status = message.split(
-        " ")
+    version, account_id, interface_id, srcaddr, dstaddr, srcport, dstport, protocol, packets, _bytes, start, end, action, log_status = message.split(" ")
 
     detailed_tags = [
-                        "interface_id:%s" % interface_id,
-                        "protocol:%s" % protocol_id_to_name(protocol),
-                        "ip:%s" % node_ip,
-                    ] + tags
+        "interface_id:%s" % interface_id,
+        "protocol:%s" % protocol_id_to_name(protocol),
+        "ip:%s" % node_ip,
+    ] + tags
     if srcaddr == node_ip:
         detailed_tags.append("direction:outbound")
     if dstaddr == node_ip:
@@ -325,21 +361,24 @@ class Stats(object):
             'series': series,
         }
 
-        creds = urllib.parse.urlencode(datadog_keys)
-        data = json.dumps(metrics_dict)
+        creds = urlencode(datadog_keys)
+        data = json.dumps(metrics_dict).encode('utf-8')
         url = '%s?%s' % (datadog_keys.get('api_host', 'https://app.%s/api/v1/series' % DD_SITE), creds)
-        req = urllib.request.Request(url, bytes(data, 'utf-8'), {'Content-Type': 'application/json'})
-        response = urllib.request.urlopen(req)
+        req = Request(url, data, {'Content-Type': 'application/json'})
+        response = urlopen(req)
         print('INFO Submitted data with status {}'.format(response.getcode()))
-
 
 stats = Stats()
 
 
 def lambda_handler(event, context):
     # event is a dict containing a base64 string gzipped
-    # TODO UNCOMMENT AFTER TESTING!: while testing, the event is not GZipped, so it'll be passed as a raw json string from the console input
-    # event = json.loads(gzip.GzipFile(fileobj=StringIO(event['awslogs']['data'].decode('base64'))).read())
+    with gzip.GzipFile(
+        fileobj=BytesIO(base64.b64decode(event["awslogs"]["data"]))
+    ) as decompress_stream:
+        data = b"".join(BufferedReader(decompress_stream))
+
+    event = json.loads(data)
     function_arn = context.invoked_function_arn
     # 'arn:aws:lambda:us-east-1:1234123412:function:VPCFlowLogs'
     region, account = function_arn.split(':', 5)[3:5]
