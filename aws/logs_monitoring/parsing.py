@@ -239,7 +239,6 @@ def parse_event_source(event, key):
 
 
 def find_cloudwatch_source(log_group):
-    logger.info("aaaaaaaaaaaaaaaaa log group: {}".format(log_group))
     # e.g. /aws/rds/instance/my-mariadb/error
     if log_group.startswith("/aws/rds"):
         for engine in ["mariadb", "mysql", "postgresql"]:
@@ -416,7 +415,6 @@ def awslogs_handler(event, context, metadata):
         # time (>5min) for file around 60MB gzipped
         data = b"".join(BufferedReader(decompress_stream))
     logs = json.loads(data)
-    logger.debug("decompressed logs: {}".format(logs))
 
     # Set the source on the logs
     source = logs.get("logGroup", "cloudwatch")
