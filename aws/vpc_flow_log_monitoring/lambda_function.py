@@ -2,11 +2,10 @@
 # under the Apache License Version 2.0.
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2021 Datadog, Inc.
-
+import logging
 import os
 import gzip
 import json
-import re
 import time
 import base64
 from io import BufferedReader, BytesIO
@@ -17,7 +16,11 @@ from urllib.parse import urlencode
 import boto3
 import botocore
 
-print('Loading function')
+
+logger = logging.getLogger()
+logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
+
+logger.info("Loading function")
 
 DD_SITE = os.getenv("DD_SITE", default="datadoghq.com")
 
@@ -77,7 +80,7 @@ def _datadog_keys():
 #     "app_key": "efgh",
 # }
 datadog_keys = _datadog_keys()
-print('INFO Lambda function initialized, ready to send metrics')
+logger.info("Lambda function initialized, ready to send metrics")
 
 
 def process_message(message, tags, timestamp, node_ip):
@@ -366,7 +369,7 @@ class Stats(object):
         url = '%s?%s' % (datadog_keys.get('api_host', 'https://app.%s/api/v1/series' % DD_SITE), creds)
         req = Request(url, data, {'Content-Type': 'application/json'})
         response = urlopen(req)
-        print('INFO Submitted data with status {}'.format(response.getcode()))
+        logger.info(f"INFO Submitted data with status {response.getcode()}")
 
 stats = Stats()
 
@@ -397,7 +400,7 @@ def lambda_handler(event, context):
         process_message(message, tags, timestamp, node_ip)
 
     if unsupported_messages:
-        print("Unsupported vpc flowlog message type, please contact Datadog")
+        logger.info("Unsupported vpc flowlog message type, please contact Datadog")
         stats.increment("unsupported_message", value=unsupported_messages, tags=tags)
 
     stats.flush()
