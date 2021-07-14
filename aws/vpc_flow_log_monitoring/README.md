@@ -58,8 +58,5 @@ version, account, eni, source, destination, srcport, destport="22", protocol="6"
 
 # How to update the zip file for the AWS Serverless Apps
 
-1. After modifying the files that you want inside the respective lambda app directory, run
-```
-aws cloudformation package --template-file rds-enhanced-sam-template.yaml --output-template-file rds-enhanced-serverless-output.yaml --s3-bucket BUCKET_NAME
-```
+See: https://github.com/DataDog/devops/wiki/Datadog-Serverless-Applications#how-to-deploy-to-production-for-aws
 
