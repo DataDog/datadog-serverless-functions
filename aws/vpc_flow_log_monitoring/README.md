@@ -56,7 +56,7 @@ version, account, eni, source, destination, srcport, destport="22", protocol="6"
 1. Subscribe to the appropriate log stream
 
 
-# How to update the zip file for the AWS Serverless Apps
+# Deploying to production
 
 See: https://github.com/DataDog/devops/wiki/Datadog-Serverless-Applications#how-to-deploy-to-production-for-aws
 
