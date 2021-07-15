@@ -177,6 +177,15 @@ class TestParseEventSource(unittest.TestCase):
             "route53",
         )
 
+    def test_vpcdnsquerylogs_event(self):
+        self.assertEqual(
+            parse_event_source(
+                {"Records": ["logs-from-s3"]},
+                "AWSLogs/123456779121/vpcdnsquerylogs/vpc-********/2021/05/11/vpc-********_vpcdnsquerylogs_********_20210511T0910Z_71584702.log.gz",
+            ),
+            "route53",
+        )
+
     def test_fargate_event(self):
         self.assertEqual(
             parse_event_source(
