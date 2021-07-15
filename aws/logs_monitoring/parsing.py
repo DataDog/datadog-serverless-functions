@@ -309,7 +309,7 @@ def find_s3_source(key):
     # e.g. AWSLogs/123456779121/vpcdnsquerylogs/vpc-********/2021/05/11/vpc-********_vpcdnsquerylogs_********_20210511T0910Z_71584702.log.gz
     if "vpcdnsquerylogs" in key:
         return "route53"
-    
+
     # e.g. 2020/10/02/21/aws-waf-logs-testing-1-2020-10-02-21-25-30-x123x-x456x
     if "aws-waf-logs" in key:
         return "waf"
