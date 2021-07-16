@@ -5,7 +5,7 @@
 
 var https = require('https');
 
-const VERSION = '0.5.3';
+const VERSION = '0.5.4';
 
 const STRING = 'string'; // example: 'some message'
 const STRING_ARRAY = 'string-array'; // example: ['one message', 'two message', ...]
@@ -132,11 +132,12 @@ class HTTPClient {
         this.httpOptions = {
             hostname: DD_HTTP_URL,
             port: DD_HTTP_PORT,
-            path: '/v1/input',
+            path: '/api/v2/logs',
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'DD-API-KEY': DD_API_KEY
+                'DD-API-KEY': DD_API_KEY,
+                'DD-SOURCE': DD_SOURCE
             }
         };
         this.scrubber = new Scrubber(this.context, SCRUBBER_RULE_CONFIGS);
