@@ -266,6 +266,10 @@ def find_cloudwatch_source(log_group):
     if log_group.startswith("sns/"):
         return "sns"
 
+    # e.g. /aws/fsx/windows/xxx
+    if log_group.startswith("/aws/fsx/windows"):
+        return "aws.fsx"
+
     for source in [
         "/aws/lambda",  # e.g. /aws/lambda/helloDatadog
         "/aws/codebuild",  # e.g. /aws/codebuild/my-project
