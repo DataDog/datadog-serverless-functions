@@ -326,6 +326,10 @@ def find_s3_source(key):
     if "amazon_documentdb" in key:
         return "docdb"
 
+    # e.g. carbon-black-cloud-forwarder/alerts/org_key=*****/year=2021/month=7/day=19/hour=18/minute=15/second=41/8436e850-7e78-40e4-b3cd-6ebbc854d0a2.jsonl.gz
+    if "carbon-black" in key:
+        return "cbdefence"
+
     # the below substrings must be in your target prefix to be detected
     for source in [
         "amazon_codebuild",
