@@ -246,6 +246,15 @@ class TestParseEventSource(unittest.TestCase):
             "msk",
         )
 
+    def test_carbon_black_event(self):
+        self.assertEqual(
+            parse_event_source(
+                {"Records": ["logs-from-s3"]},
+                "carbon-black-cloud-forwarder/alerts/8436e850-7e78-40e4-b3cd-6ebbc854d0a2.jsonl.gz",
+            ),
+            "carbonblack",
+        )
+
     def test_cloudwatch_source_if_none_found(self):
         self.assertEqual(parse_event_source({"awslogs": "logs"}, ""), "cloudwatch")
 
