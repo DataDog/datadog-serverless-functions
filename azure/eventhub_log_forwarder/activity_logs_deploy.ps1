@@ -1,9 +1,9 @@
 param (
     $SubscriptionId,
     $ApiKey,
+    $EventhubNamespace,
     $ResourceGroupName = "datadog-log-forwarder-rg",
     $ResourceGroupLocation  = "westus2",
-    $EventhubNamespace = "datadog-eventhub-namespace",
     $EventhubName = "datadog-eventhub",
     $FunctionAppName = "datadog-functionapp",
     $FunctionName = "datadog-function",
@@ -12,7 +12,16 @@ param (
     $Environment = "AzureCloud"
 )
 
+
+function Get-RandomChars {
+    param ([int]$count)
+    return ((Get-Random -Count $count -InputObject ([char[]]"abcdefghijklmnopqrstuvwxyz1234567890")) -join '')
+}
+
 if (-Not ($SubscriptionId -And $ApiKey)) { Throw "`SubscriptionId` and `ApiKey` are required." }
+if (-Not $EventhubNamespace) {
+    $EventhubNamespace = "datadog-eventhub-ns-" + (Get-RandomChars -count 7)
+}
 
 Set-AzContext -SubscriptionId $SubscriptionId
 
