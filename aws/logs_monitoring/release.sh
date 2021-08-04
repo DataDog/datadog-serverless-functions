@@ -41,8 +41,18 @@ if [ "$ACCOUNT" = "prod" ]; then
     BUCKET="datadog-cloudformation-template"
 fi
 
+function awe-login() {
+    cfg=$@
+    shift
+    if [ "$ACCOUNT" = "prod" ] ; then
+        aws-vault exec prod-engineering --  $cfg
+    else
+        aws-vault exec sandbox-account-admin --  $cfg
+    fi
+}
+
 get_max_layer_version() {
-    last_layer_version=$(aws lambda list-layer-versions --layer-name $LAYER_NAME --region us-west-2 | jq -r ".LayerVersions | .[0] |  .Version")
+    last_layer_version=$(awe-login aws lambda list-layer-versions --layer-name $LAYER_NAME --region us-west-2 | jq -r ".LayerVersions | .[0] |  .Version")
     if [ "$last_layer_version" == "null" ]; then
         echo 0
     else
@@ -51,9 +61,9 @@ get_max_layer_version() {
 }
 
 # Validate identity
-aws sts get-caller-identity
+awe-login aws sts get-caller-identity
 
-CURRENT_ACCOUNT="$(aws sts get-caller-identity --query Account --output text)"
+CURRENT_ACCOUNT="$(awe-login aws sts get-caller-identity --query Account --output text)"
 CURRENT_LAYER_VERSION=$(get_max_layer_version)
 LAYER_VERSION=$(($CURRENT_LAYER_VERSION +1))
 
@@ -63,7 +73,8 @@ echo "Current layer version is $CURRENT_LAYER_VERSION, next layer version is $LA
 # Validate the template
 echo
 echo "Validating template.yaml..."
-aws cloudformation validate-template --template-body file://template.yaml
+awe-login aws cloudformation validate-template --template-body file://template.yaml
+
 
 if [ "$ACCOUNT" = "prod" ] ; then
 
@@ -110,7 +121,7 @@ if [ "$ACCOUNT" = "prod" ] ; then
     # Sign the bundle
     echo
     echo "Signing the Forwarder bundle..."
-    ./tools/sign_bundle.sh $BUNDLE_PATH $ACCOUNT
+    awe-login ./tools/sign_bundle.sh $BUNDLE_PATH $ACCOUNT
 
     # Create a GitHub release
     echo
@@ -135,12 +146,12 @@ else
     # Sign the bundle
     echo
     echo "Signing the Forwarder bundle..."
-    ./tools/sign_bundle.sh $BUNDLE_PATH $ACCOUNT
+    awe-login ./tools/sign_bundle.sh $BUNDLE_PATH $ACCOUNT
 
     # Upload the bundle to S3 instead of GitHub for a sandbox release
     echo
     echo "Uploading non-public sandbox version of Forwarder to S3..."
-    aws s3 cp $BUNDLE_PATH s3://${BUCKET}/aws/forwarder-staging-zip/aws-dd-forwarder-${FORWARDER_VERSION}.zip
+    awe-login aws s3 cp $BUNDLE_PATH s3://${BUCKET}/aws/forwarder-staging-zip/aws-dd-forwarder-${FORWARDER_VERSION}.zip
     
     # Upload the sandbox layers
     echo
@@ -157,13 +168,13 @@ echo
 echo "Uploading template.yaml to s3://${BUCKET}/aws/forwarder/${FORWARDER_VERSION}.yaml"
 
 if [ "$ACCOUNT" = "prod" ] ; then
-    aws s3 cp template.yaml s3://${BUCKET}/aws/forwarder/${FORWARDER_VERSION}.yaml \
+    awe-login aws s3 cp template.yaml s3://${BUCKET}/aws/forwarder/${FORWARDER_VERSION}.yaml \
         --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers
-    aws s3 cp template.yaml s3://${BUCKET}/aws/forwarder/latest.yaml \
+    awe-login aws s3 cp template.yaml s3://${BUCKET}/aws/forwarder/latest.yaml \
         --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers
 else
-    aws s3 cp template.yaml s3://${BUCKET}/aws/forwarder-staging/${FORWARDER_VERSION}.yaml
-    aws s3 cp template.yaml s3://${BUCKET}/aws/forwarder-staging/latest.yaml
+    awe-login aws s3 cp template.yaml s3://${BUCKET}/aws/forwarder-staging/${FORWARDER_VERSION}.yaml
+    awe-login aws s3 cp template.yaml s3://${BUCKET}/aws/forwarder-staging/latest.yaml
 fi
 
 echo "Done uploading the CloudFormation template!"

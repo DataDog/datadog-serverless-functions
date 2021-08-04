@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Unless explicitly stated otherwise all files in this repository are licensed
 # under the Apache License Version 2.0.
@@ -27,13 +27,15 @@ DD_API_KEY=RUN_ID
 
 CURRENT_VERSION="$(grep -o 'Version: \d\+\.\d\+\.\d\+' template.yaml | cut -d' ' -f2)"
 
-# Make sure we aren't trying to do anything on Datadog's production account. We don't want our
-# integration tests to accidentally release a new version of the forwarder
-AWS_ACCOUNT="$(aws sts get-caller-identity --query Account --output text)"
-if [ "$AWS_ACCOUNT" = "464622532012" ] ; then
-    echo "Detected production credentials. Aborting"
-    exit 1
-fi
+function awe-login() {
+    cfg=$@
+    shift
+    if [ "$ACCOUNT" = "prod" ] ; then
+        aws-vault exec prod-engineering --  $cfg
+    else
+        aws-vault exec sandbox-account-admin --  $cfg
+    fi
+}
 
 # Run script in this process. This gives us TEMPLATE_URL, NEXT_LAYER_VERSION and FORWARDER_SOURCE_URL env vars
 . release.sh $CURRENT_VERSION sandbox
@@ -55,16 +57,16 @@ publish_test() {
     STACK_NAME="datadog-forwarder-integration-stack-${RUN_ID}"
 
     echo "Creating stack using Zip Copier Flow ${STACK_NAME}"
-    aws cloudformation create-stack --stack-name $STACK_NAME --template-url $TEMPLATE_URL --capabilities "CAPABILITY_AUTO_EXPAND" "CAPABILITY_IAM" --on-failure "DELETE" \
+    awe-login aws cloudformation create-stack --stack-name $STACK_NAME --template-url $TEMPLATE_URL --capabilities "CAPABILITY_AUTO_EXPAND" "CAPABILITY_IAM" --on-failure "DELETE" \
         --parameters=$PARAM_LIST --region $AWS_REGION
 
     echo "Waiting for stack to complete creation ${STACK_NAME}"
-    aws cloudformation wait stack-create-complete --stack-name $STACK_NAME --region $AWS_REGION
+    awe-login aws cloudformation wait stack-create-complete --stack-name $STACK_NAME --region $AWS_REGION
 
     echo "Completed stack creation"
 
     echo "Cleaning up stack"
-    aws cloudformation delete-stack --stack-name $STACK_NAME  --region $AWS_REGION
+    awe-login aws cloudformation delete-stack --stack-name $STACK_NAME  --region $AWS_REGION
 }
 
 echo
