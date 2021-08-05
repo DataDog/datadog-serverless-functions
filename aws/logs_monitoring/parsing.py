@@ -7,6 +7,7 @@ import base64
 import gzip
 import json
 import os
+import copy
 
 import boto3
 import botocore
@@ -240,13 +241,21 @@ def parse_event_source(event, key):
 def find_cloudwatch_source(log_group):
     # e.g. /aws/rds/instance/my-mariadb/error
     if log_group.startswith("/aws/rds"):
-        for engine in ["mariadb", "mysql"]:
+        for engine in ["mariadb", "mysql", "postgresql"]:
             if engine in log_group:
                 return engine
         return "rds"
 
-    # e.g. Api-Gateway-Execution-Logs_xxxxxx/dev
-    if log_group.startswith("api-gateway"):
+    if log_group.startswith(
+        (
+            # default location for rest api execution logs
+            "api-gateway",  # e.g. Api-Gateway-Execution-Logs_xxxxxx/dev
+            # default location set by serverless framework for rest api access logs
+            "/aws/api-gateway",  # e.g. /aws/api-gateway/my-project
+            # default location set by serverless framework for http api logs
+            "/aws/http-api",  # e.g. /aws/http-api/my-project
+        )
+    ):
         return "apigateway"
 
     # e.g. dms-tasks-test-instance
@@ -256,6 +265,10 @@ def find_cloudwatch_source(log_group):
     # e.g. sns/us-east-1/123456779121/SnsTopicX
     if log_group.startswith("sns/"):
         return "sns"
+
+    # e.g. /aws/fsx/windows/xxx
+    if log_group.startswith("/aws/fsx/windows"):
+        return "aws.fsx"
 
     for source in [
         "/aws/lambda",  # e.g. /aws/lambda/helloDatadog
@@ -297,6 +310,10 @@ def find_s3_source(key):
     if "vpcflowlogs" in key:
         return "vpc"
 
+    # e.g. AWSLogs/123456779121/vpcdnsquerylogs/vpc-********/2021/05/11/vpc-********_vpcdnsquerylogs_********_20210511T0910Z_71584702.log.gz
+    if "vpcdnsquerylogs" in key:
+        return "route53"
+
     # e.g. 2020/10/02/21/aws-waf-logs-testing-1-2020-10-02-21-25-30-x123x-x456x
     if "aws-waf-logs" in key:
         return "waf"
@@ -308,6 +325,10 @@ def find_s3_source(key):
     # this substring must be in your target prefix to be detected
     if "amazon_documentdb" in key:
         return "docdb"
+
+    # e.g. carbon-black-cloud-forwarder/alerts/org_key=*****/year=2021/month=7/day=19/hour=18/minute=15/second=41/8436e850-7e78-40e4-b3cd-6ebbc854d0a2.jsonl.gz
+    if "carbon-black" in key:
+        return "carbonblack"
 
     # the below substrings must be in your target prefix to be detected
     for source in [
@@ -432,16 +453,13 @@ def awslogs_handler(event, context, metadata):
 
     # When parsing rds logs, use the cloudwatch log group name to derive the
     # rds instance name, and add the log name of the stream ingested
-    if metadata[DD_SOURCE] in ["rds", "mariadb", "mysql"]:
+    if metadata[DD_SOURCE] in ["rds", "mariadb", "mysql", "postgresql"]:
         match = rds_regex.match(logs["logGroup"])
         if match is not None:
             metadata[DD_HOST] = match.group("host")
             metadata[DD_CUSTOM_TAGS] = (
                 metadata[DD_CUSTOM_TAGS] + ",logname:" + match.group("name")
             )
-            # We can intuit the sourcecategory in some cases
-            if match.group("name") == "postgresql":
-                metadata[DD_CUSTOM_TAGS] + ",sourcecategory:" + match.group("name")
 
     # For Lambda logs we want to extract the function name,
     # then rebuild the arn of the monitored lambda using that name.
@@ -517,6 +535,48 @@ def cwevent_handler(event, metadata):
     metadata[DD_SERVICE] = metadata[DD_SOURCE]
 
     yield data
+
+
+def separate_security_hub_findings(event):
+    """Replace Security Hub event with series of events based on findings
+
+    Each event should contain one finding only.
+    This prevents having an unparsable array of objects in the final log.
+    """
+    if event.get(DD_SOURCE) != "securityhub" or not event.get("detail", {}).get(
+        "findings"
+    ):
+        return None
+    events = []
+    event_copy = copy.deepcopy(event)
+    # Copy findings before separating
+    findings = event_copy.get("detail", {}).get("findings")
+    if findings:
+        # Remove findings from the original event once we have a copy
+        del event_copy["detail"]["findings"]
+        # For each finding create a separate log event
+        for index, item in enumerate(findings):
+            # Copy the original event with source and other metadata
+            new_event = copy.deepcopy(event_copy)
+            current_finding = findings[index]
+            # Get the resources array from the current finding
+            resources = current_finding.get("Resources", {})
+            new_event["detail"]["finding"] = current_finding
+            new_event["detail"]["finding"]["resources"] = {}
+            # Separate objects in resources array into distinct attributes
+            if resources:
+                # Remove from current finding once we have a copy
+                del current_finding["Resources"]
+                for item in resources:
+                    current_resource = item
+                    # Capture the type and use it as the distinguishing key
+                    resource_type = current_resource.get("Type", {})
+                    del current_resource["Type"]
+                    new_event["detail"]["finding"]["resources"][
+                        resource_type
+                    ] = current_resource
+            events.append(new_event)
+    return events
 
 
 # Handle Sns events

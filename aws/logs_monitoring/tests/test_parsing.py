@@ -1,3 +1,6 @@
+import base64
+import gzip
+import json
 from unittest.mock import MagicMock, patch
 import os
 import sys
@@ -12,7 +15,7 @@ sys.modules["requests_futures.sessions"] = MagicMock()
 
 env_patch = patch.dict(os.environ, {"DD_API_KEY": "11111111111111111111111111111111"})
 env_patch.start()
-from parsing import parse_event_source
+from parsing import awslogs_handler, parse_event_source, separate_security_hub_findings
 
 env_patch.stop()
 
@@ -57,6 +60,14 @@ class TestParseEventSource(unittest.TestCase):
             "mysql",
         )
 
+    def test_postgresql_event(self):
+        self.assertEqual(
+            parse_event_source(
+                {"awslogs": "logs"}, "/aws/rds/instance/datadog/postgresql"
+            ),
+            "postgresql",
+        )
+
     def test_lambda_event(self):
         self.assertEqual(
             parse_event_source({"awslogs": "logs"}, "/aws/lambda/postRestAPI"), "lambda"
@@ -67,6 +78,14 @@ class TestParseEventSource(unittest.TestCase):
             parse_event_source(
                 {"awslogs": "logs"}, "Api-Gateway-Execution-Logs_a1b23c/test"
             ),
+            "apigateway",
+        )
+        self.assertEqual(
+            parse_event_source({"awslogs": "logs"}, "/aws/api-gateway/my-project"),
+            "apigateway",
+        )
+        self.assertEqual(
+            parse_event_source({"awslogs": "logs"}, "/aws/http-api/my-project"),
             "apigateway",
         )
 
@@ -169,6 +188,15 @@ class TestParseEventSource(unittest.TestCase):
             "route53",
         )
 
+    def test_vpcdnsquerylogs_event(self):
+        self.assertEqual(
+            parse_event_source(
+                {"Records": ["logs-from-s3"]},
+                "AWSLogs/123456779121/vpcdnsquerylogs/vpc-********/2021/05/11/vpc-********_vpcdnsquerylogs_********_20210511T0910Z_71584702.log.gz",
+            ),
+            "route53",
+        )
+
     def test_fargate_event(self):
         self.assertEqual(
             parse_event_source(
@@ -218,11 +246,224 @@ class TestParseEventSource(unittest.TestCase):
             "msk",
         )
 
+    def test_carbon_black_event(self):
+        self.assertEqual(
+            parse_event_source(
+                {"Records": ["logs-from-s3"]},
+                "carbon-black-cloud-forwarder/alerts/8436e850-7e78-40e4-b3cd-6ebbc854d0a2.jsonl.gz",
+            ),
+            "carbonblack",
+        )
+
     def test_cloudwatch_source_if_none_found(self):
         self.assertEqual(parse_event_source({"awslogs": "logs"}, ""), "cloudwatch")
 
     def test_s3_source_if_none_found(self):
         self.assertEqual(parse_event_source({"Records": ["logs-from-s3"]}, ""), "s3")
+
+
+class TestParseSecurityHubEvents(unittest.TestCase):
+    def test_security_hub_no_findings(self):
+        event = {"ddsource": "securityhub"}
+        self.assertEqual(
+            separate_security_hub_findings(event),
+            None,
+        )
+
+    def test_security_hub_one_finding_no_resources(self):
+        event = {
+            "ddsource": "securityhub",
+            "detail": {"findings": [{"myattribute": "somevalue"}]},
+        }
+        self.assertEqual(
+            separate_security_hub_findings(event),
+            [
+                {
+                    "ddsource": "securityhub",
+                    "detail": {
+                        "finding": {"myattribute": "somevalue", "resources": {}}
+                    },
+                }
+            ],
+        )
+
+    def test_security_hub_two_findings_one_resource_each(self):
+        event = {
+            "ddsource": "securityhub",
+            "detail": {
+                "findings": [
+                    {
+                        "myattribute": "somevalue",
+                        "Resources": [
+                            {"Region": "us-east-1", "Type": "AwsEc2SecurityGroup"}
+                        ],
+                    },
+                    {
+                        "myattribute": "somevalue",
+                        "Resources": [
+                            {"Region": "us-east-1", "Type": "AwsEc2SecurityGroup"}
+                        ],
+                    },
+                ]
+            },
+        }
+        self.assertEqual(
+            separate_security_hub_findings(event),
+            [
+                {
+                    "ddsource": "securityhub",
+                    "detail": {
+                        "finding": {
+                            "myattribute": "somevalue",
+                            "resources": {
+                                "AwsEc2SecurityGroup": {"Region": "us-east-1"}
+                            },
+                        }
+                    },
+                },
+                {
+                    "ddsource": "securityhub",
+                    "detail": {
+                        "finding": {
+                            "myattribute": "somevalue",
+                            "resources": {
+                                "AwsEc2SecurityGroup": {"Region": "us-east-1"}
+                            },
+                        }
+                    },
+                },
+            ],
+        )
+
+    def test_security_hub_multiple_findings_multiple_resources(self):
+        event = {
+            "ddsource": "securityhub",
+            "detail": {
+                "findings": [
+                    {
+                        "myattribute": "somevalue",
+                        "Resources": [
+                            {"Region": "us-east-1", "Type": "AwsEc2SecurityGroup"}
+                        ],
+                    },
+                    {
+                        "myattribute": "somevalue",
+                        "Resources": [
+                            {"Region": "us-east-1", "Type": "AwsEc2SecurityGroup"},
+                            {"Region": "us-east-1", "Type": "AwsOtherSecurityGroup"},
+                        ],
+                    },
+                    {
+                        "myattribute": "somevalue",
+                        "Resources": [
+                            {"Region": "us-east-1", "Type": "AwsEc2SecurityGroup"},
+                            {"Region": "us-east-1", "Type": "AwsOtherSecurityGroup"},
+                            {"Region": "us-east-1", "Type": "AwsAnotherSecurityGroup"},
+                        ],
+                    },
+                ]
+            },
+        }
+        self.assertEqual(
+            separate_security_hub_findings(event),
+            [
+                {
+                    "ddsource": "securityhub",
+                    "detail": {
+                        "finding": {
+                            "myattribute": "somevalue",
+                            "resources": {
+                                "AwsEc2SecurityGroup": {"Region": "us-east-1"}
+                            },
+                        }
+                    },
+                },
+                {
+                    "ddsource": "securityhub",
+                    "detail": {
+                        "finding": {
+                            "myattribute": "somevalue",
+                            "resources": {
+                                "AwsEc2SecurityGroup": {"Region": "us-east-1"},
+                                "AwsOtherSecurityGroup": {"Region": "us-east-1"},
+                            },
+                        }
+                    },
+                },
+                {
+                    "ddsource": "securityhub",
+                    "detail": {
+                        "finding": {
+                            "myattribute": "somevalue",
+                            "resources": {
+                                "AwsEc2SecurityGroup": {"Region": "us-east-1"},
+                                "AwsOtherSecurityGroup": {"Region": "us-east-1"},
+                                "AwsAnotherSecurityGroup": {"Region": "us-east-1"},
+                            },
+                        }
+                    },
+                },
+            ],
+        )
+
+
+class TestAWSLogsHandler(unittest.TestCase):
+    def test_awslogs_handler_rds_postgresql(self):
+        event = {
+            "awslogs": {
+                "data": base64.b64encode(
+                    gzip.compress(
+                        bytes(
+                            json.dumps(
+                                {
+                                    "owner": "123456789012",
+                                    "logGroup": "/aws/rds/instance/datadog/postgresql",
+                                    "logStream": "datadog.0",
+                                    "logEvents": [
+                                        {
+                                            "id": "31953106606966983378809025079804211143289615424298221568",
+                                            "timestamp": 1609556645000,
+                                            "message": "2021-01-02 03:04:05 UTC::@:[5306]:LOG:  database system is ready to accept connections",
+                                        }
+                                    ],
+                                }
+                            ),
+                            "utf-8",
+                        )
+                    )
+                )
+            }
+        }
+        context = None
+        metadata = {"ddsource": "postgresql", "ddtags": "env:dev"}
+
+        self.assertEqual(
+            [
+                {
+                    "aws": {
+                        "awslogs": {
+                            "logGroup": "/aws/rds/instance/datadog/postgresql",
+                            "logStream": "datadog.0",
+                            "owner": "123456789012",
+                        }
+                    },
+                    "id": "31953106606966983378809025079804211143289615424298221568",
+                    "message": "2021-01-02 03:04:05 UTC::@:[5306]:LOG:  database system is ready "
+                    "to accept connections",
+                    "timestamp": 1609556645000,
+                }
+            ],
+            list(awslogs_handler(event, context, metadata)),
+        )
+        self.assertEqual(
+            {
+                "ddsource": "postgresql",
+                "ddtags": "env:dev,logname:postgresql",
+                "host": "datadog",
+                "service": "postgresql",
+            },
+            metadata,
+        )
 
 
 if __name__ == "__main__":

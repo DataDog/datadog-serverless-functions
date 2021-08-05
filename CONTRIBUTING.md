@@ -6,7 +6,7 @@
 
 - First take a look at the [Troubleshooting section](https://help.datadoghq.com/hc/en-us/sections/200763635-Amazon-Web-Services) of our [Knowledge Base](https://help.datadoghq.com/hc/en-us).
 - If you can't find anything useful, please contact our Solutions Team for assistance.
-- Finally, you can open a Gitbub issue
+- Finally, you can open a GitHub issue
 
 ## Pull Requests
 

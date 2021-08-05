@@ -5,7 +5,7 @@
 
 var https = require('https');
 
-const VERSION = '0.2.3';
+const VERSION = '0.5.3';
 
 const STRING = 'string'; // example: 'some message'
 const STRING_ARRAY = 'string-array'; // example: ['one message', 'two message', ...]
@@ -21,8 +21,8 @@ const STRING_TYPE = 'string';
 
 const DD_API_KEY = process.env.DD_API_KEY || '<DATADOG_API_KEY>';
 const DD_SITE = process.env.DD_SITE || 'datadoghq.com';
-const DD_URL = process.env.DD_URL || 'http-intake.logs.' + DD_SITE;
-const DD_PORT = process.env.DD_PORT || 443;
+const DD_HTTP_URL = process.env.DD_URL || 'http-intake.logs.' + DD_SITE;
+const DD_HTTP_PORT = process.env.DD_PORT || 443;
 const DD_TAGS = process.env.DD_TAGS || ''; // Replace '' by your comma-separated list of tags
 const DD_SERVICE = process.env.DD_SERVICE || 'azure';
 const DD_SOURCE = process.env.DD_SOURCE || 'azure';
@@ -44,11 +44,157 @@ const SCRUBBER_RULE_CONFIGS = {
     // }
 };
 
+/*
+To split array-type fields in your logs into individual logs, you can add sections to the map below. An example of
+a potential use case with azure.datafactory is there to show the format:
+{
+  source_type:
+    paths: [list of [list of fields in the log payload to iterate through to find the one to split]],
+    keep_original_log: bool, if you'd like to preserve the original log in addition to the split ones or not,
+    preserve_fields: bool, whether or not to keep the original log fields in the new split logs
+}
+You can also set the DD_LOG_SPLITTING_CONFIG env var with a JSON string in this format.
+*/
+const DD_LOG_SPLITTING_CONFIG = {
+    // 'azure.datafactory': {
+    //     paths: [['properties', 'Output', 'value']],
+    //     keep_original_log: true,
+    //     preserve_fields: true
+    // }
+};
+
+function getLogSplittingConfig() {
+    try {
+        return JSON.parse(process.env.DD_LOG_SPLITTING_CONFIG);
+    } catch {
+        return DD_LOG_SPLITTING_CONFIG;
+    }
+}
+
 class ScrubberRule {
     constructor(name, pattern, replacement) {
         this.name = name;
         this.replacement = replacement;
         this.regexp = RegExp(pattern, 'g');
+    }
+}
+
+class Batcher {
+    constructor(context, maxItemSizeBytes, maxBatchSizeBytes, maxItemsCount) {
+        this.maxItemSizeBytes = maxItemSizeBytes;
+        this.maxBatchSizeBytes = maxBatchSizeBytes;
+        this.maxItemsCount = maxItemsCount;
+    }
+
+    batch(items) {
+        var batches = [];
+        var batch = [];
+        var sizeBytes = 0;
+        var sizeCount = 0;
+        for (var i = 0; i < items.length; i++) {
+            var item = items[i];
+            var itemSizeBytes = this.getSizeInBytes(item);
+            if (
+                sizeCount > 0 &&
+                (sizeCount >= this.maxItemsCount ||
+                    sizeBytes + itemSizeBytes > this.maxBatchSizeBytes)
+            ) {
+                batches.push(batch);
+                batch = [];
+                sizeBytes = 0;
+                sizeCount = 0;
+            }
+            // all items exceeding maxItemSizeBytes are dropped here
+            if (itemSizeBytes <= this.maxItemSizeBytes) {
+                batch.push(item);
+                sizeBytes += itemSizeBytes;
+                sizeCount += 1;
+            }
+        }
+
+        if (sizeCount > 0) {
+            batches.push(batch);
+        }
+        return batches;
+    }
+
+    getSizeInBytes(string) {
+        if (typeof string !== 'string') {
+            string = JSON.stringify(string);
+        }
+        return Buffer.byteLength(string, 'utf8');
+    }
+}
+
+class HTTPClient {
+    constructor(context) {
+        this.context = context;
+        this.httpOptions = {
+            hostname: DD_HTTP_URL,
+            port: DD_HTTP_PORT,
+            path: '/v1/input',
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'DD-API-KEY': DD_API_KEY
+            }
+        };
+        this.scrubber = new Scrubber(this.context, SCRUBBER_RULE_CONFIGS);
+        this.batcher = new Batcher(
+            this.context,
+            256 * 1000,
+            4 * 1000 * 1000,
+            400
+        );
+    }
+
+    async sendAll(records) {
+        var batches = this.batcher.batch(records);
+        var promises = [];
+        for (var i = 0; i < batches.length; i++) {
+            promises.push(this.sendWithRetry(batches[i]));
+        }
+        return await Promise.all(
+            promises.map(p => p.catch(e => this.context.log.error(e)))
+        );
+    }
+
+    sendWithRetry(record) {
+        return new Promise((resolve, reject) => {
+            return this.send(record)
+                .then(res => {
+                    resolve(true);
+                })
+                .catch(err => {
+                    this.send(record)
+                        .then(res => {
+                            resolve(true);
+                        })
+                        .catch(err => {
+                            reject(
+                                `unable to send request after 2 tries, err: ${err}`
+                            );
+                        });
+                });
+        });
+    }
+
+    send(record) {
+        return new Promise((resolve, reject) => {
+            const req = https
+                .request(this.httpOptions, resp => {
+                    if (resp.statusCode < 200 || resp.statusCode > 299) {
+                        reject(`invalid status code ${resp.statusCode}`);
+                    } else {
+                        resolve(true);
+                    }
+                })
+                .on('error', error => {
+                    reject(error);
+                });
+            req.write(this.scrubber.scrub(JSON.stringify(record)));
+            req.end();
+        });
     }
 }
 
@@ -86,98 +232,126 @@ class Scrubber {
     }
 }
 
-class EventhubLogForwarder {
+class EventhubLogHandler {
     constructor(context) {
         this.context = context;
-        this.options = {
-            hostname: DD_URL,
-            port: 443,
-            path: '/v1/input',
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'DD-API-KEY': DD_API_KEY
-            },
-            timeout: 2000
-        };
-        this.scrubber = new Scrubber(this.context, SCRUBBER_RULE_CONFIGS);
+        this.logSplittingConfig = getLogSplittingConfig();
+        this.records = [];
     }
 
-    formatLogAndSend(messageType, record) {
+    findSplitRecords(record, fields) {
+        var tempRecord = record;
+        for (var i = 0; i < fields.length; i++) {
+            // loop through the fields to find the one we want to split
+            var fieldName = fields[i];
+            if (tempRecord[fieldName] !== undefined) {
+                tempRecord = tempRecord[fieldName];
+            } else {
+                return null;
+            }
+        }
+        return tempRecord;
+    }
+
+    formatLog(messageType, record) {
         if (messageType == JSON_TYPE) {
-            record = this.addTagsToJsonLog(record);
+            var originalRecord = this.addTagsToJsonLog(record);
+            var source = originalRecord['ddsource'];
+            var config = this.logSplittingConfig[source];
+            if (config !== undefined) {
+                var splitFieldFound = false;
+
+                for (var i = 0; i < config.paths.length; i++) {
+                    var fields = config.paths[i];
+                    var recordsToSplit = this.findSplitRecords(record, fields);
+                    if (
+                        recordsToSplit === null ||
+                        !(recordsToSplit instanceof Array)
+                    ) {
+                        // if we were unable find the field or if the field isn't an array, skip it
+                        continue;
+                    }
+                    splitFieldFound = true;
+
+                    for (var j = 0; j < recordsToSplit.length; j++) {
+                        var splitRecord = recordsToSplit[j];
+                        if (typeof splitRecord === 'string') {
+                            try {
+                                splitRecord = JSON.parse(splitRecord);
+                            } catch (err) {}
+                        }
+                        var formattedSplitRecord = {};
+                        var temp = formattedSplitRecord;
+                        // re-create the same nested attributes with only the split log
+                        for (var k = 0; k < fields.length; k++) {
+                            if (k === fields.length - 1) {
+                                // if it is the last field, add the split record
+                                temp[fields[k]] = splitRecord;
+                            } else {
+                                temp[fields[k]] = {};
+                                temp = temp[fields[k]];
+                            }
+                        }
+                        formattedSplitRecord = {
+                            parsed_arrays: formattedSplitRecord
+                        };
+
+                        if (config.preserve_fields) {
+                            var newRecord = { ...originalRecord };
+                        } else {
+                            var newRecord = {
+                                ddsource: source,
+                                ddsourcecategory:
+                                    originalRecord['ddsourcecategory'],
+                                service: originalRecord['service'],
+                                ddtags: originalRecord['ddtags']
+                            };
+                            if (originalRecord['time'] !== undefined) {
+                                newRecord['time'] = originalRecord['time'];
+                            }
+                        }
+                        Object.assign(newRecord, formattedSplitRecord);
+                        this.records.push(newRecord);
+                    }
+                }
+                if (config.keep_original_log || splitFieldFound !== true) {
+                    // keep the original log if it is set in the config
+                    // if it is false in the config, we should still write the log when we don't split
+                    this.records.push(originalRecord);
+                }
+            } else {
+                this.records.push(originalRecord);
+            }
         } else {
             record = this.addTagsToStringLog(record);
+            this.records.push(record);
         }
-        return this.sendWithRetry(record);
-    }
-
-    sendWithRetry(record) {
-        return new Promise((resolve, reject) => {
-            return this.send(record)
-                .then(res => {
-                    resolve();
-                })
-                .catch(err => {
-                    setTimeout(() => {
-                        this.send(record)
-                            .then(resolve)
-                            .catch(err => {
-                                this.context.log.error(
-                                    `unable to send request after 2 tries, err: ${err}`
-                                );
-                                reject();
-                            });
-                    }, 1000);
-                });
-        });
-    }
-
-    send(record) {
-        return new Promise((resolve, reject) => {
-            const req = https
-                .request(this.options, resp => {
-                    if (resp.statusCode < 200 || resp.statusCode > 299) {
-                        reject(`invalid status code ${resp.statusCode}`);
-                    } else {
-                        resolve();
-                    }
-                })
-                .on('error', error => {
-                    reject(error);
-                });
-            req.write(this.scrubber.scrub(JSON.stringify(record)));
-            req.end();
-        });
     }
 
     handleLogs(logs) {
-        var promises = [];
         var logsType = this.getLogFormat(logs);
         switch (logsType) {
             case STRING:
-                promises.push(this.formatLogAndSend(STRING_TYPE, logs));
+                this.formatLog(STRING_TYPE, logs);
                 break;
             case JSON_STRING:
                 logs = JSON.parse(logs);
-                promises.push(this.formatLogAndSend(JSON_TYPE, logs));
+                this.formatLog(JSON_TYPE, logs);
                 break;
             case JSON_OBJECT:
-                promises.push(this.formatLogAndSend(JSON_TYPE, logs));
+                this.formatLog(JSON_TYPE, logs);
                 break;
             case STRING_ARRAY:
-                logs.forEach(log =>
-                    promises.push(this.formatLogAndSend(STRING_TYPE, log))
-                );
+                logs.forEach(log => this.formatLog(STRING_TYPE, log));
                 break;
             case JSON_ARRAY:
-                promises = this.handleJSONArrayLogs(logs, JSON_ARRAY);
+                this.handleJSONArrayLogs(logs, JSON_ARRAY);
                 break;
             case BUFFER_ARRAY:
-                promises = this.handleJSONArrayLogs(logs, BUFFER_ARRAY);
+                this.handleJSONArrayLogs(logs, BUFFER_ARRAY);
                 break;
             case JSON_STRING_ARRAY:
-                promises = this.handleJSONArrayLogs(logs, JSON_STRING_ARRAY);
+                this.handleJSONArrayLogs(logs, JSON_STRING_ARRAY);
                 break;
             case INVALID:
                 this.context.log.error('Log format is invalid: ', logs);
@@ -186,11 +360,10 @@ class EventhubLogForwarder {
                 this.context.log.error('Log format is invalid: ', logs);
                 break;
         }
-        return promises;
+        return this.records;
     }
 
     handleJSONArrayLogs(logs, logsType) {
-        var promises = [];
         for (var i = 0; i < logs.length; i++) {
             var message = logs[i];
             if (logsType == JSON_STRING_ARRAY) {
@@ -200,7 +373,7 @@ class EventhubLogForwarder {
                     this.context.log.warn(
                         'log is malformed json, sending as string'
                     );
-                    promises.push(this.formatLogAndSend(STRING_TYPE, message));
+                    this.formatLog(STRING_TYPE, message);
                     continue;
                 }
             }
@@ -212,21 +385,18 @@ class EventhubLogForwarder {
                     this.context.log.warn(
                         'log is malformed json, sending as string'
                     );
-                    promises.push(
-                        this.formatLogAndSend(STRING_TYPE, message.toString())
-                    );
+                    this.formatLog(STRING_TYPE, message.toString());
                     continue;
                 }
             }
             if (message.records != undefined) {
                 message.records.forEach(message =>
-                    promises.push(this.formatLogAndSend(JSON_TYPE, message))
+                    this.formatLog(JSON_TYPE, message)
                 );
             } else {
-                promises.push(this.formatLogAndSend(JSON_TYPE, message));
+                this.formatLog(JSON_TYPE, message);
             }
         }
-        return promises;
     }
 
     getLogFormat(logs) {
@@ -365,17 +535,27 @@ module.exports = async function(context, eventHubMessages) {
         );
         return;
     }
-    var promises = new EventhubLogForwarder(context).handleLogs(
-        eventHubMessages
-    );
+    try {
+        var handler = new EventhubLogHandler(context);
+        var parsedLogs = handler.handleLogs(eventHubMessages);
+    } catch (err) {
+        context.log.error('Error raised when parsing logs: ', err);
+        throw err;
+    }
+    var results = await new HTTPClient(context).sendAll(parsedLogs);
 
-    return Promise.all(promises.map(p => p.catch(e => e)));
+    if (results.every(v => v === true) !== true) {
+        context.log.error(
+            'Some messages were unable to be sent. See other logs for details.'
+        );
+    }
 };
 
 module.exports.forTests = {
-    EventhubLogForwarder,
+    EventhubLogHandler,
     Scrubber,
     ScrubberRule,
+    Batcher,
     constants: {
         STRING,
         STRING_ARRAY,

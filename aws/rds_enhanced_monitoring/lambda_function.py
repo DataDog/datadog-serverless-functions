@@ -164,7 +164,7 @@ def _process_rds_enhanced_monitoring_message(ts, message, account, region):
 
 
 def lambda_handler(event, context):
-    ''' Process a RDS enhenced monitoring DATA_MESSAGE,
+    ''' Process a RDS enhanced monitoring DATA_MESSAGE,
         coming from CLOUDWATCH LOGS
     '''
     # event is a dict containing a base64 string gzipped
