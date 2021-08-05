@@ -27,13 +27,13 @@ DD_API_KEY=RUN_ID
 
 CURRENT_VERSION="$(grep -o 'Version: \d\+\.\d\+\.\d\+' template.yaml | cut -d' ' -f2)"
 
-function awe-login() {
-    cfg=$@
+function aws-login() {
+    cfg=( "$@" )
     shift
     if [ "$ACCOUNT" = "prod" ] ; then
-        aws-vault exec prod-engineering --  $cfg
+        aws-vault exec prod-engineering --  ${cfg[@]}
     else
-        aws-vault exec sandbox-account-admin --  $cfg
+        aws-vault exec sandbox-account-admin --  ${cfg[@]}
     fi
 }
 
@@ -57,16 +57,16 @@ publish_test() {
     STACK_NAME="datadog-forwarder-integration-stack-${RUN_ID}"
 
     echo "Creating stack using Zip Copier Flow ${STACK_NAME}"
-    awe-login aws cloudformation create-stack --stack-name $STACK_NAME --template-url $TEMPLATE_URL --capabilities "CAPABILITY_AUTO_EXPAND" "CAPABILITY_IAM" --on-failure "DELETE" \
+    aws-login aws cloudformation create-stack --stack-name $STACK_NAME --template-url $TEMPLATE_URL --capabilities "CAPABILITY_AUTO_EXPAND" "CAPABILITY_IAM" --on-failure "DELETE" \
         --parameters=$PARAM_LIST --region $AWS_REGION
 
     echo "Waiting for stack to complete creation ${STACK_NAME}"
-    awe-login aws cloudformation wait stack-create-complete --stack-name $STACK_NAME --region $AWS_REGION
+    aws-login aws cloudformation wait stack-create-complete --stack-name $STACK_NAME --region $AWS_REGION
 
     echo "Completed stack creation"
 
     echo "Cleaning up stack"
-    awe-login aws cloudformation delete-stack --stack-name $STACK_NAME  --region $AWS_REGION
+    aws-login aws cloudformation delete-stack --stack-name $STACK_NAME  --region $AWS_REGION
 }
 
 echo
