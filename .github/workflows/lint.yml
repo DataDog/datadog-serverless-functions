@@ -25,7 +25,7 @@ jobs:
       - name: Check formatting with Black
         run: |
           pip install black
-          black --check ./aws/logs_monitoring
+          black --check --diff ./aws/logs_monitoring
 
       - name: Setup Cloud Formation Linter with Latest Version
         uses: scottbrenner/cfn-lint-action@v2
