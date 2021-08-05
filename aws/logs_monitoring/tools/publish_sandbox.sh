@@ -1,6 +1,5 @@
 #!/bin/bash
 set -e
-unset AWS_VAULT
 # Read the new version
 if [ -z "$1" ]; then
     echo "Must specify a desired version number"

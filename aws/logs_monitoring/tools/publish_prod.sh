@@ -3,7 +3,6 @@
 # Use with `./publish_prod.sh <DESIRED_NEW_VERSION>
 
 set -e
-unset AWS_VAULT
 
 # Ensure on main, and pull the latest
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
