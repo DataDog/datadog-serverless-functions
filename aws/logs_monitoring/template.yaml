@@ -902,6 +902,13 @@ Outputs:
       Name:
         Fn::Sub: ${AWS::StackName}-ApiKeySecretArn
     Condition: CreateDdApiKeySecret
+  ForwarderBucketName:
+    Description: Name of the S3 bucket used by the Forwarder
+    Value:
+      Ref: ForwarderBucket
+    Export:
+      Name:
+        Fn::Sub: ${AWS::StackName}-ForwarderBucketName
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
