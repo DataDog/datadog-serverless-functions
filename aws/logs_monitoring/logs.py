@@ -325,8 +325,6 @@ class DatadogHTTPClient(object):
     ):
         self._HEADERS.update({"DD_API_KEY": api_key})
         protocol = "http" if no_ssl else "https"
-        self._url = "{}://{}:{}/v1/input/{}".format(
-            protocol, host, port, api_key)
         self._url = "{}://{}:{}/api/v2/logs".format(protocol, host, port)
         self._scrubber = scrubber
         self._timeout = timeout
