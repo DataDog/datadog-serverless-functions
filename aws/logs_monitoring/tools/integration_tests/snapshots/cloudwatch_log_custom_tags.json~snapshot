@@ -1,7 +1,6 @@
 {
   "events": [
     {
-      "content-type": "application/json",
       "data": [
         {
           "aws": {
@@ -29,9 +28,9 @@
         "Connection": "keep-alive",
         "Content-Length": "529",
         "Content-type": "application/json",
-        "DD_API_KEY": "abcdefghijklmnopqrstuvwxyz012345",
-        "DD_SOURCE": "aws_forwarder",
-        "DD_SOURCE_VERSION": "3.35.0",
+        "DD-API-KEY": "abcdefghijklmnopqrstuvwxyz012345",
+        "DD-EVP-ORIGIN": "aws_forwarder",
+        "DD-EVP-ORIGIN-VERSION": "3.35.0",
         "Host": "recorder:8080",
         "User-Agent": "python-requests/2.26.0",
         "x-datadog-parent-id": "10515150105233589170",
@@ -42,7 +41,6 @@
       "verb": "POST"
     },
     {
-      "content-type": "application/json",
       "data": {
         "series": [
           {
@@ -94,7 +92,7 @@
         "Accept-Encoding": "gzip, deflate",
         "Connection": "keep-alive",
         "Content-Encoding": "deflate",
-        "Content-Length": "213",
+        "Content-Length": "214",
         "Content-Type": "application/json",
         "Host": "recorder:8080",
         "User-Agent": "datadogpy/0.41.0 (python 3.7.9; os linux; arch x86_64)",
