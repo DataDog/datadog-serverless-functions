@@ -42,7 +42,22 @@
           "timestamp": 1440442987001
         }
       ],
-      "path": "/v1/input/abcdefghijklmnopqrstuvwxyz012345",
+      "headers": {
+        "Accept": "*/*",
+        "Accept-Encoding": "gzip, deflate",
+        "Connection": "keep-alive",
+        "Content-Length": "974",
+        "Content-type": "application/json",
+        "DD_API_KEY": "abcdefghijklmnopqrstuvwxyz012345",
+        "DD_SOURCE": "aws_forwarder",
+        "DD_SOURCE_VERSION": "3.35.0",
+        "Host": "recorder:8080",
+        "User-Agent": "python-requests/2.26.0",
+        "x-datadog-parent-id": "10515150105233589170",
+        "x-datadog-sampling-priority": "2",
+        "x-datadog-trace-id": "4842834437835386637"
+      },
+      "path": "/api/v2/logs",
       "verb": "POST"
     },
     {
@@ -92,6 +107,19 @@
             "type": "distribution"
           }
         ]
+      },
+      "headers": {
+        "Accept": "*/*",
+        "Accept-Encoding": "gzip, deflate",
+        "Connection": "keep-alive",
+        "Content-Encoding": "deflate",
+        "Content-Length": "213",
+        "Content-Type": "application/json",
+        "Host": "recorder:8080",
+        "User-Agent": "datadogpy/0.41.0 (python 3.7.9; os linux; arch x86_64)",
+        "x-datadog-parent-id": "10515150105233589170",
+        "x-datadog-sampling-priority": "2",
+        "x-datadog-trace-id": "4842834437835386637"
       },
       "path": "/api/v1/distribution_points?api_key=abcdefghijklmnopqrstuvwxyz012345",
       "verb": "POST"
