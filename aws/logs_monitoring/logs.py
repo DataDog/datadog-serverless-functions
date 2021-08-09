@@ -3,7 +3,7 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2021 Datadog, Inc.
 
-from aws.logs_monitoring.settings import DD_FORWARDER_VERSION
+from settings import DD_FORWARDER_VERSION
 import gzip
 import json
 import os
@@ -317,13 +317,13 @@ class DatadogHTTPClient(object):
     else:
         _HEADERS = {"Content-type": "application/json"}
 
-    _HEADERS["DD_SOURCE"] = "aws_forwarder"
-    _HEADERS["DD_SOURCE_VERSION"] = DD_FORWARDER_VERSION
+    _HEADERS["DD-EVP-ORIGIN"] = "aws_forwarder"
+    _HEADERS["DD-EVP-ORIGIN-VERSION"] = DD_FORWARDER_VERSION
 
     def __init__(
         self, host, port, no_ssl, skip_ssl_validation, api_key, scrubber, timeout=10
     ):
-        self._HEADERS.update({"DD_API_KEY": api_key})
+        self._HEADERS.update({"DD-API-KEY": api_key})
         protocol = "http" if no_ssl else "https"
         self._url = "{}://{}:{}/api/v2/logs".format(protocol, host, port)
         self._scrubber = scrubber
