@@ -621,22 +621,31 @@ Resources:
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
+              # Access the s3 bucket that is used by the forwarder as a datastore
               - Action:
-                  - s3:*
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:DeleteObject
+                  - s3:ListBucket
                 Resource:
                   - Fn::Join:
                       - "/"
                       - - Fn::GetAtt: ForwarderBucket.Arn
                         - "*"
                 Effect: Allow
+              # Get the actual log content from the s3 bucket based on the received s3 event.
+              # Use PermissionsBoundaryArn to limit (allow/deny) access if needed.
               - Action:
                   - s3:GetObject
                 Resource: "*"
                 Effect: Allow
+              # To get object from encrypted s3 buckets. Use PermissionsBoundaryArn to limit access if needed.
+              # https://aws.amazon.com/premiumsupport/knowledge-center/s3-troubleshoot-403/#AWS_KMS_encryption
               - Action:
                   - kms:Decrypt
                 Resource: "*"
                 Effect: Allow
+              # Access the Datadog API key from Secrets Manager
               - Action:
                   - secretsmanager:GetSecretValue
                 Resource:
@@ -645,6 +654,7 @@ Resources:
                     - Ref: DdApiKeySecret
                     - Fn::Sub: "${DdApiKeySecretArn}*"
                 Effect: Allow
+              # Fetch Lambda resource tags for data enrichment 
               - Fn::If:
                   - SetDdFetchLambdaTags
                   - Action:
@@ -652,6 +662,7 @@ Resources:
                     Resource: "*"
                     Effect: Allow
                   - Ref: AWS::NoValue
+              # Required for Lambda deployed in VPC
               - Fn::If:
                   - UseVPC
                   - Action:
@@ -661,6 +672,7 @@ Resources:
                     Resource: "*"
                     Effect: Allow
                   - Ref: AWS::NoValue
+              # To invoke a follower Lambda with the same event received by the forwarder for dual-shipping 
               - Fn::If:
                   - SetAdditionalTargetLambdas
                   - Action:
@@ -727,6 +739,7 @@ Resources:
       Description: Datadog API Key
       SecretString:
         Ref: DdApiKey
+  # A s3 bucket used by the Forwarder as a datastore
   ForwarderBucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -773,6 +786,10 @@ Resources:
                   DdForwarderVersion:
                     !FindInMap [Constants, DdForwarder, Version],
                 }
+  # The Forwarder's source code is too big to fit the inline code size limit for CloudFormation. In most of AWS
+  # partitions and regions, the Forwarder is able to load its source code from a Lambda layer attached to it.
+  # In places where Datadog can't/doesn't yet publish Lambda layers, use another Lambda to copy the source code
+  # from github to a s3 bucket in the partition & region where the forwarder is deployed to.
   ForwarderZipCopier:
     Type: AWS::Serverless::Function
     Condition: UseZipCopier
