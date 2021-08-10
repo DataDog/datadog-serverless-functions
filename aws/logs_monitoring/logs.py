@@ -60,7 +60,7 @@ def forward_logs(logs):
         batcher = DatadogBatcher(256 * 1000, 256 * 1000, 1)
         cli = DatadogTCPClient(DD_URL, DD_PORT, DD_NO_SSL, DD_API_KEY, scrubber)
     else:
-        batcher = DatadogBatcher(256 * 1000, 4 * 1000 * 1000, 400)
+        batcher = DatadogBatcher(512 * 1000, 4 * 1000 * 1000, 400)
         cli = DatadogHTTPClient(
             DD_URL, DD_PORT, DD_NO_SSL, DD_SKIP_SSL_VALIDATION, DD_API_KEY, scrubber
         )
