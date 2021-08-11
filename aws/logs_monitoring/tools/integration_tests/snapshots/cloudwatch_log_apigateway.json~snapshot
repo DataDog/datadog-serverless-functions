@@ -76,7 +76,7 @@
         "DD-EVP-ORIGIN": "aws_forwarder",
         "DD-EVP-ORIGIN-VERSION": "3.35.0",
         "Host": "recorder:8080",
-        "User-Agent": "python-requests/2.26.0",
+        "User-Agent": "<redacted from snapshot>",
         "x-datadog-parent-id": "10515150105233589170",
         "x-datadog-sampling-priority": "2",
         "x-datadog-trace-id": "4842834437835386637"
@@ -139,7 +139,7 @@
         "Content-Length": "214",
         "Content-Type": "application/json",
         "Host": "recorder:8080",
-        "User-Agent": "datadogpy/0.41.0 (python 3.7.9; os linux; arch x86_64)",
+        "User-Agent": "<redacted from snapshot>",
         "x-datadog-parent-id": "10515150105233589170",
         "x-datadog-sampling-priority": "2",
         "x-datadog-trace-id": "4842834437835386637"

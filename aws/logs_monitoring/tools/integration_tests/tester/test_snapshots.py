@@ -25,7 +25,12 @@ class TestForwarderSnapshots(unittest.TestCase):
         with urllib.request.urlopen(recorder_url) as url:
             message = self.filter_snapshot(url.read().decode())
             data = json.loads(message)
-        return data
+            editedData = {"events": []}
+            for event in data["events"]:
+                if "headers" in event and "User-Agent" in event["headers"]:
+                    event["headers"]["User-Agent"] = "<redacted from snapshot>"
+                editedData["events"].append(event)
+        return editedData
 
     def create_cloudwatch_log_event_from_data(self, data):
         # CloudWatch log event data is a base64-encoded ZIP archive
@@ -35,7 +40,8 @@ class TestForwarderSnapshots(unittest.TestCase):
         return f'{{"awslogs": {{"data": "{encoded_data}"}}}}'
 
     def send_log_event(self, event):
-        request = urllib.request.Request(forwarder_url, data=event.encode("utf-8"))
+        request = urllib.request.Request(
+            forwarder_url, data=event.encode("utf-8"))
         urllib.request.urlopen(request)
 
     def filter_snapshot(self, snapshot):
@@ -70,7 +76,8 @@ class TestForwarderSnapshots(unittest.TestCase):
         with open(input_filename, "r") as input_file:
             input_data = input_file.read()
 
-        cloudwatch_event = self.create_cloudwatch_log_event_from_data(input_data)
+        cloudwatch_event = self.create_cloudwatch_log_event_from_data(
+            input_data)
 
         snapshot_data = {}
         try:
@@ -84,7 +91,8 @@ class TestForwarderSnapshots(unittest.TestCase):
 
         if update_snapshot:
             with open(snapshot_filename, "w") as snapshot_file:
-                snapshot_file.write(json.dumps(output_data, indent=2, sort_keys=True))
+                snapshot_file.write(json.dumps(
+                    output_data, indent=2, sort_keys=True))
                 # snapshot_file.write(json.dumps(output_data, indent=2))
         else:
             message = f"Snapshots didn't match for {input_filename}. To update run `integration_tests.sh --update`."
