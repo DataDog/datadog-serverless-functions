@@ -25,11 +25,7 @@ class TestForwarderSnapshots(unittest.TestCase):
         with urllib.request.urlopen(recorder_url) as url:
             message = self.filter_snapshot(url.read().decode())
             data = json.loads(message)
-            editedData = {"events": []}
-            for event in data["events"]:
-                if "headers" in event and "User-Agent" in event["headers"]:
-                    event["headers"]["User-Agent"] = "<redacted from snapshot>"
-                editedData["events"].append(event)
+        editedData = self.filter_data(data)
         return editedData
 
     def create_cloudwatch_log_event_from_data(self, data):
@@ -43,6 +39,22 @@ class TestForwarderSnapshots(unittest.TestCase):
         request = urllib.request.Request(
             forwarder_url, data=event.encode("utf-8"))
         urllib.request.urlopen(request)
+
+    def filter_data(self, data):
+        # Remove things that can vary during each test run once the JSON is parsed
+        editedData = {"events": []}
+        for event in data["events"]:
+            if "headers" in event:
+                if "User-Agent" in event["headers"]:
+                    event["headers"]["User-Agent"] = "<redacted from snapshot>"
+                if "DD-EVP-ORIGIN-VERSION" in event["headers"]:
+                    event["headers"]["DD-EVP-ORIGIN-VERSION"] = "<redacted from snapshot>"
+                if "x-datadog-parent-id" in event["headers"]:
+                    event["headers"]["x-datadog-parent-id"] = "<redacted from snapshot>"
+                if "Content-Length" in event["headers"]:
+                    event["headers"]["Content-Length"] = "<redacted from snapshot>"
+            editedData["events"].append(event)
+        return editedData
 
     def filter_snapshot(self, snapshot):
         # Remove things that can vary during each test run
