@@ -15,7 +15,12 @@ sys.modules["requests_futures.sessions"] = MagicMock()
 
 env_patch = patch.dict(os.environ, {"DD_API_KEY": "11111111111111111111111111111111"})
 env_patch.start()
-from parsing import awslogs_handler, parse_event_source, separate_security_hub_findings, parse_aws_waf_logs
+from parsing import (
+    awslogs_handler,
+    parse_event_source,
+    separate_security_hub_findings,
+    parse_aws_waf_logs,
+)
 
 env_patch.stop()
 
