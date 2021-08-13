@@ -5,7 +5,7 @@
 
 var https = require('https');
 
-const VERSION = '0.5.4';
+const VERSION = '0.5.5';
 
 const STRING = 'string'; // example: 'some message'
 const STRING_ARRAY = 'string-array'; // example: ['one message', 'two message', ...]
