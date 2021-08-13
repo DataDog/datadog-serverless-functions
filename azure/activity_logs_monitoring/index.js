@@ -137,7 +137,7 @@ class HTTPClient {
             headers: {
                 'Content-Type': 'application/json',
                 'DD-API-KEY': DD_API_KEY,
-                'DD-SOURCE': 'azure'
+                'DD-EVP-ORIGIN': 'azure'
             }
         };
         this.scrubber = new Scrubber(this.context, SCRUBBER_RULE_CONFIGS);
