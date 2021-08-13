@@ -1,11 +1,10 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Transform: AWS::Serverless-2016-10-31
 Description: Pushes logs, metrics and traces from AWS to Datadog.
 Mappings:
   Constants:
     DdForwarder:
-      Version: 3.34.0
-      LayerVersion: 2
+      Version: 3.37.0
+      LayerVersion: 5
 Parameters:
   DdApiKey:
     Type: String
@@ -621,22 +620,31 @@ Resources:
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
+              # Access the s3 bucket that is used by the forwarder as a datastore
               - Action:
-                  - s3:*
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:DeleteObject
+                  - s3:ListBucket
                 Resource:
                   - Fn::Join:
                       - "/"
                       - - Fn::GetAtt: ForwarderBucket.Arn
                         - "*"
                 Effect: Allow
+              # Get the actual log content from the s3 bucket based on the received s3 event.
+              # Use PermissionsBoundaryArn to limit (allow/deny) access if needed.
               - Action:
                   - s3:GetObject
                 Resource: "*"
                 Effect: Allow
+              # To get object from encrypted s3 buckets. Use PermissionsBoundaryArn to limit access if needed.
+              # https://aws.amazon.com/premiumsupport/knowledge-center/s3-troubleshoot-403/#AWS_KMS_encryption
               - Action:
                   - kms:Decrypt
                 Resource: "*"
                 Effect: Allow
+              # Access the Datadog API key from Secrets Manager
               - Action:
                   - secretsmanager:GetSecretValue
                 Resource:
@@ -645,6 +653,7 @@ Resources:
                     - Ref: DdApiKeySecret
                     - Fn::Sub: "${DdApiKeySecretArn}*"
                 Effect: Allow
+              # Fetch Lambda resource tags for data enrichment 
               - Fn::If:
                   - SetDdFetchLambdaTags
                   - Action:
@@ -652,6 +661,7 @@ Resources:
                     Resource: "*"
                     Effect: Allow
                   - Ref: AWS::NoValue
+              # Required for Lambda deployed in VPC
               - Fn::If:
                   - UseVPC
                   - Action:
@@ -661,6 +671,7 @@ Resources:
                     Resource: "*"
                     Effect: Allow
                   - Ref: AWS::NoValue
+              # To invoke a follower Lambda with the same event received by the forwarder for dual-shipping 
               - Fn::If:
                   - SetAdditionalTargetLambdas
                   - Action:
@@ -727,6 +738,7 @@ Resources:
       Description: Datadog API Key
       SecretString:
         Ref: DdApiKey
+  # A s3 bucket used by the Forwarder as a datastore
   ForwarderBucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -773,117 +785,141 @@ Resources:
                   DdForwarderVersion:
                     !FindInMap [Constants, DdForwarder, Version],
                 }
+  # The Forwarder's source code is too big to fit the inline code size limit for CloudFormation. In most of AWS
+  # partitions and regions, the Forwarder is able to load its source code from a Lambda layer attached to it.
+  # In places where Datadog can't/doesn't yet publish Lambda layers, use another Lambda to copy the source code
+  # from github to a s3 bucket in the partition & region where the forwarder is deployed to.
   ForwarderZipCopier:
-    Type: AWS::Serverless::Function
+    Type: AWS::Lambda::Function
     Condition: UseZipCopier
     Properties:
       Description: Copies Datadog Forwarder zip to the destination S3 bucket
       Handler: index.handler
       Runtime: python3.7
       Timeout: 300
-      InlineCode: |
-        import json
-        import logging
-        import threading
-        import boto3
-        import urllib.request
-        import os
+      Code:
+        ZipFile: |
+          import json
+          import logging
+          import threading
+          import boto3
+          import urllib.request
+          import os
 
-        def send_cfn_resp(event, context, response_status):
-            resp_body = json.dumps({
-                'Status': response_status,
-                'Reason': f'See reasons in CloudWatch Logs - group: {context.log_group_name}, stream:{context.log_stream_name}',
-                'PhysicalResourceId': context.log_stream_name,
-                'StackId': event['StackId'],
-                'RequestId': event['RequestId'],
-                'LogicalResourceId': event['LogicalResourceId'],
-                'Data': {}
-            }).encode('utf-8')
-            req = urllib.request.Request(url=event['ResponseURL'], data=resp_body, method='PUT')
-            with urllib.request.urlopen(req) as f:
-                logging.info(f'Sent response to CloudFormation: {f.status}, {f.reason}')
-        def delete_zips(bucket):
-            s3 = boto3.resource('s3')
-            bucket = s3.Bucket(bucket)
-            bucket.objects.all().delete()
-        def copy_zip(source_zip_url, dest_zips_bucket):
-            s3 = boto3.client('s3')
-            s3_prelude = "s3://"
-            filename = "aws-dd-forwarder-{}.zip".format(os.environ.get("DD_FORWARDER_VERSION"))
-            if source_zip_url.startswith(s3_prelude):
-                parts = source_zip_url[len(s3_prelude):].split('/')
-                bucket = parts[0]
-                key = '/'.join(parts[1:])
-                response = s3.get_object(Bucket=bucket, Key=key)
-                data = response["Body"]
-                s3.upload_fileobj(data, dest_zips_bucket, filename)
-            else:
-                with urllib.request.urlopen(source_zip_url) as data:
-                    s3.upload_fileobj(data, dest_zips_bucket, filename)
-        def timeout(event, context):
-            logging.error('Execution is about to time out, sending failure response to CloudFormation')
-            send_cfn_resp(event, context, 'FAILED')
-        def handler(event, context):
-            # make sure we send a failure to CloudFormation if the function
-            # is going to timeout
-            timer = threading.Timer((context.get_remaining_time_in_millis()
-                      / 1000.00) - 0.5, timeout, args=[event, context])
-            timer.start()
-            logging.info(f'Received event: {json.dumps(event)}')
-            try:
-                source_zip_url = event['ResourceProperties']['SourceZipUrl']
-                dest_zips_bucket = event['ResourceProperties']['DestZipsBucket']
-                if event['RequestType'] == 'Delete':
-                    delete_zips(dest_zips_bucket)
-                else:
-                    copy_zip(source_zip_url, dest_zips_bucket)
-            except Exception as e:
-                logging.exception(f'Exception when copying zip from {source_zip_url} to {dest_zips_bucket}')
-                send_cfn_resp(event, context, 'FAILED')
-            else:
-                send_cfn_resp(event, context, 'SUCCESS')
-            finally:
-                timer.cancel()
+          def send_cfn_resp(event, context, response_status):
+              resp_body = json.dumps({
+                  'Status': response_status,
+                  'Reason': f'See reasons in CloudWatch Logs - group: {context.log_group_name}, stream:{context.log_stream_name}',
+                  'PhysicalResourceId': context.log_stream_name,
+                  'StackId': event['StackId'],
+                  'RequestId': event['RequestId'],
+                  'LogicalResourceId': event['LogicalResourceId'],
+                  'Data': {}
+              }).encode('utf-8')
+              req = urllib.request.Request(url=event['ResponseURL'], data=resp_body, method='PUT')
+              with urllib.request.urlopen(req) as f:
+                  logging.info(f'Sent response to CloudFormation: {f.status}, {f.reason}')
+          def delete_zips(bucket):
+              s3 = boto3.resource('s3')
+              bucket = s3.Bucket(bucket)
+              bucket.objects.all().delete()
+          def copy_zip(source_zip_url, dest_zips_bucket):
+              s3 = boto3.client('s3')
+              s3_prelude = "s3://"
+              filename = "aws-dd-forwarder-{}.zip".format(os.environ.get("DD_FORWARDER_VERSION"))
+              if source_zip_url.startswith(s3_prelude):
+                  parts = source_zip_url[len(s3_prelude):].split('/')
+                  bucket = parts[0]
+                  key = '/'.join(parts[1:])
+                  response = s3.get_object(Bucket=bucket, Key=key)
+                  data = response["Body"]
+                  s3.upload_fileobj(data, dest_zips_bucket, filename)
+              else:
+                  with urllib.request.urlopen(source_zip_url) as data:
+                      s3.upload_fileobj(data, dest_zips_bucket, filename)
+          def timeout(event, context):
+              logging.error('Execution is about to time out, sending failure response to CloudFormation')
+              send_cfn_resp(event, context, 'FAILED')
+          def handler(event, context):
+              # make sure we send a failure to CloudFormation if the function
+              # is going to timeout
+              timer = threading.Timer((context.get_remaining_time_in_millis()
+                        / 1000.00) - 0.5, timeout, args=[event, context])
+              timer.start()
+              logging.info(f'Received event: {json.dumps(event)}')
+              try:
+                  source_zip_url = event['ResourceProperties']['SourceZipUrl']
+                  dest_zips_bucket = event['ResourceProperties']['DestZipsBucket']
+                  if event['RequestType'] == 'Delete':
+                      delete_zips(dest_zips_bucket)
+                  else:
+                      copy_zip(source_zip_url, dest_zips_bucket)
+              except Exception as e:
+                  logging.exception(f'Exception when copying zip from {source_zip_url} to {dest_zips_bucket}')
+                  send_cfn_resp(event, context, 'FAILED')
+              else:
+                  send_cfn_resp(event, context, 'SUCCESS')
+              finally:
+                  timer.cancel()
+      Environment:
+        Variables:
+          DD_FORWARDER_VERSION: !FindInMap [Constants, DdForwarder, Version]
+      Role: !GetAtt "ForwarderZipCopierRole.Arn"
+  ForwarderZipReady:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    Metadata:
+      ForwarderZipCopierReady: !If [UseZipCopier, !Ref ForwarderZip, ""]
+  ForwarderZipCopierRole:
+    Type: AWS::IAM::Role
+    Condition: UseZipCopier
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
       PermissionsBoundary:
         Fn::If:
           - SetPermissionsBoundary
           - Ref: PermissionsBoundaryArn
           - Ref: AWS::NoValue
       Policies:
-        - Version: "2012-10-17"
-          Statement:
-            - Effect: Allow
-              Action:
-                - s3:PutObject
-                - s3:DeleteObject
-              Resource:
-                - Fn::Join:
-                    - "/"
-                    - - Fn::GetAtt: "ForwarderBucket.Arn"
-                      - "*"
-            - Effect: Allow
-              Action:
-                - s3:ListBucket
-              Resource:
-                - Fn::GetAtt: "ForwarderBucket.Arn"
-            - !If
-              - SetS3SourceZip
+        - PolicyName: ForwarderZipCopierRolePolicy0
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
               - Effect: Allow
                 Action:
-                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:DeleteObject
                 Resource:
                   - Fn::Join:
-                      - ""
-                      - - "arn:*:s3:::"
-                        - !Select [1, !Split ["s3://", !Ref SourceZipUrl]]
-              - Ref: AWS::NoValue
-      Environment:
-        Variables:
-          DD_FORWARDER_VERSION: !FindInMap [Constants, DdForwarder, Version]
-  ForwarderZipReady:
-    Type: AWS::CloudFormation::WaitConditionHandle
-    Metadata:
-      ForwarderZipCopierReady: !If [UseZipCopier, !Ref ForwarderZip, ""]
+                      - "/"
+                      - - Fn::GetAtt: "ForwarderBucket.Arn"
+                        - "*"
+              - Effect: Allow
+                Action:
+                  - s3:ListBucket
+                Resource:
+                  - Fn::GetAtt: "ForwarderBucket.Arn"
+              - !If
+                - SetS3SourceZip
+                - Effect: Allow
+                  Action:
+                    - s3:GetObject
+                  Resource:
+                    - Fn::Join:
+                        - ""
+                        - - "arn:*:s3:::"
+                          - !Select [1, !Split ["s3://", !Ref SourceZipUrl]]
+                - Ref: AWS::NoValue
 Outputs:
   DatadogForwarderArn:
     Description: Datadog Forwarder Lambda Function ARN
@@ -902,6 +938,13 @@ Outputs:
       Name:
         Fn::Sub: ${AWS::StackName}-ApiKeySecretArn
     Condition: CreateDdApiKeySecret
+  ForwarderBucketName:
+    Description: Name of the S3 bucket used by the Forwarder
+    Value:
+      Ref: ForwarderBucket
+    Export:
+      Name:
+        Fn::Sub: ${AWS::StackName}-ForwarderBucketName
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:

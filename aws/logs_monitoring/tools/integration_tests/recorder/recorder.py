@@ -51,7 +51,7 @@ class RecorderHandler(BaseHTTPRequestHandler):
             event = {
                 "path": self.path,
                 "verb": self.command,
-                "content-type": self.headers["Content-Type"],
+                "headers": {k: v for k, v in self.headers.items()},
                 "data": data,
             }
 

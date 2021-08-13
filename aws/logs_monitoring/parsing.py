@@ -266,6 +266,10 @@ def find_cloudwatch_source(log_group):
     if log_group.startswith("sns/"):
         return "sns"
 
+    # e.g. /aws/fsx/windows/xxx
+    if log_group.startswith("/aws/fsx/windows"):
+        return "aws.fsx"
+
     for source in [
         "/aws/lambda",  # e.g. /aws/lambda/helloDatadog
         "/aws/codebuild",  # e.g. /aws/codebuild/my-project
@@ -306,6 +310,10 @@ def find_s3_source(key):
     if "vpcflowlogs" in key:
         return "vpc"
 
+    # e.g. AWSLogs/123456779121/vpcdnsquerylogs/vpc-********/2021/05/11/vpc-********_vpcdnsquerylogs_********_20210511T0910Z_71584702.log.gz
+    if "vpcdnsquerylogs" in key:
+        return "route53"
+
     # e.g. 2020/10/02/21/aws-waf-logs-testing-1-2020-10-02-21-25-30-x123x-x456x
     if "aws-waf-logs" in key:
         return "waf"
@@ -317,6 +325,10 @@ def find_s3_source(key):
     # this substring must be in your target prefix to be detected
     if "amazon_documentdb" in key:
         return "docdb"
+
+    # e.g. carbon-black-cloud-forwarder/alerts/org_key=*****/year=2021/month=7/day=19/hour=18/minute=15/second=41/8436e850-7e78-40e4-b3cd-6ebbc854d0a2.jsonl.gz
+    if "carbon-black" in key:
+        return "carbonblack"
 
     # the below substrings must be in your target prefix to be detected
     for source in [

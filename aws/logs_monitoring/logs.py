@@ -3,6 +3,7 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2021 Datadog, Inc.
 
+from settings import DD_FORWARDER_VERSION
 import gzip
 import json
 import os
@@ -60,7 +61,7 @@ def forward_logs(logs):
         batcher = DatadogBatcher(256 * 1000, 256 * 1000, 1)
         cli = DatadogTCPClient(DD_URL, DD_PORT, DD_NO_SSL, DD_API_KEY, scrubber)
     else:
-        batcher = DatadogBatcher(256 * 1000, 4 * 1000 * 1000, 400)
+        batcher = DatadogBatcher(512 * 1000, 4 * 1000 * 1000, 400)
         cli = DatadogHTTPClient(
             DD_URL, DD_PORT, DD_NO_SSL, DD_SKIP_SSL_VALIDATION, DD_API_KEY, scrubber
         )
@@ -307,11 +308,15 @@ class DatadogHTTPClient(object):
     else:
         _HEADERS = {"Content-type": "application/json"}
 
+    _HEADERS["DD-EVP-ORIGIN"] = "aws_forwarder"
+    _HEADERS["DD-EVP-ORIGIN-VERSION"] = DD_FORWARDER_VERSION
+
     def __init__(
         self, host, port, no_ssl, skip_ssl_validation, api_key, scrubber, timeout=10
     ):
+        self._HEADERS.update({"DD-API-KEY": api_key})
         protocol = "http" if no_ssl else "https"
-        self._url = "{}://{}:{}/v1/input/{}".format(protocol, host, port, api_key)
+        self._url = "{}://{}:{}/api/v2/logs".format(protocol, host, port)
         self._scrubber = scrubber
         self._timeout = timeout
         self._session = None

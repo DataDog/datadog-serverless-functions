@@ -188,6 +188,15 @@ class TestParseEventSource(unittest.TestCase):
             "route53",
         )
 
+    def test_vpcdnsquerylogs_event(self):
+        self.assertEqual(
+            parse_event_source(
+                {"Records": ["logs-from-s3"]},
+                "AWSLogs/123456779121/vpcdnsquerylogs/vpc-********/2021/05/11/vpc-********_vpcdnsquerylogs_********_20210511T0910Z_71584702.log.gz",
+            ),
+            "route53",
+        )
+
     def test_fargate_event(self):
         self.assertEqual(
             parse_event_source(
@@ -235,6 +244,15 @@ class TestParseEventSource(unittest.TestCase):
                 "AWSLogs/amazon_msk/us-east-1/xxxxx.log.gz",
             ),
             "msk",
+        )
+
+    def test_carbon_black_event(self):
+        self.assertEqual(
+            parse_event_source(
+                {"Records": ["logs-from-s3"]},
+                "carbon-black-cloud-forwarder/alerts/8436e850-7e78-40e4-b3cd-6ebbc854d0a2.jsonl.gz",
+            ),
+            "carbonblack",
         )
 
     def test_cloudwatch_source_if_none_found(self):
