@@ -5,7 +5,7 @@
 
 var https = require('https');
 
-const VERSION = '0.5.4';
+const VERSION = '0.5.5';
 
 const STRING = 'string'; // example: 'some message'
 const STRING_ARRAY = 'string-array'; // example: ['one message', 'two message', ...]
@@ -245,10 +245,20 @@ class EventhubLogHandler {
         for (var i = 0; i < fields.length; i++) {
             // loop through the fields to find the one we want to split
             var fieldName = fields[i];
-            if (tempRecord[fieldName] !== undefined) {
-                tempRecord = tempRecord[fieldName];
-            } else {
+            if (
+                tempRecord[fieldName] === undefined ||
+                tempRecord[fieldName] === null
+            ) {
+                // if the field is null or undefined, return
                 return null;
+            } else {
+                // there is some value for the field
+                try {
+                    // if for some reason we can't index into it, return null
+                    tempRecord = tempRecord[fieldName];
+                } catch {
+                    return null;
+                }
             }
         }
         return tempRecord;
