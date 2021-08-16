@@ -132,11 +132,12 @@ class HTTPClient {
         this.httpOptions = {
             hostname: DD_HTTP_URL,
             port: DD_HTTP_PORT,
-            path: '/v1/input',
+            path: '/api/v2/logs',
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'DD-API-KEY': DD_API_KEY
+                'DD-API-KEY': DD_API_KEY,
+                'DD-EVP-ORIGIN': 'azure'
             }
         };
         this.scrubber = new Scrubber(this.context, SCRUBBER_RULE_CONFIGS);
