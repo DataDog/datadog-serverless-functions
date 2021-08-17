@@ -17,9 +17,8 @@
         },
         "eventHubNamespace": {
             "type": "string",
-            "defaultValue": "datadog-eventhub-namespace",
             "metadata": {
-                "description": "Name of EventHub namespace"
+                "description": "Name of EventHub namespace, which must be globally unique."
             }
         },
         "eventHubName": {

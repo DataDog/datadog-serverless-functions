@@ -4,7 +4,6 @@
   "parameters": {
     "eventHubNamespace": {
       "type": "string",
-      "defaultValue": "datadog-eventhub-namespace",
       "metadata": {
         "description": "Name of EventHub namespace"
       }
