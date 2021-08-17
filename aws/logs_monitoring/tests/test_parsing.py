@@ -15,7 +15,12 @@ sys.modules["requests_futures.sessions"] = MagicMock()
 
 env_patch = patch.dict(os.environ, {"DD_API_KEY": "11111111111111111111111111111111"})
 env_patch.start()
-from parsing import awslogs_handler, parse_event_source, separate_security_hub_findings
+from parsing import (
+    awslogs_handler,
+    parse_event_source,
+    separate_security_hub_findings,
+    parse_aws_waf_logs,
+)
 
 env_patch.stop()
 
@@ -260,6 +265,253 @@ class TestParseEventSource(unittest.TestCase):
 
     def test_s3_source_if_none_found(self):
         self.assertEqual(parse_event_source({"Records": ["logs-from-s3"]}, ""), "s3")
+
+
+class TestParseAwsWafLogs(unittest.TestCase):
+    def test_waf_string_invalid_json(self):
+        event = "This is not valid JSON."
+        self.assertEqual(parse_aws_waf_logs(event), "This is not valid JSON.")
+
+    def test_waf_string_json(self):
+        event = '{"ddsource":"waf","message":"This is a string of JSON"}'
+        self.assertEqual(
+            parse_aws_waf_logs(event),
+            {"ddsource": "waf", "message": "This is a string of JSON"},
+        )
+
+    def test_waf_headers(self):
+        event = {
+            "ddsource": "waf",
+            "message": {
+                "httpRequest": {
+                    "headers": [
+                        {"name": "header1", "value": "value1"},
+                        {"name": "header2", "value": "value2"},
+                    ]
+                }
+            },
+        }
+        self.assertEqual(
+            parse_aws_waf_logs(event),
+            {
+                "ddsource": "waf",
+                "message": {
+                    "httpRequest": {
+                        "headers": {"header1": "value1", "header2": "value2"}
+                    }
+                },
+            },
+        )
+
+    def test_waf_non_terminating_matching_rules(self):
+        event = {
+            "ddsource": "waf",
+            "message": {
+                "nonTerminatingMatchingRules": [
+                    {"ruleId": "nonterminating1", "action": "COUNT"},
+                    {"ruleId": "nonterminating2", "action": "COUNT"},
+                ]
+            },
+        }
+        self.assertEqual(
+            parse_aws_waf_logs(event),
+            {
+                "ddsource": "waf",
+                "message": {
+                    "nonTerminatingMatchingRules": {
+                        "nonterminating2": {"action": "COUNT"},
+                        "nonterminating1": {"action": "COUNT"},
+                    }
+                },
+            },
+        )
+
+    def test_waf_rate_based_rules(self):
+        event = {
+            "ddsource": "waf",
+            "message": {
+                "rateBasedRuleList": [
+                    {
+                        "limitValue": "195.154.122.189",
+                        "rateBasedRuleName": "tf-rate-limit-5-min",
+                        "rateBasedRuleId": "arn:aws:wafv2:ap-southeast-2:068133125972_MANAGED:regional/ipset/0f94bd8b-0fa5-4865-81ce-d11a60051fb4_fef50279-8b9a-4062-b733-88ecd1cfd889_IPV4/fef50279-8b9a-4062-b733-88ecd1cfd889",
+                        "maxRateAllowed": 300,
+                        "limitKey": "IP",
+                    },
+                    {
+                        "limitValue": "195.154.122.189",
+                        "rateBasedRuleName": "no-rate-limit",
+                        "rateBasedRuleId": "arn:aws:wafv2:ap-southeast-2:068133125972_MANAGED:regional/ipset/0f94bd8b-0fa5-4865-81ce-d11a60051fb4_fef50279-8b9a-4062-b733-88ecd1cfd889_IPV4/fef50279-8b9a-4062-b733-88ecd1cfd889",
+                        "maxRateAllowed": 300,
+                        "limitKey": "IP",
+                    },
+                ]
+            },
+        }
+        self.assertEqual(
+            parse_aws_waf_logs(event),
+            {
+                "ddsource": "waf",
+                "message": {
+                    "rateBasedRuleList": {
+                        "tf-rate-limit-5-min": {
+                            "rateBasedRuleId": "arn:aws:wafv2:ap-southeast-2:068133125972_MANAGED:regional/ipset/0f94bd8b-0fa5-4865-81ce-d11a60051fb4_fef50279-8b9a-4062-b733-88ecd1cfd889_IPV4/fef50279-8b9a-4062-b733-88ecd1cfd889",
+                            "limitValue": "195.154.122.189",
+                            "maxRateAllowed": 300,
+                            "limitKey": "IP",
+                        },
+                        "no-rate-limit": {
+                            "rateBasedRuleId": "arn:aws:wafv2:ap-southeast-2:068133125972_MANAGED:regional/ipset/0f94bd8b-0fa5-4865-81ce-d11a60051fb4_fef50279-8b9a-4062-b733-88ecd1cfd889_IPV4/fef50279-8b9a-4062-b733-88ecd1cfd889",
+                            "limitValue": "195.154.122.189",
+                            "maxRateAllowed": 300,
+                            "limitKey": "IP",
+                        },
+                    }
+                },
+            },
+        )
+
+    def test_waf_rule_group_with_excluded_and_nonterminating_rules(self):
+        event = {
+            "ddsource": "waf",
+            "message": {
+                "ruleGroupList": [
+                    {
+                        "ruleGroupId": "AWS#AWSManagedRulesSQLiRuleSet",
+                        "terminatingRule": {
+                            "ruleId": "SQLi_QUERYARGUMENTS",
+                            "action": "BLOCK",
+                        },
+                        "nonTerminatingMatchingRules": [
+                            {
+                                "exclusionType": "REGULAR",
+                                "ruleId": "first_nonterminating",
+                            },
+                            {
+                                "exclusionType": "REGULAR",
+                                "ruleId": "second_nonterminating",
+                            },
+                        ],
+                        "excludedRules": [
+                            {
+                                "exclusionType": "EXCLUDED_AS_COUNT",
+                                "ruleId": "GenericRFI_BODY",
+                            },
+                            {
+                                "exclusionType": "EXCLUDED_AS_COUNT",
+                                "ruleId": "second_exclude",
+                            },
+                        ],
+                    }
+                ]
+            },
+        }
+        self.assertEqual(
+            parse_aws_waf_logs(event),
+            {
+                "ddsource": "waf",
+                "message": {
+                    "ruleGroupList": {
+                        "AWS#AWSManagedRulesSQLiRuleSet": {
+                            "nonTerminatingMatchingRules": {
+                                "second_nonterminating": {"exclusionType": "REGULAR"},
+                                "first_nonterminating": {"exclusionType": "REGULAR"},
+                            },
+                            "excludedRules": {
+                                "GenericRFI_BODY": {
+                                    "exclusionType": "EXCLUDED_AS_COUNT"
+                                },
+                                "second_exclude": {
+                                    "exclusionType": "EXCLUDED_AS_COUNT"
+                                },
+                            },
+                            "terminatingRule": {
+                                "SQLi_QUERYARGUMENTS": {"action": "BLOCK"}
+                            },
+                        }
+                    }
+                },
+            },
+        )
+
+    def test_waf_rule_group_two_rules_same_group_id(self):
+        event = {
+            "ddsource": "waf",
+            "message": {
+                "ruleGroupList": [
+                    {
+                        "ruleGroupId": "AWS#AWSManagedRulesSQLiRuleSet",
+                        "terminatingRule": {
+                            "ruleId": "SQLi_QUERYARGUMENTS",
+                            "action": "BLOCK",
+                        },
+                    },
+                    {
+                        "ruleGroupId": "AWS#AWSManagedRulesSQLiRuleSet",
+                        "terminatingRule": {"ruleId": "secondRULE", "action": "BLOCK"},
+                    },
+                ]
+            },
+        }
+        self.assertEqual(
+            parse_aws_waf_logs(event),
+            {
+                "ddsource": "waf",
+                "message": {
+                    "ruleGroupList": {
+                        "AWS#AWSManagedRulesSQLiRuleSet": {
+                            "terminatingRule": {
+                                "SQLi_QUERYARGUMENTS": {"action": "BLOCK"},
+                                "secondRULE": {"action": "BLOCK"},
+                            }
+                        }
+                    }
+                },
+            },
+        )
+
+    def test_waf_rule_group_three_rules_two_group_ids(self):
+        event = {
+            "ddsource": "waf",
+            "message": {
+                "ruleGroupList": [
+                    {
+                        "ruleGroupId": "AWS#AWSManagedRulesSQLiRuleSet",
+                        "terminatingRule": {
+                            "ruleId": "SQLi_QUERYARGUMENTS",
+                            "action": "BLOCK",
+                        },
+                    },
+                    {
+                        "ruleGroupId": "AWS#AWSManagedRulesSQLiRuleSet",
+                        "terminatingRule": {"ruleId": "secondRULE", "action": "BLOCK"},
+                    },
+                    {
+                        "ruleGroupId": "A_DIFFERENT_ID",
+                        "terminatingRule": {"ruleId": "thirdRULE", "action": "BLOCK"},
+                    },
+                ]
+            },
+        }
+        self.assertEqual(
+            parse_aws_waf_logs(event),
+            {
+                "ddsource": "waf",
+                "message": {
+                    "ruleGroupList": {
+                        "AWS#AWSManagedRulesSQLiRuleSet": {
+                            "terminatingRule": {
+                                "SQLi_QUERYARGUMENTS": {"action": "BLOCK"},
+                                "secondRULE": {"action": "BLOCK"},
+                            }
+                        },
+                        "A_DIFFERENT_ID": {
+                            "terminatingRule": {"thirdRULE": {"action": "BLOCK"}}
+                        },
+                    }
+                },
+            },
+        )
 
 
 class TestParseSecurityHubEvents(unittest.TestCase):
