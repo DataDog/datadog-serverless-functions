@@ -41,10 +41,10 @@ saml2aws login -a govcloud-us1-fed-human-engineering
 AWS_PROFILE=govcloud-us1-fed-human-engineering aws sts get-caller-identity
 aws-vault exec prod-engineering -- aws sts get-caller-identity
 
-echo
-echo "Publishing layers to commercial AWS regions"
-LAYER_VERSION=$LAYER_VERSION FORWARDER_VERSION=$FORWARDER_VERSION aws-vault exec prod-engineering -- ./tools/publish_layers.sh
-
 echo "Publishing layers to GovCloud AWS regions"
 saml2aws login -a govcloud-us1-fed-human-engineering
 LAYER_VERSION=$LAYER_VERSION FORWARDER_VERSION=$FORWARDER_VERSION AWS_PROFILE=govcloud-us1-fed-human-engineering ./tools/publish_layers.sh
+
+echo
+echo "Publishing layers to commercial AWS regions"
+LAYER_VERSION=$LAYER_VERSION FORWARDER_VERSION=$FORWARDER_VERSION aws-vault exec prod-engineering -- ./tools/publish_layers.sh
