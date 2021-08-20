@@ -1,9 +1,9 @@
 param (
     $SubscriptionId,
     $ApiKey,
+    $EventhubNamespace = "",
     $ResourceGroupName = "datadog-log-forwarder-rg",
     $ResourceGroupLocation  = "westus2",
-    $EventhubNamespace = "datadog-eventhub-namespace",
     $EventhubName = "datadog-eventhub",
     $FunctionAppName = "datadog-functionapp",
     $FunctionName = "datadog-function",
@@ -24,35 +24,54 @@ $environment = Get-AzEnvironment -Name $Environment
 $endpointSuffix = $environment.StorageEndpointSuffix
 
 try {
-New-AzResourceGroupDeployment `
-    -TemplateUri "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/eventhub_log_forwarder/parent_template.json" `
-    -ResourceGroupName $ResourceGroupName `
-    -functionCode $code `
-    -apiKey $ApiKey `
-    -location $ResourceGroupLocation `
-    -eventhubNamespace $EventhubNamespace `
-    -eventHubName $EventhubName `
-    -functionAppName $FunctionAppName `
-    -functionName $FunctionName `
-    -datadogSite $DatadogSite `
-    -endpointSuffix $endpointSuffix `
-    -Verbose `
-    -ErrorAction Stop
+    if ($EventhubNamespace -eq "") {
+        $output = New-AzResourceGroupDeployment `
+            -TemplateUri "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/eventhub_log_forwarder/parent_template.json" `
+            -ResourceGroupName $ResourceGroupName `
+            -functionCode $code `
+            -apiKey $ApiKey `
+            -location $ResourceGroupLocation `
+            -eventHubName $EventhubName `
+            -functionAppName $FunctionAppName `
+            -functionName $FunctionName `
+            -datadogSite $DatadogSite `
+            -endpointSuffix $endpointSuffix `
+            -Verbose `
+            -ErrorAction Stop
+
+        # Get the generated globally-unique eventhub namespace
+        $EventhubNamespace = $output.Outputs.eventHubNamespace.Value
+    } else {
+        New-AzResourceGroupDeployment `
+            -TemplateUri "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/eventhub_log_forwarder/parent_template.json" `
+            -ResourceGroupName $ResourceGroupName `
+            -functionCode $code `
+            -apiKey $ApiKey `
+            -location $ResourceGroupLocation `
+            -eventhubNamespace $EventhubNamespace `
+            -eventHubName $EventhubName `
+            -functionAppName $FunctionAppName `
+            -functionName $FunctionName `
+            -datadogSite $DatadogSite `
+            -endpointSuffix $endpointSuffix `
+            -Verbose `
+            -ErrorAction Stop
+    }
 } catch {
     Write-Error $_
     Return
 }
 
 try {
-New-AzDeployment `
-    -TemplateUri "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/eventhub_log_forwarder/activity_log_diagnostic_settings.json" `
-    -eventHubNamespace $EventhubNamespace `
-    -eventHubName $EventhubName `
-    -settingName $DiagnosticSettingName `
-    -resourceGroup $ResourceGroupName `
-    -Location $ResourceGroupLocation `
-    -Verbose `
-    -ErrorAction Stop
+    New-AzDeployment `
+        -TemplateUri "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/eventhub_log_forwarder/activity_log_diagnostic_settings.json" `
+        -eventHubNamespace $EventhubNamespace `
+        -eventHubName $EventhubName `
+        -settingName $DiagnosticSettingName `
+        -resourceGroup $ResourceGroupName `
+        -Location $ResourceGroupLocation `
+        -Verbose `
+        -ErrorAction Stop
 } catch {
     Write-Error $_
     Return

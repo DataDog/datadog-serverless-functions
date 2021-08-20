@@ -1,9 +1,9 @@
 param (
     $SubscriptionId,
     $ApiKey,
+    $EventhubNamespace = "",
     $ResourceGroupLocation  = "westus2",
     $ResourceGroupName = "datadog-log-forwarder-rg-" + $ResourceGroupLocation,
-    $EventhubNamespace = "datadog-eventhub-namespace-" + $ResourceGroupLocation,
     $EventhubName = "datadog-eventhub-" + $ResourceGroupLocation,
     $FunctionAppName = "datadog-functionapp-" + $ResourceGroupLocation,
     $FunctionName = "datadog-function-" + $ResourceGroupLocation,
@@ -23,20 +23,37 @@ $environment = Get-AzEnvironment -Name $Environment
 $endpointSuffix = $environment.StorageEndpointSuffix
 
 try {
-New-AzResourceGroupDeployment `
-    -TemplateUri "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/eventhub_log_forwarder/parent_template.json" `
-    -ResourceGroupName $ResourceGroupName `
-    -functionCode $code `
-    -apiKey $ApiKey `
-    -location $ResourceGroupLocation `
-    -eventhubNamespace $EventhubNamespace `
-    -eventHubName $EventhubName `
-    -functionAppName $FunctionAppName `
-    -functionName $FunctionName `
-    -datadogSite $DatadogSite `
-    -endpointSuffix $endpointSuffix `
-    -Verbose `
-    -ErrorAction Stop
+    if ($EventhubNamespace -eq "") {
+        New-AzResourceGroupDeployment `
+            -TemplateUri "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/eventhub_log_forwarder/parent_template.json" `
+            -ResourceGroupName $ResourceGroupName `
+            -functionCode $code `
+            -apiKey $ApiKey `
+            -location $ResourceGroupLocation `
+            -eventHubName $EventhubName `
+            -functionAppName $FunctionAppName `
+            -functionName $FunctionName `
+            -datadogSite $DatadogSite `
+            -endpointSuffix $endpointSuffix `
+            -Verbose `
+            -ErrorAction Stop
+    } else {
+        New-AzResourceGroupDeployment `
+            -TemplateUri "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/eventhub_log_forwarder/parent_template.json" `
+            -ResourceGroupName $ResourceGroupName `
+            -functionCode $code `
+            -apiKey $ApiKey `
+            -location $ResourceGroupLocation `
+            -eventhubNamespace $EventhubNamespace `
+            -eventHubName $EventhubName `
+            -functionAppName $FunctionAppName `
+            -functionName $FunctionName `
+            -datadogSite $DatadogSite `
+            -endpointSuffix $endpointSuffix `
+            -Verbose `
+            -ErrorAction Stop
+    }
+
 } catch {
     Write-Error $_
     Return
