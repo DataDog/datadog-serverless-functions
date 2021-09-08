@@ -10,7 +10,7 @@ import time
 import base64
 from io import BufferedReader, BytesIO
 from urllib.request import Request, urlopen
-from urllib.parse import urlencode
+import urllib.parse
 
 import botocore
 import boto3
@@ -25,10 +25,11 @@ def _datadog_keys():
         kms = boto3.client('kms')
         # kmsEncryptedKeys should be created through the Lambda's encryption
         # helpers and as such will have the EncryptionContext
-        return json.loads(kms.decrypt(
+        DD_API_KEY = kms.decrypt(
             CiphertextBlob=base64.b64decode(KMS_ENCRYPTED_KEYS),
             EncryptionContext={'LambdaFunctionName': os.environ['AWS_LAMBDA_FUNCTION_NAME']},
-        )['Plaintext'])
+        )['Plaintext'].decode('utf-8')
+        return {'api_key': DD_API_KEY}
 
     if 'DD_API_KEY_SECRET_ARN' in os.environ:
         SECRET_ARN = os.environ['DD_API_KEY_SECRET_ARN']
@@ -213,11 +214,12 @@ class Stats(object):
         }
         self.series = []
 
-        creds = urlencode(datadog_keys)
+        creds = urllib.parse.urlencode(datadog_keys)
         data = json.dumps(metrics_dict).encode('ascii')
-        url = '%s?%s' % (datadog_keys.get('api_host', 'https://app.%s/api/v1/series' % DD_SITE), creds)
+        dd_site = 'https://app.%s/api/v1/series' % DD_SITE
+        url = '%s?%s' % (dd_site, creds)
         req = Request(url, data, {'Content-Type': 'application/json'})
         response = urlopen(req)
-        print('INFO Submitted data with status%s' % response.getcode())
+        print('INFO Submitted data with status %s' % response.getcode())
 
 stats = Stats()
