@@ -4,7 +4,7 @@
   "parameters": {
     "functionAppName": {
       "type": "string",
-      "defaultValue": "datadog-functionapp",
+      "defaultValue": "[concat('datadog-functionapp-', newGuid())]",
       "metadata": {
         "description": "The name of the function app "
       }
