@@ -200,7 +200,7 @@ def s3_handler(event, context, metadata):
     else:
         # Check if using multiline log regex pattern
         # and determine whether line or pattern separated logs
-        data = data.decode("utf-8")
+        data = data.decode("utf-8", errors="ignore")
         if DD_MULTILINE_LOG_REGEX_PATTERN and multiline_regex_start_pattern.match(data):
             split_data = multiline_regex.split(data)
         else:
