@@ -1,4 +1,5 @@
 ---
+title: Datadog Forwarder
 kind: documentation
 dependencies: 
   - "https://github.com/DataDog/datadog-serverless-functions/blob/master/aws/logs_monitoring/README.md"
@@ -6,8 +7,6 @@ aliases:
   - /serverless/troubleshooting/installing_the_forwarder/
   - /serverless/forwarder/
 ---
-
-# Datadog Forwarder
 
 The Datadog Forwarder is an AWS Lambda function that ships logs, custom metrics, and traces from your environment to Datadog. The Forwarder can:
 
