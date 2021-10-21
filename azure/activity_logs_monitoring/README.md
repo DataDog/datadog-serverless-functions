@@ -32,7 +32,7 @@ Set the environment variable `DD_SITE` to `datadoghq.eu` and logs are automatica
 
 - **API KEY**:
 
-There are 2 possibilities to set your [Datadog's API key](https://app.datadoghq.com/account/settings#api):
+There are 2 possibilities to set your [Datadog's API key](https://app.datadoghq.com/organization-settings/api-keys):
 
 1. Replace `<DATADOG_API_KEY>` in the code with your API Key value.
 2. Set the value through the `DD_API_KEY` environment variable
