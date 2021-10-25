@@ -261,7 +261,7 @@ The Datadog Forwarder is signed by Datadog. If you would like to verify the inte
 : The ARN of the secret storing the Datadog API key, if you already have it stored in Secrets Manager. You must store the secret as a plaintext, rather than a key-value pair.
 
 `DdSite`
-: The Datadog site that your metrics and logs will be sent to. Possible values are `datadoghq.com`, `datadoghq.eu`, `us3.datadoghq.com` and `ddog-gov.com`.
+: The Datadog site that your metrics and logs will be sent to. Possible values are `datadoghq.com`, `datadoghq.eu`, `us3.datadoghq.com`, `us5.datadoghq.com`,  and `ddog-gov.com`.
 
 ### Lambda function (optional)
 
