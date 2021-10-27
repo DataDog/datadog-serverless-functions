@@ -50,7 +50,7 @@ Install the Forwarder using the Terraform resource [aws_cloudformation_stack](ht
 
 Datadog recommends creating two separate Terraform configurations:
 
-- Use the first one to store the Datadog API key in the AWS Secrets Manager, and note down the secrets ARN from the output of apply.
+- Use the first one to store the [Datadog API key](https://app.datadoghq.com/organization-settings/api-keys) in the AWS Secrets Manager, and note down the secrets ARN from the output of apply.
 - Then create another configuration for the forwarder and supply the secrets ARN through the `DdApiKeySecretArn` parameter.
 
 Separating the configurations of the API key and the forwarder means that you don't need to provide the Datadog API key when updating the forwarder.
@@ -103,7 +103,7 @@ resource "aws_cloudformation_stack" "datadog_forwarder" {
 If you can't install the Forwarder using the provided CloudFormation template, you can install the Forwarder manually following the steps below. Feel free to open an issue or pull request to let us know if there is anything we can improve to make the template work for you.
 
 1. Create a Python 3.7 Lambda function using `aws-dd-forwarder-<VERSION>.zip` from the latest [releases](https://github.com/DataDog/datadog-serverless-functions/releases).
-2. Save your Datadog API key in AWS Secrets Manager, set environment variable `DD_API_KEY_SECRET_ARN` with the secret ARN on the Lambda function, and add the `secretsmanager:GetSecretValue` permission to the Lambda execution role.
+2. Save your [Datadog API key](https://app.datadoghq.com/organization-settings/api-keys) in AWS Secrets Manager, set environment variable `DD_API_KEY_SECRET_ARN` with the secret ARN on the Lambda function, and add the `secretsmanager:GetSecretValue` permission to the Lambda execution role.
 3. If you need to forward logs from S3 buckets, add the `s3:GetObject` permission to the Lambda execution role.
 4. Set the environment variable `DD_ENHANCED_METRICS` to `false` on the Forwarder. This stops the Forwarder from generating enhanced metrics itself, but it will still forward custom metrics from other lambdas.
 5. Some AWS accounts are configured such that triggers will not automatically create resoucrce-based policies allowing Cloudwatch log groups to invoke the forwarder.
@@ -255,7 +255,7 @@ The Datadog Forwarder is signed by Datadog. If you would like to verify the inte
 ### Required
 
 `DdApiKey`
-: Your Datadog API Key. This can be found in Datadog, under Integrations > APIs > API Keys. The API Key will be stored in AWS Secrets Manager. If you already have Datadog API Key stored in Secrets Manager, use `DdApiKeySecretArn` instead.
+: Your [Datadog API key](https://app.datadoghq.com/organization-settings/api-keys). This can be found in Datadog, under Integrations > APIs > API Keys. The API Key will be stored in AWS Secrets Manager. If you already have Datadog API Key stored in Secrets Manager, use `DdApiKeySecretArn` instead.
 
 `DdApiKeySecretArn`
 : The ARN of the secret storing the Datadog API key, if you already have it stored in Secrets Manager. You must store the secret as a plaintext, rather than a key-value pair.
