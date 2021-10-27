@@ -255,7 +255,7 @@ The Datadog Forwarder is signed by Datadog. If you would like to verify the inte
 ### Required
 
 `DdApiKey`
-: Your [Datadog API key](https://app.datadoghq.com/organization-settings/api-keys). This can be found in Datadog, under Integrations > APIs > API Keys. The API Key will be stored in AWS Secrets Manager. If you already have Datadog API Key stored in Secrets Manager, use `DdApiKeySecretArn` instead.
+: Your [Datadog API key](https://app.datadoghq.com/organization-settings/api-keys). This can be found in Datadog, Organization Settings > API Keys. The API Key is stored in AWS Secrets Manager. If you already have a Datadog API Key stored in Secrets Manager, use `DdApiKeySecretArn` instead.
 
 `DdApiKeySecretArn`
 : The ARN of the secret storing the Datadog API key, if you already have it stored in Secrets Manager. You must store the secret as a plaintext, rather than a key-value pair.
