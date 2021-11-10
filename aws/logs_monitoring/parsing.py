@@ -220,9 +220,8 @@ def get_service_from_tags(metadata):
     # Get service from dd_custom_tags if it exists
     tagsplit = metadata[DD_CUSTOM_TAGS].split(",")
     for tag in tagsplit:
-        tag_name, tag_value = tag.split(":")
-        if tag_name == "service":
-            return tag_value
+        if tag.startswith("service:"):
+            return tag[8:]
 
     # Default service to source value
     return metadata[DD_SOURCE]
