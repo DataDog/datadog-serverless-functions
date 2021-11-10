@@ -20,6 +20,11 @@ from parsing import (
     parse_event_source,
     separate_security_hub_findings,
     parse_aws_waf_logs,
+    get_service_from_tags,
+)
+from settings import (
+    DD_CUSTOM_TAGS,
+    DD_SOURCE,
 )
 
 env_patch.stop()
@@ -716,6 +721,22 @@ class TestAWSLogsHandler(unittest.TestCase):
             },
             metadata,
         )
+
+
+class TestGetServiceFromTags(unittest.TestCase):
+    def test_get_service_from_tags(self):
+        metadata = {
+            DD_SOURCE: "ecs",
+            DD_CUSTOM_TAGS: "env:dev,tag,stack:aws:ecs,service:web,version:v1",
+        }
+        self.assertEqual(get_service_from_tags(metadata), "web")
+
+    def test_get_service_from_tags_default_to_source(self):
+        metadata = {
+            DD_SOURCE: "ecs",
+            DD_CUSTOM_TAGS: "env:dev,tag,stack:aws:ecs,version:v1",
+        }
+        self.assertEqual(get_service_from_tags(metadata), "ecs")
 
 
 if __name__ == "__main__":
