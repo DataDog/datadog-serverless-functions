@@ -16,7 +16,7 @@
       Start: (int64) 1636820292450000100,
       Duration: (int64) 149992638,
       Error: (int32) 0,
-      Meta: (map[string]string) (len=13) {
+      Meta: (map[string]string) (len=12) {
        (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
        (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
        (string) (len=8) "endpoint": (string) (len=1) "/",
@@ -25,7 +25,6 @@
        (string) (len=8) "http.url": (string) (len=2) "?/",
        (string) (len=28) "inferred_span.inherit_lambda": (string) (len=5) "False",
        (string) (len=22) "inferred_span.is_async": (string) (len=5) "False",
-       (string) (len=2) "my": (string) (len=5) "value",
        (string) (len=14) "operation_name": (string) (len=19) "aws.apigateway.rest",
        (string) (len=10) "request_id": (string) (len=36) "9f09f496-83c7-441b-bc59-9741107b0683",
        (string) (len=14) "resource_names": (string) (len=47) "ialbefmodl.execute-api.sa-east-1.amazonaws.com/",
@@ -316,7 +315,7 @@
     Start: (int64) 1636820292450000100,
     Duration: (int64) 149992638,
     Error: (int32) 0,
-    Meta: (map[string]string) (len=13) {
+    Meta: (map[string]string) (len=12) {
      (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
      (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
      (string) (len=8) "endpoint": (string) (len=1) "/",
@@ -325,7 +324,6 @@
      (string) (len=8) "http.url": (string) (len=2) "?/",
      (string) (len=28) "inferred_span.inherit_lambda": (string) (len=5) "False",
      (string) (len=22) "inferred_span.is_async": (string) (len=5) "False",
-     (string) (len=2) "my": (string) (len=5) "value",
      (string) (len=14) "operation_name": (string) (len=19) "aws.apigateway.rest",
      (string) (len=10) "request_id": (string) (len=36) "9f09f496-83c7-441b-bc59-9741107b0683",
      (string) (len=14) "resource_names": (string) (len=47) "ialbefmodl.execute-api.sa-east-1.amazonaws.com/",

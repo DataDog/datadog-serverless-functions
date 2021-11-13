@@ -184,6 +184,11 @@ func AddTagsToTracePayloads(tracePayloads []*pb.TracePayload, tags string) {
 		for _, trace := range tracePayload.Traces {
 
 			for _, span := range trace.Spans {
+				// do not add tags from Lambda function if it's an inferred span and
+				// it does not belong to the AWS Lambda service
+				if value, ok := span.Meta["inferred_span.inherit_lambda"]; ok && value == "False" {
+					continue
+				}
 				if serviceLookup[span.Service] != "" {
 					span.Service = serviceLookup[span.Service]
 				}
