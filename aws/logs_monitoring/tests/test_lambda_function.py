@@ -147,7 +147,10 @@ class TestLambdaFunctionEndToEnd(unittest.TestCase):
         my_path = os.path.abspath(os.path.dirname(__file__))
         path = os.path.join(my_path, "events/simple.json")
 
-        with open(path, "r",) as input_file:
+        with open(
+            path,
+            "r",
+        ) as input_file:
             input_data = input_file.read()
 
         event = {"awslogs": {"data": create_cloudwatch_log_event_from_data(input_data)}}
