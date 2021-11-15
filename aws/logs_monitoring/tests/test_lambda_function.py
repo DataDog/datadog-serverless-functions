@@ -145,7 +145,7 @@ class TestLambdaFunctionEndToEnd(unittest.TestCase):
         )
         context = Context()
         my_path = os.path.abspath(os.path.dirname(__file__))
-        path = os.path.join(my_path, "events/simple.json")
+        path = os.path.join(my_path, "events/cloudwatch_logs.json")
 
         with open(
             path,
