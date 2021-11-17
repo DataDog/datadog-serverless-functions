@@ -197,7 +197,7 @@ class HTTPClient {
                 });
             req.on('timeout', () => {
                 req.destroy();
-                reject(`request timed out after ${DD_REQUEST_TIMEOUT_MS}ms`)
+                reject(`request timed out after ${DD_REQUEST_TIMEOUT_MS}ms`);
             })
             req.write(this.scrubber.scrub(JSON.stringify(record)));
             req.end();
