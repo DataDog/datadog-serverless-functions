@@ -5,7 +5,7 @@
 
 var https = require('https');
 
-const VERSION = '0.5.5';
+const VERSION = '0.5.6';
 
 const STRING = 'string'; // example: 'some message'
 const STRING_ARRAY = 'string-array'; // example: ['one message', 'two message', ...]
@@ -23,6 +23,7 @@ const DD_API_KEY = process.env.DD_API_KEY || '<DATADOG_API_KEY>';
 const DD_SITE = process.env.DD_SITE || 'datadoghq.com';
 const DD_HTTP_URL = process.env.DD_URL || 'http-intake.logs.' + DD_SITE;
 const DD_HTTP_PORT = process.env.DD_PORT || 443;
+const DD_REQUEST_TIMEOUT_MS = 10000;
 const DD_TAGS = process.env.DD_TAGS || ''; // Replace '' by your comma-separated list of tags
 const DD_SERVICE = process.env.DD_SERVICE || 'azure';
 const DD_SOURCE = process.env.DD_SOURCE || 'azure';
@@ -138,7 +139,8 @@ class HTTPClient {
                 'Content-Type': 'application/json',
                 'DD-API-KEY': DD_API_KEY,
                 'DD-EVP-ORIGIN': 'azure'
-            }
+            },
+            timeout: DD_REQUEST_TIMEOUT_MS
         };
         this.scrubber = new Scrubber(this.context, SCRUBBER_RULE_CONFIGS);
         this.batcher = new Batcher(
@@ -193,6 +195,10 @@ class HTTPClient {
                 .on('error', error => {
                     reject(error);
                 });
+            req.on('timeout', () => {
+                req.destroy();
+                reject(`request timed out after ${DD_REQUEST_TIMEOUT_MS}ms`)
+            })
             req.write(this.scrubber.scrub(JSON.stringify(record)));
             req.end();
         });
