@@ -206,6 +206,10 @@ Parameters:
     Type: String
     Default: ""
     Description: The endpoint URL to forward the traces to, useful for forwarding traces through a proxy
+  DdForwarderBucketName:
+    Type: String
+    Default: ""
+    Description: The name of the forwarder bucket to create. If not provided, AWS will generate a unique name.
 Conditions:
   IsAWSChina:
     Fn::Equals:
@@ -368,6 +372,11 @@ Conditions:
     Fn::Not:
       - Fn::Equals:
           - Ref: DdTraceIntakeUrl
+          - ""
+  SetDdForwarderBucketName:
+    Fn::Not:
+      - Fn::Equals:
+          - Ref: DdForwarderBucketName
           - ""
 Rules:
   MustSetDdApiKey:
@@ -653,7 +662,7 @@ Resources:
                     - Ref: DdApiKeySecret
                     - Fn::Sub: "${DdApiKeySecretArn}*"
                 Effect: Allow
-              # Fetch Lambda resource tags for data enrichment 
+              # Fetch Lambda resource tags for data enrichment
               - Fn::If:
                   - SetDdFetchLambdaTags
                   - Action:
@@ -671,7 +680,7 @@ Resources:
                     Resource: "*"
                     Effect: Allow
                   - Ref: AWS::NoValue
-              # To invoke a follower Lambda with the same event received by the forwarder for dual-shipping 
+              # To invoke a follower Lambda with the same event received by the forwarder for dual-shipping
               - Fn::If:
                   - SetAdditionalTargetLambdas
                   - Action:
@@ -742,6 +751,11 @@ Resources:
   ForwarderBucket:
     Type: AWS::S3::Bucket
     Properties:
+      BucketName:
+        Fn::If:
+          - SetDdForwarderBucketName
+          - Ref: DdForwarderBucketName
+          - Ref: AWS::NoValue
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
