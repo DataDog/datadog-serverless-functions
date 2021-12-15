@@ -198,34 +198,35 @@ class TestLambdaFunctionEndToEnd(unittest.TestCase):
 
         del os.environ["DD_FETCH_LAMBDA_TAGS"]
 
-class TestLambdaFunctionExtractTracePayload(unittest.TestCase):
 
+class TestLambdaFunctionExtractTracePayload(unittest.TestCase):
     def test_extract_trace_payload_none_no_trace(self):
         message_json = """{
             "key": "value"
         }"""
-        self.assertEqual(extract_trace_payload({"message":message_json}), None)
+        self.assertEqual(extract_trace_payload({"message": message_json}), None)
 
     def test_extract_trace_payload_none_exception(self):
         message_json = """{
             "invalid_json"
         }"""
-        self.assertEqual(extract_trace_payload({"message":message_json}), None)
+        self.assertEqual(extract_trace_payload({"message": message_json}), None)
 
     def test_extract_trace_payload_unrelated_datadog_trace(self):
         message_json = """{"traces":["I am a trace"]}"""
-        self.assertEqual(extract_trace_payload({"message":message_json}), None)
+        self.assertEqual(extract_trace_payload({"message": message_json}), None)
 
     def test_extract_trace_payload_valid_trace(self):
         message_json = """{"traces":[[{"trace_id":1234}]]}"""
         tags_json = """["key0:value", "key1:value1"]"""
         item = {
-            "message":'{"traces":[[{"trace_id":1234}]]}',
-            "tags": '["key0:value", "key1:value1"]'
+            "message": '{"traces":[[{"trace_id":1234}]]}',
+            "tags": '["key0:value", "key1:value1"]',
         }
-        self.assertEqual(extract_trace_payload({"message":message_json, "ddtags": tags_json}), item)
+        self.assertEqual(
+            extract_trace_payload({"message": message_json, "ddtags": tags_json}), item
+        )
 
 
 if __name__ == "__main__":
     unittest.main()
-

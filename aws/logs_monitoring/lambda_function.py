@@ -179,8 +179,12 @@ def extract_trace_payload(event):
         obj_has_traces = "traces" in obj
         traces_is_a_list = isinstance(obj["traces"], list)
         # check that the log is not containing a traces array unrelated to Datadog
-        trace_id_found = len(obj["traces"][0]) > 0 and obj["traces"][0][0]["trace_id"] is not None
-    
+        trace_id_found = (
+            len(obj["traces"]) > 0
+            and len(obj["traces"][0]) > 0
+            and obj["traces"][0][0]["trace_id"] is not None
+        )
+
         if obj_has_traces and traces_is_a_list and trace_id_found:
             return {"message": message, "tags": event[DD_CUSTOM_TAGS]}
         return None
