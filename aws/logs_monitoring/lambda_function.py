@@ -188,7 +188,7 @@ def extract_trace_payload(event):
         if obj_has_traces and traces_is_a_list and trace_id_found:
             return {"message": message, "tags": event[DD_CUSTOM_TAGS]}
         return None
-    except Exception as e:
+    except Exception:
         return None
 
 
