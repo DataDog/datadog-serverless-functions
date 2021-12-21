@@ -88,7 +88,8 @@ resource "aws_cloudformation_stack" "datadog_forwarder" {
   name         = "datadog-forwarder"
   capabilities = ["CAPABILITY_IAM", "CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND"]
   parameters   = {
-    DdApiKeySecretArn  = "REPLACE ME WITH THE SECRETS ARN"
+    DdApiKeySecretArn  = "REPLACE ME WITH THE SECRETS ARN",
+    DdSite             = "{{< region-param key="dd_site" code="true" >}}",
     FunctionName       = "datadog-forwarder"
   }
   template_url = "https://datadog-cloudformation-template.s3.amazonaws.com/aws/forwarder/latest.yaml"
