@@ -115,6 +115,7 @@ DD_TRACE_INTAKE_URL = get_env_var(
     default="{}://trace.agent.{}".format("http" if DD_NO_SSL else "https", DD_SITE),
 )
 
+# The TCP transport has been deprecated, migrate to the HTTP intake.
 if DD_USE_TCP:
     DD_URL = get_env_var("DD_URL", default="lambda-intake.logs." + DD_SITE)
     try:
@@ -125,14 +126,17 @@ if DD_USE_TCP:
     except Exception:
         DD_PORT = 10516
 else:
-    DD_URL = get_env_var("DD_URL", default="lambda-http-intake.logs." + DD_SITE)
+    DD_URL = get_env_var("DD_URL", default="http-intake.logs." + DD_SITE)
     DD_PORT = int(get_env_var("DD_PORT", default="443"))
 
 ## @param DD_USE_VPC
 DD_USE_VPC = get_env_var("DD_USE_VPC", "false", boolean=True)
 
-## @param DD_USE_PRIVATE_LINK - whether to forward logs via PrivateLink
-## Overrides incompatible settings
+# DEPRECATED. No longer need to use special endpoints, as you can now expose
+# regular Datadog API endpoints `api`, `http-intake.logs` and `trace.agent`
+# via PrivateLink. See https://docs.datadoghq.com/agent/guide/private-link/.
+# @param DD_USE_PRIVATE_LINK - whether to forward logs via PrivateLink
+# Overrides incompatible settings
 #
 DD_USE_PRIVATE_LINK = get_env_var("DD_USE_PRIVATE_LINK", "false", boolean=True)
 if DD_USE_PRIVATE_LINK:

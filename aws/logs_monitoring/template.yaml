@@ -157,7 +157,7 @@ Parameters:
     AllowedValues:
       - true
       - false
-    Description: Set to true to deploy the Forwarder to a VPC and send logs, metrics, and traces via AWS PrivateLink. When set to true, must also set VPCSecurityGroupIds and VPCSubnetIds. Find more details from https://dtdg.co/private-link.
+    Description: DEPRECATED, DO NOT CHANGE. See README.md for details. Set to true to deploy the Forwarder to a VPC and send logs, metrics, and traces via AWS PrivateLink. When set to true, must also set VPCSecurityGroupIds and VPCSubnetIds.
   DdUseVPC:
     Type: String
     Default: false

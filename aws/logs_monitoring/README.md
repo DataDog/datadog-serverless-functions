@@ -214,14 +214,16 @@ If you need to ship logs to multiple Datadog organizations or other destinations
 
 ### AWS PrivateLink support
 
-You can run the Forwarder in a VPC by using AWS PrivateLink to connect to Datadog. Note that AWS PrivateLink can only be configured with Datadog organizations using the Datadog US site (i.e. datadoghq.com, not datadoghq.eu).
+You can run the Forwarder in a VPC private subnet and send data to Datadog over AWS PrivateLink. Note that AWS PrivateLink can only be configured with [Datadog Sites](https://docs.datadoghq.com/getting_started/site/) hosted on AWS (i.e. datadoghq.com, not datadoghq.eu).
 
-1. Follow the [setup instructions](https://docs.datadoghq.com/agent/guide/private-link/?tab=logs#create-your-vpc-endpoint) to add an endpoint to your VPC for Datadog's **API** service.
-2. Follow the [same procedure](https://docs.datadoghq.com/agent/guide/private-link/?tab=logs#create-your-vpc-endpoint) to add a second endpoint to your VPC for Datadog's **Logs** service.
-3. Follow the [same procedure](https://docs.datadoghq.com/agent/guide/private-link/?tab=logs#create-your-vpc-endpoint) once more to add a third endpoint to your VPC for Datadog's **Traces** service.
-4. Unless the Forwarder is deployed to a public subnet, follow the [instructions](https://docs.aws.amazon.com/vpc/latest/userguide/vpce-interface.html#create-interface-endpoint) to add endpoints for Secrets Manager and S3 to the VPC, so that the Forwarder can access those services.
-5. When installing the Forwarder with the CloudFormation template, set `DdUsePrivateLink`, `VPCSecurityGroupIds` and `VPCSubnetIds`.
-6. Ensure the `DdFetchLambdaTags` option is disabled, because AWS VPC does not yet offer an endpoint for the Resource Groups Tagging API.
+1. Follow the [instructions](https://docs.datadoghq.com/agent/guide/private-link/?tab=logs#create-your-vpc-endpoint) to add the Datadog `api`, `http-logs.intake` and `trace.agent` endpoints to your VPC.
+2. Follow the [instructions](https://docs.aws.amazon.com/vpc/latest/userguide/vpce-interface.html#create-interface-endpoint) to add the AWS Secrets Manager and S3 endpoints to your VPC.
+3. When installing the Forwarder with the CloudFormation template,
+   1. set `UseVPC` to `true`
+   2. set `VPCSecurityGroupIds` and `VPCSubnetIds` based on your VPC settings
+   3. set `DdFetchLambdaTags` to `false`, because AWS Resource Groups Tagging API doesn't support PrivateLink
+
+NOTE: The `DdUsePrivateLink` option has been deprecated. It was previously used to instruct the Forwarder to use a special set of Datadog endpoints for intake. If you have `DdUsePrivateLink` enabled, keep it that way, unless you follow the instructions above to add the Datadog `api`, `http-logs.intake` and `trace.agent` endpoints to your VPC.
 
 ### AWS VPC and proxy support
 
@@ -362,7 +364,7 @@ To test different patterns against your logs, turn on [debug logs](#troubleshoot
 `PermissionBoundaryArn`
 : ARN for the Permissions Boundary Policy.
 
-`DdUsePrivateLink`
+`DdUsePrivateLink` (DEPRECATED)
 : Set to true to enable sending logs and metrics via AWS PrivateLink. See https://dtdg.co/private-link.
 
 `DdHttpProxyURL`
