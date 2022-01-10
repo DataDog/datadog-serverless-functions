@@ -55,7 +55,7 @@ Datadog recommends creating two separate Terraform configurations:
 
 Separating the configurations of the API key and the forwarder means that you don't need to provide the Datadog API key when updating the forwarder.
 
-**Note:** The `DdApiKey` parameter is required by the CloudFormation template, so you need to give it a placeholder value (any value) to apply. To update or upgrade the forwarder in the future, apply the forwarder configuration again.
+To update or upgrade the forwarder in the future, apply the forwarder configuration again.
 
 #### Sample configuration
 
