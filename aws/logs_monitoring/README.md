@@ -224,7 +224,15 @@ You can run the Forwarder in a VPC private subnet and send data to Datadog over 
    2. set `VPCSecurityGroupIds` and `VPCSubnetIds` based on your VPC settings
    3. set `DdFetchLambdaTags` to `false`, because AWS Resource Groups Tagging API doesn't support PrivateLink
 
-NOTE: The `DdUsePrivateLink` option has been deprecated. It was previously used to instruct the Forwarder to use a special set of Datadog endpoints for intake. If you have `DdUsePrivateLink` enabled, keep it that way, unless you follow the instructions above to add the Datadog `api`, `http-logs.intake` and `trace.agent` endpoints to your VPC.
+#### DdUsePrivateLink is deprecated
+
+The `DdUsePrivateLink` option has been deprecated since [v3.41.0](https://github.com/DataDog/datadog-serverless-functions/releases/tag/aws-dd-forwarder-3.41.0). This option was previously used to instruct the Forwarder to use a special set of PrivateLink endpoints for data intake - `pvtlink.api.datadoghq.com`, `api-pvtlink.logs.datadoghq.com` and `trace-pvtlink.agent.datadoghq.com`. Since v3.41.0, the Forwarder can send data over PrivateLink to Datadog using the regular DNS names of intake endpoints - `api.datadoghq.com`, `http-intake.logs.datadoghq.com` and `trace.agent.datadoghq.com`. Therefore the `DdUsePrivateLink` option is no longer needed.
+
+If you have an older deployment of the Forwarder with `DdUsePrivateLink` set to `true`, then you may find mismatches between your configured PrivateLink endpoints and the [ones documented in Datadog](https://docs.datadoghq.com/agent/guide/private-link/?tab=logs#create-your-vpc-endpoint), which is expected. Altough the older PrivateLink endpoints were removed from that doc, they remain to function. When upgrading the Forwarder, there is no change required, that is, you can keep `DdUsePrivateLink` enabled and continue to use the older endpoints. However, if you are interestted in switching to the new endpoints, you need to follow the updated instructions above to
+
+1. set up the new endpoints `api.datadoghq.com`, `http-intake.logs.datadoghq.com` and `trace.agent.datadoghq.com`
+2. set `UseVPC` to `true`
+3. set `DdUsePrivateLink` to `false`
 
 ### AWS VPC and proxy support
 
