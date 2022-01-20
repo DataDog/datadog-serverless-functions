@@ -23,8 +23,8 @@
             "http.method": "GET",
             "resource_names": "ialbefmodl.execute-api.sa-east-1.amazonaws.com/",
             "request_id": "9f09f496-83c7-441b-bc59-9741107b0683",
-            "inferred_span.inherit_lambda": "False",
-            "inferred_span.is_async": "False",
+            "_inferred_span.tag_source": "self",
+            "_inferred_span.synchronisity": "sync",
             "http.status_code": "200"
           },
           "metrics": {
