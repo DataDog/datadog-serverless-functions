@@ -356,7 +356,7 @@ Using an inefficient regular expression, such as `.*`, may slow down the Forward
 
 Some examples of regular expressions that can be used for log filtering:
 
-- Include (or exclude) Lambda platform logs: `"(START|REPORT|END)\s`
+- Include (or exclude) Lambda platform logs: `"(START|END) RequestId\s`. Note: The preceding `"` is needed to match the start of the log message, which is in a json blob (`{"message": "START RequestId...."}`). Datadog recommends keeping the `REPORT` logs, as they are used to populate the invocations list in the serverless function views. 
 - Include CloudTrail error messages only: `errorMessage`
 - Include only logs containing an HTTP 4XX or 5XX error code: `\b[4|5][0-9][0-9]\b`
 - Include only CloudWatch logs where the `message` field contains a specific JSON key/value pair: `\\"awsRegion\\":\\"us-east-1\\"`
