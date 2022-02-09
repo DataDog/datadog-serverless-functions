@@ -280,9 +280,9 @@ class TestParseServiceArn(unittest.TestCase):
                 "elb",
                 "123456789123/elasticloadbalancing/us-east-1/2022/02/08/123456789123_elasticloadbalancing_us-east-1_app.my-alb-name.123456789aabcdef_20220208T1127Z_10.0.0.2_1abcdef2.log.gz",
                 None,
-                None
+                None,
             ),
-            None
+            None,
         )
 
     def test_elb_s3_key_no_prefix(self):
@@ -291,9 +291,9 @@ class TestParseServiceArn(unittest.TestCase):
                 "elb",
                 "AWSLogs/123456789123/elasticloadbalancing/us-east-1/2022/02/08/123456789123_elasticloadbalancing_us-east-1_app.my-alb-name.123456789aabcdef_20220208T1127Z_10.0.0.2_1abcdef2.log.gz",
                 None,
-                None
+                None,
             ),
-            "arn:aws:elasticloadbalancing:us-east-1:123456789123:loadbalancer/app/my-alb-name/123456789aabcdef"
+            "arn:aws:elasticloadbalancing:us-east-1:123456789123:loadbalancer/app/my-alb-name/123456789aabcdef",
         )
 
     def test_elb_s3_key_single_prefix(self):
@@ -302,9 +302,9 @@ class TestParseServiceArn(unittest.TestCase):
                 "elb",
                 "elasticloadbalancing/AWSLogs/123456789123/elasticloadbalancing/us-east-1/2022/02/08/123456789123_elasticloadbalancing_us-east-1_app.my-alb-name.123456789aabcdef_20220208T1127Z_10.0.0.2_1abcdef2.log.gz",
                 None,
-                None
+                None,
             ),
-            "arn:aws:elasticloadbalancing:us-east-1:123456789123:loadbalancer/app/my-alb-name/123456789aabcdef"
+            "arn:aws:elasticloadbalancing:us-east-1:123456789123:loadbalancer/app/my-alb-name/123456789aabcdef",
         )
 
     def test_elb_s3_key_multi_prefix(self):
@@ -313,9 +313,9 @@ class TestParseServiceArn(unittest.TestCase):
                 "elb",
                 "elasticloadbalancing/my-alb-name/AWSLogs/123456789123/elasticloadbalancing/us-east-1/2022/02/08/123456789123_elasticloadbalancing_us-east-1_app.my-alb-name.123456789aabcdef_20220208T1127Z_10.0.0.2_1abcdef2.log.gz",
                 None,
-                None
+                None,
             ),
-            "arn:aws:elasticloadbalancing:us-east-1:123456789123:loadbalancer/app/my-alb-name/123456789aabcdef"
+            "arn:aws:elasticloadbalancing:us-east-1:123456789123:loadbalancer/app/my-alb-name/123456789aabcdef",
         )
 
 

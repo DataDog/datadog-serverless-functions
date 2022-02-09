@@ -371,7 +371,7 @@ def parse_service_arn(source, key, bucket, context):
         # If there is a prefix on the S3 bucket, remove the prefix before splitting the key
         if idsplit[0] != "AWSLogs":
             try:
-                idsplit = idsplit[idsplit.index("AWSLogs"):]
+                idsplit = idsplit[idsplit.index("AWSLogs") :]
                 keysplit = "/".join(idsplit).split("_")
             except ValueError:
                 logger.debug("Invalid S3 key, doesn't contain AWSLogs")
