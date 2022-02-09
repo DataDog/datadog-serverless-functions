@@ -365,7 +365,8 @@ def parse_service_arn(source, key, bucket, context):
         # 3. We extract the id of the loadbalancer
         # 4. We build the arn
         idsplit = key.split("/")
-        if not len(idsplit):
+        if not idsplit:
+            logger.debug("Invalid service ARN, unable to parse ELB ARN")
             return
         # If there is a prefix on the S3 bucket, remove the prefix before splitting the key
         if idsplit[0] != "AWSLogs":
@@ -373,7 +374,7 @@ def parse_service_arn(source, key, bucket, context):
                 idsplit = idsplit[idsplit.index("AWSLogs"):]
                 keysplit = "/".join(idsplit).split("_")
             except ValueError:
-                # Invalid S3 key, doesn't contain AWSLogs
+                logger.debug("Invalid S3 key, doesn't contain AWSLogs")
                 return
         # If no prefix, split the key
         else:
