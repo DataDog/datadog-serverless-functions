@@ -210,6 +210,10 @@ Parameters:
     Type: String
     Default: ""
     Description: The name of the forwarder bucket to create. If not provided, AWS will generate a unique name.
+  StaticExportsPrefix:
+    Type: String
+    Default: ""
+    Description: "Sets a static prefix the stack exports rather than prefixing with the stack name (useful when deploying via StackSets)"
 Conditions:
   IsAWSChina:
     Fn::Equals:
@@ -377,6 +381,11 @@ Conditions:
     Fn::Not:
       - Fn::Equals:
           - Ref: DdForwarderBucketName
+          - ""
+  SetStaticExportsPrefix:
+    Fn::Not:
+      - Fn::Equals:
+          - Ref: StaticExportsPrefix
           - ""
 Rules:
   MustSetDdApiKey:
@@ -941,14 +950,20 @@ Outputs:
         - Arn
     Export:
       Name:
-        Fn::Sub: ${AWS::StackName}-ForwarderArn
+        Fn::If:
+          - SetStaticExportsPrefix
+          - Fn::Sub: ${StaticExportsPrefix}-ForwarderArn
+          - Fn::Sub: ${AWS::StackName}-ForwarderArn
   DdApiKeySecretArn:
     Description: ARN of SecretsManager Secret with Datadog API Key
     Value:
       Ref: DdApiKeySecret
     Export:
       Name:
-        Fn::Sub: ${AWS::StackName}-ApiKeySecretArn
+        Fn::If:
+          - SetStaticExportsPrefix
+          - Fn::Sub: ${StaticExportsPrefix}-ApiKeySecretArn
+          - Fn::Sub: ${AWS::StackName}-ApiKeySecretArn
     Condition: CreateDdApiKeySecret
   ForwarderBucketName:
     Description: Name of the S3 bucket used by the Forwarder
@@ -956,7 +971,10 @@ Outputs:
       Ref: ForwarderBucket
     Export:
       Name:
-        Fn::Sub: ${AWS::StackName}-ForwarderBucketName
+        Fn::If:
+          - SetStaticExportsPrefix
+          - Fn::Sub: ${StaticExportsPrefix}-ForwarderBucketName
+          - Fn::Sub: ${AWS::StackName}-ForwarderBucketName
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
@@ -1019,6 +1037,7 @@ Metadata:
           - DdTraceIntakeUrl
           - AdditionalTargetLambdaArns
           - DdForwarderBucketName
+          - StaticExportsPrefix
     ParameterLabels:
       DdApiKey:
         default: "DdApiKey *"
