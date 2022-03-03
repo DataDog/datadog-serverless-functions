@@ -18,6 +18,7 @@ env_patch.start()
 from parsing import (
     awslogs_handler,
     parse_event_source,
+    parse_service_arn,
     separate_security_hub_findings,
     parse_aws_waf_logs,
     get_service_from_tags,
@@ -270,6 +271,52 @@ class TestParseEventSource(unittest.TestCase):
 
     def test_s3_source_if_none_found(self):
         self.assertEqual(parse_event_source({"Records": ["logs-from-s3"]}, ""), "s3")
+
+
+class TestParseServiceArn(unittest.TestCase):
+    def test_elb_s3_key_invalid(self):
+        self.assertEqual(
+            parse_service_arn(
+                "elb",
+                "123456789123/elasticloadbalancing/us-east-1/2022/02/08/123456789123_elasticloadbalancing_us-east-1_app.my-alb-name.123456789aabcdef_20220208T1127Z_10.0.0.2_1abcdef2.log.gz",
+                None,
+                None,
+            ),
+            None,
+        )
+
+    def test_elb_s3_key_no_prefix(self):
+        self.assertEqual(
+            parse_service_arn(
+                "elb",
+                "AWSLogs/123456789123/elasticloadbalancing/us-east-1/2022/02/08/123456789123_elasticloadbalancing_us-east-1_app.my-alb-name.123456789aabcdef_20220208T1127Z_10.0.0.2_1abcdef2.log.gz",
+                None,
+                None,
+            ),
+            "arn:aws:elasticloadbalancing:us-east-1:123456789123:loadbalancer/app/my-alb-name/123456789aabcdef",
+        )
+
+    def test_elb_s3_key_single_prefix(self):
+        self.assertEqual(
+            parse_service_arn(
+                "elb",
+                "elasticloadbalancing/AWSLogs/123456789123/elasticloadbalancing/us-east-1/2022/02/08/123456789123_elasticloadbalancing_us-east-1_app.my-alb-name.123456789aabcdef_20220208T1127Z_10.0.0.2_1abcdef2.log.gz",
+                None,
+                None,
+            ),
+            "arn:aws:elasticloadbalancing:us-east-1:123456789123:loadbalancer/app/my-alb-name/123456789aabcdef",
+        )
+
+    def test_elb_s3_key_multi_prefix(self):
+        self.assertEqual(
+            parse_service_arn(
+                "elb",
+                "elasticloadbalancing/my-alb-name/AWSLogs/123456789123/elasticloadbalancing/us-east-1/2022/02/08/123456789123_elasticloadbalancing_us-east-1_app.my-alb-name.123456789aabcdef_20220208T1127Z_10.0.0.2_1abcdef2.log.gz",
+                None,
+                None,
+            ),
+            "arn:aws:elasticloadbalancing:us-east-1:123456789123:loadbalancer/app/my-alb-name/123456789aabcdef",
+        )
 
 
 class TestParseAwsWafLogs(unittest.TestCase):
