@@ -453,7 +453,7 @@ def awslogs_handler(event, context, metadata):
 
     metadata[DD_SERVICE] = get_service_from_tags(metadata)
 
-    cloudwatch_logs_client = boto3.client('logs')
+    cloudwatch_logs_client = boto3.client("logs")
     response = None
     try:
         response = cloudwatch_logs_client.list_tags_log_group(
@@ -463,10 +463,15 @@ def awslogs_handler(event, context, metadata):
         logger.exception(f"Failed to get log group tags due to {e}")
     if response is not None:
         formatted_tags = [
-            "{key}:{value}".format(key=k, value=v) if v else k for k,v in response["tags"].items()
+            "{key}:{value}".format(key=k, value=v) if v else k
+            for k, v in response["tags"].items()
         ]
         if len(formatted_tags) > 0:
-            metadata[DD_CUSTOM_TAGS] = ",".join(formatted_tags) if not metadata[DD_CUSTOM_TAGS] else metadata[DD_CUSTOM_TAGS] + "," + ",".join(formatted_tags)
+            metadata[DD_CUSTOM_TAGS] = (
+                ",".join(formatted_tags)
+                if not metadata[DD_CUSTOM_TAGS]
+                else metadata[DD_CUSTOM_TAGS] + "," + ",".join(formatted_tags)
+            )
 
     # Build aws attributes
     aws_attributes = {
