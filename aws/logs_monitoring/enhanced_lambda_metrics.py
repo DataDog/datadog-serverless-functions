@@ -6,9 +6,7 @@
 import logging
 import os
 import re
-import json
 import datetime
-from random import randint
 
 from collections import defaultdict
 from time import time
@@ -16,27 +14,13 @@ from time import time
 import boto3
 from botocore.exceptions import ClientError
 
+from cache import LambdaTagsCache, send_forwarder_internal_metrics
 from settings import (
-    DD_S3_BUCKET_NAME,
     DD_S3_CACHE_FILENAME,
-    DD_TAGS_CACHE_TTL_SECONDS,
     DD_S3_CACHE_LOCK_FILENAME,
-    DD_S3_CACHE_LOCK_TTL_SECONDS,
 )
-from telemetry import (
-    DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX,
-    get_forwarder_telemetry_tags,
-)
-
-JITTER_MIN = 1
-JITTER_MAX = 100
 
 ENHANCED_METRICS_NAMESPACE_PREFIX = "aws.lambda.enhanced"
-DD_TAGS_CACHE_TTL_SECONDS = DD_TAGS_CACHE_TTL_SECONDS + randint(JITTER_MIN, JITTER_MAX)
-
-DD_S3_CACHE_LOCK_TTL_SECONDS = DD_S3_CACHE_LOCK_TTL_SECONDS + randint(
-    JITTER_MIN, JITTER_MAX
-)
 
 # Latest Lambda pricing per https://aws.amazon.com/lambda/pricing/
 BASE_LAMBDA_INVOCATION_PRICE = 0.0000002
@@ -99,7 +83,6 @@ METRIC_ADJUSTMENT_FACTORS = {
 
 
 resource_tagging_client = boto3.client("resourcegroupstaggingapi")
-s3_client = boto3.resource("s3")
 
 logger = logging.getLogger()
 
@@ -116,81 +99,50 @@ except ImportError:
     DD_SUBMIT_ENHANCED_METRICS = False
 
 
-class LambdaTagsCache(object):
-    def __init__(self, tags_ttl_seconds=DD_TAGS_CACHE_TTL_SECONDS):
-        self.tags_ttl_seconds = tags_ttl_seconds
+class EnhancedMetricsTagsCache(LambdaTagsCache):
+    CACHE_FILENAME = DD_S3_CACHE_FILENAME
+    CACHE_LOCK_FILENAME = DD_S3_CACHE_LOCK_FILENAME
 
-        self.tags_by_arn = {}
-        self.last_tags_fetch_time = 0
+    def build_tags_cache(self):
+        """Makes API calls to GetResources to get the live tags of the account's Lambda functions
 
-    def _refresh(self):
-        """Populate the tags in the local cache by getting cache from s3
-        If cache not in s3, then cache is built using GetResources
-        """
-        self.last_tags_fetch_time = time()
-
-        # If the custom tag fetch env var is not set to true do not fetch
-        if not should_fetch_custom_tags():
-            logger.debug(
-                "Not fetching custom tags because the env variable DD_FETCH_LAMBDA_TAGS is not set to true"
-            )
-            return
-
-        tags_fetched, last_modified = get_cache_from_s3()
-
-        # s3 cache fetch succeeded
-        if last_modified > -1:
-            self.tags_by_arn = tags_fetched
-
-        if self._is_expired(last_modified):
-            send_forwarder_internal_metrics("s3_cache_expired")
-            logger.debug(
-                "S3 cache expired, building cache from Resource Groups Tagging API"
-            )
-            lock_acquired = acquire_s3_cache_lock()
-            if lock_acquired:
-                success, tags_fetched = build_tags_by_arn_cache()
-                if success:
-                    self.tags_by_arn = tags_fetched
-                    write_cache_to_s3(self.tags_by_arn)
-
-                release_s3_cache_lock()
-
-    def _is_expired(self, last_modified=None):
-        """Returns bool for whether the fetch TTL has expired"""
-        if not last_modified:
-            last_modified = self.last_tags_fetch_time
-
-        earliest_time_to_refetch_tags = last_modified + self.tags_ttl_seconds
-        return time() > earliest_time_to_refetch_tags
-
-    def get(self, resource_arn):
-        """Get the tags for the Lambda function from the cache
-
-        Will refetch the tags if they are out of date, or a lambda arn is encountered
-        which isn't in the tag list
-
-        Note: the ARNs in the cache have been lowercased, so resource_arn must be lowercased
-
-        Args:
-            resource_arn (str): the arn we're getting tags from the cache for
+        Returns an empty dict instead of fetching custom tags if the tag fetch env variable is not set to true
 
         Returns:
-            lambda_tags (str[]): the list of "key:value" Datadog tag strings
+            tags_by_arn_cache (dict<str, str[]>): each Lambda's tags in a dict keyed by ARN
         """
-        if self._is_expired():
-            send_forwarder_internal_metrics("local_cache_expired")
-            logger.debug("Local cache expired, fetching cache from S3")
-            self._refresh()
+        tags_fetch_success = False
+        tags_by_arn_cache = {}
+        get_resources_paginator = resource_tagging_client.get_paginator("get_resources")
 
-        function_tags = self.tags_by_arn.get(resource_arn, [])
-        return function_tags
+        try:
+            for page in get_resources_paginator.paginate(
+                    ResourceTypeFilters=[GET_RESOURCES_LAMBDA_FILTER], ResourcesPerPage=100
+            ):
+                send_forwarder_internal_metrics("get_resources_api_calls")
+                page_tags_by_arn = parse_get_resources_response_for_tags_by_arn(page)
+                tags_by_arn_cache.update(page_tags_by_arn)
+                tags_fetch_success = True
 
+        except ClientError as e:
+            logger.exception(
+                "Encountered a ClientError when trying to fetch tags. You may need to give "
+                "this Lambda's role the 'tag:GetResources' permission"
+            )
+            additional_tags = [
+                f"http_status_code:{e.response['ResponseMetadata']['HTTPStatusCode']}"
+            ]
+            send_forwarder_internal_metrics("client_error", additional_tags=additional_tags)
+
+        logger.debug(
+            "Built this tags cache from GetResources API calls: %s", tags_by_arn_cache
+        )
+
+        return tags_fetch_success, tags_by_arn_cache
 
 # Store the cache in the global scope so that it will be reused as long as
 # the log forwarder Lambda container is running
-account_lambda_tags_cache = LambdaTagsCache()
-
+account_lambda_enhanced_metrics_tags_cache = EnhancedMetricsTagsCache()
 
 class DatadogMetricPoint(object):
     """Holds a datapoint's data so that it can be prepared for submission to DD
@@ -328,13 +280,6 @@ def parse_get_resources_response_for_tags_by_arn(get_resources_page):
     return tags_by_arn
 
 
-def send_forwarder_internal_metrics(name, additional_tags=[]):
-    """Send forwarder's internal metrics to DD"""
-    lambda_stats.distribution(
-        "{}.{}".format(DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX, name),
-        1,
-        tags=get_forwarder_telemetry_tags() + additional_tags,
-    )
 
 
 def get_last_modified_time(s3_file):
@@ -344,109 +289,6 @@ def get_last_modified_time(s3_file):
     )
     last_modified_unix_time = int(last_modified_date.strftime("%s"))
     return last_modified_unix_time
-
-
-def acquire_s3_cache_lock():
-    """Acquire cache lock"""
-    cache_lock_object = s3_client.Object(DD_S3_BUCKET_NAME, DD_S3_CACHE_LOCK_FILENAME)
-    try:
-        file_content = cache_lock_object.get()
-
-        # check lock file expiration
-        last_modified_unix_time = get_last_modified_time(file_content)
-        if last_modified_unix_time + DD_S3_CACHE_LOCK_TTL_SECONDS >= time():
-            return False
-    except Exception:
-        logger.debug("Unable to get cache lock file")
-
-    # lock file doesn't exist, create file to acquire lock
-    try:
-        cache_lock_object.put(Body=(bytes("lock".encode("UTF-8"))))
-        send_forwarder_internal_metrics("s3_cache_lock_acquired")
-        logger.debug("S3 cache lock acquired")
-    except ClientError:
-        logger.debug("Unable to write S3 cache lock file", exc_info=True)
-        return False
-
-    return True
-
-
-def release_s3_cache_lock():
-    """Release cache lock"""
-    try:
-        cache_lock_object = s3_client.Object(
-            DD_S3_BUCKET_NAME, DD_S3_CACHE_LOCK_FILENAME
-        )
-        cache_lock_object.delete()
-        send_forwarder_internal_metrics("s3_cache_lock_released")
-        logger.debug("S3 cache lock released")
-    except ClientError:
-        send_forwarder_internal_metrics("s3_cache_lock_release_failure")
-        logger.debug("Unable to release S3 cache lock", exc_info=True)
-
-
-def write_cache_to_s3(data):
-    """Writes tags cache to s3"""
-    try:
-        s3_object = s3_client.Object(DD_S3_BUCKET_NAME, DD_S3_CACHE_FILENAME)
-        s3_object.put(Body=(bytes(json.dumps(data).encode("UTF-8"))))
-    except ClientError:
-        send_forwarder_internal_metrics("s3_cache_write_failure")
-        logger.debug("Unable to write new cache to S3", exc_info=True)
-
-
-def get_cache_from_s3():
-    """Retrieves tags cache from s3 and returns the body along with
-    the last modified datetime for the cache"""
-    cache_object = s3_client.Object(DD_S3_BUCKET_NAME, DD_S3_CACHE_FILENAME)
-    try:
-        file_content = cache_object.get()
-        tags_cache = json.loads(file_content["Body"].read().decode("utf-8"))
-        last_modified_unix_time = get_last_modified_time(file_content)
-    except:
-        send_forwarder_internal_metrics("s3_cache_fetch_failure")
-        logger.debug("Unable to fetch cache from S3", exc_info=True)
-        return {}, -1
-
-    return tags_cache, last_modified_unix_time
-
-
-def build_tags_by_arn_cache():
-    """Makes API calls to GetResources to get the live tags of the account's Lambda functions
-
-    Returns an empty dict instead of fetching custom tags if the tag fetch env variable is not set to true
-
-    Returns:
-        tags_by_arn_cache (dict<str, str[]>): each Lambda's tags in a dict keyed by ARN
-    """
-    tags_fetch_success = False
-    tags_by_arn_cache = {}
-    get_resources_paginator = resource_tagging_client.get_paginator("get_resources")
-
-    try:
-        for page in get_resources_paginator.paginate(
-            ResourceTypeFilters=[GET_RESOURCES_LAMBDA_FILTER], ResourcesPerPage=100
-        ):
-            send_forwarder_internal_metrics("get_resources_api_calls")
-            page_tags_by_arn = parse_get_resources_response_for_tags_by_arn(page)
-            tags_by_arn_cache.update(page_tags_by_arn)
-            tags_fetch_success = True
-
-    except ClientError as e:
-        logger.exception(
-            "Encountered a ClientError when trying to fetch tags. You may need to give "
-            "this Lambda's role the 'tag:GetResources' permission"
-        )
-        additional_tags = [
-            f"http_status_code:{e.response['ResponseMetadata']['HTTPStatusCode']}"
-        ]
-        send_forwarder_internal_metrics("client_error", additional_tags=additional_tags)
-
-    logger.debug(
-        "Built this tags cache from GetResources API calls: %s", tags_by_arn_cache
-    )
-
-    return tags_fetch_success, tags_by_arn_cache
 
 
 def parse_and_submit_enhanced_metrics(logs):
@@ -463,7 +305,7 @@ def parse_and_submit_enhanced_metrics(logs):
     for log in logs:
         try:
             enhanced_metrics = generate_enhanced_lambda_metrics(
-                log, account_lambda_tags_cache
+                log, account_lambda_enhanced_metrics_tags_cache
             )
             for enhanced_metric in enhanced_metrics:
                 enhanced_metric.submit_to_dd()
@@ -654,7 +496,7 @@ def get_enriched_lambda_log_tags(log_event):
     if not log_function_arn:
         return []
     tags_from_arn = parse_lambda_tags_from_arn(log_function_arn)
-    lambda_custom_tags = account_lambda_tags_cache.get(log_function_arn)
+    lambda_custom_tags = account_lambda_enhanced_metrics_tags_cache.get(log_function_arn)
 
     # Combine and dedup tags
     tags = list(set(tags_from_arn + lambda_custom_tags))
