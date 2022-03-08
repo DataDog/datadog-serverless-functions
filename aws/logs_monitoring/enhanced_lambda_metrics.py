@@ -4,21 +4,12 @@
 # Copyright 2021 Datadog, Inc.
 
 import logging
-import os
 import re
 import datetime
 
-from collections import defaultdict
 from time import time
 
-import boto3
-from botocore.exceptions import ClientError
-
-from cache import LambdaTagsCache, send_forwarder_internal_metrics
-from settings import (
-    DD_S3_CACHE_FILENAME,
-    DD_S3_CACHE_LOCK_FILENAME,
-)
+from cache import EnhancedMetricsTagsCache
 
 ENHANCED_METRICS_NAMESPACE_PREFIX = "aws.lambda.enhanced"
 
@@ -27,8 +18,6 @@ BASE_LAMBDA_INVOCATION_PRICE = 0.0000002
 LAMBDA_PRICE_PER_GB_SECOND = 0.0000166667
 
 ESTIMATED_COST_METRIC_NAME = "estimated_cost"
-
-GET_RESOURCES_LAMBDA_FILTER = "lambda"
 
 
 # Names to use for metrics and for the named regex groups
@@ -81,9 +70,6 @@ METRIC_ADJUSTMENT_FACTORS = {
     INIT_DURATION_METRIC_NAME: 0.001,
 }
 
-
-resource_tagging_client = boto3.client("resourcegroupstaggingapi")
-
 logger = logging.getLogger()
 
 
@@ -97,48 +83,6 @@ except ImportError:
         "Add the Datadog Lambda layer to this function to submit enhanced metrics."
     )
     DD_SUBMIT_ENHANCED_METRICS = False
-
-
-class EnhancedMetricsTagsCache(LambdaTagsCache):
-    CACHE_FILENAME = DD_S3_CACHE_FILENAME
-    CACHE_LOCK_FILENAME = DD_S3_CACHE_LOCK_FILENAME
-
-    def build_tags_cache(self):
-        """Makes API calls to GetResources to get the live tags of the account's Lambda functions
-
-        Returns an empty dict instead of fetching custom tags if the tag fetch env variable is not set to true
-
-        Returns:
-            tags_by_arn_cache (dict<str, str[]>): each Lambda's tags in a dict keyed by ARN
-        """
-        tags_fetch_success = False
-        tags_by_arn_cache = {}
-        get_resources_paginator = resource_tagging_client.get_paginator("get_resources")
-
-        try:
-            for page in get_resources_paginator.paginate(
-                    ResourceTypeFilters=[GET_RESOURCES_LAMBDA_FILTER], ResourcesPerPage=100
-            ):
-                send_forwarder_internal_metrics("get_resources_api_calls")
-                page_tags_by_arn = parse_get_resources_response_for_tags_by_arn(page)
-                tags_by_arn_cache.update(page_tags_by_arn)
-                tags_fetch_success = True
-
-        except ClientError as e:
-            logger.exception(
-                "Encountered a ClientError when trying to fetch tags. You may need to give "
-                "this Lambda's role the 'tag:GetResources' permission"
-            )
-            additional_tags = [
-                f"http_status_code:{e.response['ResponseMetadata']['HTTPStatusCode']}"
-            ]
-            send_forwarder_internal_metrics("client_error", additional_tags=additional_tags)
-
-        logger.debug(
-            "Built this tags cache from GetResources API calls: %s", tags_by_arn_cache
-        )
-
-        return tags_fetch_success, tags_by_arn_cache
 
 # Store the cache in the global scope so that it will be reused as long as
 # the log forwarder Lambda container is running
@@ -187,99 +131,6 @@ class DatadogMetricPoint(object):
         lambda_stats.distribution(
             self.name, self.value, timestamp=timestamp, tags=self.tags
         )
-
-
-def should_fetch_custom_tags():
-    """Checks the env var to determine if the customer has opted-in to fetching custom tags"""
-    return os.environ.get("DD_FETCH_LAMBDA_TAGS", "false").lower() == "true"
-
-
-_other_chars = r"\w:\-\.\/"
-Sanitize = re.compile(r"[^%s]" % _other_chars, re.UNICODE).sub
-Dedupe = re.compile(r"_+", re.UNICODE).sub
-FixInit = re.compile(r"^[_\d]*", re.UNICODE).sub
-
-
-def sanitize_aws_tag_string(tag, remove_colons=False, remove_leading_digits=True):
-    """Convert characters banned from DD but allowed in AWS tags to underscores"""
-    global Sanitize, Dedupe, FixInit
-
-    # 1. Replace colons with _
-    # 2. Convert to all lowercase unicode string
-    # 3. Convert bad characters to underscores
-    # 4. Dedupe contiguous underscores
-    # 5. Remove initial underscores/digits such that the string
-    #    starts with an alpha char
-    #    FIXME: tag normalization incorrectly supports tags starting
-    #    with a ':', but this behavior should be phased out in future
-    #    as it results in unqueryable data.  See dogweb/#11193
-    # 6. Strip trailing underscores
-
-    if len(tag) == 0:
-        # if tag is empty, nothing to do
-        return tag
-
-    if remove_colons:
-        tag = tag.replace(":", "_")
-    tag = Dedupe("_", Sanitize("_", tag.lower()))
-    if remove_leading_digits:
-        first_char = tag[0]
-        if first_char == "_" or "0" <= first_char <= "9":
-            tag = FixInit("", tag)
-    tag = tag.rstrip("_")
-    return tag
-
-
-def get_dd_tag_string_from_aws_dict(aws_key_value_tag_dict):
-    """Converts the AWS dict tag format to the dd key:value string format and truncates to 200 characters
-
-    Args:
-        aws_key_value_tag_dict (dict): the dict the GetResources endpoint returns for a tag
-            ex: { "Key": "creator", "Value": "swf"}
-
-    Returns:
-        key:value colon-separated string built from the dict
-            ex: "creator:swf"
-    """
-    key = sanitize_aws_tag_string(aws_key_value_tag_dict["Key"], remove_colons=True)
-    value = sanitize_aws_tag_string(
-        aws_key_value_tag_dict.get("Value"), remove_leading_digits=False
-    )
-    # Value is optional in DD and AWS
-    if not value:
-        return key
-    return f"{key}:{value}"[0:200]
-
-
-def parse_get_resources_response_for_tags_by_arn(get_resources_page):
-    """Parses a page of GetResources response for the mapping from ARN to tags
-
-    Args:
-        get_resources_page (dict<str, dict<str, dict | str>[]>): one page of the GetResources response.
-            Partial example:
-                {"ResourceTagMappingList": [{
-                    'ResourceARN': 'arn:aws:lambda:us-east-1:123497598159:function:my-test-lambda',
-                    'Tags': [{'Key': 'stage', 'Value': 'dev'}, {'Key': 'team', 'Value': 'serverless'}]
-                }]}
-
-    Returns:
-        tags_by_arn (dict<str, str[]>): Lambda tag lists keyed by ARN
-    """
-    tags_by_arn = defaultdict(list)
-
-    aws_resouce_tag_mappings = get_resources_page["ResourceTagMappingList"]
-    for aws_resource_tag_mapping in aws_resouce_tag_mappings:
-        function_arn = aws_resource_tag_mapping["ResourceARN"]
-        lowercase_function_arn = function_arn.lower()
-
-        raw_aws_tags = aws_resource_tag_mapping["Tags"]
-        tags = map(get_dd_tag_string_from_aws_dict, raw_aws_tags)
-
-        tags_by_arn[lowercase_function_arn] += tags
-
-    return tags_by_arn
-
-
 
 
 def get_last_modified_time(s3_file):
