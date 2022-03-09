@@ -231,7 +231,7 @@ The `DdUsePrivateLink` option has been deprecated since [v3.41.0](https://github
 If you have an older deployment of the Forwarder with `DdUsePrivateLink` set to `true`, then you may find mismatches between your configured PrivateLink endpoints and the [ones documented in Datadog](https://docs.datadoghq.com/agent/guide/private-link/?tab=logs#create-your-vpc-endpoint), which is expected. Altough the older PrivateLink endpoints were removed from that doc, they remain to function. When upgrading the Forwarder, there is no change required, that is, you can keep `DdUsePrivateLink` enabled and continue to use the older endpoints. However, if you are interestted in switching to the new endpoints, you need to follow the updated instructions above to
 
 1. set up the new endpoints `api.datadoghq.com`, `http-intake.logs.datadoghq.com` and `trace.agent.datadoghq.com`
-2. set `UseVPC` to `true`
+2. set `DdUseVPC` to `true`
 3. set `DdUsePrivateLink` to `false`
 
 ### AWS VPC and proxy support
