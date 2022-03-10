@@ -18,6 +18,8 @@ import logging
 from io import BytesIO, BufferedReader
 
 from datadog_lambda.metric import lambda_stats
+
+from cache import CloudwatchLogGroupTagsCache
 from telemetry import (
     DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX,
     get_forwarder_telemetry_tags,
@@ -57,6 +59,10 @@ rds_regex = re.compile("/aws/rds/(instance|cluster)/(?P<host>[^/]+)/(?P<name>[^/
 cloudtrail_regex = re.compile(
     "\d+_CloudTrail_\w{2}-\w{4,9}-\d_\d{8}T\d{4}Z.+.json.gz$", re.I
 )
+
+# Store the cache in the global scope so that it will be reused as long as
+# the log forwarder Lambda container is running
+account_cw_logs_tags_cache = CloudwatchLogGroupTagsCache()
 
 
 def parse(event, context):
@@ -463,6 +469,14 @@ def awslogs_handler(event, context, metadata):
             }
         }
     }
+
+    formatted_tags = account_cw_logs_tags_cache.get(logs["logGroup"])
+    if len(formatted_tags) > 0:
+        metadata[DD_CUSTOM_TAGS] = (
+            ",".join(formatted_tags)
+            if not metadata[DD_CUSTOM_TAGS]
+            else metadata[DD_CUSTOM_TAGS] + "," + ",".join(formatted_tags)
+        )
 
     # Set host as log group where cloudwatch is source
     if metadata[DD_SOURCE] == "cloudwatch" or metadata.get(DD_HOST, None) == None:

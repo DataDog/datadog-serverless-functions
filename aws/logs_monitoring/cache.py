@@ -42,6 +42,39 @@ except ImportError:
     )
     DD_SUBMIT_ENHANCED_METRICS = False
 
+_other_chars = r"\w:\-\.\/"
+Sanitize = re.compile(r"[^%s]" % _other_chars, re.UNICODE).sub
+Dedupe = re.compile(r"_+", re.UNICODE).sub
+FixInit = re.compile(r"^[_\d]*", re.UNICODE).sub
+
+def sanitize_aws_tag_string(tag, remove_colons=False, remove_leading_digits=True):
+    """Convert characters banned from DD but allowed in AWS tags to underscores"""
+    global Sanitize, Dedupe, FixInit
+
+    # 1. Replace colons with _
+    # 2. Convert to all lowercase unicode string
+    # 3. Convert bad characters to underscores
+    # 4. Dedupe contiguous underscores
+    # 5. Remove initial underscores/digits such that the string
+    #    starts with an alpha char
+    #    FIXME: tag normalization incorrectly supports tags starting
+    #    with a ':', but this behavior should be phased out in future
+    #    as it results in unqueryable data.  See dogweb/#11193
+    # 6. Strip trailing underscores
+
+    if len(tag) == 0:
+        # if tag is empty, nothing to do
+        return tag
+
+    if remove_colons:
+        tag = tag.replace(":", "_")
+    tag = Dedupe("_", Sanitize("_", tag.lower()))
+    if remove_leading_digits:
+        first_char = tag[0]
+        if first_char == "_" or "0" <= first_char <= "9":
+            tag = FixInit("", tag)
+    tag = tag.rstrip("_")
+    return tag
 
 def send_forwarder_internal_metrics(name, additional_tags=[]):
     """Send forwarder's internal metrics to DD"""
@@ -74,12 +107,13 @@ class LambdaTagsCache(object):
     def __init__(self, tags_ttl_seconds=DD_TAGS_CACHE_TTL_SECONDS):
         self.tags_ttl_seconds = tags_ttl_seconds
 
-        self.tags_by_arn = {}
+        self.tags_by_id = {}
         self.last_tags_fetch_time = 0
 
     def write_cache_to_s3(self, data):
         """Writes tags cache to s3"""
         try:
+            logger.debug("Trying to write data to s3: {}".format(data))
             s3_object = s3_client.Object(DD_S3_BUCKET_NAME, self.CACHE_FILENAME)
             s3_object.put(Body=(bytes(json.dumps(data).encode("UTF-8"))))
         except ClientError:
@@ -153,10 +187,6 @@ class LambdaTagsCache(object):
 
         tags_fetched, last_modified = self.get_cache_from_s3()
 
-        # s3 cache fetch succeeded
-        if last_modified > -1:
-            self.tags_by_arn = tags_fetched
-
         if self._is_expired(last_modified):
             send_forwarder_internal_metrics("s3_cache_expired")
             logger.debug(
@@ -166,10 +196,13 @@ class LambdaTagsCache(object):
             if lock_acquired:
                 success, tags_fetched = self.build_tags_cache()
                 if success:
-                    self.tags_by_arn = tags_fetched
-                    self.write_cache_to_s3(self.tags_by_arn)
+                    self.tags_by_id = tags_fetched
+                    self.write_cache_to_s3(self.tags_by_id)
 
                 self.release_s3_cache_lock()
+        # s3 cache fetch succeeded and isn't expired
+        elif last_modified > -1:
+            self.tags_by_id = tags_fetched
 
     def _is_expired(self, last_modified=None):
         """Returns bool for whether the fetch TTL has expired"""
@@ -180,26 +213,7 @@ class LambdaTagsCache(object):
         return time() > earliest_time_to_refetch_tags
 
     def get(self, key):
-        """Get the tags for the Lambda function from the cache
-
-        Will refetch the tags if they are out of date, or a lambda arn is encountered
-        which isn't in the tag list
-
-        Note: the ARNs in the cache have been lowercased, so resource_arn must be lowercased
-
-        Args:
-            key (str): the key we're getting tags from the cache for
-
-        Returns:
-            lambda_tags (str[]): the list of "key:value" Datadog tag strings
-        """
-        if self._is_expired():
-            send_forwarder_internal_metrics("local_cache_expired")
-            logger.debug("Local cache expired, fetching cache from S3")
-            self._refresh()
-
-        function_tags = self.tags_by_arn.get(key, [])
-        return function_tags
+        raise Exception("GET TAGS MUST BE DEFINED FOR TAGS CACHES")
 
     def build_tags_cache(self):
         raise Exception("BUILD TAGS MUST BE DEFINED FOR TAGS CACHES")
@@ -212,40 +226,6 @@ class LambdaTagsCache(object):
 resource_tagging_client = boto3.client("resourcegroupstaggingapi")
 GET_RESOURCES_LAMBDA_FILTER = "lambda"
 
-_other_chars = r"\w:\-\.\/"
-Sanitize = re.compile(r"[^%s]" % _other_chars, re.UNICODE).sub
-Dedupe = re.compile(r"_+", re.UNICODE).sub
-FixInit = re.compile(r"^[_\d]*", re.UNICODE).sub
-
-def _sanitize_aws_tag_string(tag, remove_colons=False, remove_leading_digits=True):
-    """Convert characters banned from DD but allowed in AWS tags to underscores"""
-    global Sanitize, Dedupe, FixInit
-
-    # 1. Replace colons with _
-    # 2. Convert to all lowercase unicode string
-    # 3. Convert bad characters to underscores
-    # 4. Dedupe contiguous underscores
-    # 5. Remove initial underscores/digits such that the string
-    #    starts with an alpha char
-    #    FIXME: tag normalization incorrectly supports tags starting
-    #    with a ':', but this behavior should be phased out in future
-    #    as it results in unqueryable data.  See dogweb/#11193
-    # 6. Strip trailing underscores
-
-    if len(tag) == 0:
-        # if tag is empty, nothing to do
-        return tag
-
-    if remove_colons:
-        tag = tag.replace(":", "_")
-    tag = Dedupe("_", Sanitize("_", tag.lower()))
-    if remove_leading_digits:
-        first_char = tag[0]
-        if first_char == "_" or "0" <= first_char <= "9":
-            tag = FixInit("", tag)
-    tag = tag.rstrip("_")
-    return tag
-
 def _get_dd_tag_string_from_aws_dict(aws_key_value_tag_dict):
     """Converts the AWS dict tag format to the dd key:value string format and truncates to 200 characters
 
@@ -257,8 +237,8 @@ def _get_dd_tag_string_from_aws_dict(aws_key_value_tag_dict):
         key:value colon-separated string built from the dict
             ex: "creator:swf"
     """
-    key = _sanitize_aws_tag_string(aws_key_value_tag_dict["Key"], remove_colons=True)
-    value = _sanitize_aws_tag_string(
+    key = sanitize_aws_tag_string(aws_key_value_tag_dict["Key"], remove_colons=True)
+    value = sanitize_aws_tag_string(
         aws_key_value_tag_dict.get("Value"), remove_leading_digits=False
     )
     # Value is optional in DD and AWS
@@ -295,7 +275,7 @@ def _parse_get_resources_response_for_tags_by_arn(get_resources_page):
     return tags_by_arn
 
 
-class EnhancedMetricsTagsCache(LambdaTagsCache):
+class LambdaCustomTagsCache(LambdaTagsCache):
     CACHE_FILENAME = DD_S3_CACHE_FILENAME
     CACHE_LOCK_FILENAME = DD_S3_CACHE_LOCK_FILENAME
 
@@ -336,10 +316,64 @@ class EnhancedMetricsTagsCache(LambdaTagsCache):
 
         return tags_fetch_success, tags_by_arn_cache
 
+    def get(self, key):
+        """Get the tags for the Lambda function from the cache
+
+        Will refetch the tags if they are out of date, or a lambda arn is encountered
+        which isn't in the tag list
+
+        Note: the ARNs in the cache have been lowercased, so resource_arn must be lowercased
+
+        Args:
+            key (str): the key we're getting tags from the cache for
+
+        Returns:
+            lambda_tags (str[]): the list of "key:value" Datadog tag strings
+        """
+        if self._is_expired():
+            send_forwarder_internal_metrics("local_cache_expired")
+            logger.debug("Local cache expired, fetching cache from S3")
+            self._refresh()
+
+        function_tags = self.tags_by_id.get(key, None)
+        # Here if the function arn isn't in our list we try a refresh
+        if function_tags is None:
+            self._refresh()
+            function_tags = self.tags_by_id.get(key, None)
+            # If the refresh failed to get the function tags we'll write an empty list locally to avoid hitting the api
+            # for each log event.
+            if function_tags is None:
+                self.tags_by_id[key] = []
+                function_tags = []
+        return function_tags
+
 #############################
 # Cloudwatch Log Group Tags #
 #############################
+
 cloudwatch_logs_client = boto3.client("logs")
+
+def get_log_group_tags(log_group):
+    response = None
+    try:
+        send_forwarder_internal_metrics("list_tags_log_group_api_call")
+        response = cloudwatch_logs_client.list_tags_log_group(
+            logGroupName=log_group
+        )
+    except Exception as e:
+        logger.exception(f"Failed to get log group tags due to {e}")
+    if response is not None:
+        formatted_tags = [
+            "{key}:{value}".format(
+                key=sanitize_aws_tag_string(k, remove_colons=True),
+                value=sanitize_aws_tag_string(v, remove_leading_digits=False)
+            ) if v else sanitize_aws_tag_string(k, remove_colons=True)
+            for k, v in response["tags"].items()
+        ]
+    else:
+        # In the case of failing to query tags we will write an empty list and retry on the next refresh
+        formatted_tags = []
+    return formatted_tags
 
 class CloudwatchLogGroupTagsCache(LambdaTagsCache):
     CACHE_FILENAME = DD_S3_LOG_GROUP_CACHE_FILENAME
@@ -353,21 +387,34 @@ class CloudwatchLogGroupTagsCache(LambdaTagsCache):
         Returns:
             tags_by_arn_cache (dict<str, str[]>): each Lambda's tags in a dict keyed by ARN
         """
-        response = None
-        try:
-            response = cloudwatch_logs_client.list_tags_log_group(
-                logGroupName=logs["logGroup"]
-            )
-        except Exception as e:
-            logger.exception(f"Failed to get log group tags due to {e}")
-        if response is not None:
-            formatted_tags = [
-                "{key}:{value}".format(key=k, value=v) if v else k
-                for k, v in response["tags"].items()
-            ]
-            if len(formatted_tags) > 0:
-                metadata[DD_CUSTOM_TAGS] = (
-                    ",".join(formatted_tags)
-                    if not metadata[DD_CUSTOM_TAGS]
-                    else metadata[DD_CUSTOM_TAGS] + "," + ",".join(formatted_tags)
-                )
+        new_tags = {}
+        for log_group in self.tags_by_id.keys():
+            new_tags[log_group] = get_log_group_tags(log_group)
+
+        logger.debug("All tags in Cloudwatch Log Groups refresh: {}".format(new_tags))
+        return True, new_tags
+
+    def get(self, log_group):
+        """Get the tags for the Cloudwatch Log Group from the cache
+
+        Will refetch the tags if they are out of date, or a log group is encountered
+        which isn't in the tag list
+
+        Args:
+            key (str): the key we're getting tags from the cache for
+
+        Returns:
+            log_group_tags (str[]): the list of "key:value" Datadog tag strings
+        """
+        if self._is_expired():
+            send_forwarder_internal_metrics("local_cache_expired")
+            logger.debug("Local cache expired, fetching cache from S3")
+            self._refresh()
+
+        log_group_tags = self.tags_by_id.get(log_group, None)
+        if log_group_tags is None:
+            log_group_tags = get_log_group_tags(log_group)
+            self.tags_by_id[log_group] = log_group_tags
+
+        return log_group_tags
+

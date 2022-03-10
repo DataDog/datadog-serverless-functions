@@ -9,7 +9,7 @@ import datetime
 
 from time import time
 
-from cache import EnhancedMetricsTagsCache
+from cache import LambdaCustomTagsCache
 
 ENHANCED_METRICS_NAMESPACE_PREFIX = "aws.lambda.enhanced"
 
@@ -86,7 +86,7 @@ except ImportError:
 
 # Store the cache in the global scope so that it will be reused as long as
 # the log forwarder Lambda container is running
-account_lambda_enhanced_metrics_tags_cache = EnhancedMetricsTagsCache()
+account_lambda_custom_tags_cache = LambdaCustomTagsCache()
 
 class DatadogMetricPoint(object):
     """Holds a datapoint's data so that it can be prepared for submission to DD
@@ -156,7 +156,7 @@ def parse_and_submit_enhanced_metrics(logs):
     for log in logs:
         try:
             enhanced_metrics = generate_enhanced_lambda_metrics(
-                log, account_lambda_enhanced_metrics_tags_cache
+                log, account_lambda_custom_tags_cache
             )
             for enhanced_metric in enhanced_metrics:
                 enhanced_metric.submit_to_dd()
@@ -347,7 +347,7 @@ def get_enriched_lambda_log_tags(log_event):
     if not log_function_arn:
         return []
     tags_from_arn = parse_lambda_tags_from_arn(log_function_arn)
-    lambda_custom_tags = account_lambda_enhanced_metrics_tags_cache.get(log_function_arn)
+    lambda_custom_tags = account_lambda_custom_tags_cache.get(log_function_arn)
 
     # Combine and dedup tags
     tags = list(set(tags_from_arn + lambda_custom_tags))

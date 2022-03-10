@@ -231,6 +231,7 @@ DD_FORWARDER_VERSION = "3.43.0"
 DD_ADDITIONAL_TARGET_LAMBDAS = get_env_var("DD_ADDITIONAL_TARGET_LAMBDAS", default=None)
 
 DD_S3_BUCKET_NAME = get_env_var("DD_S3_BUCKET_NAME", default=None)
+# These default cache names remain unchanged so we can get existing cache data for these
 DD_S3_CACHE_FILENAME = "cache.json"
 DD_S3_CACHE_LOCK_FILENAME = "cache.lock"
 DD_S3_LOG_GROUP_CACHE_FILENAME = "log-group-cache.json"
