@@ -219,9 +219,9 @@ class LambdaTagsCache(object):
         raise Exception("BUILD TAGS MUST BE DEFINED FOR TAGS CACHES")
 
 
-################################
-# Enhanced Metrics Lambda Tags #
-################################
+######################
+# Lambda Custom Tags #
+######################
 
 resource_tagging_client = boto3.client("resourcegroupstaggingapi")
 GET_RESOURCES_LAMBDA_FILTER = "lambda"
