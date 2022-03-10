@@ -7,13 +7,16 @@ from unittest.mock import patch
 from unittest import mock
 
 from enhanced_lambda_metrics import (
-    sanitize_aws_tag_string,
     parse_metrics_from_report_log,
     parse_lambda_tags_from_arn,
     generate_enhanced_lambda_metrics,
+    create_out_of_memory_enhanced_metric,
+)
+
+from cache import (
+    sanitize_aws_tag_string,
     LambdaTagsCache,
     parse_get_resources_response_for_tags_by_arn,
-    create_out_of_memory_enhanced_metric,
     get_dd_tag_string_from_aws_dict,
 )
 

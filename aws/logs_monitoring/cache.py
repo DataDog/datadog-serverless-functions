@@ -1,4 +1,3 @@
-
 import logging
 import os
 import json
@@ -14,7 +13,10 @@ from botocore.exceptions import ClientError
 from settings import (
     DD_S3_BUCKET_NAME,
     DD_TAGS_CACHE_TTL_SECONDS,
-    DD_S3_CACHE_LOCK_TTL_SECONDS, DD_S3_CACHE_FILENAME, DD_S3_CACHE_LOCK_FILENAME, DD_S3_LOG_GROUP_CACHE_FILENAME,
+    DD_S3_CACHE_LOCK_TTL_SECONDS,
+    DD_S3_CACHE_FILENAME,
+    DD_S3_CACHE_LOCK_FILENAME,
+    DD_S3_LOG_GROUP_CACHE_FILENAME,
     DD_S3_LOG_GROUP_CACHE_LOCK_FILENAME,
 )
 from telemetry import (
@@ -47,6 +49,7 @@ Sanitize = re.compile(r"[^%s]" % _other_chars, re.UNICODE).sub
 Dedupe = re.compile(r"_+", re.UNICODE).sub
 FixInit = re.compile(r"^[_\d]*", re.UNICODE).sub
 
+
 def sanitize_aws_tag_string(tag, remove_colons=False, remove_leading_digits=True):
     """Convert characters banned from DD but allowed in AWS tags to underscores"""
     global Sanitize, Dedupe, FixInit
@@ -75,6 +78,7 @@ def sanitize_aws_tag_string(tag, remove_colons=False, remove_leading_digits=True
             tag = FixInit("", tag)
     tag = tag.rstrip("_")
     return tag
+
 
 def send_forwarder_internal_metrics(name, additional_tags=[]):
     """Send forwarder's internal metrics to DD"""
@@ -122,7 +126,9 @@ class LambdaTagsCache(object):
 
     def acquire_s3_cache_lock(self):
         """Acquire cache lock"""
-        cache_lock_object = s3_client.Object(DD_S3_BUCKET_NAME, self.CACHE_LOCK_FILENAME)
+        cache_lock_object = s3_client.Object(
+            DD_S3_BUCKET_NAME, self.CACHE_LOCK_FILENAME
+        )
         try:
             file_content = cache_lock_object.get()
 
@@ -189,9 +195,7 @@ class LambdaTagsCache(object):
 
         if self._is_expired(last_modified):
             send_forwarder_internal_metrics("s3_cache_expired")
-            logger.debug(
-                "S3 cache expired, rebuilding cache"
-            )
+            logger.debug("S3 cache expired, rebuilding cache")
             lock_acquired = self.acquire_s3_cache_lock()
             if lock_acquired:
                 success, tags_fetched = self.build_tags_cache()
@@ -226,7 +230,8 @@ class LambdaTagsCache(object):
 resource_tagging_client = boto3.client("resourcegroupstaggingapi")
 GET_RESOURCES_LAMBDA_FILTER = "lambda"
 
-def _get_dd_tag_string_from_aws_dict(aws_key_value_tag_dict):
+
+def get_dd_tag_string_from_aws_dict(aws_key_value_tag_dict):
     """Converts the AWS dict tag format to the dd key:value string format and truncates to 200 characters
 
     Args:
@@ -246,7 +251,8 @@ def _get_dd_tag_string_from_aws_dict(aws_key_value_tag_dict):
         return key
     return f"{key}:{value}"[0:200]
 
-def _parse_get_resources_response_for_tags_by_arn(get_resources_page):
+
+def parse_get_resources_response_for_tags_by_arn(get_resources_page):
     """Parses a page of GetResources response for the mapping from ARN to tags
 
     Args:
@@ -268,7 +274,7 @@ def _parse_get_resources_response_for_tags_by_arn(get_resources_page):
         lowercase_function_arn = function_arn.lower()
 
         raw_aws_tags = aws_resource_tag_mapping["Tags"]
-        tags = map(_get_dd_tag_string_from_aws_dict, raw_aws_tags)
+        tags = map(get_dd_tag_string_from_aws_dict, raw_aws_tags)
 
         tags_by_arn[lowercase_function_arn] += tags
 
@@ -293,10 +299,10 @@ class LambdaCustomTagsCache(LambdaTagsCache):
 
         try:
             for page in get_resources_paginator.paginate(
-                    ResourceTypeFilters=[GET_RESOURCES_LAMBDA_FILTER], ResourcesPerPage=100
+                ResourceTypeFilters=[GET_RESOURCES_LAMBDA_FILTER], ResourcesPerPage=100
             ):
                 send_forwarder_internal_metrics("get_resources_api_calls")
-                page_tags_by_arn = _parse_get_resources_response_for_tags_by_arn(page)
+                page_tags_by_arn = parse_get_resources_response_for_tags_by_arn(page)
                 tags_by_arn_cache.update(page_tags_by_arn)
                 tags_fetch_success = True
 
@@ -308,7 +314,9 @@ class LambdaCustomTagsCache(LambdaTagsCache):
             additional_tags = [
                 f"http_status_code:{e.response['ResponseMetadata']['HTTPStatusCode']}"
             ]
-            send_forwarder_internal_metrics("client_error", additional_tags=additional_tags)
+            send_forwarder_internal_metrics(
+                "client_error", additional_tags=additional_tags
+            )
 
         logger.debug(
             "Built this tags cache from GetResources API calls: %s", tags_by_arn_cache
@@ -347,33 +355,36 @@ class LambdaCustomTagsCache(LambdaTagsCache):
                 function_tags = []
         return function_tags
 
+
 #############################
 # Cloudwatch Log Group Tags #
 #############################
 
 cloudwatch_logs_client = boto3.client("logs")
 
+
 def get_log_group_tags(log_group):
     response = None
     try:
         send_forwarder_internal_metrics("list_tags_log_group_api_call")
-        response = cloudwatch_logs_client.list_tags_log_group(
-            logGroupName=log_group
-        )
+        response = cloudwatch_logs_client.list_tags_log_group(logGroupName=log_group)
     except Exception as e:
         logger.exception(f"Failed to get log group tags due to {e}")
     if response is not None:
         formatted_tags = [
             "{key}:{value}".format(
                 key=sanitize_aws_tag_string(k, remove_colons=True),
-                value=sanitize_aws_tag_string(v, remove_leading_digits=False)
-            ) if v else sanitize_aws_tag_string(k, remove_colons=True)
+                value=sanitize_aws_tag_string(v, remove_leading_digits=False),
+            )
+            if v
+            else sanitize_aws_tag_string(k, remove_colons=True)
             for k, v in response["tags"].items()
         ]
     else:
         # In the case of failing to query tags we will write an empty list and retry on the next refresh
         formatted_tags = []
     return formatted_tags
+
 
 class CloudwatchLogGroupTagsCache(LambdaTagsCache):
     CACHE_FILENAME = DD_S3_LOG_GROUP_CACHE_FILENAME
@@ -417,4 +428,3 @@ class CloudwatchLogGroupTagsCache(LambdaTagsCache):
             self.tags_by_id[log_group] = log_group_tags
 
         return log_group_tags
-
