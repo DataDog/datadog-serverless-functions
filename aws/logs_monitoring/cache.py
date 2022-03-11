@@ -343,16 +343,7 @@ class LambdaCustomTagsCache(LambdaTagsCache):
             logger.debug("Local cache expired, fetching cache from S3")
             self._refresh()
 
-        function_tags = self.tags_by_id.get(key, None)
-        # Here if the function arn isn't in our list we try a refresh
-        if function_tags is None:
-            self._refresh()
-            function_tags = self.tags_by_id.get(key, None)
-            # If the refresh failed to get the function tags we'll write an empty list locally to avoid hitting the api
-            # for each log event.
-            if function_tags is None:
-                self.tags_by_id[key] = []
-                function_tags = []
+        function_tags = self.tags_by_id.get(key, [])
         return function_tags
 
 

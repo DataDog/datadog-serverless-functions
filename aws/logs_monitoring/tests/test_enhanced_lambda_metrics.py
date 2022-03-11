@@ -15,7 +15,7 @@ from enhanced_lambda_metrics import (
 
 from cache import (
     sanitize_aws_tag_string,
-    LambdaTagsCache,
+    LambdaCustomTagsCache,
     parse_get_resources_response_for_tags_by_arn,
     get_dd_tag_string_from_aws_dict,
 )
@@ -314,8 +314,8 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
         success_message = "Success!"
         self.assertEqual(len(create_out_of_memory_enhanced_metric(success_message)), 0)
 
-    @patch("enhanced_lambda_metrics.send_forwarder_internal_metrics")
-    @patch("enhanced_lambda_metrics.get_cache_from_s3")
+    @patch("cache.send_forwarder_internal_metrics")
+    @patch("cache.LambdaTagsCache.get_cache_from_s3")
     def test_generate_enhanced_lambda_metrics(
         self, mock_get_s3_cache, mock_forward_metrics
     ):
@@ -330,7 +330,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
             },
             time(),
         )
-        tags_cache = LambdaTagsCache()
+        tags_cache = LambdaCustomTagsCache()
 
         logs_input = {
             "message": "REPORT RequestId: fe1467d6-1458-4e20-8e40-9aaa4be7a0f4\tDuration: 3470.65 ms\tBilled Duration: 3500 ms\tMemory Size: 128 MB\tMax Memory Used: 89 MB\t\nXRAY TraceId: 1-5d8bba5a-dc2932496a65bab91d2d42d4\tSegmentId: 5ff79d2a06b82ad6\tSampled: true\t\n",
@@ -412,8 +412,8 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
 
         del os.environ["DD_FETCH_LAMBDA_TAGS"]
 
-    @patch("enhanced_lambda_metrics.send_forwarder_internal_metrics")
-    @patch("enhanced_lambda_metrics.get_cache_from_s3")
+    @patch("cache.send_forwarder_internal_metrics")
+    @patch("cache.LambdaTagsCache.get_cache_from_s3")
     def test_generate_enhanced_lambda_metrics_with_tags(
         self, mock_get_s3_cache, mock_forward_metrics
     ):
@@ -428,7 +428,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
             },
             time(),
         )
-        tags_cache = LambdaTagsCache()
+        tags_cache = LambdaCustomTagsCache()
         logs_input = {
             "message": "REPORT RequestId: fe1467d6-1458-4e20-8e40-9aaa4be7a0f4\tDuration: 3470.65 ms\tBilled Duration: 3500 ms\tMemory Size: 128 MB\tMax Memory Used: 89 MB\t\nXRAY TraceId: 1-5d8bba5a-dc2932496a65bab91d2d42d4\tSegmentId: 5ff79d2a06b82ad6\tSampled: true\t\n",
             "aws": {
@@ -525,13 +525,13 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
 
         del os.environ["DD_FETCH_LAMBDA_TAGS"]
 
-    @patch("enhanced_lambda_metrics.send_forwarder_internal_metrics")
-    @patch("enhanced_lambda_metrics.get_cache_from_s3")
+    @patch("cache.send_forwarder_internal_metrics")
+    @patch("cache.LambdaTagsCache.get_cache_from_s3")
     def test_generate_enhanced_lambda_metrics_once_with_missing_arn(
         self, mock_get_s3_cache, mock_forward_metrics
     ):
         mock_get_s3_cache.return_value = ({}, time())
-        tags_cache = LambdaTagsCache()
+        tags_cache = LambdaCustomTagsCache()
 
         logs_input = {
             "message": "REPORT RequestId: fe1467d6-1458-4e20-8e40-9aaa4be7a0f4\tDuration: 3470.65 ms\tBilled Duration: 3500 ms\tMemory Size: 128 MB\tMax Memory Used: 89 MB\t\nXRAY TraceId: 1-5d8bba5a-dc2932496a65bab91d2d42d4\tSegmentId: 5ff79d2a06b82ad6\tSampled: true\t\n",
@@ -561,8 +561,8 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
 
         del os.environ["DD_FETCH_LAMBDA_TAGS"]
 
-    @patch("enhanced_lambda_metrics.send_forwarder_internal_metrics")
-    @patch("enhanced_lambda_metrics.get_cache_from_s3")
+    @patch("cache.send_forwarder_internal_metrics")
+    @patch("cache.LambdaTagsCache.get_cache_from_s3")
     def test_generate_enhanced_lambda_metrics_refresh_on_new_arn(
         self, mock_get_s3_cache, mock_forward_metrics
     ):
@@ -577,7 +577,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
             },
             time(),
         )
-        tags_cache = LambdaTagsCache()
+        tags_cache = LambdaCustomTagsCache()
 
         logs_input = {
             "message": "REPORT RequestId: fe1467d6-1458-4e20-8e40-9aaa4be7a0f4\tDuration: 3470.65 ms\tBilled Duration: 3500 ms\tMemory Size: 128 MB\tMax Memory Used: 89 MB\t\nXRAY TraceId: 1-5d8bba5a-dc2932496a65bab91d2d42d4\tSegmentId: 5ff79d2a06b82ad6\tSampled: true\t\n",
@@ -604,12 +604,12 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
 
         del os.environ["DD_FETCH_LAMBDA_TAGS"]
 
-    @patch("enhanced_lambda_metrics.acquire_s3_cache_lock")
-    @patch("enhanced_lambda_metrics.release_s3_cache_lock")
-    @patch("enhanced_lambda_metrics.write_cache_to_s3")
-    @patch("enhanced_lambda_metrics.build_tags_by_arn_cache")
-    @patch("enhanced_lambda_metrics.send_forwarder_internal_metrics")
-    @patch("enhanced_lambda_metrics.get_cache_from_s3")
+    @patch("cache.LambdaCustomTagsCache.release_s3_cache_lock")
+    @patch("cache.LambdaCustomTagsCache.acquire_s3_cache_lock")
+    @patch("cache.LambdaCustomTagsCache.write_cache_to_s3")
+    @patch("cache.LambdaCustomTagsCache.build_tags_cache")
+    @patch("cache.send_forwarder_internal_metrics")
+    @patch("cache.LambdaCustomTagsCache.get_cache_from_s3")
     def test_generate_enhanced_lambda_metrics_refresh_s3_cache(
         self,
         mock_get_s3_cache,
@@ -635,7 +635,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
                 ]
             },
         )
-        tags_cache = LambdaTagsCache()
+        tags_cache = LambdaCustomTagsCache()
 
         logs_input = {
             "message": "REPORT RequestId: fe1467d6-1458-4e20-8e40-9aaa4be7a0f4\tDuration: 3470.65 ms\tBilled Duration: 3500 ms\tMemory Size: 128 MB\tMax Memory Used: 89 MB\t\nXRAY TraceId: 1-5d8bba5a-dc2932496a65bab91d2d42d4\tSegmentId: 5ff79d2a06b82ad6\tSampled: true\t\n",
@@ -665,13 +665,13 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
 
         del os.environ["DD_FETCH_LAMBDA_TAGS"]
 
-    @patch("enhanced_lambda_metrics.acquire_s3_cache_lock")
-    @patch("enhanced_lambda_metrics.release_s3_cache_lock")
-    @patch("enhanced_lambda_metrics.resource_tagging_client")
-    @patch("enhanced_lambda_metrics.write_cache_to_s3")
-    @patch("enhanced_lambda_metrics.parse_get_resources_response_for_tags_by_arn")
-    @patch("enhanced_lambda_metrics.send_forwarder_internal_metrics")
-    @patch("enhanced_lambda_metrics.get_cache_from_s3")
+    @patch("cache.LambdaCustomTagsCache.release_s3_cache_lock")
+    @patch("cache.LambdaCustomTagsCache.acquire_s3_cache_lock")
+    @patch("cache.resource_tagging_client")
+    @patch("cache.LambdaCustomTagsCache.write_cache_to_s3")
+    @patch("cache.parse_get_resources_response_for_tags_by_arn")
+    @patch("cache.send_forwarder_internal_metrics")
+    @patch("cache.LambdaCustomTagsCache.get_cache_from_s3")
     def test_generate_enhanced_lambda_metrics_client_error(
         self,
         mock_get_s3_cache,
@@ -694,7 +694,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
         mock_parse_responses.side_effect = ClientError(
             {"ResponseMetadata": {"HTTPStatusCode": 429}}, "Client Error"
         )
-        tags_cache = LambdaTagsCache()
+        tags_cache = LambdaCustomTagsCache()
 
         logs_input = {
             "message": "REPORT RequestId: fe1467d6-1458-4e20-8e40-9aaa4be7a0f4\tDuration: 3470.65 ms\tBilled Duration: 3500 ms\tMemory Size: 128 MB\tMax Memory Used: 89 MB\t\nXRAY TraceId: 1-5d8bba5a-dc2932496a65bab91d2d42d4\tSegmentId: 5ff79d2a06b82ad6\tSampled: true\t\n",
@@ -725,8 +725,8 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
 
         del os.environ["DD_FETCH_LAMBDA_TAGS"]
 
-    @patch("enhanced_lambda_metrics.send_forwarder_internal_metrics")
-    @patch("enhanced_lambda_metrics.get_cache_from_s3")
+    @patch("cache.send_forwarder_internal_metrics")
+    @patch("cache.LambdaTagsCache.get_cache_from_s3")
     def test_generate_enhanced_lambda_metrics_timeout(
         self, mock_get_s3_cache, mock_forward_metrics
     ):
@@ -742,7 +742,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
             },
             time(),
         )
-        tags_cache = LambdaTagsCache()
+        tags_cache = LambdaCustomTagsCache()
 
         logs_input = {
             "message": "2020-06-09T15:02:26.150Z 7c9567b5-107b-4a6c-8798-0157ac21db52 Task timed out after 3.00 seconds\n\n",
@@ -784,8 +784,8 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
         )
         del os.environ["DD_FETCH_LAMBDA_TAGS"]
 
-    @patch("enhanced_lambda_metrics.send_forwarder_internal_metrics")
-    @patch("enhanced_lambda_metrics.get_cache_from_s3")
+    @patch("cache.send_forwarder_internal_metrics")
+    @patch("cache.LambdaTagsCache.get_cache_from_s3")
     def test_generate_enhanced_lambda_metrics_out_of_memory(
         self, mock_get_s3_cache, mock_forward_metrics
     ):
@@ -801,7 +801,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
             },
             time(),
         )
-        tags_cache = LambdaTagsCache()
+        tags_cache = LambdaCustomTagsCache()
 
         logs_input = {
             "message": "2020-06-09T15:02:26.150Z 7c9567b5-107b-4a6c-8798-0157ac21db52 FATAL ERROR: CALL_AND_RETRY_LAST Allocation failed - JavaScript heap out of memory\n\n",

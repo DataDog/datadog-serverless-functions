@@ -98,9 +98,10 @@ class TestS3CloudwatchParsing(unittest.TestCase):
     def setUp(self):
         self.maxDiff = 9000
 
+    @patch("cache.boto3")
     @patch("parsing.boto3")
     @patch("lambda_function.boto3")
-    def test_s3_cloudtrail_pasing_and_enrichment(self, lambda_boto3, parsing_boto3):
+    def test_s3_cloudtrail_pasing_and_enrichment(self, lambda_boto3, parsing_boto3, cache_boto3):
         context = Context()
 
         boto3 = parsing_boto3.client()

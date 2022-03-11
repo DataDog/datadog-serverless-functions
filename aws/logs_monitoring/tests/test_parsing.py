@@ -712,7 +712,8 @@ class TestParseSecurityHubEvents(unittest.TestCase):
 
 
 class TestAWSLogsHandler(unittest.TestCase):
-    def test_awslogs_handler_rds_postgresql(self):
+    @patch("cache.CloudwatchLogGroupTagsCache.get")
+    def test_awslogs_handler_rds_postgresql(self, cw_logs_tags_get):
         event = {
             "awslogs": {
                 "data": base64.b64encode(
