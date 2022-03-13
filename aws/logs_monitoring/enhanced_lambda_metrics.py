@@ -372,7 +372,8 @@ def create_timeout_enhanced_metric(log_line):
         return []
 
     dd_metric = DatadogMetricPoint(
-        f"{ENHANCED_METRICS_NAMESPACE_PREFIX}.{TIMEOUTS_METRIC_NAME}", 1.0,
+        f"{ENHANCED_METRICS_NAMESPACE_PREFIX}.{TIMEOUTS_METRIC_NAME}",
+        1.0,
     )
     return [dd_metric]
 
@@ -395,6 +396,7 @@ def create_out_of_memory_enhanced_metric(log_line):
         return []
 
     dd_metric = DatadogMetricPoint(
-        f"{ENHANCED_METRICS_NAMESPACE_PREFIX}.{OUT_OF_MEMORY_METRIC_NAME}", 1.0,
+        f"{ENHANCED_METRICS_NAMESPACE_PREFIX}.{OUT_OF_MEMORY_METRIC_NAME}",
+        1.0,
     )
     return [dd_metric]

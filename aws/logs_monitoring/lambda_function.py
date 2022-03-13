@@ -113,7 +113,9 @@ def invoke_additional_target_lambdas(event):
     for lambda_arn in lambda_arns:
         try:
             lambda_client.invoke(
-                FunctionName=lambda_arn, InvocationType="Event", Payload=lambda_payload,
+                FunctionName=lambda_arn,
+                InvocationType="Event",
+                Payload=lambda_payload,
             )
         except Exception as e:
             logger.exception(
