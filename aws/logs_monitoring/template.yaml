@@ -651,6 +651,11 @@ Resources:
                   - kms:Decrypt
                 Resource: "*"
                 Effect: Allow
+              # Get tags for log groups and attach them to the logs sent to Datadog
+              - Action:
+                  - logs:ListTagsLogGroup
+                Resource: "*"
+                Effect: Allow
               # Access the Datadog API key from Secrets Manager
               - Action:
                   - secretsmanager:GetSecretValue
