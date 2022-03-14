@@ -733,10 +733,7 @@ class TestAWSLogsHandler(unittest.TestCase):
             1000,
         )
         mock_boto3.list_tags_log_group.return_value = {
-            "tags":
-                {
-                    "test_tag_key": "test_tag_value"
-                }
+            "tags": {"test_tag_key": "test_tag_value"}
         }
 
         event = {
