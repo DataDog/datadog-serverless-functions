@@ -361,6 +361,7 @@ def get_log_group_tags(log_group):
         response = cloudwatch_logs_client.list_tags_log_group(logGroupName=log_group)
     except Exception as e:
         logger.exception(f"Failed to get log group tags due to {e}")
+    formatted_tags = None
     if response is not None:
         formatted_tags = [
             "{key}:{value}".format(
@@ -371,9 +372,6 @@ def get_log_group_tags(log_group):
             else sanitize_aws_tag_string(k, remove_colons=True)
             for k, v in response["tags"].items()
         ]
-    else:
-        # In the case of failing to query tags we will write an empty list and retry on the next refresh
-        formatted_tags = []
     return formatted_tags
 
 
@@ -391,7 +389,12 @@ class CloudwatchLogGroupTagsCache(LambdaTagsCache):
         """
         new_tags = {}
         for log_group in self.tags_by_id.keys():
-            new_tags[log_group] = get_log_group_tags(log_group)
+            log_group_tags = get_log_group_tags(log_group)
+            # If we didn't get back log group tags we'll use the locally cached ones if they exist
+            # This avoids losing tags on a failed api call
+            if log_group_tags is None:
+                log_group_tags = self.tags_by_id.get(log_group, [])
+            new_tags[log_group] = log_group_tags
 
         logger.debug("All tags in Cloudwatch Log Groups refresh: {}".format(new_tags))
         return True, new_tags
@@ -415,7 +418,7 @@ class CloudwatchLogGroupTagsCache(LambdaTagsCache):
 
         log_group_tags = self.tags_by_id.get(log_group, None)
         if log_group_tags is None:
-            log_group_tags = get_log_group_tags(log_group)
+            log_group_tags = get_log_group_tags(log_group) or []
             self.tags_by_id[log_group] = log_group_tags
 
         return log_group_tags
