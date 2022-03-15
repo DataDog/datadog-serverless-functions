@@ -418,6 +418,12 @@ class CloudwatchLogGroupTagsCache(LambdaTagsCache):
 
         log_group_tags = self.tags_by_id.get(log_group, None)
         if log_group_tags is None:
+            # If the custom tag fetch env var is not set to true do not fetch
+            if not should_fetch_custom_tags():
+                logger.debug(
+                    "Not fetching custom tags because the env variable DD_FETCH_LAMBDA_TAGS is not set to true"
+                )
+                return []
             log_group_tags = get_log_group_tags(log_group) or []
             self.tags_by_id[log_group] = log_group_tags
 
