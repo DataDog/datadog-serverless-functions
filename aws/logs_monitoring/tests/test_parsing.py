@@ -13,7 +13,9 @@ sys.modules["datadog"] = MagicMock()
 sys.modules["requests"] = MagicMock()
 sys.modules["requests_futures.sessions"] = MagicMock()
 
-env_patch = patch.dict(os.environ, {"DD_API_KEY": "11111111111111111111111111111111"})
+env_patch = patch.dict(os.environ, {
+    "DD_API_KEY": "11111111111111111111111111111111",
+})
 env_patch.start()
 from parsing import (
     awslogs_handler,
@@ -727,6 +729,7 @@ class TestAWSLogsHandler(unittest.TestCase):
         mock_acquire_lock,
         mock_release_lock,
     ):
+        os.environ["DD_FETCH_LAMBDA_TAGS"] = "True"
         mock_acquire_lock.return_value = True
         mock_get_s3_cache.return_value = (
             {},
