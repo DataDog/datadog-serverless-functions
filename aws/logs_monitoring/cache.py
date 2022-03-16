@@ -89,10 +89,13 @@ def send_forwarder_internal_metrics(name, additional_tags=[]):
     )
 
 
-def should_fetch_custom_tags():
-    """Checks the env var to determine if the customer has opted-in to fetching custom tags"""
+def should_fetch_lambda_tags():
+    """Checks the env var to determine if the customer has opted-in to fetching lambda tags"""
     return os.environ.get("DD_FETCH_LAMBDA_TAGS", "false").lower() == "true"
 
+def should_fetch_log_group_tags():
+    """Checks the env var to determine if the customer has opted-in to fetching log group tags"""
+    return os.environ.get("DD_FETCH_LOG_GROUP_TAGS", "false").lower() == "true"
 
 def get_last_modified_time(s3_file):
     last_modified_str = s3_file["ResponseMetadata"]["HTTPHeaders"]["last-modified"]
@@ -185,7 +188,7 @@ class LambdaTagsCache(object):
         self.last_tags_fetch_time = time()
 
         # If the custom tag fetch env var is not set to true do not fetch
-        if not should_fetch_custom_tags():
+        if not self.should_fetch_tags():
             logger.debug(
                 "Not fetching custom tags because the env variable DD_FETCH_LAMBDA_TAGS is not set to true"
             )
@@ -215,6 +218,9 @@ class LambdaTagsCache(object):
 
         earliest_time_to_refetch_tags = last_modified + self.tags_ttl_seconds
         return time() > earliest_time_to_refetch_tags
+
+    def should_fetch_tags(self):
+        raise Exception("SHOULD FETCH TAGS MUST BE DEFINED FOR TABS CACHES")
 
     def get(self, key):
         raise Exception("GET TAGS MUST BE DEFINED FOR TAGS CACHES")
@@ -284,6 +290,9 @@ def parse_get_resources_response_for_tags_by_arn(get_resources_page):
 class LambdaCustomTagsCache(LambdaTagsCache):
     CACHE_FILENAME = DD_S3_CACHE_FILENAME
     CACHE_LOCK_FILENAME = DD_S3_CACHE_LOCK_FILENAME
+
+    def should_fetch_tags(self):
+        return should_fetch_lambda_tags()
 
     def build_tags_cache(self):
         """Makes API calls to GetResources to get the live tags of the account's Lambda functions
@@ -379,6 +388,9 @@ class CloudwatchLogGroupTagsCache(LambdaTagsCache):
     CACHE_FILENAME = DD_S3_LOG_GROUP_CACHE_FILENAME
     CACHE_LOCK_FILENAME = DD_S3_LOG_GROUP_CACHE_LOCK_FILENAME
 
+    def should_fetch_tags(self):
+        return should_fetch_log_group_tags()
+
     def build_tags_cache(self):
         """Makes API calls to GetResources to get the live tags of the account's Lambda functions
 
@@ -419,7 +431,7 @@ class CloudwatchLogGroupTagsCache(LambdaTagsCache):
         log_group_tags = self.tags_by_id.get(log_group, None)
         if log_group_tags is None:
             # If the custom tag fetch env var is not set to true do not fetch
-            if not should_fetch_custom_tags():
+            if not self.should_fetch_tags():
                 logger.debug(
                     "Not fetching custom tags because the env variable DD_FETCH_LAMBDA_TAGS is not set to true"
                 )

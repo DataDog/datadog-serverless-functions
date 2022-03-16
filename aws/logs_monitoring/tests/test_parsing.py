@@ -733,6 +733,7 @@ class TestAWSLogsHandler(unittest.TestCase):
         mock_release_lock,
     ):
         os.environ["DD_FETCH_LAMBDA_TAGS"] = "True"
+        os.environ["DD_FETCH_LOG_GROUP_TAGS"] = "True"
         mock_acquire_lock.return_value = True
         mock_get_s3_cache.return_value = (
             {},

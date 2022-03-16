@@ -18,7 +18,8 @@ SNAPSHOT_DIR="${INTEGRATION_TESTS_DIR}/${SNAPSHOTS_DIR_NAME}/*"
 SNAPS=($SNAPSHOT_DIR)
 ADDITIONAL_LAMBDA=false
 CACHE_TEST=false 
-DD_FETCH_LAMBDA_TAGS="false"
+DD_FETCH_LAMBDA_TAGS="true"
+DD_FETCH_LOG_GROUP_TAGS="true"
 
 script_start_time=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 echo "Starting script time: $script_start_time"
