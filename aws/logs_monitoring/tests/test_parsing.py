@@ -13,7 +13,12 @@ sys.modules["datadog"] = MagicMock()
 sys.modules["requests"] = MagicMock()
 sys.modules["requests_futures.sessions"] = MagicMock()
 
-env_patch = patch.dict(os.environ, {"DD_API_KEY": "11111111111111111111111111111111"})
+env_patch = patch.dict(
+    os.environ,
+    {
+        "DD_API_KEY": "11111111111111111111111111111111",
+    },
+)
 env_patch.start()
 from parsing import (
     awslogs_handler,
@@ -712,7 +717,32 @@ class TestParseSecurityHubEvents(unittest.TestCase):
 
 
 class TestAWSLogsHandler(unittest.TestCase):
-    def test_awslogs_handler_rds_postgresql(self):
+    @patch("cache.CloudwatchLogGroupTagsCache.release_s3_cache_lock")
+    @patch("cache.CloudwatchLogGroupTagsCache.acquire_s3_cache_lock")
+    @patch("cache.cloudwatch_logs_client")
+    @patch("cache.CloudwatchLogGroupTagsCache.write_cache_to_s3")
+    @patch("cache.send_forwarder_internal_metrics")
+    @patch("cache.CloudwatchLogGroupTagsCache.get_cache_from_s3")
+    def test_awslogs_handler_rds_postgresql(
+        self,
+        mock_get_s3_cache,
+        mock_forward_metrics,
+        mock_write_cache,
+        mock_boto3,
+        mock_acquire_lock,
+        mock_release_lock,
+    ):
+        os.environ["DD_FETCH_LAMBDA_TAGS"] = "True"
+        os.environ["DD_FETCH_LOG_GROUP_TAGS"] = "True"
+        mock_acquire_lock.return_value = True
+        mock_get_s3_cache.return_value = (
+            {},
+            1000,
+        )
+        mock_boto3.list_tags_log_group.return_value = {
+            "tags": {"test_tag_key": "test_tag_value"}
+        }
+
         event = {
             "awslogs": {
                 "data": base64.b64encode(
@@ -762,7 +792,7 @@ class TestAWSLogsHandler(unittest.TestCase):
         self.assertEqual(
             {
                 "ddsource": "postgresql",
-                "ddtags": "env:dev,logname:postgresql",
+                "ddtags": "env:dev,test_tag_key:test_tag_value,logname:postgresql",
                 "host": "datadog",
                 "service": "postgresql",
             },

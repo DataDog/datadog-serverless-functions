@@ -74,6 +74,13 @@ Parameters:
       - true
       - false
     Description: Let the forwarder fetch Lambda tags using GetResources API calls and apply them to logs, metrics and traces. If set to true, permission tag:GetResources will be automatically added to the Lambda execution IAM role. The tags are cached in memory so that they'll only be fetched when the function cold starts or when the TTL (1 hour) expires. The forwarder increments the aws.lambda.enhanced.get_resources_api_calls metric for each API call made.
+  DdFetchLogGroupTags:
+    Type: String
+    Default: true
+    AllowedValues:
+      - true
+      - false
+    Description: Let the forwarder fetch Log Group tags using ListTagsLogGroup and apply them to logs, metrics and traces. If set to true, permission logs:ListTagsLogGroup will be automatically added to the Lambda execution IAM role. The tags are cached in memory so that they'll only be fetched when the function cold starts or when the TTL (1 hour) expires. The forwarder increments the aws.lambda.enhanced.list_tags_log_group_api_call metric for each API call made.
   DdUseTcp:
     Type: String
     Default: false
@@ -308,6 +315,18 @@ Conditions:
     Fn::Equals:
       - Ref: DdFetchLambdaTags
       - true
+  SetDdFetchLogGroupTags:
+    Fn::Equals:
+      - Ref: DdFetchLogGroupTags
+      - true
+  CreateS3BucketForTags:
+    Fn::Or:
+      - Fn::Equals:
+          - Ref: DdFetchLogGroupTags
+          - true
+      - Fn::Equals:
+          - Ref: DdFetchLambdaTags
+          - true
   SetDdUsePrivateLink:
     Fn::Equals:
       - Ref: DdUsePrivateLink
@@ -454,7 +473,7 @@ Resources:
               - Ref: DdApiKeySecretArn
           DD_S3_BUCKET_NAME:
             Fn::If:
-              - SetDdFetchLambdaTags
+              - CreateS3BucketForTags
               - Ref: ForwarderBucket
               - Ref: AWS::NoValue
           DD_SITE:
@@ -470,6 +489,11 @@ Resources:
             Fn::If:
               - SetDdFetchLambdaTags
               - Ref: DdFetchLambdaTags
+              - Ref: AWS::NoValue
+          DD_FETCH_LOG_GROUP_TAGS:
+            Fn::If:
+              - SetDdFetchLogGroupTags
+              - Ref: DdFetchLogGroupTags
               - Ref: AWS::NoValue
           DD_USE_TCP:
             Fn::If:
@@ -665,6 +689,14 @@ Resources:
                   - SetDdFetchLambdaTags
                   - Action:
                       - tag:GetResources
+                    Resource: "*"
+                    Effect: Allow
+                  - Ref: AWS::NoValue
+              # Get tags for log groups and attach them to the logs sent to Datadog
+              - Fn::If:
+                  - SetDdFetchLogGroupTags
+                  - Action:
+                      - logs:ListTagsLogGroup
                     Resource: "*"
                     Effect: Allow
                   - Ref: AWS::NoValue

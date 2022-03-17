@@ -25,7 +25,8 @@ services:
       DD_USE_COMPRESSION: "false"
       DD_ADDITIONAL_TARGET_LAMBDAS: "${EXTERNAL_LAMBDAS}"
       DD_S3_BUCKET_NAME: "${DD_S3_BUCKET_NAME}"
-      DD_FETCH_LAMBDA_TAGS: "${DD_FETCH_LAMBDA_TAGS}"
+      DD_FETCH_LAMBDA_TAGS: "true"
+      DD_FETCH_LOG_GROUP_TAGS: "true"
     expose:
       - 9001
 

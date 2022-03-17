@@ -3,6 +3,7 @@
 !enhanced_lambda_metrics.py
 !logs.py
 !parsing.py
+!cache.py
 !telemetry.py
 !settings.py
 !setup.py
