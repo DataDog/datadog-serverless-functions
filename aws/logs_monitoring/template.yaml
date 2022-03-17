@@ -1036,6 +1036,7 @@ Metadata:
           default: Advanced (Optional)
         Parameters:
           - DdFetchLambdaTags
+          - DdFetchLogGroupTags
           - TagsCacheTTLSeconds
           - SourceZipUrl
           - InstallAsLayer
