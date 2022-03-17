@@ -220,7 +220,7 @@ class LambdaTagsCache(object):
         return time() > earliest_time_to_refetch_tags
 
     def should_fetch_tags(self):
-        raise Exception("SHOULD FETCH TAGS MUST BE DEFINED FOR TABS CACHES")
+        raise Exception("SHOULD FETCH TAGS MUST BE DEFINED FOR TAGS CACHES")
 
     def get(self, key):
         raise Exception("GET TAGS MUST BE DEFINED FOR TAGS CACHES")
