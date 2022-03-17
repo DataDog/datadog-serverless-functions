@@ -93,9 +93,11 @@ def should_fetch_lambda_tags():
     """Checks the env var to determine if the customer has opted-in to fetching lambda tags"""
     return os.environ.get("DD_FETCH_LAMBDA_TAGS", "false").lower() == "true"
 
+
 def should_fetch_log_group_tags():
     """Checks the env var to determine if the customer has opted-in to fetching log group tags"""
     return os.environ.get("DD_FETCH_LOG_GROUP_TAGS", "false").lower() == "true"
+
 
 def get_last_modified_time(s3_file):
     last_modified_str = s3_file["ResponseMetadata"]["HTTPHeaders"]["last-modified"]
