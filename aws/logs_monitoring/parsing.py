@@ -276,6 +276,9 @@ def find_cloudwatch_source(log_group):
     ):
         return "apigateway"
 
+    if log_group.startswith("/aws/vendedlogs/states"):
+        return "stepfunction"
+
     # e.g. dms-tasks-test-instance
     if log_group.startswith("dms-tasks"):
         return "dms"
@@ -481,6 +484,17 @@ def awslogs_handler(event, context, metadata):
     # Set host as log group where cloudwatch is source
     if metadata[DD_SOURCE] == "cloudwatch" or metadata.get(DD_HOST, None) == None:
         metadata[DD_HOST] = aws_attributes["aws"]["awslogs"]["logGroup"]
+
+    if metadata[DD_SOURCE] == "stepfunction" and logs["logStream"].startswith("states/"):
+        try:
+            message = json.loads(logs["logEvents"][0]["message"])
+            if message.get("execution_arn") is not None:
+                execution_arn = message["execution_arn"]
+                arn_tokens = execution_arn.split(":")
+                arn_tokens[5] = "stateMachine"
+                metadata[DD_HOST] = ":".join(arn_tokens[:-1])
+        except Exception as e:
+            logger.debug("Unable to set stepfunction host: %s" % e)
 
     # When parsing rds logs, use the cloudwatch log group name to derive the
     # rds instance name, and add the log name of the stream ingested
