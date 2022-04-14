@@ -118,15 +118,13 @@ func ParseTrace(content string) ([]*pb.TracePayload, error) {
 		}
 
 		payload := pb.TracePayload{
-			HostName:     "",
-			Env:          "none",
-			Traces:       []*pb.APITrace{},
-			Transactions: []*pb.Span{},
+			HostName: "",
+			Env:      "none",
+			Traces:   []*pb.APITrace{},
 		}
 		for _, apiTrace := range apiTraces {
 			top := GetAnalyzedSpans(apiTrace.Spans)
 			computeSublayerMetrics(apiTrace.Spans)
-			payload.Transactions = append(payload.Transactions, top...)
 			payload.Traces = append(payload.Traces, apiTrace)
 		}
 

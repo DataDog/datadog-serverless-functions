@@ -120,15 +120,13 @@ func aggregateTracePayloadsByEnv(tracePayloads []*pb.TracePayload) []*pb.TracePa
 			existingPayload = val
 		} else {
 			existingPayload = &pb.TracePayload{
-				HostName:     tracePayload.HostName,
-				Env:          tracePayload.Env,
-				Traces:       make([]*pb.APITrace, 0),
-				Transactions: make([]*pb.Span, 0),
+				HostName: tracePayload.HostName,
+				Env:      tracePayload.Env,
+				Traces:   make([]*pb.APITrace, 0),
 			}
 			lookup[key] = existingPayload
 		}
 		existingPayload.Traces = append(existingPayload.Traces, tracePayload.Traces...)
-		existingPayload.Transactions = append(existingPayload.Transactions, tracePayload.Transactions...)
 	}
 
 	newPayloads := make([]*pb.TracePayload, 0)
