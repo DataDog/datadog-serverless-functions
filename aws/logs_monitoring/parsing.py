@@ -485,7 +485,9 @@ def awslogs_handler(event, context, metadata):
     if metadata[DD_SOURCE] == "cloudwatch" or metadata.get(DD_HOST, None) == None:
         metadata[DD_HOST] = aws_attributes["aws"]["awslogs"]["logGroup"]
 
-    if metadata[DD_SOURCE] == "stepfunction" and logs["logStream"].startswith("states/"):
+    if metadata[DD_SOURCE] == "stepfunction" and logs["logStream"].startswith(
+        "states/"
+    ):
         try:
             message = json.loads(logs["logEvents"][0]["message"])
             if message.get("execution_arn") is not None:

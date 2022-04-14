@@ -274,8 +274,7 @@ class TestParseEventSource(unittest.TestCase):
     def test_step_function_event(self):
         self.assertEqual(
             parse_event_source(
-                {"awslogs": "logs"},
-                "/aws/vendedlogs/states/MyStateMachine-Logs"
+                {"awslogs": "logs"}, "/aws/vendedlogs/states/MyStateMachine-Logs"
             ),
             "stepfunction",
         )
@@ -285,6 +284,7 @@ class TestParseEventSource(unittest.TestCase):
 
     def test_s3_source_if_none_found(self):
         self.assertEqual(parse_event_source({"Records": ["logs-from-s3"]}, ""), "s3")
+
 
 class TestParseServiceArn(unittest.TestCase):
     def test_elb_s3_key_invalid(self):
