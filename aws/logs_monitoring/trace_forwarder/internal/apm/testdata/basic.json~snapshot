@@ -81,6 +81,7 @@
     StartTime: (int64) 1586269922931758000,
     EndTime: (int64) 0
    })
-  }
+  },
+  Transactions: ([]*pb.Span) <nil>
  })
 }
