@@ -123,7 +123,6 @@ func ParseTrace(content string) ([]*pb.TracePayload, error) {
 			Traces:   []*pb.APITrace{},
 		}
 		for _, apiTrace := range apiTraces {
-			top := GetAnalyzedSpans(apiTrace.Spans)
 			computeSublayerMetrics(apiTrace.Spans)
 			payload.Traces = append(payload.Traces, apiTrace)
 		}
