@@ -431,6 +431,7 @@ To deploy the CloudFormation Stack with the default options, you need to have th
     "lambda:InvokeFunction",
     "lambda:PutFunctionConcurrency",
     "lambda:AddPermission",
+    "lambda:TagResource",
     "logs:CreateLogGroup",
     "logs:DescribeLogGroups",
     "logs:PutRetentionPolicy"
