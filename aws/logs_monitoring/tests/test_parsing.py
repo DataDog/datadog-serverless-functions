@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 import os
 import sys
 import unittest
+from collections import namedtuple
 
 sys.modules["trace_forwarder.connection"] = MagicMock()
 sys.modules["datadog_lambda.wrapper"] = MagicMock()
@@ -331,6 +332,29 @@ class TestParseServiceArn(unittest.TestCase):
             "arn:aws:elasticloadbalancing:us-east-1:123456789123:loadbalancer/app/my-alb-name/123456789aabcdef",
         )
 
+    def test_cloudfront_s3_key_prefix(self):
+        Context = namedtuple("Context","invoked_function_arn")
+        self.assertEqual(
+            parse_service_arn(
+                "cloudfront",
+                "AWSLogs/cloudfront/123456789012/EMLARXS9EXAMPLE.2019-11-14-20.RT4KCN4SGK9.gz",
+                None,
+                Context("arn:aws:lambda:eu-central-1:123456789015:function:datadog-forwarder")
+            ),
+            "arn:aws:cloudfront::123456789012:distribution/emlarxs9example",
+        )
+
+    def test_cloudfront_s3_key_no_prefix(self):
+        Context = namedtuple("Context","invoked_function_arn")
+        self.assertEqual(
+            parse_service_arn(
+                "cloudfront",
+                "cloudfront/EMLARXS9EXAMPLE.2019-11-14-20.RT4KCN4SGK9.gz",
+                None,
+                Context("arn:aws:lambda:eu-central-1:123456789015:function:datadog-forwarder")
+            ),
+            "arn:aws:cloudfront::123456789015:distribution/emlarxs9example",
+        )
 
 class TestParseAwsWafLogs(unittest.TestCase):
     def test_waf_string_invalid_json(self):
