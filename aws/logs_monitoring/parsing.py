@@ -292,7 +292,7 @@ def find_cloudwatch_source(log_group):
         return "aws.fsx"
 
     # e.g. aws-waf-logs-xxxx
-    if log_group.startswith("aws-waf-logs"):
+    if log_group.startswith("aws-waf-logs-"):
         return "waf"
     
     for source in [
