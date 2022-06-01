@@ -11,25 +11,27 @@ from google.protobuf import symbol_database as _symbol_database
 
 _sym_db = _symbol_database.Default()
 
-
 import span_pb2 as span__pb2
 
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(
+    b'\n\x0btrace.proto\x12\x02pb\x1a\nspan.proto"X\n\x08\x41PITrace\x12\x0f\n\x07traceID\x18\x01 \x01(\x04\x12\x17\n\x05spans\x18\x02 \x03(\x0b\x32\x08.pb.Span\x12\x11\n\tstartTime\x18\x06 \x01(\x03\x12\x0f\n\x07\x65ndTime\x18\x07 \x01(\x03\x62\x06proto3'
+)
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0btrace.proto\x12\x02pb\x1a\nspan.proto\"X\n\x08\x41PITrace\x12\x0f\n\x07traceID\x18\x01 \x01(\x04\x12\x17\n\x05spans\x18\x02 \x03(\x0b\x32\x08.pb.Span\x12\x11\n\tstartTime\x18\x06 \x01(\x03\x12\x0f\n\x07\x65ndTime\x18\x07 \x01(\x03\x62\x06proto3')
 
-
-
-_APITRACE = DESCRIPTOR.message_types_by_name['APITrace']
-APITrace = _reflection.GeneratedProtocolMessageType('APITrace', (_message.Message,), {
-  'DESCRIPTOR' : _APITRACE,
-  '__module__' : 'trace_pb2'
-  # @@protoc_insertion_point(class_scope:pb.APITrace)
-  })
+_APITRACE = DESCRIPTOR.message_types_by_name["APITrace"]
+APITrace = _reflection.GeneratedProtocolMessageType(
+    "APITrace",
+    (_message.Message,),
+    {
+        "DESCRIPTOR": _APITRACE,
+        "__module__": "trace_pb2"
+        # @@protoc_insertion_point(class_scope:pb.APITrace)
+    },
+)
 _sym_db.RegisterMessage(APITrace)
 
 if _descriptor._USE_C_DESCRIPTORS == False:
-
-  DESCRIPTOR._options = None
-  _APITRACE._serialized_start=31
-  _APITRACE._serialized_end=119
+    DESCRIPTOR._options = None
+    _APITRACE._serialized_start = 31
+    _APITRACE._serialized_end = 119
 # @@protoc_insertion_point(module_scope)
