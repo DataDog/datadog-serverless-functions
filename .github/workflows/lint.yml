@@ -20,12 +20,12 @@ jobs:
       - name: Lint with flake8
         run: |
           pip install flake8
-          flake8 ./aws/logs_monitoring/ --count --select=E9,F --show-source --statistics
+          flake8 ./aws/logs_monitoring/ --count --select=E9,F --show-source --statistics --exclude=*_pb2.py
 
       - name: Check formatting with Black
         run: |
           pip install black
-          black --check --diff ./aws/logs_monitoring
+          black --check --diff --exclude pb2.py ./aws/logs_monitoring
 
       - name: Setup Cloud Formation Linter with Latest Version
         uses: scottbrenner/cfn-lint-action@v2
