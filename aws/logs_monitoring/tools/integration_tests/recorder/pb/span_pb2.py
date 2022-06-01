@@ -7,7 +7,6 @@ from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf import message as _message
 from google.protobuf import reflection as _reflection
 from google.protobuf import symbol_database as _symbol_database
-
 # @@protoc_insertion_point(imports)
 
 _sym_db = _symbol_database.Default()
@@ -48,12 +47,12 @@ Span = _reflection.GeneratedProtocolMessageType(
         # @@protoc_insertion_point(class_scope:pb.Span)
     },
 )
+
 _sym_db.RegisterMessage(Span)
 _sym_db.RegisterMessage(Span.MetaEntry)
 _sym_db.RegisterMessage(Span.MetricsEntry)
 
 if _descriptor._USE_C_DESCRIPTORS == False:
-
     DESCRIPTOR._options = None
     _SPAN_METAENTRY._options = None
     _SPAN_METAENTRY._serialized_options = b"8\001"

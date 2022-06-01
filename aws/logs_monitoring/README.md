@@ -6,6 +6,7 @@ dependencies:
 aliases:
   - /serverless/troubleshooting/installing_the_forwarder/
   - /serverless/forwarder/
+  - /serverless/libraries_integrations/forwarder/
 ---
 
 The Datadog Forwarder is an AWS Lambda function that ships logs, custom metrics, and traces from your environment to Datadog. The Forwarder can:
@@ -39,7 +40,8 @@ Once installed, you can subscribe the Forwarder to log sources, such as S3 bucke
 5. [Set up triggers to the installed Forwarder](https://docs.datadoghq.com/logs/guide/send-aws-services-logs-with-the-datadog-lambda-function/#set-up-triggers).
 6. Repeat the above steps in another region if you operate in multiple AWS regions.
 
-**Note:** If you had previously enabled your AWS Integration using the following [CloudFormation template](https://github.com/DataDog/cloudformation-template/tree/master/aws) from your AWS integration tile in Datadog, your account should already be provisioned with a Datadog Lambda Forwarder function.
+**Note:** If you had previously enabled your AWS Integration using the following [CloudFormation template](https://github.com/DataDog/cloudformation-template/tree/master/aws) from your AWS integration tile in Datadog, your account should already be provisioned with a Datadog Lambda Forwarder function.  
+**Note:** The code block of the Datadog Lambda Forwarder function is empty, as the logic is implemented through a Lambda layer.
 
 <!-- xxz tab xxx -->
 <!-- xxx tab "Terraform" xxx -->
@@ -110,7 +112,7 @@ If you can't install the Forwarder using the provided CloudFormation template, y
 5. Some AWS accounts are configured such that triggers will not automatically create resource-based policies allowing Cloudwatch log groups to invoke the forwarder.
    Please reference the [CloudWatchLogPermissions](https://github.com/DataDog/datadog-serverless-functions/blob/029bd46e5c6d4e8b1ae647ed3b4d1917ac3cd793/aws/logs_monitoring/template.yaml#L680) to see which permissions are required for the forwarder to be invoked by Cloudwatch Log Events.
 
-6. Configure [triggers](https://docs.datadoghq.com/integrations/amazon_web_services/?tab=allpermissions#send-aws-service-logs-to-datadog).
+6. Configure [triggers](https://docs.datadoghq.com/logs/guide/send-aws-services-logs-with-the-datadog-lambda-function/?tab=awsconsole#set-up-triggers).
 7. Create an S3 bucket, and set environment variable `DD_S3_BUCKET_NAME` to the bucket name. Also provide `s3:GetObject`, `s3:PutObject`, and `s3:DeleteObject` permissions on this bucket to the Lambda execution role. This bucket is used to store the Lambda tags cache.
 
 <!-- xxz tab xxx -->
@@ -429,6 +431,7 @@ To deploy the CloudFormation Stack with the default options, you need to have th
     "lambda:InvokeFunction",
     "lambda:PutFunctionConcurrency",
     "lambda:AddPermission",
+    "lambda:TagResource",
     "logs:CreateLogGroup",
     "logs:DescribeLogGroups",
     "logs:PutRetentionPolicy"

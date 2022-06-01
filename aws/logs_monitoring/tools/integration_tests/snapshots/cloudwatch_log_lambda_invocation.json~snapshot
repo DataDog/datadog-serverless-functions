@@ -382,7 +382,6 @@
               {
                 "duration": "458278320",
                 "meta": {
-                  "_dd.compute_stats": "1",
                   "_dd.origin": "lambda",
                   "account_id": "0000000000",
                   "aws_account": "0000000000",
@@ -408,7 +407,6 @@
               {
                 "duration": "13428",
                 "meta": {
-                  "_dd.compute_stats": "1",
                   "_dd.origin": "lambda",
                   "account_id": "0000000000",
                   "aws_account": "0000000000",
@@ -434,7 +432,6 @@
               {
                 "duration": "35645",
                 "meta": {
-                  "_dd.compute_stats": "1",
                   "_dd.origin": "lambda",
                   "account_id": "0000000000",
                   "aws_account": "0000000000",
@@ -460,7 +457,6 @@
               {
                 "duration": "9277",
                 "meta": {
-                  "_dd.compute_stats": "1",
                   "_dd.origin": "lambda",
                   "account_id": "0000000000",
                   "aws_account": "0000000000",
@@ -486,7 +482,6 @@
               {
                 "duration": "26367",
                 "meta": {
-                  "_dd.compute_stats": "1",
                   "_dd.origin": "lambda",
                   "account_id": "0000000000",
                   "aws_account": "0000000000",
@@ -512,7 +507,6 @@
               {
                 "duration": "127197",
                 "meta": {
-                  "_dd.compute_stats": "1",
                   "_dd.origin": "lambda",
                   "account_id": "0000000000",
                   "aws_account": "0000000000",
@@ -538,7 +532,6 @@
               {
                 "duration": "499751709",
                 "meta": {
-                  "_dd.compute_stats": "1",
                   "_dd.origin": "lambda",
                   "account_id": "0000000000",
                   "aws_account": "0000000000",
@@ -567,7 +560,6 @@
               {
                 "duration": "218750",
                 "meta": {
-                  "_dd.compute_stats": "1",
                   "_dd.origin": "lambda",
                   "account_id": "0000000000",
                   "aws_account": "0000000000",
@@ -596,7 +588,6 @@
               {
                 "duration": "460493896",
                 "meta": {
-                  "_dd.compute_stats": "1",
                   "_dd.origin": "lambda",
                   "account_id": "0000000000",
                   "aws_account": "0000000000",
@@ -626,7 +617,6 @@
               {
                 "duration": "479066650",
                 "meta": {
-                  "_dd.compute_stats": "1",
                   "_dd.origin": "lambda",
                   "account_id": "0000000000",
                   "aws_account": "0000000000",
@@ -663,7 +653,6 @@
               {
                 "duration": "577401367",
                 "meta": {
-                  "_dd.compute_stats": "1",
                   "_dd.origin": "lambda",
                   "account_id": "0000000000",
                   "aws_account": "0000000000",
@@ -699,7 +688,6 @@
               {
                 "duration": "578297119",
                 "meta": {
-                  "_dd.compute_stats": "1",
                   "_dd.origin": "lambda",
                   "account_id": "0000000000",
                   "aws_account": "0000000000",
