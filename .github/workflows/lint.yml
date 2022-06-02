@@ -6,10 +6,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v1
+      - name: Checkout source
+        uses: actions/checkout@v3
+      - name: Setup Python
+        uses: actions/setup-python@v3
         with:
           python-version: 3.7
 
@@ -27,10 +27,10 @@ jobs:
           pip install black
           black --check --diff --exclude pb2.py ./aws/logs_monitoring
 
-      - name: Setup Cloud Formation Linter with Latest Version
+      - name: Setup CloudFormation Linter with Latest Version
         uses: scottbrenner/cfn-lint-action@v2
 
-      - name: Print the Cloud Formation Linter Version & run Linter.
+      - name: Print the CloudFormation Linter Version & run Linter
         run: |
           cfn-lint --version
           cfn-lint -t aws/logs_monitoring/template.yaml
