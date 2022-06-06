@@ -7,7 +7,7 @@
 
 set -e
 
-PYTHON_VERSION="python3.7"
+PYTHON_VERSION="python3.8"
 SKIP_FORWARDER_BUILD=false
 UPDATE_SNAPSHOTS=false
 LOG_LEVEL=info
