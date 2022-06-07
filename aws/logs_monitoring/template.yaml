@@ -457,7 +457,7 @@ Resources:
 
       MemorySize:
         Ref: MemorySize
-      Runtime: python3.7
+      Runtime: python3.8
       Timeout:
         Ref: Timeout
       Tags:
@@ -839,7 +839,7 @@ Resources:
     Properties:
       Description: Copies Datadog Forwarder zip to the destination S3 bucket
       Handler: index.handler
-      Runtime: python3.7
+      Runtime: python3.8
       Timeout: 300
       Code:
         ZipFile: |
