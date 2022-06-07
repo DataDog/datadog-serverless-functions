@@ -6,7 +6,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout source
+        uses: actions/checkout@v3
       - name: Run trace forwarder tests
         run: |
           ./aws/logs_monitoring/trace_forwarder/scripts/run_tests.sh

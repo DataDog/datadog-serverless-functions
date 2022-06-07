@@ -16,8 +16,7 @@
       Start: (int64) 1636820292450000100,
       Duration: (int64) 149992638,
       Error: (int32) 0,
-      Meta: (map[string]string) (len=12) {
-       (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
+      Meta: (map[string]string) (len=11) {
        (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
        (string) (len=27) "_inferred_span.syncronicity": (string) (len=4) "sync",
        (string) (len=25) "_inferred_span.tag_source": (string) (len=4) "self",
@@ -59,8 +58,7 @@
       Start: (int64) 1636820292466458000,
       Duration: (int64) 133507715,
       Error: (int32) 0,
-      Meta: (map[string]string) (len=18) {
-       (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
+      Meta: (map[string]string) (len=17) {
        (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
        (string) (len=10) "cold_start": (string) (len=5) "false",
        (string) (len=14) "datadog_lambda": (string) (len=6) "3.49.0",
@@ -104,8 +102,7 @@
       Start: (int64) 1636820292466887200,
       Duration: (int64) 19825652,
       Error: (int32) 0,
-      Meta: (map[string]string) (len=11) {
-       (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
+      Meta: (map[string]string) (len=10) {
        (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
        (string) (len=9) "aws.agent": (string) (len=8) "botocore",
        (string) (len=13) "aws.operation": (string) (len=11) "SendMessage",
@@ -134,8 +131,7 @@
       Start: (int64) 1636820292487212000,
       Duration: (int64) 21565856,
       Error: (int32) 0,
-      Meta: (map[string]string) (len=12) {
-       (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
+      Meta: (map[string]string) (len=11) {
        (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
        (string) (len=9) "aws.agent": (string) (len=8) "botocore",
        (string) (len=13) "aws.operation": (string) (len=7) "Publish",
@@ -165,8 +161,7 @@
       Start: (int64) 1636820292508904400,
       Duration: (int64) 6481144,
       Error: (int32) 0,
-      Meta: (map[string]string) (len=10) {
-       (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
+      Meta: (map[string]string) (len=9) {
        (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
        (string) (len=9) "aws.agent": (string) (len=8) "botocore",
        (string) (len=13) "aws.operation": (string) (len=7) "PutItem",
@@ -194,8 +189,7 @@
       Start: (int64) 1636820292515487000,
       Duration: (int64) 7799031,
       Error: (int32) 0,
-      Meta: (map[string]string) (len=11) {
-       (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
+      Meta: (map[string]string) (len=10) {
        (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
        (string) (len=9) "aws.agent": (string) (len=8) "botocore",
        (string) (len=13) "aws.operation": (string) (len=9) "PutRecord",
@@ -224,8 +218,7 @@
       Start: (int64) 1636820292523388000,
       Duration: (int64) 13733007,
       Error: (int32) 0,
-      Meta: (map[string]string) (len=9) {
-       (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
+      Meta: (map[string]string) (len=8) {
        (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
        (string) (len=9) "aws.agent": (string) (len=8) "botocore",
        (string) (len=13) "aws.operation": (string) (len=9) "PutEvents",
@@ -252,8 +245,7 @@
       Start: (int64) 1636820292538263000,
       Duration: (int64) 38689743,
       Error: (int32) 0,
-      Meta: (map[string]string) (len=10) {
-       (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
+      Meta: (map[string]string) (len=9) {
        (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
        (string) (len=9) "aws.agent": (string) (len=8) "botocore",
        (string) (len=13) "aws.operation": (string) (len=9) "PutObject",
@@ -281,8 +273,7 @@
       Start: (int64) 1636820292579315000,
       Duration: (int64) 20111883,
       Error: (int32) 0,
-      Meta: (map[string]string) (len=10) {
-       (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
+      Meta: (map[string]string) (len=9) {
        (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
        (string) (len=9) "aws.agent": (string) (len=8) "botocore",
        (string) (len=13) "aws.operation": (string) (len=6) "Invoke",
@@ -304,272 +295,6 @@
     EndTime: (int64) 0
    })
   },
-  Transactions: ([]*pb.Span) (len=8) {
-   (*pb.Span)({
-    Service: (string) (len=46) "ialbefmodl.execute-api.sa-east-1.amazonaws.com",
-    Name: (string) (len=14) "aws.apigateway",
-    Resource: (string) (len=47) "ialbefmodl.execute-api.sa-east-1.amazonaws.com/",
-    TraceID: (uint64) 11303031032863116131,
-    SpanID: (uint64) 12110942352183153687,
-    ParentID: (uint64) 0,
-    Start: (int64) 1636820292450000100,
-    Duration: (int64) 149992638,
-    Error: (int32) 0,
-    Meta: (map[string]string) (len=12) {
-     (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
-     (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
-     (string) (len=27) "_inferred_span.syncronicity": (string) (len=4) "sync",
-     (string) (len=25) "_inferred_span.tag_source": (string) (len=4) "self",
-     (string) (len=8) "endpoint": (string) (len=1) "/",
-     (string) (len=11) "http.method": (string) (len=3) "GET",
-     (string) (len=16) "http.status_code": (string) (len=3) "200",
-     (string) (len=8) "http.url": (string) (len=2) "?/",
-     (string) (len=14) "operation_name": (string) (len=19) "aws.apigateway.rest",
-     (string) (len=10) "request_id": (string) (len=36) "9f09f496-83c7-441b-bc59-9741107b0683",
-     (string) (len=14) "resource_names": (string) (len=47) "ialbefmodl.execute-api.sa-east-1.amazonaws.com/",
-     (string) (len=10) "runtime-id": (string) (len=32) "810d8797397b4a8c94ca00582b397222"
-    },
-    Metrics: (map[string]float64) (len=15) {
-     (string) (len=13) "_dd.agent_psr": (float64) 1,
-     (string) (len=21) "_sampling_priority_v1": (float64) 1,
-     (string) (len=60) "_sublayers.duration.by_service.sublayer_service:aws.dynamodb": (float64) 6.481144e+06,
-     (string) (len=58) "_sublayers.duration.by_service.sublayer_service:aws.events": (float64) 1.3733007e+07,
-     (string) (len=59) "_sublayers.duration.by_service.sublayer_service:aws.kinesis": (float64) 7.799031e+06,
-     (string) (len=58) "_sublayers.duration.by_service.sublayer_service:aws.lambda": (float64) 2.5413282e+07,
-     (string) (len=54) "_sublayers.duration.by_service.sublayer_service:aws.s3": (float64) 3.8689743e+07,
-     (string) (len=55) "_sublayers.duration.by_service.sublayer_service:aws.sns": (float64) 2.1565856e+07,
-     (string) (len=55) "_sublayers.duration.by_service.sublayer_service:aws.sqs": (float64) 1.9825652e+07,
-     (string) (len=94) "_sublayers.duration.by_service.sublayer_service:ialbefmodl.execute-api.sa-east-1.amazonaws.com": (float64) 1.6484923e+07,
-     (string) (len=46) "_sublayers.duration.by_type.sublayer_type:http": (float64) 1.44691239e+08,
-     (string) (len=52) "_sublayers.duration.by_type.sublayer_type:serverless": (float64) 5.301399e+06,
-     (string) (len=21) "_sublayers.span_count": (float64) 9,
-     (string) (len=10) "_top_level": (float64) 1,
-     (string) (len=10) "system.pid": (float64) 9
-    },
-    Type: (string) (len=4) "http"
-   }),
-   (*pb.Span)({
-    Service: (string) (len=5) "hello",
-    Name: (string) (len=10) "aws.lambda",
-    Resource: (string) (len=36) "inferred-spans-python-dev-initSender",
-    TraceID: (uint64) 11303031032863116131,
-    SpanID: (uint64) 580656595079775284,
-    ParentID: (uint64) 12110942352183153687,
-    Start: (int64) 1636820292466458000,
-    Duration: (int64) 133507715,
-    Error: (int32) 0,
-    Meta: (map[string]string) (len=18) {
-     (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
-     (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
-     (string) (len=10) "cold_start": (string) (len=5) "false",
-     (string) (len=14) "datadog_lambda": (string) (len=6) "3.49.0",
-     (string) (len=8) "dd_trace": (string) (len=6) "0.50.4",
-     (string) (len=12) "function_arn": (string) (len=83) "arn:aws:lambda:sa-east-1:601427279990:function:inferred-spans-python-dev-initsender",
-     (string) (len=29) "function_trigger.event_source": (string) (len=11) "api-gateway",
-     (string) (len=33) "function_trigger.event_source_arn": (string) (len=61) "arn:aws:apigateway:sa-east-1::/restapis/ialbefmodl/stages/dev",
-     (string) (len=16) "function_version": (string) (len=7) "$LATEST",
-     (string) (len=12) "functionname": (string) (len=36) "inferred-spans-python-dev-initsender",
-     (string) (len=11) "http.method": (string) (len=3) "GET",
-     (string) (len=16) "http.status_code": (string) (len=3) "200",
-     (string) (len=8) "http.url": (string) (len=46) "ialbefmodl.execute-api.sa-east-1.amazonaws.com",
-     (string) (len=21) "http.url_details.path": (string) (len=5) "/dev/",
-     (string) (len=2) "my": (string) (len=5) "value",
-     (string) (len=10) "request_id": (string) (len=36) "9f09f496-83c7-441b-bc59-9741107b0683",
-     (string) (len=14) "resource_names": (string) (len=36) "inferred-spans-python-dev-initSender",
-     (string) (len=9) "span.name": (string) (len=10) "aws.lambda"
-    },
-    Metrics: (map[string]float64) (len=11) {
-     (string) (len=60) "_sublayers.duration.by_service.sublayer_service:aws.dynamodb": (float64) 6.481144e+06,
-     (string) (len=58) "_sublayers.duration.by_service.sublayer_service:aws.events": (float64) 1.3733007e+07,
-     (string) (len=59) "_sublayers.duration.by_service.sublayer_service:aws.kinesis": (float64) 7.799031e+06,
-     (string) (len=58) "_sublayers.duration.by_service.sublayer_service:aws.lambda": (float64) 2.5413282e+07,
-     (string) (len=54) "_sublayers.duration.by_service.sublayer_service:aws.s3": (float64) 3.8689743e+07,
-     (string) (len=55) "_sublayers.duration.by_service.sublayer_service:aws.sns": (float64) 2.1565856e+07,
-     (string) (len=55) "_sublayers.duration.by_service.sublayer_service:aws.sqs": (float64) 1.9825652e+07,
-     (string) (len=46) "_sublayers.duration.by_type.sublayer_type:http": (float64) 1.28206316e+08,
-     (string) (len=52) "_sublayers.duration.by_type.sublayer_type:serverless": (float64) 5.301399e+06,
-     (string) (len=21) "_sublayers.span_count": (float64) 8,
-     (string) (len=10) "_top_level": (float64) 1
-    },
-    Type: (string) (len=10) "serverless"
-   }),
-   (*pb.Span)({
-    Service: (string) (len=7) "aws.sqs",
-    Name: (string) (len=11) "sqs.command",
-    Resource: (string) (len=15) "sqs.sendmessage",
-    TraceID: (uint64) 11303031032863116131,
-    SpanID: (uint64) 2169818190025839277,
-    ParentID: (uint64) 580656595079775284,
-    Start: (int64) 1636820292466887200,
-    Duration: (int64) 19825652,
-    Error: (int32) 0,
-    Meta: (map[string]string) (len=11) {
-     (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
-     (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
-     (string) (len=9) "aws.agent": (string) (len=8) "botocore",
-     (string) (len=13) "aws.operation": (string) (len=11) "SendMessage",
-     (string) (len=10) "aws.region": (string) (len=9) "sa-east-1",
-     (string) (len=13) "aws.requestid": (string) (len=36) "adc84b9d-0bc0-5ad9-82e0-1194ec44018a",
-     (string) (len=16) "http.status_code": (string) (len=3) "200",
-     (string) (len=2) "my": (string) (len=5) "value",
-     (string) (len=42) "params.MessageAttributes._datadog.DataType": (string) (len=6) "String",
-     (string) (len=45) "params.MessageAttributes._datadog.StringValue": (string) (len=128) "{\"x-datadog-trace-id\": \"11303031032863116131\", \"x-datadog-parent-id\": \"2169818190025839277\", \"x-datadog-sampling-priority\": \"1\"}",
-     (string) (len=15) "params.QueueUrl": (string) (len=73) "https://sqs.sa-east-1.amazonaws.com/601427279990/serverlessTracingQueuePy"
-    },
-    Metrics: (map[string]float64) (len=3) {
-     (string) (len=12) "_dd.measured": (float64) 1,
-     (string) (len=10) "_top_level": (float64) 1,
-     (string) (len=14) "retry_attempts": (float64) 0
-    },
-    Type: (string) (len=4) "http"
-   }),
-   (*pb.Span)({
-    Service: (string) (len=7) "aws.sns",
-    Name: (string) (len=11) "sns.command",
-    Resource: (string) (len=11) "sns.publish",
-    TraceID: (uint64) 11303031032863116131,
-    SpanID: (uint64) 2343073109210903049,
-    ParentID: (uint64) 580656595079775284,
-    Start: (int64) 1636820292487212000,
-    Duration: (int64) 21565856,
-    Error: (int32) 0,
-    Meta: (map[string]string) (len=12) {
-     (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
-     (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
-     (string) (len=9) "aws.agent": (string) (len=8) "botocore",
-     (string) (len=13) "aws.operation": (string) (len=7) "Publish",
-     (string) (len=10) "aws.region": (string) (len=9) "sa-east-1",
-     (string) (len=13) "aws.requestid": (string) (len=36) "37ec8df5-bc7c-583e-835c-d7fc5bf87b1b",
-     (string) (len=16) "http.status_code": (string) (len=3) "200",
-     (string) (len=2) "my": (string) (len=5) "value",
-     (string) (len=14) "params.Message": (string) (len=51) "Asynchronously invoking a Lambda function with SNS.",
-     (string) (len=42) "params.MessageAttributes._datadog.DataType": (string) (len=6) "String",
-     (string) (len=45) "params.MessageAttributes._datadog.StringValue": (string) (len=127) "{\"x-datadog-trace-id\": \"11303031032863116131\", \"x-datadog-parent-id\": \"580656595079775284\", \"x-datadog-sampling-priority\": \"1\"}",
-     (string) (len=15) "params.TopicArn": (string) (len=59) "arn:aws:sns:sa-east-1:601427279990:serverlessTracingTopicPy"
-    },
-    Metrics: (map[string]float64) (len=3) {
-     (string) (len=12) "_dd.measured": (float64) 1,
-     (string) (len=10) "_top_level": (float64) 1,
-     (string) (len=14) "retry_attempts": (float64) 0
-    },
-    Type: (string) (len=4) "http"
-   }),
-   (*pb.Span)({
-    Service: (string) (len=12) "aws.dynamodb",
-    Name: (string) (len=16) "dynamodb.command",
-    Resource: (string) (len=16) "dynamodb.putitem",
-    TraceID: (uint64) 11303031032863116131,
-    SpanID: (uint64) 7206435831809903659,
-    ParentID: (uint64) 580656595079775284,
-    Start: (int64) 1636820292508904400,
-    Duration: (int64) 6481144,
-    Error: (int32) 0,
-    Meta: (map[string]string) (len=10) {
-     (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
-     (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
-     (string) (len=9) "aws.agent": (string) (len=8) "botocore",
-     (string) (len=13) "aws.operation": (string) (len=7) "PutItem",
-     (string) (len=10) "aws.region": (string) (len=9) "sa-east-1",
-     (string) (len=13) "aws.requestid": (string) (len=52) "QHMDJ5RCOUB1LNCAB0VVKEDCHVVV4KQNSO5AEMVJF66Q9ASUAAJG",
-     (string) (len=16) "http.status_code": (string) (len=3) "200",
-     (string) (len=2) "my": (string) (len=5) "value",
-     (string) (len=19) "params.Item.email.S": (string) (len=36) "e560387c-da16-4aae-8479-2c9232234ed6",
-     (string) (len=16) "params.TableName": (string) (len=10) "usersTable"
-    },
-    Metrics: (map[string]float64) (len=3) {
-     (string) (len=12) "_dd.measured": (float64) 1,
-     (string) (len=10) "_top_level": (float64) 1,
-     (string) (len=14) "retry_attempts": (float64) 0
-    },
-    Type: (string) (len=4) "http"
-   }),
-   (*pb.Span)({
-    Service: (string) (len=11) "aws.kinesis",
-    Name: (string) (len=15) "kinesis.command",
-    Resource: (string) (len=17) "kinesis.putrecord",
-    TraceID: (uint64) 11303031032863116131,
-    SpanID: (uint64) 15351122795076886484,
-    ParentID: (uint64) 580656595079775284,
-    Start: (int64) 1636820292515487000,
-    Duration: (int64) 7799031,
-    Error: (int32) 0,
-    Meta: (map[string]string) (len=11) {
-     (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
-     (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
-     (string) (len=9) "aws.agent": (string) (len=8) "botocore",
-     (string) (len=13) "aws.operation": (string) (len=9) "PutRecord",
-     (string) (len=10) "aws.region": (string) (len=9) "sa-east-1",
-     (string) (len=13) "aws.requestid": (string) (len=36) "dda3348f-e941-9fe5-87aa-d30b19df6a3e",
-     (string) (len=16) "http.status_code": (string) (len=3) "200",
-     (string) (len=2) "my": (string) (len=5) "value",
-     (string) (len=11) "params.Data": (string) (len=14) "{\"foo\": \"bar\"}",
-     (string) (len=19) "params.PartitionKey": (string) (len=12) "partitionkey",
-     (string) (len=17) "params.StreamName": (string) (len=13) "kinesisStream"
-    },
-    Metrics: (map[string]float64) (len=3) {
-     (string) (len=12) "_dd.measured": (float64) 1,
-     (string) (len=10) "_top_level": (float64) 1,
-     (string) (len=14) "retry_attempts": (float64) 0
-    },
-    Type: (string) (len=4) "http"
-   }),
-   (*pb.Span)({
-    Service: (string) (len=10) "aws.events",
-    Name: (string) (len=14) "events.command",
-    Resource: (string) (len=16) "events.putevents",
-    TraceID: (uint64) 11303031032863116131,
-    SpanID: (uint64) 1029073242317934479,
-    ParentID: (uint64) 580656595079775284,
-    Start: (int64) 1636820292523388000,
-    Duration: (int64) 13733007,
-    Error: (int32) 0,
-    Meta: (map[string]string) (len=9) {
-     (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
-     (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
-     (string) (len=9) "aws.agent": (string) (len=8) "botocore",
-     (string) (len=13) "aws.operation": (string) (len=9) "PutEvents",
-     (string) (len=10) "aws.region": (string) (len=9) "sa-east-1",
-     (string) (len=13) "aws.requestid": (string) (len=36) "d7545887-c739-4e35-ab65-c6504e714d07",
-     (string) (len=16) "http.status_code": (string) (len=3) "200",
-     (string) (len=2) "my": (string) (len=5) "value",
-     (string) (len=14) "params.Entries": (string) (len=134) "[{'Source': 'eventbridge.custom.event.sender', 'DetailType': 'testdetail', 'Detail': '{\"foo\": \"bar\"}', 'EventBusName': 'inferredBus'}]"
-    },
-    Metrics: (map[string]float64) (len=3) {
-     (string) (len=12) "_dd.measured": (float64) 1,
-     (string) (len=10) "_top_level": (float64) 1,
-     (string) (len=14) "retry_attempts": (float64) 0
-    },
-    Type: (string) (len=4) "http"
-   }),
-   (*pb.Span)({
-    Service: (string) (len=6) "aws.s3",
-    Name: (string) (len=10) "s3.command",
-    Resource: (string) (len=12) "s3.putobject",
-    TraceID: (uint64) 11303031032863116131,
-    SpanID: (uint64) 1531595426779016473,
-    ParentID: (uint64) 580656595079775284,
-    Start: (int64) 1636820292538263000,
-    Duration: (int64) 38689743,
-    Error: (int32) 0,
-    Meta: (map[string]string) (len=10) {
-     (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
-     (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
-     (string) (len=9) "aws.agent": (string) (len=8) "botocore",
-     (string) (len=13) "aws.operation": (string) (len=9) "PutObject",
-     (string) (len=10) "aws.region": (string) (len=9) "sa-east-1",
-     (string) (len=13) "aws.requestid": (string) (len=16) "0Z7JMRYXA4WXJP0M",
-     (string) (len=16) "http.status_code": (string) (len=3) "200",
-     (string) (len=2) "my": (string) (len=5) "value",
-     (string) (len=13) "params.Bucket": (string) (len=28) "inferred-spans-python-bucket",
-     (string) (len=10) "params.Key": (string) (len=36) "76909630-1599-4fcc-ab10-5425637e1bee"
-    },
-    Metrics: (map[string]float64) (len=3) {
-     (string) (len=12) "_dd.measured": (float64) 1,
-     (string) (len=10) "_top_level": (float64) 1,
-     (string) (len=14) "retry_attempts": (float64) 0
-    },
-    Type: (string) (len=4) "http"
-   })
-  }
+  Transactions: ([]*pb.Span) <nil>
  })
 }

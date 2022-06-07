@@ -8,9 +8,10 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        python-version: ["3.7", "3.8"]
+        python-version: [3.7, 3.8]
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout source
+        uses: actions/checkout@v3
 
       - name: Run integration tests
         run: |
