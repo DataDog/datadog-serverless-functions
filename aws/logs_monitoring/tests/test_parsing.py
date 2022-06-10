@@ -222,6 +222,15 @@ class TestParseEventSource(unittest.TestCase):
             "fargate",
         )
 
+    def test_appsync_event(self):
+        self.assertEqual(
+            parse_event_source(
+                {"awslogs": "logs"},
+                "/aws/appsync/apis/",
+            ),
+            "appsync",
+        )
+
     def test_cloudfront_event(self):
         self.assertEqual(
             parse_event_source(

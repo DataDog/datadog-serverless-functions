@@ -291,6 +291,9 @@ def find_cloudwatch_source(log_group):
     if log_group.startswith("/aws/fsx/windows"):
         return "aws.fsx"
 
+    if log_group.startswith("/aws/appsync/"):
+        return "appsync"
+
     for source in [
         "/aws/lambda",  # e.g. /aws/lambda/helloDatadog
         "/aws/codebuild",  # e.g. /aws/codebuild/my-project
@@ -484,6 +487,9 @@ def awslogs_handler(event, context, metadata):
     # Set host as log group where cloudwatch is source
     if metadata[DD_SOURCE] == "cloudwatch" or metadata.get(DD_HOST, None) == None:
         metadata[DD_HOST] = aws_attributes["aws"]["awslogs"]["logGroup"]
+
+    if metadata[DD_SOURCE] == "appsync":
+        metadata[DD_HOST] = aws_attributes["aws"]["awslogs"]["logGroup"].split("/")[-1]
 
     if metadata[DD_SOURCE] == "stepfunction" and logs["logStream"].startswith(
         "states/"
