@@ -45,7 +45,6 @@ type (
 
 const (
 	originMetadataKey       = "_dd.origin"
-	computeStatsKey         = "_dd.compute_stats"
 	parentSourceMetadataKey = "_dd.parent_source"
 	sourceXray              = "xray"
 )
@@ -85,10 +84,6 @@ func ParseTrace(content string) ([]*pb.TracePayload, error) {
 			}
 			sp.Meta[originMetadataKey] = "lambda"
 
-			// Instruct the span intake pipeline to compute stats
-			// in the APM backend.
-			sp.Meta[computeStatsKey] = "1"
-
 			pbSpan := convertSpanToPB(sp)
 			// We skip root dd-trace spans that are parented to X-Ray,
 			// since those root spans are placeholders for the X-Ray
@@ -118,15 +113,12 @@ func ParseTrace(content string) ([]*pb.TracePayload, error) {
 		}
 
 		payload := pb.TracePayload{
-			HostName:     "",
-			Env:          "none",
-			Traces:       []*pb.APITrace{},
-			Transactions: []*pb.Span{},
+			HostName: "",
+			Env:      "none",
+			Traces:   []*pb.APITrace{},
 		}
 		for _, apiTrace := range apiTraces {
-			top := GetAnalyzedSpans(apiTrace.Spans)
 			computeSublayerMetrics(apiTrace.Spans)
-			payload.Transactions = append(payload.Transactions, top...)
 			payload.Traces = append(payload.Traces, apiTrace)
 		}
 

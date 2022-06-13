@@ -7,7 +7,7 @@
 
 set -e
 
-PYTHON_VERSION="python3.7"
+PYTHON_VERSION="python3.8"
 SKIP_FORWARDER_BUILD=false
 UPDATE_SNAPSHOTS=false
 LOG_LEVEL=info
@@ -149,7 +149,7 @@ cd $INTEGRATION_TESTS_DIR
 
 # Build Docker image of Forwarder for tests
 echo "Building Docker Image for Forwarder"
-docker build --file "${INTEGRATION_TESTS_DIR}/forwarder/Dockerfile" -t "datadog-log-forwarder:$PYTHON_VERSION" ../../.forwarder --no-cache \
+docker buildx build --platform linux/amd64 --file "${INTEGRATION_TESTS_DIR}/forwarder/Dockerfile" -t "datadog-log-forwarder:$PYTHON_VERSION" ../../.forwarder --no-cache \
     --build-arg forwarder='aws-dd-forwarder-0.0.0' \
     --build-arg image="lambci/lambda:${PYTHON_VERSION}"
 
