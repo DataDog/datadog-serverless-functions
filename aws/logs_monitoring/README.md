@@ -124,6 +124,10 @@ If you can't install the Forwarder using the provided CloudFormation template, y
 2. Find the actual Forwarder Lambda function from the CloudFormation stack's "Resources" tab, navigate to its configuration page. Note down the value of the tag `dd_forwarder_version`, e.g., `3.3.0`, in case you run into issues with the new version and need to rollback.
 3. Update the stack using template `https://datadog-cloudformation-template.s3.amazonaws.com/aws/forwarder/latest.yaml`. You can also replace `latest` with a specific version, e.g., `3.0.2.yaml`, if needed. Make sure to review the changesets before applying the update.
 
+### Upgrade an older version to +3.49.0
+
+Since version 3.49.0 the Lambda function has been updated to require **Python 3.8**. If upgrading an older forwarder installation to 3.49.0 or above, ensure the AWS Lambda function is configured to use Python 3.8
+
 ### Upgrade an older version to +3.0.0
 
 Since version 3.0.0, the forwarder Lambda function is managed by CloudFormation. To upgrade an older forwarder installation to 3.0.0 and above, follow the steps below.
