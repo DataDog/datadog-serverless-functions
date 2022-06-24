@@ -133,12 +133,15 @@ def _process_rds_enhanced_monitoring_message(ts, message, account, region):
                 timestamp=ts, tags=tags + network_tag, host=host_id
             )
 
-    disk_stats = message.get("diskIO", [{}])[0]  # we never expect to have more than one disk
-    for key, value in disk_stats.items():
-        stats.gauge(
-            'aws.rds.diskio.%s' % key, value,
-            timestamp=ts, tags=tags, host=host_id
-        )
+    for disk_stats in message.get("diskIO", []):
+        disk_tag = []
+        if "device" in disk_stats:
+            disk_tag.append("%s:%s" % ("device", disk_stats.pop("device")))
+        for key, value in disk_stats.items():
+            stats.gauge(
+                'aws.rds.diskio.%s' % key, value,
+                timestamp=ts, tags=tags + disk_tag, host=host_id
+            )
 
     for fs_stats in message.get("fileSys", []):
         fs_tag = []
@@ -160,6 +163,16 @@ def _process_rds_enhanced_monitoring_message(ts, message, account, region):
             stats.gauge(
                 'aws.rds.process.%s' % key, value,
                 timestamp=ts, tags=tags + process_tag, host=host_id
+            )
+
+    for pd_stats in message.get("physicalDeviceIO", []):
+        pd_tag = []
+        if "device" in pd_stats:
+            pd_tag.append("%s:%s" % ("device", pd_stats.pop("device")))
+        for key, value in pd_stats.items():
+            stats.gauge(
+                'aws.rds.physicaldevice.%s' % key, value,
+                timestamp=ts, tags=tags + pd_tag, host=host_id
             )
 
 
