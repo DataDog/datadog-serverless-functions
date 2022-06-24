@@ -30,12 +30,6 @@
         "description": "The name of the function."
       }
     },
-    "functionCode": {
-      "type": "string",
-      "metadata": {
-        "description": "Code for the function to run, saved into index.js"
-      }
-    },
     "apiKey": {
       "type": "string",
       "metadata": {
@@ -66,7 +60,7 @@
   },
   "variables": {
     "eventHubTemplateLink": "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/deploy-to-azure/event_hub.json",
-    "functionAppTemplateLink": "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/deploy-to-azure/function_template.json"
+    "functionAppTemplateLink": "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/function_template.json"
   },
   "resources": [
     {
@@ -114,9 +108,6 @@
           },
           "functionName": {
             "value": "[parameters('functionName')]"
-          },
-          "functionCode": {
-            "value": "[parameters('functionCode')]"
           },
           "apiKey": {
             "value": "[parameters('apiKey')]"
