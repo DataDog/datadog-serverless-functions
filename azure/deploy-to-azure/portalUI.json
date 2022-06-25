@@ -166,7 +166,7 @@
                 "storageEndpointSuffix": "[steps('basics').storageEndpointSuffix]"
             },
             "kind": "ResourceGroup",
-            "location": "[steps('basics').resourceScope.location.name]",
+            "location": "US West 3",
             "resourceGroupId": "[steps('basics').resourceScope.resourceGroup.id]"
         }
     }
