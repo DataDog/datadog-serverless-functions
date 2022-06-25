@@ -20,6 +20,15 @@
 							}
 						},
                         {
+                            "name": "resourceScope",
+                            "type": "Microsoft.Common.ResourceScope",
+                            "location": {
+                                "resourceTypes": [
+                                    "microsoft.resources/resourcegroups"
+                                ]
+                            }
+                        },
+                        {
                             "name": "datadogSite",
                             "type": "Microsoft.Common.TextBox",
                             "label": "Datadog Site",
