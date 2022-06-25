@@ -9,6 +9,15 @@
                     "name": "basics",
                     "label": "Basics",
                     "elements": [
+                        {
+                            "name": "resourceScope",
+                            "type": "Microsoft.Common.ResourceScope",
+                            "location": {
+                                "resourceTypes": [
+                                    "microsoft.resources/resourcegroups"
+                                ]
+                            }
+                        },
 						{
 							"name": "infoBox1",
 							"type": "Microsoft.Common.InfoBox",
@@ -166,7 +175,7 @@
                 "storageEndpointSuffix": "[steps('basics').storageEndpointSuffix]"
             },
             "kind": "ResourceGroup",
-            "location": "US West 3",
+            "location": "[steps('basics').resourceScope.location.name]",
             "resourceGroupId": "[steps('basics').resourceScope.resourceGroup.id]"
         }
     }
