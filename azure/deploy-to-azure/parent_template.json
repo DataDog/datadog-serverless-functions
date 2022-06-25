@@ -31,7 +31,7 @@
       }
     },
     "apiKey": {
-      "type": "string",
+      "type": "securestring",
       "metadata": {
         "description": "Datadog API key"
       }
@@ -60,7 +60,7 @@
   },
   "variables": {
     "eventHubTemplateLink": "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/deploy-to-azure/event_hub.json",
-    "functionAppTemplateLink": "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/function_template.json"
+    "functionAppTemplateLink": "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/deploy-to-azure/function_template.json"
   },
   "resources": [
     {
