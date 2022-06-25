@@ -14,20 +14,11 @@
 							"type": "Microsoft.Common.InfoBox",
 							"visible": true,
 							"options": {
-								"icon": "None",
+                                "style": "Info",
 								"text": "I love bubbles.",
 								"uri": "https://www.microsoft.com"
 							}
 						},
-                        {
-                            "name": "resourceScope",
-                            "type": "Microsoft.Common.ResourceScope",
-                            "location": {
-                                "resourceTypes": [
-                                    "microsoft.resources/resourcegroups"
-                                ]
-                            }
-                        },
                         {
                             "name": "datadogSite",
                             "type": "Microsoft.Common.TextBox",
