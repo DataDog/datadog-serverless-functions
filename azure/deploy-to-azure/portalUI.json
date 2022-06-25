@@ -18,7 +18,7 @@
 								"text": "I love bubbles.",
 								"uri": "https://www.microsoft.com"
 							}
-						}
+						},
                         {
                             "name": "resourceScope",
                             "type": "Microsoft.Common.ResourceScope",
