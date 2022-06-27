@@ -165,6 +165,9 @@
           },
           "eventHubName": {
             "value": "[parameters('eventHubName')]"
+          },
+          "location": {
+            "value": "[parameters('resourcesLocation')]"
           }
         }
       },
