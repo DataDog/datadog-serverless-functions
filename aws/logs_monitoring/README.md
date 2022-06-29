@@ -48,7 +48,7 @@ Once installed, you can subscribe the Forwarder to log sources, such as S3 bucke
 
 ### Terraform
 
-Install the Forwarder using the Terraform resource [aws_cloudformation_stack](https://www.terraform.io/docs/providers/aws/r/cloudformation_stack.html) as a wrapper on top of the provided CloudFormation template.
+Install the Forwarder using the Terraform resource [aws_cloudformation_stack](https://www.terraform.io/docs/providers/aws/r/cloudformation_stack) as a wrapper on top of the provided CloudFormation template.
 
 Datadog recommends creating two separate Terraform configurations:
 
