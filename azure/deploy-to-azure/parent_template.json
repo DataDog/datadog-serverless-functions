@@ -1,6 +1,6 @@
 {
-    "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
-    "contentVersion": "1.0.0.0",
+  "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
   "parameters": {
     "datadogSite": {
       "type": "string",
@@ -90,7 +90,6 @@
       "apiVersion": "2018-05-01",
       "properties": {
         "resourceGroup": "[parameters('resourceGroupName')]",
-        "location": "[parameters('resourcesLocation')]",
         "mode": "Incremental",
         "templateLink": {
           "uri": "[variables('platformLogsTemplateLink')]",
@@ -112,13 +111,13 @@
           "apiKey": {
             "value": "[parameters('apiKey')]"
           },
-          "location": {
+          "locresourcesLocationation": {
             "value": "[parameters('resourcesLocation')]"
           },
           "datadogSite": {
             "value": "[parameters('datadogSite')]"
           },
-          "endpointSuffix": {
+          "storageEndpointSuffix": {
             "value": "[parameters('storageEndpointSuffix')]"
           }
         }

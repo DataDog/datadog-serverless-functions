@@ -15,13 +15,6 @@
         "description": "Datadog API key"
       }
     },
-    "sendActivityLogs": {
-      "type": "bool",
-      "metadata": {
-        "description": "Enable Activity Logs forwarding"
-      },
-      "defaultValue": false
-    },
     "eventHubNamespace": {
       "type": "string",
       "defaultValue": "[concat('datadog-ns-', newGuid())]",
@@ -63,19 +56,11 @@
       "metadata": {
         "description": "Endpoint suffix for storage account"
       }
-    },
-    "diagnosticSettingName": {
-        "type": "string",
-        "defaultValue": "datadog-activity-logs-diagnostic-setting",
-        "metadata": {
-            "description": "The name of the diagnostic setting if sending Activity Logs"
-        }
     }
   },
   "variables": {
     "eventHubTemplateLink": "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/islam/daz-act-log-diag-settn-AZI-861/azure/deploy-to-azure/event_hub.json",
-    "functionAppTemplateLink": "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/islam/daz-function-AZI-861/azure/deploy-to-azure/function_template.json",
-    "activityLogDiagnosticSettingsTemplateLink": "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/islam/daz-activity-logs-azi-868/azure/deploy-to-azure/activity_log_diagnostic_settings.json"
+    "functionAppTemplateLink": "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/islam/daz-function-AZI-861/azure/deploy-to-azure/function_template.json"
   },
   "resources": [
     {
@@ -140,39 +125,6 @@
       },
       "dependsOn": [
         "[resourceId('Microsoft.Resources/deployments','eventHubTemplate')]"
-      ]
-    },
-    {
-      "condition": "[parameters('sendActivityLogs')]",
-      "name": "activityLogDiagnosticSettingsTemplate",
-      "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2018-05-01",
-      "properties": {
-        "mode": "Incremental",
-        "templateLink": {
-          "uri": "[variables('activityLogDiagnosticSettingsTemplateLink')]",
-          "contentVersion": "1.0.0.0"
-        },
-        "parameters": {
-          "settingName": {
-            "value": "[parameters('diagnosticSettingName')]"
-          },
-          "resourceGroup": {
-            "value": "[resourceGroup().name]"
-          },
-          "eventHubNamespace": {
-            "value": "[parameters('eventHubNamespace')]"
-          },
-          "eventHubName": {
-            "value": "[parameters('eventHubName')]"
-          },
-          "location": {
-            "value": "[parameters('resourcesLocation')]"
-          }
-        }
-      },
-      "dependsOn": [
-        "[resourceId('Microsoft.Resources/deployments','functionAppTemplate')]"
       ]
     }
   ],
