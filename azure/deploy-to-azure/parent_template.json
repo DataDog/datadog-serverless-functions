@@ -90,6 +90,7 @@
       "apiVersion": "2018-05-01",
       "properties": {
         "resourceGroup": "[parameters('resourceGroupName')]",
+        "location": "[parameters('resourcesLocation')]",
         "mode": "Incremental",
         "templateLink": {
           "uri": "[variables('platformLogsTemplateLink')]",
@@ -130,6 +131,7 @@
       "apiVersion": "2018-05-01",
       "properties": {
         "mode": "Incremental",
+        "location": "[parameters('resourcesLocation')]",
         "templateLink": {
           "uri": "[variables('activityLogsTemplateLink')]",
           "contentVersion": "1.0.0.0"
