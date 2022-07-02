@@ -1,6 +1,6 @@
 {
-    "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
-    "contentVersion": "1.0.0.0",
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
   "parameters": {
     "datadogSite": {
       "type": "string",
@@ -52,16 +52,9 @@
     },
     "resourcesLocation": {
       "type": "string",
-      "defaultValue": "westus2",
+      "defaultValue": "[resourceGroup().location]",
       "metadata": {
-        "description": "Specify a location for the log-forwarder resources."
-      }
-    },
-    "resourceGroupName": {
-      "type": "string",
-      "defaultValue": "datadog-log-forwarder-rg-[parameters('resourcesLocation')]",
-      "metadata": {
-        "description": "Specify a new or existing resource group name for the Azure resources."
+        "description": "Specify a location for the Azure resources."
       }
     },
     "storageEndpointSuffix": {
@@ -80,19 +73,42 @@
     }
   },
   "variables": {
-    "platformLogsTemplateLink": "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/islam/daz-activity-logs-azi-868/azure/deploy-to-azure/platform_logs_template.json",
-    "activityLogsTemplateLink": "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/islam/daz-activity-logs-azi-868/azure/deploy-to-azure/activity_log_diagnostic_settings.json"
+    "eventHubTemplateLink": "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/islam/daz-act-log-diag-settn-AZI-861/azure/deploy-to-azure/event_hub.json",
+    "functionAppTemplateLink": "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/islam/daz-function-AZI-861/azure/deploy-to-azure/function_template.json",
+    "activityLogDiagnosticSettingsTemplateLink": "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/islam/daz-activity-logs-azi-868/azure/deploy-to-azure/activity_log_diagnostic_settings.json"
   },
   "resources": [
     {
-      "name": "platformLogsTemplate",
+      "name": "eventHubTemplate",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2018-05-01",
       "properties": {
-        "resourceGroup": "[parameters('resourceGroupName')]",
         "mode": "Incremental",
         "templateLink": {
-          "uri": "[variables('platformLogsTemplateLink')]",
+          "uri": "[variables('eventHubTemplateLink')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "eventHubNamespace": {
+            "value": "[parameters('eventHubNamespace')]"
+          },
+          "eventHubName": {
+            "value": "[parameters('eventHubName')]"
+          },
+          "location": {
+            "value": "[parameters('resourcesLocation')]"
+          }
+        }
+      }
+    },
+    {
+      "name": "functionAppTemplate",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2018-05-01",
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[variables('functionAppTemplateLink')]",
           "contentVersion": "1.0.0.0"
         },
         "parameters": {
@@ -121,17 +137,20 @@
             "value": "[parameters('storageEndpointSuffix')]"
           }
         }
-      }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments','eventHubTemplate')]"
+      ]
     },
     {
       "condition": "[parameters('sendActivityLogs')]",
-      "name": "activityLogsTemplate",
+      "name": "activityLogDiagnosticSettingsTemplate",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2018-05-01",
       "properties": {
         "mode": "Incremental",
         "templateLink": {
-          "uri": "[variables('activityLogsTemplateLink')]",
+          "uri": "[variables('activityLogDiagnosticSettingsTemplateLink')]",
           "contentVersion": "1.0.0.0"
         },
         "parameters": {
@@ -139,21 +158,21 @@
             "value": "[parameters('diagnosticSettingName')]"
           },
           "resourceGroup": {
-              "value": "[parameters('resourceGroupName')]"
+            "value": "[resourceGroup().name]"
           },
           "eventHubNamespace": {
-              "value": "[parameters('eventHubNamespace')]"
+            "value": "[parameters('eventHubNamespace')]"
           },
           "eventHubName": {
-              "value": "[parameters('eventHubName')]"
+            "value": "[parameters('eventHubName')]"
           },
           "location": {
-              "value": "[parameters('resourcesLocation')]"
+            "value": "[parameters('resourcesLocation')]"
           }
         }
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Resources/deployments','platformLogsTemplate')]"
+        "[resourceId('Microsoft.Resources/deployments','functionAppTemplate')]"
       ]
     }
   ],
