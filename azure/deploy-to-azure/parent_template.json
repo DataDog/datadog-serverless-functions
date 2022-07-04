@@ -9,18 +9,18 @@
         "description": "Datadog site to send logs"
       }
     },
+    "sendActivityLogs": {
+      "type": "bool",
+      "metadata": {
+        "description": "Enable Activity Logs forwarding and create subscription diagnostic settings"
+      },
+      "defaultValue": false
+    },
     "apiKey": {
       "type": "securestring",
       "metadata": {
         "description": "Datadog API key"
       }
-    },
-    "sendActivityLogs": {
-      "type": "bool",
-      "metadata": {
-        "description": "Enable Activity Logs forwarding"
-      },
-      "defaultValue": false
     },
     "eventHubNamespace": {
       "type": "string",
