@@ -171,7 +171,6 @@ def s3_handler(event, context, metadata):
 
     # Get the object from the event and show its content type
     bucket = event["Records"][0]["s3"]["bucket"]["name"]
-    logger.debug(f"Bucket: {bucket}")
     key = urllib.parse.unquote_plus(event["Records"][0]["s3"]["object"]["key"])
 
     source = parse_event_source(event, key)
