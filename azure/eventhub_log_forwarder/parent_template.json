@@ -42,6 +42,13 @@
         "description": "Datadog API key"
       }
     },
+    "datadogTags": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Comma-separated list of tags"
+      }
+    },
     "location": {
       "type": "string",
       "defaultValue": "[resourceGroup().location]",
@@ -120,6 +127,9 @@
           },
           "apiKey": {
             "value": "[parameters('apiKey')]"
+          },
+          "datadogTags": {
+            "value": "[parameters('datadogTags')]"
           },
           "location": {
             "value": "[parameters('location')]"
