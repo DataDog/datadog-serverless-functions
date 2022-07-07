@@ -30,7 +30,7 @@
       }
     },
     "apiKey": {
-      "type": "string",
+      "type": "securestring",
       "metadata": {
         "description": "Datadog API key"
       }
