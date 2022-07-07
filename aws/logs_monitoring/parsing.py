@@ -174,7 +174,7 @@ def s3_handler(event, context, metadata):
     key = urllib.parse.unquote_plus(event["Records"][0]["s3"]["object"]["key"])
 
     source = parse_event_source(event, key)
-    if bucket.startswith("tg-s3"):
+    if "transit-gateway" in bucket:
         source = "transitgateway"
     metadata[DD_SOURCE] = source
 
