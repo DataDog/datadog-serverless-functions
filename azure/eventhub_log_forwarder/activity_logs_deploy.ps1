@@ -22,12 +22,13 @@ New-AzResourceGroup -Name $ResourceGroupName -Location $ResourceGroupLocation
 
 $environment = Get-AzEnvironment -Name $Environment
 $endpointSuffix = $environment.StorageEndpointSuffix
+$secureApiKey = ConvertTo-SecureString $ApiKey -AsPlainText -Force
 
 $deploymentArgs = @{
     TemplateUri = "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/eventhub_log_forwarder/parent_template.json"
     ResourceGroupName = $ResourceGroupName
     functionCode = $code
-    apiKey = $ApiKey
+    apiKey = $secureApiKey
     location = $ResourceGroupLocation
     eventHubName = $EventhubName
     functionName = $FunctionName
