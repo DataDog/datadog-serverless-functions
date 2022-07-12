@@ -174,6 +174,8 @@ def s3_handler(event, context, metadata):
     key = urllib.parse.unquote_plus(event["Records"][0]["s3"]["object"]["key"])
 
     source = parse_event_source(event, key)
+    if "transit-gateway" in bucket:
+        source = "transitgateway"
     metadata[DD_SOURCE] = source
 
     metadata[DD_SERVICE] = get_service_from_tags(metadata)
@@ -313,6 +315,7 @@ def find_cloudwatch_source(log_group):
         "cloudtrail",
         "msk",
         "elasticsearch",
+        "transitgateway",
     ]:
         if source in log_group:
             return source
@@ -461,6 +464,8 @@ def awslogs_handler(event, context, metadata):
     # i.e. 123456779121_CloudTrail_us-east-1
     if "_CloudTrail_" in logs["logStream"]:
         source = "cloudtrail"
+    if "tgw-attach" in logs["logStream"]:
+        source = "transitgateway"
     metadata[DD_SOURCE] = parse_event_source(event, source)
 
     metadata[DD_SERVICE] = get_service_from_tags(metadata)
