@@ -171,7 +171,7 @@ def _process_rds_enhanced_monitoring_message(ts, message, account, region):
             pd_tag.append("%s:%s" % ("device", pd_stats.pop("device")))
         for key, value in pd_stats.items():
             stats.gauge(
-                'aws.rds.physicaldevice.%s' % key, value,
+                'aws.rds.physicaldeviceio.%s' % key, value,
                 timestamp=ts, tags=tags + pd_tag, host=host_id
             )
 
