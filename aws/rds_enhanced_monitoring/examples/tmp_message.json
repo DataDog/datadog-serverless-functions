@@ -60,17 +60,38 @@
       "tx": 2319.67
     }
   ],
-  "diskIO": [
-    {
-      "readLatency": 0.00,
-      "writeLatency": 1.53,
-      "writeThroughput": 2048.20,
-      "readThroughput": 0.00,
-      "readIOsPS": 0.00,
-      "diskQueueDepth": 0,
-      "writeIOsPS": 5.83
-    }
-  ],
+  "diskIO": [{
+    "writeKbPS": 2301.6,
+    "readIOsPS": 0.03,
+    "await": 4.04,
+    "readKbPS": 0.13,
+    "rrqmPS": 0,
+    "util": 0.2,
+    "avgQueueLen": 0.11,
+    "tps": 28.27,
+    "readKb": 4,
+    "device": "rdsdev",
+    "writeKb": 69048,
+    "avgReqSz": 162.86,
+    "wrqmPS": 0,
+    "writeIOsPS": 28.23
+  },{
+    "writeKbPS": 177.2,
+    "readIOsPS": 0.03,
+    "await": 1.52,
+    "readKbPS": 0.13,
+    "rrqmPS": 0,
+    "util": 0.35,
+    "avgQueueLen": 0.03,
+    "tps": 25.67,
+    "readKb": 4,
+    "device": "filesystem",
+    "writeKb": 5316,
+    "avgReqSz": 13.82,
+    "wrqmPS": 8.3,
+    "writeIOsPS": 25.63
+  }
+],
   "fileSys": [
     {
       "used": 7006720,
@@ -81,6 +102,69 @@
       "mountPoint": "/rdsdbdata",
       "total": 30828540,
       "usedPercent": 22.73
+    }
+  ],
+  "physicalDeviceIO": [
+    {
+      "writeKbPS": 583.6,
+      "readIOsPS": 0,
+      "await": 2.32,
+      "readKbPS": 0,
+      "rrqmPS": 0,
+      "util": 0.09,
+      "avgQueueLen": 0.02,
+      "tps": 9.9,
+      "readKb": 0,
+      "device": "nvme3n1",
+      "writeKb": 17508,
+      "avgReqSz": 117.9,
+      "wrqmPS": 4.97,
+      "writeIOsPS": 9.9
+    }, {
+      "writeKbPS": 575.07,
+      "readIOsPS": 0,
+      "await": 3.04,
+      "readKbPS": 0,
+      "rrqmPS": 0,
+      "util": 0.09,
+      "avgQueueLen": 0.03,
+      "tps": 9.47,
+      "readKb": 0,
+      "device": "nvme1n1",
+      "writeKb": 17252,
+      "avgReqSz": 121.49,
+      "wrqmPS": 3.97,
+      "writeIOsPS": 9.47
+    }, {
+      "writeKbPS": 567.33,
+      "readIOsPS": 0.03,
+      "await": 2.69,
+      "readKbPS": 0.13,
+      "rrqmPS": 0,
+      "util": 0.09,
+      "avgQueueLen": 0.02,
+      "tps": 9.47,
+      "readKb": 4,
+      "device": "nvme5n1",
+      "writeKb": 17020,
+      "avgReqSz": 119.89,
+      "wrqmPS": 3.07,
+      "writeIOsPS": 9.43
+    }, {
+      "writeKbPS": 576.53,
+      "readIOsPS": 0,
+      "await": 2.64,
+      "readKbPS": 0,
+      "rrqmPS": 0,
+      "util": 0.09,
+      "avgQueueLen": 0.02,
+      "tps": 9.8,
+      "readKb": 0,
+      "device": "nvme2n1",
+      "writeKb": 17296,
+      "avgReqSz": 117.66,
+      "wrqmPS": 3.9,
+      "writeIOsPS": 9.8
     }
   ],
   "processList": [
