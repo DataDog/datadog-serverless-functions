@@ -49,6 +49,24 @@ class TestParseEventSource(unittest.TestCase):
             "cloudtrail",
         )
 
+    def test_cloudtrail_digest_event(self):
+        self.assertEqual(
+            parse_event_source(
+                {"Records": ["logs-from-s3"]},
+                "cloud-trail/AWSLogs/123456779121/CloudTrail/us-east-1/2018/01/07/123456779121_CloudTrail-Digest_us-east-1_AWS-CloudTrail_us-east-1_20180707T173567Z.json.gz",
+            ),
+            "cloudtrail",
+        )
+
+    def test_cloudtrail_gov_event(self):
+        self.assertEqual(
+            parse_event_source(
+                {"Records": ["logs-from-s3"]},
+                "cloud-trail/AWSLogs/123456779121/CloudTrail/us-gov-west-1/2018/01/07/123456779121_CloudTrail_us-gov-west-1_20180707T1735Z_abcdefghi0MCRL2O.json.gz",
+            ),
+            "cloudtrail",
+        )
+
     def test_cloudtrail_event_with_service_substrings(self):
         # Assert that source "cloudtrail" is parsed even though substrings "waf" and "sns" are present in the key
         self.assertEqual(
