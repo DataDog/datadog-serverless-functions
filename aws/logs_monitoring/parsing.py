@@ -57,7 +57,7 @@ if DD_MULTILINE_LOG_REGEX_PATTERN:
 rds_regex = re.compile("/aws/rds/(instance|cluster)/(?P<host>[^/]+)/(?P<name>[^/]+)")
 
 cloudtrail_regex = re.compile(
-    "\d+_CloudTrail_\w{2}(|-gov)-\w{4,9}-\d_\d{8}T\d{4}Z.+.json.gz$", re.I
+    "\d+_CloudTrail(|-Digest)_\w{2}(|-gov|-cn)-\w{4,9}-\d_(|.+)\d{8}T\d{4,6}Z(|.+).json.gz$", re.I
 )
 
 # Store the cache in the global scope so that it will be reused as long as
