@@ -1,5 +1,8 @@
 # Eventhub Log Forwarder Deployment
 
+⚠️ These Powershell scripts are being deprecated in favor of a combined ARM templte deployment [parent_template](../deploy-to-azure).
+
+
 Powershell scripts to automatically create a 'log forwarding pipeline' using Azure EventHub to collect Azure Platform Logs.
 
 At a high level, the scripts call Azure Powershell functions to create and deploy Azure resources, mostly defined via a URL to a json template.
