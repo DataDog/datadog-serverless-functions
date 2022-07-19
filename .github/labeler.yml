@@ -2,10 +2,10 @@
 
 
 azure-integrations:
-- azure/*
+- azure/**/*
 
 azure:
-- azure/*
+- azure/**/*
 
 aws:
-- aws/*
+- aws/**/*
