@@ -36,6 +36,13 @@
         "description": "Name of Event Hub"
       }
     },
+    "partitionCount": {
+      "type": "int",
+      "defaultValue": 32,
+      "metadata": {
+        "description": "The number of event hub partitions"
+      }
+    },
     "functionAppName": {
       "type": "string",
       "defaultValue": "[concat('datadog-functionapp-', newGuid())]",
@@ -94,6 +101,9 @@
           },
           "eventHubName": {
             "value": "[parameters('eventHubName')]"
+          },
+          "partitionCount": {
+            "value": "[parameters('partitionCount')]"
           },
           "location": {
             "value": "[parameters('resourcesLocation')]"
