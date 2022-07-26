@@ -197,6 +197,10 @@ Parameters:
     Type: Number
     Default: 20
     Description: Set the max number of workers sending logs concurrently.
+  ForwarderRoleNamePrefix:
+    Type: String
+    Default: ""
+    Description: Set the name of the execution role to be created for the lambda. Region will be added for global uniqueness.
   PermissionsBoundaryArn:
     Type: String
     Default: ""
@@ -376,6 +380,11 @@ Conditions:
     Fn::Not:
       - Fn::Equals:
           - Ref: PermissionsBoundaryArn
+          - ""
+  SetForwarderRoleName:
+    Fn::Not:
+      - Fn::Equals:
+          - Ref: ForwarderRoleNamePrefix
           - ""
   SetAdditionalTargetLambdas:
     Fn::Not:
@@ -629,6 +638,11 @@ Resources:
   ForwarderRole:
     Type: AWS::IAM::Role
     Properties:
+      RoleName:
+        Fn::If:
+          - SetForwarderRoleName
+          - !Sub "${ForwarderRoleNamePrefix}-${AWS::Region}"
+          - Ref: AWS::NoValue
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
