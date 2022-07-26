@@ -327,6 +327,10 @@ Conditions:
       - Fn::Equals:
           - Ref: DdFetchLambdaTags
           - true
+  CreateS3Bucket:
+    Fn::Or:
+      - Condition: CreateS3BucketForTags
+      - Condition: UseZipCopier
   SetDdUsePrivateLink:
     Fn::Equals:
       - Ref: DdUsePrivateLink
@@ -652,17 +656,20 @@ Resources:
             Version: "2012-10-17"
             Statement:
               # Access the s3 bucket that is used by the forwarder as a datastore
-              - Action:
-                  - s3:GetObject
-                  - s3:PutObject
-                  - s3:DeleteObject
-                  - s3:ListBucket
-                Resource:
-                  - Fn::Join:
-                      - "/"
-                      - - Fn::GetAtt: ForwarderBucket.Arn
-                        - "*"
-                Effect: Allow
+              - !If
+                - CreateS3Bucket
+                - Action:
+                    - s3:GetObject
+                    - s3:PutObject
+                    - s3:DeleteObject
+                    - s3:ListBucket
+                  Resource:
+                    - Fn::Join:
+                        - "/"
+                        - - Fn::GetAtt: ForwarderBucket.Arn
+                          - "*"
+                  Effect: Allow
+                - !Ref AWS::NoValue
               # Get the actual log content from the s3 bucket based on the received s3 event.
               # Use PermissionsBoundaryArn to limit (allow/deny) access if needed.
               - Action:
@@ -780,6 +787,7 @@ Resources:
   # A s3 bucket used by the Forwarder as a datastore
   ForwarderBucket:
     Type: AWS::S3::Bucket
+    Condition: CreateS3Bucket
     Properties:
       BucketName:
         Fn::If:
@@ -797,6 +805,7 @@ Resources:
         RestrictPublicBuckets: true
   ForwarderBucketPolicy:
     Type: "AWS::S3::BucketPolicy"
+    Condition: CreateS3Bucket
     Properties:
       Bucket: !Ref ForwarderBucket
       PolicyDocument:
@@ -983,6 +992,7 @@ Outputs:
         Fn::Sub: ${AWS::StackName}-ApiKeySecretArn
     Condition: CreateDdApiKeySecret
   ForwarderBucketName:
+    Condition: CreateS3Bucket
     Description: Name of the S3 bucket used by the Forwarder
     Value:
       Ref: ForwarderBucket
