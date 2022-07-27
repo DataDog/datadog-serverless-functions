@@ -5,7 +5,7 @@
 
 var https = require('https');
 
-const VERSION = '0.5.6';
+const VERSION = '0.5.7';
 
 const STRING = 'string'; // example: 'some message'
 const STRING_ARRAY = 'string-array'; // example: ['one message', 'two message', ...]
@@ -28,6 +28,9 @@ const DD_TAGS = process.env.DD_TAGS || ''; // Replace '' by your comma-separated
 const DD_SERVICE = process.env.DD_SERVICE || 'azure';
 const DD_SOURCE = process.env.DD_SOURCE || 'azure';
 const DD_SOURCE_CATEGORY = process.env.DD_SOURCE_CATEGORY || 'azure';
+
+const MAX_RETRIES = 4; // max number of times to retry a single http request
+const RETRY_INTERVAL = 1000; // amount of time (milliseconds) to wait before retrying request, doubles after every retry
 
 /*
 To scrub PII from your logs, uncomment the applicable configs below. If you'd like to scrub more than just
@@ -155,52 +158,59 @@ class HTTPClient {
         var batches = this.batcher.batch(records);
         var promises = [];
         for (var i = 0; i < batches.length; i++) {
-            promises.push(this.sendWithRetry(batches[i]));
+            promises.push(this.send(batches[i]));
         }
         return await Promise.all(
             promises.map(p => p.catch(e => this.context.log.error(e)))
         );
     }
 
-    sendWithRetry(record) {
-        return new Promise((resolve, reject) => {
-            return this.send(record)
-                .then(res => {
-                    resolve(true);
-                })
-                .catch(err => {
-                    this.send(record)
-                        .then(res => {
-                            resolve(true);
-                        })
-                        .catch(err => {
-                            reject(
-                                `unable to send request after 2 tries, err: ${err}`
-                            );
-                        });
-                });
-        });
-    }
-
     send(record) {
         return new Promise((resolve, reject) => {
-            const req = https
-                .request(this.httpOptions, resp => {
-                    if (resp.statusCode < 200 || resp.statusCode > 299) {
-                        reject(`invalid status code ${resp.statusCode}`);
-                    } else {
-                        resolve(true);
+            var numRetries = MAX_RETRIES;
+            var retryInterval = RETRY_INTERVAL;
+            const httpRequest = (options, record) => {
+                const retryRequest = error => {
+                    if (numRetries === 0) {
+                        reject(error);
+                        return;
                     }
-                })
-                .on('error', error => {
-                    reject(error);
-                });
-            req.on('timeout', () => {
-                req.destroy();
-                reject(`request timed out after ${DD_REQUEST_TIMEOUT_MS}ms`);
-            })
-            req.write(this.scrubber.scrub(JSON.stringify(record)));
-            req.end();
+                    this.context.log.warn(
+                        `Unable to send request, with error ${error}. Retrying after ${retryInterval}ms with ${numRetries} retries remaining`
+                    );
+                    numRetries--;
+                    retryInterval *= 2;
+                    setTimeout(() => {
+                        httpRequest(options, record);
+                    }, retryInterval);
+                };
+                const req = https
+                    .request(options, resp => {
+                        if (resp.statusCode < 200 || resp.statusCode > 299) {
+                            retryRequest(
+                                new Error(
+                                    `invalid status code ${resp.statusCode}`
+                                )
+                            );
+                        } else {
+                            resolve(true);
+                        }
+                    })
+                    .on('error', error => {
+                        retryRequest(error);
+                    })
+                    .on('timeout', () => {
+                        req.destroy();
+                        retryRequest(
+                            new Error(
+                                `request timed out after ${DD_REQUEST_TIMEOUT_MS}ms`
+                            )
+                        );
+                    });
+                req.write(this.scrubber.scrub(JSON.stringify(record)));
+                req.end();
+            };
+            httpRequest(this.httpOptions, record);
         });
     }
 }
@@ -219,9 +229,7 @@ class Scrubber {
                 );
             } catch {
                 context.log.error(
-                    `Regexp for rule ${name} pattern ${
-                        settings['pattern']
-                    } is malformed, skipping. Please update the pattern for this rule to be applied.`
+                    `Regexp for rule ${name} pattern ${settings['pattern']} is malformed, skipping. Please update the pattern for this rule to be applied.`
                 );
             }
         }
