@@ -165,52 +165,64 @@ class HTTPClient {
         );
     }
 
+    isStatusCodeValid(statusCode) {
+        return statusCode >= 200 && statusCode <= 299;
+    }
+
+    shouldStatusCodeRetry(statusCode) {
+        // don't retry 4xx responses
+        return (
+            !this.isStatusCodeValid(statusCode) &&
+            statusCode < 400 &&
+            statusCode > 499
+        );
+    }
+
     send(record) {
+        var numRetries = MAX_RETRIES;
+        var retryInterval = RETRY_INTERVAL;
         return new Promise((resolve, reject) => {
-            var numRetries = MAX_RETRIES;
-            var retryInterval = RETRY_INTERVAL;
-            const httpRequest = (options, record) => {
-                const retryRequest = error => {
+            const sendRequest = (options, record) => {
+                const retryRequest = errMsg => {
                     if (numRetries === 0) {
-                        reject(error);
-                        return;
+                        return reject(errMsg);
                     }
                     this.context.log.warn(
-                        `Unable to send request, with error ${error}. Retrying after ${retryInterval}ms with ${numRetries} retries remaining`
+                        `Unable to send request, with error: ${errMsg}. Retrying ${numRetries} more times`
                     );
                     numRetries--;
                     retryInterval *= 2;
                     setTimeout(() => {
-                        httpRequest(options, record);
+                        sendRequest(options, record);
                     }, retryInterval);
                 };
                 const req = https
                     .request(options, resp => {
-                        if (resp.statusCode < 200 || resp.statusCode > 299) {
+                        if (this.isStatusCodeValid(resp.statusCode)) {
+                            resolve(true);
+                        } else if (
+                            this.shouldStatusCodeRetry(resp.statusCode)
+                        ) {
                             retryRequest(
-                                new Error(
-                                    `invalid status code ${resp.statusCode}`
-                                )
+                                `invalid status code ${resp.statusCode}`
                             );
                         } else {
-                            resolve(true);
+                            reject(`invalid status code ${resp.statusCode}`);
                         }
                     })
                     .on('error', error => {
-                        retryRequest(error);
+                        retryRequest(error.message);
                     })
                     .on('timeout', () => {
                         req.destroy();
                         retryRequest(
-                            new Error(
-                                `request timed out after ${DD_REQUEST_TIMEOUT_MS}ms`
-                            )
+                            `request timed out after ${DD_REQUEST_TIMEOUT_MS}ms`
                         );
                     });
                 req.write(this.scrubber.scrub(JSON.stringify(record)));
                 req.end();
             };
-            httpRequest(this.httpOptions, record);
+            sendRequest(this.httpOptions, record);
         });
     }
 }
