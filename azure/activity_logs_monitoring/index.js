@@ -173,8 +173,7 @@ class HTTPClient {
         // don't retry 4xx responses
         return (
             !this.isStatusCodeValid(statusCode) &&
-            statusCode < 400 &&
-            statusCode > 499
+            (statusCode < 400 || statusCode > 499)
         );
     }
 
