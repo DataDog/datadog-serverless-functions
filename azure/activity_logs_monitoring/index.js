@@ -30,7 +30,7 @@ const DD_SOURCE = process.env.DD_SOURCE || 'azure';
 const DD_SOURCE_CATEGORY = process.env.DD_SOURCE_CATEGORY || 'azure';
 
 const MAX_RETRIES = 4; // max number of times to retry a single http request
-const RETRY_INTERVAL = 1000; // amount of time (milliseconds) to wait before retrying request, doubles after every retry
+const RETRY_INTERVAL = 250; // amount of time (milliseconds) to wait before retrying request, doubles after every retry
 
 /*
 To scrub PII from your logs, uncomment the applicable configs below. If you'd like to scrub more than just
