@@ -213,6 +213,16 @@ class TestParseEventSource(unittest.TestCase):
             "redshift",
         )
 
+    def test_redshift_gov_event(self):
+        self.assertEqual(
+            parse_event_source(
+                {"Records": ["logs-from-s3"]},
+                "AWSLogs/123456779121/redshift/us-gov-east-1/2020/10/21/123456779121_redshift_us-gov-east"
+                "-1_mycluster_userlog_2020-10-21T18:01.gz",
+            ),
+            "redshift",
+        )
+
     def test_route53_event(self):
         self.assertEqual(
             parse_event_source(

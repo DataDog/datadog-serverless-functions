@@ -374,6 +374,14 @@ def find_s3_source(key):
 
     return "s3"
 
+def get_partition_from_region(region):
+    partition = "aws"
+    if region:
+        if GOV in region:
+            partition = "aws-gov"
+        elif CN in region:
+            partition = "aws-cn"
+    return partition
 
 def parse_service_arn(source, key, bucket, context):
     if source == "elb":
@@ -403,11 +411,7 @@ def parse_service_arn(source, key, bucket, context):
             elbname = name.replace(".", "/")
             if len(idsplit) > 1:
                 idvalue = idsplit[1]
-                partition = "aws"
-                if GOV in region:
-                    partition = "aws-gov"
-                elif CN in region:
-                    partition = "aws-cn"
+                partition = get_partition_from_region(region)
                 return "arn:{}:elasticloadbalancing:{}:{}:loadbalancer/{}".format(
                     partition, region, idvalue, elbname
                 )
@@ -448,8 +452,8 @@ def parse_service_arn(source, key, bucket, context):
             filesplit = filename.split("_")
             if len(filesplit) == 6:
                 clustername = filesplit[3]
-                return "arn:aws:redshift:{}:{}:cluster:{}:".format(
-                    region, accountID, clustername
+                return "arn:{}:redshift:{}:{}:cluster:{}:".format(
+                    get_partition_from_region(region), region, accountID, clustername
                 )
     return
 
