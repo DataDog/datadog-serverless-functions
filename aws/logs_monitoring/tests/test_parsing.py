@@ -358,6 +358,19 @@ class TestParseServiceArn(unittest.TestCase):
             "arn:aws:elasticloadbalancing:us-east-1:123456789123:loadbalancer/app/my-alb-name/123456789aabcdef",
         )
 
+    def test_elb_s3_key_multi_prefix_gov(self):
+        self.assertEqual(
+            parse_service_arn(
+                "elb",
+                "elasticloadbalancing/my-alb-name/AWSLogs/123456789123/elasticloadbalancing/us-gov-east-1/2022/02/08"
+                "/123456789123_elasticloadbalancing_us-gov-east-1_app.my-alb-name.123456789aabcdef_20220208T1127Z_10"
+                ".0.0.2_1abcdef2.log.gz",
+                None,
+                None,
+            ),
+            "arn:aws-gov:elasticloadbalancing:us-gov-east-1:123456789123:loadbalancer/app/my-alb-name/123456789aabcdef",
+        )
+
 
 class TestParseAwsWafLogs(unittest.TestCase):
     def test_waf_string_invalid_json(self):

@@ -36,6 +36,8 @@ from settings import (
     DD_USE_VPC,
 )
 
+GOV, CN = "gov", "cn"
+
 
 logger = logging.getLogger()
 
@@ -401,8 +403,13 @@ def parse_service_arn(source, key, bucket, context):
             elbname = name.replace(".", "/")
             if len(idsplit) > 1:
                 idvalue = idsplit[1]
-                return "arn:aws:elasticloadbalancing:{}:{}:loadbalancer/{}".format(
-                    region, idvalue, elbname
+                partition = "aws"
+                if GOV in region:
+                    partition = "aws-gov"
+                elif CN in region:
+                    partition = "aws-cn"
+                return "arn:{}:elasticloadbalancing:{}:{}:loadbalancer/{}".format(
+                    partition, region, idvalue, elbname
                 )
     if source == "s3":
         # For S3 access logs we use the bucket name to rebuild the arn
