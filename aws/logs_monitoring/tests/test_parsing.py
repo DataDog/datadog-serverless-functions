@@ -378,7 +378,8 @@ class TestParseServiceArn(unittest.TestCase):
                 None,
                 None,
             ),
-            "arn:aws-gov:elasticloadbalancing:us-gov-east-1:123456789123:loadbalancer/app/my-alb-name/123456789aabcdef",
+            "arn:aws-us-gov:elasticloadbalancing:us-gov-east-1:123456789123:loadbalancer/app/my-alb-name"
+            "/123456789aabcdef",
         )
 
 

@@ -378,7 +378,7 @@ def get_partition_from_region(region):
     partition = "aws"
     if region:
         if GOV in region:
-            partition = "aws-gov"
+            partition = "aws-us-gov"
         elif CN in region:
             partition = "aws-cn"
     return partition
