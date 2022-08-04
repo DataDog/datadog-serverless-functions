@@ -374,6 +374,7 @@ def find_s3_source(key):
 
     return "s3"
 
+
 def get_partition_from_region(region):
     partition = "aws"
     if region:
@@ -382,6 +383,7 @@ def get_partition_from_region(region):
         elif CN in region:
             partition = "aws-cn"
     return partition
+
 
 def parse_service_arn(source, key, bucket, context):
     if source == "elb":
