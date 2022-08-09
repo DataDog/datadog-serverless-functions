@@ -200,15 +200,20 @@ def s3_handler(event, context, metadata):
             # file around 60MB gzipped
             data = b"".join(BufferedReader(decompress_stream))
 
+    is_cloudtrail_bucket = False
     if is_cloudtrail(str(key)):
         cloud_trail = json.loads(data)
-        for event in cloud_trail["Records"]:
-            # Create structured object and send it
-            structured_line = merge_dicts(
-                event, {"aws": {"s3": {"bucket": bucket, "key": key}}}
-            )
-            yield structured_line
-    else:
+        if cloud_trail.get("Records") is not None:
+            # only parse as a cloudtrail bucket if we have a Records field to parse
+            is_cloudtrail_bucket = True
+            for event in cloud_trail["Records"]:
+                # Create structured object and send it
+                structured_line = merge_dicts(
+                    event, {"aws": {"s3": {"bucket": bucket, "key": key}}}
+                )
+                yield structured_line
+
+    if not is_cloudtrail_bucket:
         # Check if using multiline log regex pattern
         # and determine whether line or pattern separated logs
         data = data.decode("utf-8", errors="ignore")
