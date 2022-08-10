@@ -213,6 +213,16 @@ class TestParseEventSource(unittest.TestCase):
             "redshift",
         )
 
+    def test_redshift_gov_event(self):
+        self.assertEqual(
+            parse_event_source(
+                {"Records": ["logs-from-s3"]},
+                "AWSLogs/123456779121/redshift/us-gov-east-1/2020/10/21/123456779121_redshift_us-gov-east"
+                "-1_mycluster_userlog_2020-10-21T18:01.gz",
+            ),
+            "redshift",
+        )
+
     def test_route53_event(self):
         self.assertEqual(
             parse_event_source(
@@ -356,6 +366,20 @@ class TestParseServiceArn(unittest.TestCase):
                 None,
             ),
             "arn:aws:elasticloadbalancing:us-east-1:123456789123:loadbalancer/app/my-alb-name/123456789aabcdef",
+        )
+
+    def test_elb_s3_key_multi_prefix_gov(self):
+        self.assertEqual(
+            parse_service_arn(
+                "elb",
+                "elasticloadbalancing/my-alb-name/AWSLogs/123456789123/elasticloadbalancing/us-gov-east-1/2022/02/08"
+                "/123456789123_elasticloadbalancing_us-gov-east-1_app.my-alb-name.123456789aabcdef_20220208T1127Z_10"
+                ".0.0.2_1abcdef2.log.gz",
+                None,
+                None,
+            ),
+            "arn:aws-us-gov:elasticloadbalancing:us-gov-east-1:123456789123:loadbalancer/app/my-alb-name"
+            "/123456789aabcdef",
         )
 
 

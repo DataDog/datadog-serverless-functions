@@ -36,6 +36,8 @@ from settings import (
     DD_USE_VPC,
 )
 
+GOV, CN = "gov", "cn"
+
 
 logger = logging.getLogger()
 
@@ -378,6 +380,16 @@ def find_s3_source(key):
     return "s3"
 
 
+def get_partition_from_region(region):
+    partition = "aws"
+    if region:
+        if GOV in region:
+            partition = "aws-us-gov"
+        elif CN in region:
+            partition = "aws-cn"
+    return partition
+
+
 def parse_service_arn(source, key, bucket, context):
     if source == "elb":
         # For ELB logs we parse the filename to extract parameters in order to rebuild the ARN
@@ -406,8 +418,9 @@ def parse_service_arn(source, key, bucket, context):
             elbname = name.replace(".", "/")
             if len(idsplit) > 1:
                 idvalue = idsplit[1]
-                return "arn:aws:elasticloadbalancing:{}:{}:loadbalancer/{}".format(
-                    region, idvalue, elbname
+                partition = get_partition_from_region(region)
+                return "arn:{}:elasticloadbalancing:{}:{}:loadbalancer/{}".format(
+                    partition, region, idvalue, elbname
                 )
     if source == "s3":
         # For S3 access logs we use the bucket name to rebuild the arn
@@ -446,8 +459,8 @@ def parse_service_arn(source, key, bucket, context):
             filesplit = filename.split("_")
             if len(filesplit) == 6:
                 clustername = filesplit[3]
-                return "arn:aws:redshift:{}:{}:cluster:{}:".format(
-                    region, accountID, clustername
+                return "arn:{}:redshift:{}:{}:cluster:{}:".format(
+                    get_partition_from_region(region), region, accountID, clustername
                 )
     return
 
