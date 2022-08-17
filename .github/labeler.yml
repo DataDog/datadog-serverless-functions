@@ -1,0 +1,11 @@
+# this module configures the GitHub labeler to apply the e.g. `azure-integrations` label to azure changes automatically.
+
+
+azure-integrations:
+- azure/**/*
+
+azure:
+- azure/**/*
+
+aws:
+- aws/**/*

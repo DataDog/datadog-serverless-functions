@@ -36,6 +36,8 @@ from settings import (
     DD_USE_VPC,
 )
 
+GOV, CN = "gov", "cn"
+
 
 logger = logging.getLogger()
 
@@ -57,7 +59,8 @@ if DD_MULTILINE_LOG_REGEX_PATTERN:
 rds_regex = re.compile("/aws/rds/(instance|cluster)/(?P<host>[^/]+)/(?P<name>[^/]+)")
 
 cloudtrail_regex = re.compile(
-    "\d+_CloudTrail_\w{2}-\w{4,9}-\d_\d{8}T\d{4}Z.+.json.gz$", re.I
+    "\d+_CloudTrail(|-Digest)_\w{2}(|-gov|-cn)-\w{4,9}-\d_(|.+)\d{8}T\d{4,6}Z(|.+).json.gz$",
+    re.I,
 )
 
 account_id_regex = re.compile("^\d{12}$")
@@ -176,6 +179,8 @@ def s3_handler(event, context, metadata):
     key = urllib.parse.unquote_plus(event["Records"][0]["s3"]["object"]["key"])
 
     source = parse_event_source(event, key)
+    if "transit-gateway" in bucket:
+        source = "transitgateway"
     metadata[DD_SOURCE] = source
 
     metadata[DD_SERVICE] = get_service_from_tags(metadata)
@@ -197,15 +202,20 @@ def s3_handler(event, context, metadata):
             # file around 60MB gzipped
             data = b"".join(BufferedReader(decompress_stream))
 
+    is_cloudtrail_bucket = False
     if is_cloudtrail(str(key)):
         cloud_trail = json.loads(data)
-        for event in cloud_trail["Records"]:
-            # Create structured object and send it
-            structured_line = merge_dicts(
-                event, {"aws": {"s3": {"bucket": bucket, "key": key}}}
-            )
-            yield structured_line
-    else:
+        if cloud_trail.get("Records") is not None:
+            # only parse as a cloudtrail bucket if we have a Records field to parse
+            is_cloudtrail_bucket = True
+            for event in cloud_trail["Records"]:
+                # Create structured object and send it
+                structured_line = merge_dicts(
+                    event, {"aws": {"s3": {"bucket": bucket, "key": key}}}
+                )
+                yield structured_line
+
+    if not is_cloudtrail_bucket:
         # Check if using multiline log regex pattern
         # and determine whether line or pattern separated logs
         data = data.decode("utf-8", errors="ignore")
@@ -293,6 +303,9 @@ def find_cloudwatch_source(log_group):
     if log_group.startswith("/aws/fsx/windows"):
         return "aws.fsx"
 
+    if log_group.startswith("/aws/appsync/"):
+        return "appsync"
+
     for source in [
         "/aws/lambda",  # e.g. /aws/lambda/helloDatadog
         "/aws/codebuild",  # e.g. /aws/codebuild/my-project
@@ -312,6 +325,7 @@ def find_cloudwatch_source(log_group):
         "cloudtrail",
         "msk",
         "elasticsearch",
+        "transitgateway",
     ]:
         if source in log_group:
             return source
@@ -371,6 +385,16 @@ def find_s3_source(key):
     return "s3"
 
 
+def get_partition_from_region(region):
+    partition = "aws"
+    if region:
+        if GOV in region:
+            partition = "aws-us-gov"
+        elif CN in region:
+            partition = "aws-cn"
+    return partition
+
+
 def parse_service_arn(source, key, bucket, context):
     if source == "elb":
         # For ELB logs we parse the filename to extract parameters in order to rebuild the ARN
@@ -399,8 +423,9 @@ def parse_service_arn(source, key, bucket, context):
             elbname = name.replace(".", "/")
             if len(idsplit) > 1:
                 idvalue = idsplit[1]
-                return "arn:aws:elasticloadbalancing:{}:{}:loadbalancer/{}".format(
-                    region, idvalue, elbname
+                partition = get_partition_from_region(region)
+                return "arn:{}:elasticloadbalancing:{}:{}:loadbalancer/{}".format(
+                    partition, region, idvalue, elbname
                 )
     if source == "s3":
         # For S3 access logs we use the bucket name to rebuild the arn
@@ -445,8 +470,8 @@ def parse_service_arn(source, key, bucket, context):
             filesplit = filename.split("_")
             if len(filesplit) == 6:
                 clustername = filesplit[3]
-                return "arn:aws:redshift:{}:{}:cluster:{}:".format(
-                    region, accountID, clustername
+                return "arn:{}:redshift:{}:{}:cluster:{}:".format(
+                    get_partition_from_region(region), region, accountID, clustername
                 )
     return
 
@@ -469,6 +494,8 @@ def awslogs_handler(event, context, metadata):
     # i.e. 123456779121_CloudTrail_us-east-1
     if "_CloudTrail_" in logs["logStream"]:
         source = "cloudtrail"
+    if "tgw-attach" in logs["logStream"]:
+        source = "transitgateway"
     metadata[DD_SOURCE] = parse_event_source(event, source)
 
     metadata[DD_SERVICE] = get_service_from_tags(metadata)
@@ -495,6 +522,9 @@ def awslogs_handler(event, context, metadata):
     # Set host as log group where cloudwatch is source
     if metadata[DD_SOURCE] == "cloudwatch" or metadata.get(DD_HOST, None) == None:
         metadata[DD_HOST] = aws_attributes["aws"]["awslogs"]["logGroup"]
+
+    if metadata[DD_SOURCE] == "appsync":
+        metadata[DD_HOST] = aws_attributes["aws"]["awslogs"]["logGroup"].split("/")[-1]
 
     if metadata[DD_SOURCE] == "stepfunction" and logs["logStream"].startswith(
         "states/"

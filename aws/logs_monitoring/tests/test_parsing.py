@@ -50,6 +50,24 @@ class TestParseEventSource(unittest.TestCase):
             "cloudtrail",
         )
 
+    def test_cloudtrail_digest_event(self):
+        self.assertEqual(
+            parse_event_source(
+                {"Records": ["logs-from-s3"]},
+                "cloud-trail/AWSLogs/123456779121/CloudTrail/us-east-1/2018/01/07/123456779121_CloudTrail-Digest_us-east-1_AWS-CloudTrail_us-east-1_20180707T173567Z.json.gz",
+            ),
+            "cloudtrail",
+        )
+
+    def test_cloudtrail_gov_event(self):
+        self.assertEqual(
+            parse_event_source(
+                {"Records": ["logs-from-s3"]},
+                "cloud-trail/AWSLogs/123456779121/CloudTrail/us-gov-west-1/2018/01/07/123456779121_CloudTrail_us-gov-west-1_20180707T1735Z_abcdefghi0MCRL2O.json.gz",
+            ),
+            "cloudtrail",
+        )
+
     def test_cloudtrail_event_with_service_substrings(self):
         # Assert that source "cloudtrail" is parsed even though substrings "waf" and "sns" are present in the key
         self.assertEqual(
@@ -196,6 +214,16 @@ class TestParseEventSource(unittest.TestCase):
             "redshift",
         )
 
+    def test_redshift_gov_event(self):
+        self.assertEqual(
+            parse_event_source(
+                {"Records": ["logs-from-s3"]},
+                "AWSLogs/123456779121/redshift/us-gov-east-1/2020/10/21/123456779121_redshift_us-gov-east"
+                "-1_mycluster_userlog_2020-10-21T18:01.gz",
+            ),
+            "redshift",
+        )
+
     def test_route53_event(self):
         self.assertEqual(
             parse_event_source(
@@ -221,6 +249,15 @@ class TestParseEventSource(unittest.TestCase):
                 "/ecs/fargate-logs",
             ),
             "fargate",
+        )
+
+    def test_appsync_event(self):
+        self.assertEqual(
+            parse_event_source(
+                {"awslogs": "logs"},
+                "/aws/appsync/apis/",
+            ),
+            "appsync",
         )
 
     def test_cloudfront_event(self):
@@ -355,6 +392,21 @@ class TestParseServiceArn(unittest.TestCase):
             ),
             "arn:aws:cloudfront::123456789015:distribution/emlarxs9example",
         )
+        
+    def test_elb_s3_key_multi_prefix_gov(self):
+        self.assertEqual(
+            parse_service_arn(
+                "elb",
+                "elasticloadbalancing/my-alb-name/AWSLogs/123456789123/elasticloadbalancing/us-gov-east-1/2022/02/08"
+                "/123456789123_elasticloadbalancing_us-gov-east-1_app.my-alb-name.123456789aabcdef_20220208T1127Z_10"
+                ".0.0.2_1abcdef2.log.gz",
+                None,
+                None,
+            ),
+            "arn:aws-us-gov:elasticloadbalancing:us-gov-east-1:123456789123:loadbalancer/app/my-alb-name"
+            "/123456789aabcdef",
+        )
+
 
 class TestParseAwsWafLogs(unittest.TestCase):
     def test_waf_string_invalid_json(self):

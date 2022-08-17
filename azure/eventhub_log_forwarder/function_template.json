@@ -36,9 +36,16 @@
       }
     },
     "apiKey": {
-      "type": "string",
+      "type": "securestring",
       "metadata": {
         "description": "Datadog API key"
+      }
+    },
+    "datadogTags": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Comma-separated list of tags"
       }
     },
     "location": {
@@ -109,6 +116,10 @@
             {
               "name": "DD_SITE",
               "value": "[parameters('datadogSite')]"
+            },
+            {
+              "name": "DD_TAGS",
+              "value": "[parameters('datadogTags')]"
             },
             {
               "name": "AzureWebJobsStorage",

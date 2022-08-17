@@ -48,7 +48,7 @@ Once installed, you can subscribe the Forwarder to log sources, such as S3 bucke
 
 ### Terraform
 
-Install the Forwarder using the Terraform resource [aws_cloudformation_stack](https://www.terraform.io/docs/providers/aws/r/cloudformation_stack.html) as a wrapper on top of the provided CloudFormation template.
+Install the Forwarder using the Terraform resource [aws_cloudformation_stack](https://www.terraform.io/docs/providers/aws/r/cloudformation_stack) as a wrapper on top of the provided CloudFormation template.
 
 Datadog recommends creating two separate Terraform configurations:
 
@@ -105,14 +105,14 @@ resource "aws_cloudformation_stack" "datadog_forwarder" {
 
 If you can't install the Forwarder using the provided CloudFormation template, you can install the Forwarder manually following the steps below. Feel free to open an issue or pull request to let us know if there is anything we can improve to make the template work for you.
 
-1. Create a Python 3.7 Lambda function using `aws-dd-forwarder-<VERSION>.zip` from the latest [releases](https://github.com/DataDog/datadog-serverless-functions/releases).
+1. Create a Python 3.8 Lambda function using `aws-dd-forwarder-<VERSION>.zip` from the latest [releases](https://github.com/DataDog/datadog-serverless-functions/releases).
 2. Save your [Datadog API key](https://app.datadoghq.com/organization-settings/api-keys) in AWS Secrets Manager, set environment variable `DD_API_KEY_SECRET_ARN` with the secret ARN on the Lambda function, and add the `secretsmanager:GetSecretValue` permission to the Lambda execution role.
 3. If you need to forward logs from S3 buckets, add the `s3:GetObject` permission to the Lambda execution role.
 4. Set the environment variable `DD_ENHANCED_METRICS` to `false` on the Forwarder. This stops the Forwarder from generating enhanced metrics itself, but it will still forward custom metrics from other lambdas.
 5. Some AWS accounts are configured such that triggers will not automatically create resource-based policies allowing Cloudwatch log groups to invoke the forwarder.
    Please reference the [CloudWatchLogPermissions](https://github.com/DataDog/datadog-serverless-functions/blob/029bd46e5c6d4e8b1ae647ed3b4d1917ac3cd793/aws/logs_monitoring/template.yaml#L680) to see which permissions are required for the forwarder to be invoked by Cloudwatch Log Events.
 
-6. Configure [triggers](https://docs.datadoghq.com/integrations/amazon_web_services/?tab=allpermissions#send-aws-service-logs-to-datadog).
+6. Configure [triggers](https://docs.datadoghq.com/logs/guide/send-aws-services-logs-with-the-datadog-lambda-function/?tab=awsconsole#set-up-triggers).
 7. Create an S3 bucket, and set environment variable `DD_S3_BUCKET_NAME` to the bucket name. Also provide `s3:GetObject`, `s3:PutObject`, and `s3:DeleteObject` permissions on this bucket to the Lambda execution role. This bucket is used to store the Lambda tags cache.
 
 <!-- xxz tab xxx -->
@@ -123,6 +123,10 @@ If you can't install the Forwarder using the provided CloudFormation template, y
 1. Find the [datadog-forwarder (if you didn't rename it)](https://console.aws.amazon.com/cloudformation/home#/stacks?filteringText=forwarder) CloudFormation stack. If you installed the Forwarder as part of the [Datadog AWS integration stack](https://github.com/Datadog/cloudformation-template/tree/master/aws), make sure to update the nested Forwarder stack instead of the root stack.
 2. Find the actual Forwarder Lambda function from the CloudFormation stack's "Resources" tab, navigate to its configuration page. Note down the value of the tag `dd_forwarder_version`, e.g., `3.3.0`, in case you run into issues with the new version and need to rollback.
 3. Update the stack using template `https://datadog-cloudformation-template.s3.amazonaws.com/aws/forwarder/latest.yaml`. You can also replace `latest` with a specific version, e.g., `3.0.2.yaml`, if needed. Make sure to review the changesets before applying the update.
+
+### Upgrade an older version to +3.49.0
+
+Since version 3.49.0 the Lambda function has been updated to require **Python 3.8**. If upgrading an older forwarder installation to 3.49.0 or above, ensure the AWS Lambda function is configured to use Python 3.8
 
 ### Upgrade an older version to +3.0.0
 

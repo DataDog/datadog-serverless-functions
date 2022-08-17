@@ -2,6 +2,26 @@
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
+    "datadogSite": {
+      "type": "string",
+      "defaultValue": "datadoghq.com",
+      "metadata": {
+        "description": "Datadog site to send logs"
+      }
+    },
+    "sendActivityLogs": {
+      "type": "bool",
+      "metadata": {
+        "description": "Enable Activity Logs forwarding and create subscription diagnostic settings"
+      },
+      "defaultValue": false
+    },
+    "apiKey": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Datadog API key"
+      }
+    },
     "eventHubNamespace": {
       "type": "string",
       "defaultValue": "[concat('datadog-ns-', newGuid())]",
@@ -14,6 +34,13 @@
       "defaultValue": "datadog-eventhub",
       "metadata": {
         "description": "Name of Event Hub"
+      }
+    },
+    "partitionCount": {
+      "type": "int",
+      "defaultValue": 32,
+      "metadata": {
+        "description": "The number of event hub partitions"
       }
     },
     "functionAppName": {
@@ -30,50 +57,32 @@
         "description": "The name of the function."
       }
     },
-    "functionCode": {
-      "type": "string",
-      "metadata": {
-        "description": "Code for the function to run, saved into index.js"
-      }
-    },
-    "apiKey": {
-      "type": "securestring",
-      "metadata": {
-        "description": "Datadog API key"
-      }
-    },
-    "datadogTags": {
-      "type": "string",
-      "defaultValue": "",
-      "metadata": {
-        "description": "Comma-separated list of tags"
-      }
-    },
-    "location": {
+    "resourcesLocation": {
       "type": "string",
       "defaultValue": "[resourceGroup().location]",
       "metadata": {
-        "description": "Specify a location for the resources."
+        "description": "Specify a location for the Azure resources."
       }
     },
-    "datadogSite": {
+    "storageEndpointSuffix": {
       "type": "string",
-      "defaultValue": "datadoghq.com",
-      "metadata": {
-        "description": "Datadog site to send logs"
-      }
-    },
-    "endpointSuffix": {
-      "type": "string",
-      "defaultValue": "core.windows.net",
+      "defaultValue": "[environment().suffixes.storage]",
       "metadata": {
         "description": "Endpoint suffix for storage account"
       }
+    },
+    "diagnosticSettingName": {
+        "type": "string",
+        "defaultValue": "datadog-activity-logs-diagnostic-setting",
+        "metadata": {
+            "description": "The name of the diagnostic setting if sending Activity Logs"
+        }
     }
   },
   "variables": {
-    "eventHubTemplateLink": "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/eventhub_log_forwarder/event_hub.json",
-    "functionAppTemplateLink": "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/eventhub_log_forwarder/function_template.json"
+    "eventHubTemplateLink": "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/deploy-to-azure/event_hub.json",
+    "functionAppTemplateLink": "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/deploy-to-azure/function_template.json",
+    "activityLogDiagnosticSettingsTemplateLink": "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/deploy-to-azure/activity_log_diagnostic_settings.json"
   },
   "resources": [
     {
@@ -93,8 +102,11 @@
           "eventHubName": {
             "value": "[parameters('eventHubName')]"
           },
+          "partitionCount": {
+            "value": "[parameters('partitionCount')]"
+          },
           "location": {
-            "value": "[parameters('location')]"
+            "value": "[parameters('resourcesLocation')]"
           }
         }
       }
@@ -122,29 +134,55 @@
           "functionName": {
             "value": "[parameters('functionName')]"
           },
-          "functionCode": {
-            "value": "[parameters('functionCode')]"
-          },
           "apiKey": {
             "value": "[parameters('apiKey')]"
           },
-          "datadogTags": {
-            "value": "[parameters('datadogTags')]"
-          },
           "location": {
-            "value": "[parameters('location')]"
+            "value": "[parameters('resourcesLocation')]"
           },
           "datadogSite": {
             "value": "[parameters('datadogSite')]"
           },
           "endpointSuffix": {
-            "value": "[parameters('endpointSuffix')]"
+            "value": "[parameters('storageEndpointSuffix')]"
           }
         }
       },
       "dependsOn": [
         "[resourceId('Microsoft.Resources/deployments','eventHubTemplate')]"
       ]
+    },
+    {
+      "condition": "[parameters('sendActivityLogs')]",
+      "type": "Microsoft.Resources/deployments",
+      "name": "activityLogDiagnosticSettingsTemplate",
+      "apiVersion": "2018-05-01",
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[variables('activityLogDiagnosticSettingsTemplateLink')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "settingName": {
+            "value": "[parameters('diagnosticSettingName')]"
+          },
+          "resourceGroup": {
+            "value": "[resourceGroup().name]"
+          },
+          "eventHubNamespace": {
+            "value": "[parameters('eventHubNamespace')]"
+          },
+          "eventHubName": {
+            "value": "[parameters('eventHubName')]"
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments','functionAppTemplate')]"
+      ],
+      "subscriptionId": "[subscription().subscriptionId]",
+      "location": "[parameters('resourcesLocation')]"
     }
   ],
     "outputs": {
