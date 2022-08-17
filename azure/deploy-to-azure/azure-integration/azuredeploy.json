@@ -1,0 +1,140 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+    // "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "type": "string",
+            "defaultValue": "westus2",
+            "metadata": {
+                "description": "Resources location"
+            }
+        },
+        "servicePrincipalId": {
+            "type": "String",
+            "metadata": {
+                "description": "Service principal Id"
+            }
+        },
+        "servicePrincipalSecret": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Service principal secret"
+            }
+        },
+        "datadogApplicationKey": {
+            "type": "secureString",
+            "metadata": {
+                "description": "Your Datadog Application key"
+            }
+        },
+        "datadogApiKey": {
+            "type": "secureString",
+            "metadata": {
+                "description": "Your Datadog API key"
+            }
+        },
+        "hostFilters": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Filter to include/exclude hosts"
+            }
+        },
+        "automute": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Whether or not to use automute for hosts"
+            }
+        },
+        "datadogSite": {
+            "type": "String",
+            "metadata": {
+                "defaultValue": "datadoghq.com",
+                "description": "The datadog site, e.g. eu1.datadoghq.com"
+            }
+        }
+    },
+    "variables": {
+        "roleAssignmentId": "[guid(subscription().subscriptionId, 'monitoring reader')]",
+        // Monitoring reader 
+        "monitoringReaderRoleDefinitionId": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', '43d0d8ad-25c7-4714-9337-8ba259a9fe05')]"
+        // subscriptionResourceId('8c56d827-5f07-45ce-8f2b-6c5001db5c6f','/providers/Microsoft.Authorization/roleDefinitions/', '43d0d8ad-25c7-4714-9337-8ba259a9fe05')
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Authorization/roleAssignments",
+            "apiVersion": "2020-10-01-preview",
+            "name": "[variables('roleAssignmentId')]",
+            "properties": {
+                "roleDefinitionId": "[variables('monitoringReaderRoleDefinitionId')]",
+                "principalId": "[parameters('servicePrincipalId')]",
+                "scope": "[subscription().subscriptionId]",
+                "principalType": "ServicePrincipal"
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deploymentScripts",
+            "apiVersion": "2020-10-01",
+            "name": "datadog-sp",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Authorization/roleAssignments', variables('roleAssignmentId'))]"
+            ],
+            "kind": "AzurePowerShell",
+            "properties": {
+                "environmentVariables": [
+                    {
+                        "name": "subscription_id",
+                        "value": "[subscription().subscriptionId]"
+                    },
+                    {
+                        "name": "servicePrincipalId",
+                        "value": "[parameters('servicePrincipalId')]"
+                    },
+                    {
+                        "name": "servicePrincipalSecret",
+                        "value": "[parameters('servicePrincipalSecret')]"
+                    },
+                    {
+                        "name": "datadogApplicationKey",
+                        "value": "[parameters('datadogApplicationKey')]"
+                    },
+                    {
+                        "name": "datadogApiKey",
+                        "value": "[parameters('datadogApiKey')]"
+                    },
+                    {
+                        "name": "hostFilters",
+                        "value": "[parameters('hostFilters')]"
+                    },
+                    {
+                        "name": "automute",
+                        "value": "[parameters('automute')]"
+                    },
+                    {
+                        "name": "datadogSite",
+                        "value": "[parameters('datadogSite')]"
+                    },
+                    {
+                        "name": "tenantName",
+                        "value": "[subscription().tenantId]"
+                    }
+                ],
+                "retentionInterval": "PT26H",
+                "timeout": "PT60M",
+                "containerSettings": {},
+                "cleanupPreference": "OnSuccess",
+                // "azCliVersion": "2.0.81",
+                // "scriptContent": "echo $SUBSCRIPTION_ID; echo "
+                "azPowerShellVersion": "8.1",
+                "scriptContent": "Write-Output -ContentType \"application/json\" -Method Post -Uri \"https://api.$Env:datadogSite/api/v1/integration/azure\" -Headers @{\"Accept\"=\"application/json\"; \"DD-APPLICATION-KEY\"=$Env:datadogApplicationKey; \"DD-API-KEY\"=$Env:datadogApiKey} -Body (@{\"automute\"=$Env:automute; \"client_id\"=$Env:servicePrincipalId; \"client_secret\"=$Env:servicePrincipalSecret; \"host_filters\"=$Env:hostFilters; \"tenant_name\"=$Env:tenantName} | ConvertTo-Json )"
+                // Invoke-WebRequest
+                // "Write-Output \"ShellPower!\" \r\nWrite-Output $env:servicePrincipalId $env:username $Env:servicePrincipalSecret"
+            }
+        }
+    ],
+    "outputs": {
+    }
+}
