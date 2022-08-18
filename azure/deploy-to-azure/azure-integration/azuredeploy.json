@@ -50,8 +50,8 @@
         },
         "datadogSite": {
             "type": "String",
+            "defaultValue": "datadoghq.com",
             "metadata": {
-                "defaultValue": "datadoghq.com",
                 "description": "The datadog site, e.g. eu1.datadoghq.com"
             }
         }
