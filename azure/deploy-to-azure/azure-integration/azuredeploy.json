@@ -63,7 +63,7 @@
             "properties": {
                 "roleDefinitionId": "[variables('monitoringReaderRoleDefinitionId')]",
                 "principalId": "[parameters('servicePrincipalId')]",
-                "scope": "[subscription().subscriptionId]",
+                "scope": "[subscription().id]",
                 "principalType": "ServicePrincipal"
             }
         },
