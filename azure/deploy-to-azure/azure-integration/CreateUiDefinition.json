@@ -126,7 +126,7 @@
                         ]
                     }
                 ],
-                "deployment": {
+                "outputs": {
                     "parameters": {
                         "servicePrincipalId": "[steps('basics').ServicePrincipal.appId]",
                         "servicePrincipalSecret": "[steps('basics').ServicePrincipal.password]",
