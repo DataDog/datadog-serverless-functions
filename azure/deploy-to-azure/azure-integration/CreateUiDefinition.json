@@ -10,100 +10,6 @@
                         "label": "Basics",
                         "elements": [
                             {
-                                "name": "ServicePrincipal",
-                                "type": "Microsoft.Common.ServicePrincipalSelector",
-                                "label": {
-                                    "password": "Password",
-                                    "sectionHeader": "Service Principal"
-                                },
-                                "toolTip": {
-                                    "password": "Password"
-                                },
-                                "defaultValue": {
-                                    "principalId": "<default guid>",
-                                    "name": "(New) default App Id"
-                                },
-                                "constraints": {
-                                    "required": true,
-                                    "regex": "^[a-zA-Z0-9]{8,}$",
-                                    "validationMessage": "Password must be at least 8 characters long, contain only numbers and letters"
-                                },
-                                "options": {
-                                    "hideCertificate": true
-                                },
-                                "visible": true
-                            },
-                            {
-                                "name": "datadogApplicationKey",
-                                "type": "Microsoft.Common.PasswordBox",
-                                "label": {
-                                    "password": "Datadog Application key",
-                                    "confirmPassword": "Datadog Application key"
-                                },
-                                "toolTip": "Your Datadog Application key",
-                                "constraints": {
-                                    "required": true,
-                                    "regex": "",
-                                    "validationMessage": ""
-                                },
-                                "options": {
-                                    "hideConfirmation": true
-                                },
-                                "visible": true
-                            },
-                            {
-                                "name": "datadogApiKey",
-                                "type": "Microsoft.Common.PasswordBox",
-                                "label": {
-                                    "password": "Datadog API key",
-                                    "confirmPassword": "Datadog API key"
-                                },
-                                "toolTip": "Your datadog API key",
-                                "constraints": {
-                                    "required": true,
-                                    "regex": "",
-                                    "validationMessage": ""
-                                },
-                                "options": {
-                                    "hideConfirmation": true
-                                },
-                                "visible": true
-                            },
-                            {
-                                "name": "hostFilters",
-                                "type": "Microsoft.Common.TextBox",
-                                "label": "Host filters",
-                                "defaultValue": "",
-                                "toolTip": "Filter to include/exclude hosts",
-                                "constraints": {
-                                    "required": false,
-                                    "regex": "",
-                                    "validationMessage": ""
-                                },
-                                "visible": true
-                            },
-                            {
-                                "name": "automute",
-                                "type": "Microsoft.Common.DropDown",
-                                "label": "Automute",
-                                "defaultValue": "true",
-                                "toolTip": "Whether or not to use automute for hosts",
-                                "constraints": {
-                                    "required": false,
-                                    "allowedValues": [
-                                        {
-                                            "label": "true",
-                                            "value": true
-                                        },
-                                        {
-                                            "label": "false",
-                                            "value": false
-                                        }
-                                    ]
-                                },
-                                "visible": true
-                            },
-                            {
                                 "name": "datadogSite",
                                 "type": "Microsoft.Common.TextBox",
                                 "label": "Datadog site",
@@ -121,12 +27,12 @@
                 ],
                 "outputs": {
                     "parameters": {
-                        "servicePrincipalId": "[steps('basics').ServicePrincipal.appId]",
-                        "servicePrincipalSecret": "[steps('basics').ServicePrincipal.password]",
-                        "datadogApplicationKey": "[steps('basics').datadogApplicationKey]",
-                        "datadogApiKey": "[steps('basics').datadogApiKey]",
-                        "hostFilters": "[steps('basics').hostFilters]",
-                        "automute": "[steps('basics').automute]",
+                        "servicePrincipalId": "[steps('basics').datadogSite]",
+                        "servicePrincipalSecret": "[steps('basics').datadogSite]",
+                        "datadogApplicationKey": "[steps('basics').datadogSite]",
+                        "datadogApiKey": "[steps('basics').datadogSite]",
+                        "hostFilters": "[steps('basics').datadogSite]",
+                        "automute": "[steps('basics').datadogSite]",
                         "datadogSite": "[steps('basics').datadogSite]"
                     },
                     "kind": "ResourceGroup",
