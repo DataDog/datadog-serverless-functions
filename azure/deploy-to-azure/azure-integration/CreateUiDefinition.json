@@ -37,8 +37,8 @@
                     "datadogSite": "[steps('basics').datadogSite]"
                 },
                 "kind": "ResourceGroup",
-                "location": "[steps('basics').resourceScope.location.name]",
-                "resourceGroupId": "[steps('basics').resourceScope.resourceGroup.id]"
+                "location": "[steps('basics').datadogSite]",
+                "resourceGroupId": "[steps('basics').datadogSite]"
             }
         }
 }
