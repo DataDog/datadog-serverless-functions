@@ -10,15 +10,6 @@
                         "label": "Basics",
                         "elements": [
                             {
-                                "name": "resourceScope",
-                                "type": "Microsoft.Common.ResourceScope",
-                                "location": {
-                                    "resourceTypes": [
-                                        "microsoft.resources/resourcegroups"
-                                    ]
-                                }
-                            },
-                            {
                                 "name": "ServicePrincipal",
                                 "type": "Microsoft.Common.ServicePrincipalSelector",
                                 "label": {
