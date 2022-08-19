@@ -24,21 +24,21 @@
                             }
                         ]
                     }
-                ],
-                "outputs": {
-                    "parameters": {
-                        "servicePrincipalId": "[steps('basics').datadogSite]",
-                        "servicePrincipalSecret": "[steps('basics').datadogSite]",
-                        "datadogApplicationKey": "[steps('basics').datadogSite]",
-                        "datadogApiKey": "[steps('basics').datadogSite]",
-                        "hostFilters": "[steps('basics').datadogSite]",
-                        "automute": "[steps('basics').datadogSite]",
-                        "datadogSite": "[steps('basics').datadogSite]"
-                    },
-                    "kind": "ResourceGroup",
-                    "location": "[steps('basics').resourceScope.location.name]",
-					"resourceGroupId": "[steps('basics').resourceScope.resourceGroup.id]"
-                }
+                ]
+            },
+            "outputs": {
+                "parameters": {
+                    "servicePrincipalId": "[steps('basics').datadogSite]",
+                    "servicePrincipalSecret": "[steps('basics').datadogSite]",
+                    "datadogApplicationKey": "[steps('basics').datadogSite]",
+                    "datadogApiKey": "[steps('basics').datadogSite]",
+                    "hostFilters": "[steps('basics').datadogSite]",
+                    "automute": "[steps('basics').datadogSite]",
+                    "datadogSite": "[steps('basics').datadogSite]"
+                },
+                "kind": "ResourceGroup",
+                "location": "[steps('basics').resourceScope.location.name]",
+                "resourceGroupId": "[steps('basics').resourceScope.resourceGroup.id]"
             }
         }
 }
