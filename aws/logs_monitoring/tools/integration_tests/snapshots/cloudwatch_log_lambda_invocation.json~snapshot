@@ -740,6 +740,20 @@
       "verb": "POST"
     },
     {
+      "data": null,
+      "headers": {
+        "Accept-Encoding": "gzip",
+        "Content-Encoding": "gzip",
+        "Content-Length": "<redacted from snapshot>",
+        "Content-Type": "application/json",
+        "Dd-Api-Key": "abcdefghijklmnopqrstuvwxyz012345",
+        "Host": "recorder:8080",
+        "User-Agent": "<redacted from snapshot>"
+      },
+      "path": "/api/v0.2/stats",
+      "verb": "POST"
+    },
+    {
       "data": {
         "series": [
           {
