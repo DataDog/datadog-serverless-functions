@@ -26,8 +26,7 @@ Datadog recommends using [CloudFormation](#cloudformation) to automatically inst
 
 Once installed, you can subscribe the Forwarder to log sources, such as S3 buckets or CloudWatch log groups following the [instructions](https://docs.datadoghq.com/logs/guide/send-aws-services-logs-with-the-datadog-lambda-function/?tab=awsconsole#set-up-triggers).
 
-<!-- xxx tabs xxx -->
-<!-- xxx tab "CloudFormation" xxx -->
+{{< site-region region="us,us3,eu" >}}
 
 ### CloudFormation
 
@@ -42,9 +41,6 @@ Once installed, you can subscribe the Forwarder to log sources, such as S3 bucke
 
 **Note:** If you had previously enabled your AWS Integration using the following [CloudFormation template](https://github.com/DataDog/cloudformation-template/tree/master/aws) from your AWS integration tile in Datadog, your account should already be provisioned with a Datadog Lambda Forwarder function.  
 **Note:** The code block of the Datadog Lambda Forwarder function is empty, as the logic is implemented through a Lambda layer.
-
-<!-- xxz tab xxx -->
-<!-- xxx tab "Terraform" xxx -->
 
 ### Terraform
 
@@ -98,8 +94,7 @@ resource "aws_cloudformation_stack" "datadog_forwarder" {
 }
 ```
 
-<!-- xxz tab xxx -->
-<!-- xxx tab "Manual" xxx -->
+{{< /site-region >}}
 
 ### Manual
 
