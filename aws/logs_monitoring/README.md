@@ -96,6 +96,12 @@ resource "aws_cloudformation_stack" "datadog_forwarder" {
 
 {{< /site-region >}}
 
+{{< site-region region="gov" >}}
+
+If you are using the `US1-FED` site, follow the manual setup instructions below.
+
+{{< /site-region >}}
+
 ### Manual
 
 If you can't install the Forwarder using the provided CloudFormation template, you can install the Forwarder manually following the steps below. Feel free to open an issue or pull request to let us know if there is anything we can improve to make the template work for you.
