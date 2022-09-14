@@ -94,7 +94,7 @@
           "appSettings": [
             {
               "name": "FUNCTIONS_EXTENSION_VERSION",
-              "value": "~3"
+              "value": "~4"
             },
             {
               "name": "DD_API_KEY",
@@ -126,7 +126,7 @@
             },
             {
               "name": "WEBSITE_NODE_DEFAULT_VERSION",
-              "value": "~12"
+              "value": "~16"
             }
           ]
         }
