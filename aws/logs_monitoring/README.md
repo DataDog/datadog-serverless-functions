@@ -16,9 +16,9 @@ The Datadog Forwarder is an AWS Lambda function that ships logs, custom metrics,
 - Forward Kinesis data stream events to Datadog (only CloudWatch logs are supported)
 - Forward custom metrics from AWS Lambda functions using CloudWatch logs
 - Forward traces from AWS Lambda functions using CloudWatch logs
-- Generate and submit enhanced Lambda metrics (`aws.lambda.enhanced.*`) parsed from the AWS REPORT log: duration, billed_duration, max_memory_used, timeouts, out_of_memory, and estimated_cost
+- Generate and submit enhanced Lambda metrics (`aws.lambda.enhanced.*`) parsed from the AWS REPORT log: `duration`, `billed_duration`, `max_memory_used`, `timeouts`, `out_of_memory`, and `estimated_cost`
 
-For additional information on sending AWS services logs with the Datadog Forwarder, see [here](https://docs.datadoghq.com/logs/guide/send-aws-services-logs-with-the-datadog-lambda-function/).
+For additional information on sending AWS services logs with the Datadog Forwarder, read the [Send AWS Services Logs with the Datadog Lambda Function](https://docs.datadoghq.com/logs/guide/send-aws-services-logs-with-the-datadog-lambda-function/) guide.
 
 ## Installation
 
@@ -33,14 +33,14 @@ Once installed, you can subscribe the Forwarder to log sources, such as S3 bucke
 
 [![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home#/stacks/create/review?stackName=datadog-forwarder&templateURL=https://datadog-cloudformation-template.s3.amazonaws.com/aws/forwarder/latest.yaml)
 
-1. Log into your admin AWS account/role and deploy the CloudFormation Stack with the button above.
+1. Log into your admin AWS account or role and deploy the CloudFormation Stack with the button above.
 2. Fill in `DdApiKey` and select the appropriate `DdSite`. All other parameters are optional.
 3. Click **Create stack**, and wait for the creation to complete.
 4. Find the installed forwarder Lambda function under the stack's "Resources" tab with logical ID `Forwarder`.
 5. [Set up triggers to the installed Forwarder](https://docs.datadoghq.com/logs/guide/send-aws-services-logs-with-the-datadog-lambda-function/#set-up-triggers).
 6. Repeat the above steps in another region if you operate in multiple AWS regions.
 
-**Note:** If you had previously enabled your AWS Integration using the following [CloudFormation template](https://github.com/DataDog/cloudformation-template/tree/master/aws) from your AWS integration tile in Datadog, your account should already be provisioned with a Datadog Lambda Forwarder function.  
+**Note:** If you had previously enabled your AWS Integration using the following [CloudFormation template](https://github.com/DataDog/cloudformation-template/tree/master/aws) from your AWS integration page in Datadog, your account should already be provisioned with a Datadog Lambda Forwarder function.  
 **Note:** The code block of the Datadog Lambda Forwarder function is empty, as the logic is implemented through a Lambda layer.
 
 <!-- xxz tab xxx -->
@@ -138,7 +138,7 @@ Since version 3.0.0, the forwarder Lambda function is managed by CloudFormation.
 4. Ensure the new forwarder is working as expected, i.e., being invoked regularly without errors.
 5. Ensure the logs from the migrated triggers (sources) are showing up in Datadog log explorer and look right to you.
 6. Migrate all triggers to the new forwarder.
-   - If you have been letting Datadog manage triggers [automatically](https://docs.datadoghq.com/integrations/amazon_web_services/?tab=allpermissions#automatically-setup-triggers) for you, update the forwarder Lambda ARN in AWS integration tile "Collect Logs" tab.
+   - If you have been letting Datadog manage triggers [automatically](https://docs.datadoghq.com/integrations/amazon_web_services/?tab=allpermissions#automatically-setup-triggers) for you, update the forwarder Lambda ARN in AWS integration page **Log Collection** tab.
    - If you have been manage the triggers [manually](https://docs.datadoghq.com/integrations/amazon_web_services/?tab=allpermissions#manually-setup-triggers), then you have to migrate them manually (or using a script).
 7. Ensure the old forwarder Lambda function's invocations count drops to zero.
 8. Delete the old forwarder Lambda function when you feel comfortable.
