@@ -217,6 +217,13 @@ Parameters:
     Type: String
     Default: ""
     Description: The name of the forwarder bucket to create. If not provided, AWS will generate a unique name.
+  UseReservedConcurrency:
+    Type: String
+    Default: true
+    AllowedValues:
+      - true
+      - false
+    Description: Configure the Datadog Forwarder Lambda to use reserved concurrency. Set to false to use unreserved account concurrency.
 Conditions:
   IsAWSChina:
     Fn::Equals:
@@ -397,6 +404,10 @@ Conditions:
       - Fn::Equals:
           - Ref: DdForwarderBucketName
           - ""
+  SetReservedConcurrentExecutions:
+    Fn::Equals:
+      - Ref: UseReservedConcurrency
+      - true
 Rules:
   MustSetDdApiKey:
     Assertions:
@@ -618,7 +629,10 @@ Resources:
               - Ref: DdTraceIntakeUrl
               - Ref: AWS::NoValue
       ReservedConcurrentExecutions:
-        Ref: ReservedConcurrency
+        Fn::If:
+          - SetReservedConcurrentExecutions
+          - Ref: ReservedConcurrency
+          - Ref: AWS::NoValue
       VpcConfig:
         Fn::If:
           - UseVPC
@@ -1052,6 +1066,7 @@ Metadata:
           - DdTraceIntakeUrl
           - AdditionalTargetLambdaArns
           - DdForwarderBucketName
+          - UseReservedConcurrency
     ParameterLabels:
       DdApiKey:
         default: "DdApiKey *"
