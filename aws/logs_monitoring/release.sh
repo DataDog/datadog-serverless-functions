@@ -7,7 +7,7 @@ set -e
 LAYER_NAME="Datadog-Forwarder"
 
 # Read the current version
-CURRENT_VERSION=$(grep -o 'Version: \d\+\.\d\+\.\d\+' template.yaml | cut -d' ' -f2)
+CURRENT_VERSION=$(grep -E -o 'Version: [0-9]+\.[0-9]+\.[0-9]+' template.yaml | cut -d' ' -f2)
 
 # Read the desired version
 if [ -z "$1" ]; then
