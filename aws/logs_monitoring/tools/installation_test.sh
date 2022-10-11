@@ -25,7 +25,7 @@ RUN_ID=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c10)
 # Since we never run the log forwarder, api key can be anything.
 DD_API_KEY=RUN_ID
 
-CURRENT_VERSION="$(grep -o 'Version: \d\+\.\d\+\.\d\+' template.yaml | cut -d' ' -f2)"
+CURRENT_VERSION="$(grep -E -o 'Version: [0-9]+\.[0-9]+\.[0-9]+' template.yaml | cut -d' ' -f2)"
 
 function aws-login() {
     cfg=( "$@" )
