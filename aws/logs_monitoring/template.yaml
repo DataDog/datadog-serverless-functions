@@ -41,9 +41,11 @@ Parameters:
     Default: 300
     Description: TTL (in seconds) for the Datadog tags cache
   ReservedConcurrency:
-    Type: Number
+    Type: String
+    AllowedPattern: "[0-9]*"
+    ConstraintDescription: ReservedConcurrency must be an integer number
     Default: 100
-    Description: Reserved concurrency for the Datadog Forwarder Lambda function
+    Description: Reserved concurrency for the Datadog Forwarder Lambda function. If empty, use unreserved account concurrency.
   LogRetentionInDays:
     Type: Number
     Default: 90
@@ -217,13 +219,6 @@ Parameters:
     Type: String
     Default: ""
     Description: The name of the forwarder bucket to create. If not provided, AWS will generate a unique name.
-  UseReservedConcurrency:
-    Type: String
-    Default: true
-    AllowedValues:
-      - true
-      - false
-    Description: Configure the Datadog Forwarder Lambda to use reserved concurrency. Set to false to use unreserved account concurrency.
 Conditions:
   IsAWSChina:
     Fn::Equals:
@@ -405,9 +400,10 @@ Conditions:
           - Ref: DdForwarderBucketName
           - ""
   SetReservedConcurrentExecutions:
-    Fn::Equals:
-      - Ref: UseReservedConcurrency
-      - true
+    Fn::Not:
+      - Fn::Equals:
+          - Ref: ReservedConcurrency
+          - ""
 Rules:
   MustSetDdApiKey:
     Assertions:
@@ -1066,7 +1062,6 @@ Metadata:
           - DdTraceIntakeUrl
           - AdditionalTargetLambdaArns
           - DdForwarderBucketName
-          - UseReservedConcurrency
     ParameterLabels:
       DdApiKey:
         default: "DdApiKey *"
