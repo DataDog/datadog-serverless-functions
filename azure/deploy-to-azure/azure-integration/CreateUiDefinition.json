@@ -9,6 +9,15 @@
                         "name": "basics",
                         "label": "Basics",
                         "elements": [
+                            {
+                                "name": "resourceScope",
+                                "type": "Microsoft.Common.ResourceScope",
+                                "location": {
+                                    "resourceTypes": [
+                                        "microsoft.resources/resourcegroups"
+                                    ]
+                                }
+                            },
                               {
                                 "name": "providersApi",
                                 "type": "Microsoft.Solutions.ArmApiControl",
