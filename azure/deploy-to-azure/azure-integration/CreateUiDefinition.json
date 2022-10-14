@@ -18,26 +18,6 @@
                                     ]
                                 }
                             },
-                              {
-                                "name": "providersApi",
-                                "type": "Microsoft.Solutions.ArmApiControl",
-                                "request": {
-                                  "method": "GET",
-                                  "path": "subscriptions?api-version=2020-01-01"
-                                }
-                              },
-                              {
-                                "name": "providerDropDown",
-                                "type": "Microsoft.Common.DropDown",
-                                "label": "Subscriptions",
-                                "toolTip": "The subscriptions to monitor",
-                                "multiselect": true,
-                                "constraints": {
-                                  "allowedValues": "[map(basics('providersApi').value, (item) => parse(concat('{\"label\":\"', item.displayName, '\",\"value\":\"', item.id, '\"}')))]",
-                                  "required": true
-                                },
-                                "visible": true
-                              },
                             {
                                 "name": "ServicePrincipal",
                                 "type": "Microsoft.Common.ServicePrincipalSelector",
@@ -144,7 +124,27 @@
                                     "validationMessage": ""
                                 },
                                 "visible": true
-                            }
+                            },
+                            {
+                                "name": "providersApi",
+                                "type": "Microsoft.Solutions.ArmApiControl",
+                                "request": {
+                                  "method": "GET",
+                                  "path": "subscriptions?api-version=2020-01-01"
+                                }
+                              },
+                              {
+                                "name": "providerDropDown",
+                                "type": "Microsoft.Common.DropDown",
+                                "label": "Subscriptions",
+                                "toolTip": "The subscriptions to monitor",
+                                "multiselect": true,
+                                "constraints": {
+                                  "allowedValues": "[map(basics('providersApi').value, (item) => parse(concat('{\"label\":\"', item.displayName, '\",\"value\":\"', item.id, '\"}')))]",
+                                  "required": true
+                                },
+                                "visible": true
+                              }
                         ]
                     }
                 ]
