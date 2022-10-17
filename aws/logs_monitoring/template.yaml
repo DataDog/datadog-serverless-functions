@@ -219,6 +219,14 @@ Parameters:
     Type: String
     Default: ""
     Description: The name of the forwarder bucket to create. If not provided, AWS will generate a unique name.
+  FWBucketDeletionPolicy:
+    Description: DeletionPolicy options for the DdForwarderBucketName.
+    Type: String
+    Default: Retain
+    AllowedValues:
+      - Retain
+      - Delete
+      - Snapshot
 Conditions:
   IsAWSChina:
     Fn::Equals:
@@ -790,6 +798,7 @@ Resources:
   # A s3 bucket used by the Forwarder as a datastore
   ForwarderBucket:
     Type: AWS::S3::Bucket
+    DeletionPolicy: Ref: FWBucketDeletionPolicy
     Properties:
       BucketName:
         Fn::If:
