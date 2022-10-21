@@ -1,0 +1,180 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/0.1.2-preview/CreateUIDefinition.MultiVm.json#",
+    "handler": "Microsoft.Azure.CreateUIDef",
+    "version": "0.1.2-preview",
+    "parameters": {
+        "resourceTypes": [],
+        "basics": [
+            {
+                "name": "location",
+                "type": "Microsoft.Common.TextBox",
+                "label": "Location",
+                "defaultValue": "global",
+                "toolTip": "Resources location",
+                "constraints": {
+                    "required": false,
+                    "regex": "",
+                    "validationMessage": ""
+                },
+                "visible": true
+            },
+            {
+                "name": "ServicePrincipal",
+                "type": "Microsoft.Common.ServicePrincipalSelector",
+                "label": {
+                    "password": "Password",
+                    "sectionHeader": "Service Principal"
+                },
+                "toolTip": {
+                    "password": "Password"
+                },
+                "defaultValue": {
+                    "principalId": "<default guid>",
+                    "name": "(New) default App Id"
+                },
+                "constraints": {
+                    "required": true,
+                    "regex": "^[a-zA-Z0-9]{8,}$",
+                    "validationMessage": "Password must be at least 8 characters long, contain only numbers and letters"
+                },
+                "options": {
+                    "hideCertificate": true
+                },
+                "visible": true
+            },
+            {
+                "name": "servicePrincipalSecret",
+                "type": "Microsoft.Common.PasswordBox",
+                "label": {
+                    "password": "Service Principal Client Secret",
+                    "confirmPassword": "Confirm password"
+                },
+                "toolTip": "Service principal Client secret",
+                "constraints": {
+                    "required": true,
+                    "regex": "",
+                    "validationMessage": ""
+                },
+                "options": {
+                    "hideConfirmation": true
+                },
+                "visible": true
+            },
+            {
+                "name": "datadogApplicationKey",
+                "type": "Microsoft.Common.PasswordBox",
+                "label": {
+                    "password": "Datadog Application Key",
+                    "confirmPassword": "Confirm password"
+                },
+                "toolTip": "Your Datadog Application key",
+                "constraints": {
+                    "required": true,
+                    "regex": "",
+                    "validationMessage": ""
+                },
+                "options": {
+                    "hideConfirmation": true
+                },
+                "visible": true
+            },
+            {
+                "name": "datadogApiKey",
+                "type": "Microsoft.Common.PasswordBox",
+                "label": {
+                    "password": "Datadog Api Key",
+                    "confirmPassword": "Confirm password"
+                },
+                "toolTip": "Your Datadog API key",
+                "constraints": {
+                    "required": true,
+                    "regex": "",
+                    "validationMessage": ""
+                },
+                "options": {
+                    "hideConfirmation": true
+                },
+                "visible": true
+            },
+            {
+                "name": "hostFilters",
+                "type": "Microsoft.Common.TextBox",
+                "label": "Host Filters",
+                "defaultValue": "",
+                "toolTip": "Filter to include/exclude hosts",
+                "constraints": {
+                    "required": false,
+                    "regex": "",
+                    "validationMessage": ""
+                },
+                "visible": true
+            },
+            {
+                "name": "automute",
+                "type": "Microsoft.Common.DropDown",
+                "label": "Automute",
+                "defaultValue": "true",
+                "toolTip": "Whether or not to use automute for hosts",
+                "constraints": {
+                    "required": false,
+                    "allowedValues": [
+                        {
+                            "label": "true",
+                            "value": true
+                        },
+                        {
+                            "label": "false",
+                            "value": false
+                        }
+                    ]
+                },
+                "visible": true
+            },
+            {
+                "name": "datadogSite",
+                "type": "Microsoft.Common.TextBox",
+                "label": "Datadog Site",
+                "defaultValue": "datadoghq.com",
+                "toolTip": "The datadog site, e.g. eu1.datadoghq.com",
+                "constraints": {
+                    "required": false,
+                    "regex": "",
+                    "validationMessage": ""
+                },
+                "visible": true
+            },
+            {
+                "name": "providersApi",
+                "type": "Microsoft.Solutions.ArmApiControl",
+                "request": {
+                    "method": "GET",
+                    "path": "subscriptions?api-version=2020-01-01"
+                }
+            },
+            {
+                "name": "providerDropDown",
+                "type": "Microsoft.Common.DropDown",
+                "label": "Subscriptions",
+                "toolTip": "The subscriptions to monitor",
+                "filter": true,
+                "multiselect": true,
+                "constraints": {
+                    "allowedValues": "[map(basics('providersApi').value, (item) => parse(concat('{\"label\":\"', item.displayName, '\",\"value\":\"', item.id, '\"}')))]",
+                    "required": false
+                },
+                "visible": true
+            }
+        ],
+        "steps": [],
+        "outputs": {
+            "location": "[basics('location')]",
+            "servicePrincipalId": "[basics('servicePrincipalId')]",
+            "servicePrincipalSecret": "[basics('servicePrincipalSecret')]",
+            "datadogApplicationKey": "[basics('datadogApplicationKey')]",
+            "datadogApiKey": "[basics('datadogApiKey')]",
+            "hostFilters": "[basics('hostFilters')]",
+            "automute": "[basics('automute')]",
+            "datadogSite": "[basics('datadogSite')]"
+        }
+    }
+}

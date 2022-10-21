@@ -1,0 +1,10 @@
+{
+    "contentVersion": "0.0.0.1",
+    "roles": [
+        {
+            "properties": {
+                "roleName": "Monitoring Reader"
+            }
+        }
+    ]
+}
