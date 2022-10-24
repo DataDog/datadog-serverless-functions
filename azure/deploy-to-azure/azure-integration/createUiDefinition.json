@@ -13,8 +13,8 @@
                 "toolTip": "Resources location",
                 "constraints": {
                     "required": false,
-                    "regex": "",
-                    "validationMessage": ""
+                    "regex": "[.]{0,}$",
+                    "validationMessage": "Must be a valid location"
                 },
                 "visible": true
             },
@@ -34,29 +34,11 @@
                 },
                 "constraints": {
                     "required": true,
-                    "regex": "^[a-zA-Z0-9]{8,}$",
-                    "validationMessage": "Password must be at least 8 characters long, contain only numbers and letters"
+                    "regex": "[.]{0,}$",
+                    "validationMessage": "Must be a valid client secret"
                 },
                 "options": {
                     "hideCertificate": true
-                },
-                "visible": true
-            },
-            {
-                "name": "servicePrincipalSecret",
-                "type": "Microsoft.Common.PasswordBox",
-                "label": {
-                    "password": "Service Principal Client Secret",
-                    "confirmPassword": "Confirm password"
-                },
-                "toolTip": "Service principal Client secret",
-                "constraints": {
-                    "required": true,
-                    "regex": "",
-                    "validationMessage": ""
-                },
-                "options": {
-                    "hideConfirmation": true
                 },
                 "visible": true
             },
@@ -70,11 +52,11 @@
                 "toolTip": "Your Datadog Application key",
                 "constraints": {
                     "required": true,
-                    "regex": "",
-                    "validationMessage": ""
+                    "regex": "[.]{0,}$",
+                    "validationMessage": "Must be a valid Application Key"
                 },
                 "options": {
-                    "hideConfirmation": true
+                    "hideConfirmation": false
                 },
                 "visible": true
             },
@@ -88,11 +70,11 @@
                 "toolTip": "Your Datadog API key",
                 "constraints": {
                     "required": true,
-                    "regex": "",
-                    "validationMessage": ""
+                    "regex": "[.]{0,}$",
+                    "validationMessage": "Must be a valid API Key"
                 },
                 "options": {
-                    "hideConfirmation": true
+                    "hideConfirmation": false
                 },
                 "visible": true
             },
@@ -152,10 +134,10 @@
                 }
             },
             {
-                "name": "providerDropDown",
+                "name": "subscriptionsList",
                 "type": "Microsoft.Common.DropDown",
                 "label": "Subscriptions",
-                "toolTip": "The subscriptions to monitor",
+                "toolTip": "The list of subscriptions to monitor",
                 "filter": true,
                 "multiselect": true,
                 "constraints": {
@@ -167,9 +149,10 @@
         ],
         "steps": [],
         "outputs": {
-            "location": "[basics('location')]",
-            "servicePrincipalId": "[basics('servicePrincipalId')]",
-            "servicePrincipalSecret": "[basics('servicePrincipalSecret')]",
+            "location": "[location()]",
+            "subscriptionsList": "[basics('subscriptionsList')]",
+            "servicePrincipalId": "[basics('ServicePrincipal').appId]",
+            "servicePrincipalSecret": "[basics('ServicePrincipal').password]",
             "datadogApplicationKey": "[basics('datadogApplicationKey')]",
             "datadogApiKey": "[basics('datadogApiKey')]",
             "hostFilters": "[basics('hostFilters')]",
