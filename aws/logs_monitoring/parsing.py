@@ -280,8 +280,14 @@ def find_cloudwatch_source(log_group):
             "api-gateway",  # e.g. Api-Gateway-Execution-Logs_xxxxxx/dev
             # default location set by serverless framework for rest api access logs
             "/aws/api-gateway",  # e.g. /aws/api-gateway/my-project
+            # Avoid touching the size limit of the log group resource policy
+            # https://docs.aws.amazon.com/fr_fr/AmazonCloudWatch/latest/logs/AWS-logs-and-resource-policy.html#AWS-logs-infrastructure-CWL
+            "/aws/vendedlogs/api-gateway",  
             # default location set by serverless framework for http api logs
             "/aws/http-api",  # e.g. /aws/http-api/my-project
+            # Avoid touching the size limit of the log group resource policy
+            # https://docs.aws.amazon.com/fr_fr/AmazonCloudWatch/latest/logs/AWS-logs-and-resource-policy.html#AWS-logs-infrastructure-CWL
+            "/aws/vendedlogs/http-api",    
         )
     ):
         return "apigateway"
