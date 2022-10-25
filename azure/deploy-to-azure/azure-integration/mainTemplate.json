@@ -23,7 +23,8 @@
             }
         },
         "subscriptionsList":{
-            "type": "String",
+            "type": "array",
+            "defaultValue": "[subscription().id]",
             "metadata": {
                 "description": "The list of subscriptions to monito"
             }

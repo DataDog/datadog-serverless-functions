@@ -46,8 +46,7 @@
                 "name": "datadogApplicationKey",
                 "type": "Microsoft.Common.PasswordBox",
                 "label": {
-                    "password": "Datadog Application Key",
-                    "confirmPassword": "Confirm password"
+                    "Datadog Application Key": "Datadog Application Key"
                 },
                 "toolTip": "Your Datadog Application key",
                 "constraints": {
@@ -56,7 +55,7 @@
                     "validationMessage": "Must be a valid Application Key"
                 },
                 "options": {
-                    "hideConfirmation": false
+                    "hideConfirmation": true
                 },
                 "visible": true
             },
@@ -64,8 +63,7 @@
                 "name": "datadogApiKey",
                 "type": "Microsoft.Common.PasswordBox",
                 "label": {
-                    "password": "Datadog Api Key",
-                    "confirmPassword": "Confirm password"
+                    "Datadog API Key": "Datadog Api Key"
                 },
                 "toolTip": "Your Datadog API key",
                 "constraints": {
@@ -74,7 +72,7 @@
                     "validationMessage": "Must be a valid API Key"
                 },
                 "options": {
-                    "hideConfirmation": false
+                    "hideConfirmation": true
                 },
                 "visible": true
             },
