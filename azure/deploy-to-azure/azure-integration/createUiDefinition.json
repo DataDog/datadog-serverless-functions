@@ -46,7 +46,7 @@
                 "name": "datadogApplicationKey",
                 "type": "Microsoft.Common.PasswordBox",
                 "label": {
-                    "datadogApplicationKey": "Datadog Application Key",
+                    "password": "Datadog Application Key",
                     "confirmPassword": "Re-enter Datadog Application Key"
                 },
                 "toolTip": "Your Datadog Application key",
@@ -64,7 +64,7 @@
                 "name": "datadogApiKey",
                 "type": "Microsoft.Common.PasswordBox",
                 "label": {
-                    "datadogApiKey": "Datadog API Key",
+                    "password": "Datadog API Key",
                     "confirmPassword": "Re-enter Datadog Api Key"
                 },
                 "toolTip": "Your Datadog API key",
@@ -142,6 +142,7 @@
                 "multiselect": true,
                 "constraints": {
                     "allowedValues": "[map(basics('providersApi').value, (item) => parse(concat('{\"label\":\"', item.displayName, '\",\"value\":\"', item.id, '\"}')))]",
+                    "defaultValue": "[]",
                     "required": false
                 },
                 "visible": true
@@ -150,6 +151,7 @@
         "steps": [],
         "outputs": {
             "location": "[location()]",
+            "managedIdentity": { "Type": "SystemAssigned" },
             "subscriptionsList": "[basics('subscriptionsList')]",
             "servicePrincipalId": "[basics('ServicePrincipal').appId]",
             "servicePrincipalSecret": "[basics('ServicePrincipal').password]",
