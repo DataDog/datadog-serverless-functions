@@ -22,11 +22,11 @@
                 "name": "ServicePrincipal",
                 "type": "Microsoft.Common.ServicePrincipalSelector",
                 "label": {
-                    "password": "Service Principal Id",
+                    "servicePrincipalId": "Service Principal Id",
                     "sectionHeader": "Service Principal"
                 },
                 "toolTip": {
-                    "password": "Service Principal Id"
+                    "servicePrincipalId": "Service Principal Id"
                 },
                 "defaultValue": {
                     "principalId": "<default guid>",
@@ -46,7 +46,7 @@
                 "name": "datadogApplicationKey",
                 "type": "Microsoft.Common.PasswordBox",
                 "label": {
-                    "password": "Datadog Application Key",
+                    "datadogApplicationKey": "Datadog Application Key",
                     "confirmPassword": "Re-enter Datadog Application Key"
                 },
                 "toolTip": "Your Datadog Application key",
@@ -64,7 +64,7 @@
                 "name": "datadogApiKey",
                 "type": "Microsoft.Common.PasswordBox",
                 "label": {
-                    "password": "Datadog Api Key",
+                    "datadogApiKey": "Datadog API Key",
                     "confirmPassword": "Re-enter Datadog Api Key"
                 },
                 "toolTip": "Your Datadog API key",
