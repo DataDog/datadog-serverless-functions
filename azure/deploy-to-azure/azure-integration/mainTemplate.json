@@ -22,13 +22,6 @@
                 "description": "Service principal secret"
             }
         },
-        "subscriptionsList":{
-            "type": "array",
-            "defaultValue": "[subscription().id]",
-            "metadata": {
-                "description": "The list of subscriptions to monito"
-            }
-        },
         "datadogApplicationKey": {
             "type": "secureString",
             "metadata": {
@@ -70,19 +63,6 @@
         // subscriptionResourceId('8c56d827-5f07-45ce-8f2b-6c5001db5c6f','/providers/Microsoft.Authorization/roleDefinitions/', '43d0d8ad-25c7-4714-9337-8ba259a9fe05')
     },
     "resources": [
-       {
-            // Dummy, placeholder for subscriptionsList data usage
-            "condition": "[not(empty(parameters('subscriptionsList')))]",
-            "type": "Microsoft.Authorization/roleAssignments",
-            "apiVersion": "2022-04-01",
-            "name": "[variables('roleAssignmentId')]",
-            "properties": {
-                "roleDefinitionId": "[variables('monitoringReaderRoleDefinitionId')]",
-                "principalId": "[parameters('servicePrincipalId')]",
-                "scope": "[subscription().id]",
-                "principalType": "ServicePrincipal"
-            }
-        },
         {
             "type": "Microsoft.Authorization/roleAssignments",
             "apiVersion": "2022-04-01",
