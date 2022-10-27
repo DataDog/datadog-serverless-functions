@@ -576,6 +576,12 @@ def awslogs_handler(event, context, metadata):
             metadata[DD_SOURCE] = "kubernetes.audit"
         elif logs["logStream"].startswith("kube-scheduler-"):
             metadata[DD_SOURCE] = "kube_scheduler"
+        elif logs["logStream"].startswith("kube-apiserver-"):
+            metadata[DD_SOURCE] = "kube-apiserver"
+        elif logs["logStream"].startswith("kube-controller-manager-"):
+            metadata[DD_SOURCE] = "kube-controller-manager"
+        elif logs["logStream"].startswith("authenticator-"):
+            metadata[DD_SOURCE] = "aws-iam-authenticator"
         # In case the conditions above don't match we maintain eks as the source
 
     # Create and send structured logs to Datadog
