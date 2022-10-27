@@ -220,7 +220,6 @@ def s3_handler(event, context, metadata):
         if DD_MULTILINE_LOG_REGEX_PATTERN and multiline_regex_start_pattern.match(data):
             split_data = multiline_regex.split(data)
         else:
-            logger.debug("DD_MULTILINE_LOG_REGEX_PATTERN %s did not match start of file, splitting by line", DD_MULTILINE_LOG_REGEX_PATTERN)
             split_data = data.splitlines()
 
         # Send lines to Datadog
