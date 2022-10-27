@@ -204,6 +204,14 @@ class TestParseEventSource(unittest.TestCase):
             "waf",
         )
 
+        self.assertEqual(
+            parse_event_source(
+                {"Records": ["logs-from-s3"]},
+                "AWSLogs/123456779121/WAFLogs/us-east-1/xxxxxx-waf/2022/10/11/14/10/123456779121_waflogs_us-east-1_xxxxx-waf_20221011T1410Z_12756524.log.gz",
+            ),
+            "waf",
+        )
+
     def test_redshift_event(self):
         self.assertEqual(
             parse_event_source(
