@@ -42,18 +42,14 @@ logger = logging.getLogger()
 
 if DD_MULTILINE_LOG_REGEX_PATTERN:
     try:
-        multiline_regex = re.compile(
-            "[\n\r\f]+(?={})".format(DD_MULTILINE_LOG_REGEX_PATTERN)
-        )
+        multiline_regex = re.compile("[\n\r\f]+(?={})".format(DD_MULTILINE_LOG_REGEX_PATTERN))
     except Exception:
         raise Exception(
             "could not compile multiline regex with pattern: {}".format(
                 DD_MULTILINE_LOG_REGEX_PATTERN
             )
         )
-    multiline_regex_start_pattern = re.compile(
-        "^{}".format(DD_MULTILINE_LOG_REGEX_PATTERN)
-    )
+    multiline_regex_start_pattern = re.compile("^{}".format(DD_MULTILINE_LOG_REGEX_PATTERN))
 
 rds_regex = re.compile("/aws/rds/(instance|cluster)/(?P<host>[^/]+)/(?P<name>[^/]+)")
 
@@ -88,9 +84,7 @@ def parse(event, context):
             events = kinesis_awslogs_handler(event, context, metadata)
     except Exception as e:
         # Logs through the socket the error
-        err_message = "Error parsing the object. Exception: {} for event {}".format(
-            str(e), event
-        )
+        err_message = "Error parsing the object. Exception: {} for event {}".format(str(e), event)
         events = [err_message]
 
     set_forwarder_telemetry_tags(context, event_type)
@@ -118,9 +112,7 @@ def generate_metadata(context):
             None,
             [
                 DD_TAGS,
-                ",".join(
-                    ["{}:{}".format(k, v) for k, v in dd_custom_tags_data.items()]
-                ),
+                ",".join(["{}:{}".format(k, v) for k, v in dd_custom_tags_data.items()]),
             ],
         )
     )
@@ -279,14 +271,14 @@ def find_cloudwatch_source(log_group):
         return "rds"
 
     if log_group.startswith(
-            (
-                    # default location for rest api execution logs
-                    "api-gateway",  # e.g. Api-Gateway-Execution-Logs_xxxxxx/dev
-                    # default location set by serverless framework for rest api access logs
-                    "/aws/api-gateway",  # e.g. /aws/api-gateway/my-project
-                    # default location set by serverless framework for http api logs
-                    "/aws/http-api",  # e.g. /aws/http-api/my-project
-            )
+        (
+            # default location for rest api execution logs
+            "api-gateway",  # e.g. Api-Gateway-Execution-Logs_xxxxxx/dev
+            # default location set by serverless framework for rest api access logs
+            "/aws/api-gateway",  # e.g. /aws/api-gateway/my-project
+            # default location set by serverless framework for http api logs
+            "/aws/http-api",  # e.g. /aws/http-api/my-project
+        )
     ):
         return "apigateway"
 
@@ -408,7 +400,7 @@ def parse_service_arn(source, key, bucket, context):
         # If there is a prefix on the S3 bucket, remove the prefix before splitting the key
         if idsplit[0] != "AWSLogs":
             try:
-                idsplit = idsplit[idsplit.index("AWSLogs"):]
+                idsplit = idsplit[idsplit.index("AWSLogs") :]
                 keysplit = "/".join(idsplit).split("_")
             except ValueError:
                 logger.debug("Invalid S3 key, doesn't contain AWSLogs")
@@ -473,7 +465,7 @@ def parse_service_arn(source, key, bucket, context):
 def awslogs_handler(event, context, metadata):
     # Get logs
     with gzip.GzipFile(
-            fileobj=BytesIO(base64.b64decode(event["awslogs"]["data"]))
+        fileobj=BytesIO(base64.b64decode(event["awslogs"]["data"]))
     ) as decompress_stream:
         # Reading line by line avoid a bug where gzip would take a very long
         # time (>5min) for file around 60MB gzipped
@@ -519,9 +511,7 @@ def awslogs_handler(event, context, metadata):
     if metadata[DD_SOURCE] == "appsync":
         metadata[DD_HOST] = aws_attributes["aws"]["awslogs"]["logGroup"].split("/")[-1]
 
-    if metadata[DD_SOURCE] == "stepfunction" and logs["logStream"].startswith(
-            "states/"
-    ):
+    if metadata[DD_SOURCE] == "stepfunction" and logs["logStream"].startswith("states/"):
         try:
             message = json.loads(logs["logEvents"][0]["message"])
             if message.get("execution_arn") is not None:
@@ -541,8 +531,9 @@ def awslogs_handler(event, context, metadata):
         except Exception as e:
             logger.debug("Unable to get step_function_arn %s" % e)
 
-        formatted_stepfunctions_tags = (get_step_function_tags(step_function_arn)
-                                        if step_function_arn else [])
+        formatted_stepfunctions_tags = (
+            get_step_function_tags(step_function_arn) if step_function_arn else []
+        )
         if len(formatted_stepfunctions_tags) > 0:
             metadata[DD_CUSTOM_TAGS] = (
                 ",".join(formatted_stepfunctions_tags)
@@ -556,9 +547,7 @@ def awslogs_handler(event, context, metadata):
         match = rds_regex.match(logs["logGroup"])
         if match is not None:
             metadata[DD_HOST] = match.group("host")
-            metadata[DD_CUSTOM_TAGS] = (
-                    metadata[DD_CUSTOM_TAGS] + ",logname:" + match.group("name")
-            )
+            metadata[DD_CUSTOM_TAGS] = metadata[DD_CUSTOM_TAGS] + ",logname:" + match.group("name")
 
     # For Lambda logs we want to extract the function name,
     # then rebuild the arn of the monitored lambda using that name.
@@ -578,8 +567,8 @@ def awslogs_handler(event, context, metadata):
                 aws_attributes = merge_dicts(aws_attributes, arn_attributes)
 
                 env_tag_exists = (
-                        metadata[DD_CUSTOM_TAGS].startswith("env:")
-                        or ",env:" in metadata[DD_CUSTOM_TAGS]
+                    metadata[DD_CUSTOM_TAGS].startswith("env:")
+                    or ",env:" in metadata[DD_CUSTOM_TAGS]
                 )
                 # If there is no env specified, default to env:none
                 if not env_tag_exists:
@@ -699,26 +688,17 @@ def parse_aws_waf_logs(event):
 
             # Iterate through array of non-terminating rules and nest each under its own id
             if "nonTerminatingMatchingRules" in rule_group and isinstance(
-                    rule_group["nonTerminatingMatchingRules"], list
+                rule_group["nonTerminatingMatchingRules"], list
             ):
-                non_terminating_rules = rule_group.pop(
-                    "nonTerminatingMatchingRules", None
+                non_terminating_rules = rule_group.pop("nonTerminatingMatchingRules", None)
+                if "nonTerminatingMatchingRules" not in message["ruleGroupList"][group_id]:
+                    message["ruleGroupList"][group_id]["nonTerminatingMatchingRules"] = {}
+                message["ruleGroupList"][group_id]["nonTerminatingMatchingRules"].update(
+                    convert_rule_to_nested_json(non_terminating_rules)
                 )
-                if (
-                        "nonTerminatingMatchingRules"
-                        not in message["ruleGroupList"][group_id]
-                ):
-                    message["ruleGroupList"][group_id][
-                        "nonTerminatingMatchingRules"
-                    ] = {}
-                message["ruleGroupList"][group_id][
-                    "nonTerminatingMatchingRules"
-                ].update(convert_rule_to_nested_json(non_terminating_rules))
 
             # Iterate through array of excluded rules and nest each under its own id
-            if "excludedRules" in rule_group and isinstance(
-                    rule_group["excludedRules"], list
-            ):
+            if "excludedRules" in rule_group and isinstance(rule_group["excludedRules"], list):
                 excluded_rules = rule_group.pop("excludedRules", None)
                 if "excludedRules" not in message["ruleGroupList"][group_id]:
                     message["ruleGroupList"][group_id]["excludedRules"] = {}
@@ -732,9 +712,7 @@ def parse_aws_waf_logs(event):
 
     non_terminating_rules = message.get("nonTerminatingMatchingRules", {})
     if non_terminating_rules:
-        message["nonTerminatingMatchingRules"] = convert_rule_to_nested_json(
-            non_terminating_rules
-        )
+        message["nonTerminatingMatchingRules"] = convert_rule_to_nested_json(non_terminating_rules)
 
     event_copy["message"] = message
     return event_copy
@@ -766,9 +744,7 @@ def separate_security_hub_findings(event):
     Each event should contain one finding only.
     This prevents having an unparsable array of objects in the final log.
     """
-    if event.get(DD_SOURCE) != "securityhub" or not event.get("detail", {}).get(
-            "findings"
-    ):
+    if event.get(DD_SOURCE) != "securityhub" or not event.get("detail", {}).get("findings"):
         return None
     events = []
     event_copy = copy.deepcopy(event)
@@ -795,9 +771,7 @@ def separate_security_hub_findings(event):
                     # Capture the type and use it as the distinguishing key
                     resource_type = current_resource.get("Type", {})
                     del current_resource["Type"]
-                    new_event["detail"]["finding"]["resources"][
-                        resource_type
-                    ] = current_resource
+                    new_event["detail"]["finding"]["resources"][resource_type] = current_resource
             events.append(new_event)
     return events
 
