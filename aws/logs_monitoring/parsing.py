@@ -533,8 +533,8 @@ def awslogs_handler(event, context, metadata):
         except Exception as e:
             logger.debug("Unable to set stepfunction host: %s" % e)
 
+        step_function_arn = ""
         try:
-            step_function_arn = ""
             if len(logs["logEvents"]) > 0:
                 execution_arn = logs["logEvents"]["execution_arn"]
                 step_function_arn = ":".join(execution_arn.split(":")[:7])
