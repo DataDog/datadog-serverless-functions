@@ -321,6 +321,10 @@ Conditions:
     Fn::Equals:
       - Ref: DdFetchLogGroupTags
       - true
+  SetDdFetchStepFunctionsTags:
+    Fn::Equals:
+      - Ref: SetDdFetchStepFunctionsTags
+      - true
   CreateS3BucketForTags:
     Fn::Or:
       - Fn::Equals:
@@ -501,6 +505,11 @@ Resources:
             Fn::If:
               - SetDdFetchLogGroupTags
               - Ref: DdFetchLogGroupTags
+              - Ref: AWS::NoValue
+          DD_FETCH_STEP_FUNCTIONS_TAGS:
+            Fn::If:
+              - SetDdFetchStepFunctionsTags
+              - Ref: DdFetchStepFunctionsTags
               - Ref: AWS::NoValue
           DD_USE_TCP:
             Fn::If:
@@ -707,6 +716,14 @@ Resources:
                   - SetDdFetchLogGroupTags
                   - Action:
                       - logs:ListTagsLogGroup
+                    Resource: "*"
+                    Effect: Allow
+                  - Ref: AWS::NoValue
+              # Fetch Step Functions resource tags for data enrichment
+              - Fn::If:
+                  - SetDdFetchStepFunctionsTags
+                  - Action:
+                      - tag:GetResources
                     Resource: "*"
                     Effect: Allow
                   - Ref: AWS::NoValue
@@ -1047,6 +1064,7 @@ Metadata:
         Parameters:
           - DdFetchLambdaTags
           - DdFetchLogGroupTags
+          - DdFetchStepFunctionsTags
           - TagsCacheTTLSeconds
           - SourceZipUrl
           - InstallAsLayer

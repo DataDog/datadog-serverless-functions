@@ -19,7 +19,7 @@ from io import BytesIO, BufferedReader
 
 from datadog_lambda.metric import lambda_stats
 
-from cache import CloudwatchLogGroupTagsCache
+from cache import CloudwatchLogGroupTagsCache, get_step_function_tags
 from telemetry import (
     DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX,
     get_forwarder_telemetry_tags,
@@ -532,6 +532,24 @@ def awslogs_handler(event, context, metadata):
                 metadata[DD_HOST] = ":".join(arn_tokens[:-1])
         except Exception as e:
             logger.debug("Unable to set stepfunction host: %s" % e)
+
+        try:
+            step_function_arn = ""
+            if len(logs["logEvents"]) > 0:
+                execution_arn = logs["logEvents"]["execution_arn"]
+                step_function_arn = ":".join(execution_arn.split(":")[:7])
+
+        except Exception as e:
+            logger.debug("Unable to get step_function_arn %s" % e)
+
+        formatted_stepfunctions_tags = (get_step_function_tags(step_function_arn)
+                                        if step_function_arn else [])
+        if len(formatted_stepfunctions_tags) > 0:
+            metadata[DD_CUSTOM_TAGS] = (
+                ",".join(formatted_stepfunctions_tags)
+                if not metadata[DD_CUSTOM_TAGS]
+                else metadata[DD_CUSTOM_TAGS] + "," + ",".join(formatted_stepfunctions_tags)
+            )
 
     # When parsing rds logs, use the cloudwatch log group name to derive the
     # rds instance name, and add the log name of the stream ingested

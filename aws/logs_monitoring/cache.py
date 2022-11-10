@@ -4,8 +4,10 @@ import json
 import datetime
 import re
 from collections import defaultdict
+from functools import cache, lru_cache
 from time import time
 from random import randint
+from typing import List
 
 import boto3
 from botocore.exceptions import ClientError
@@ -23,7 +25,6 @@ from telemetry import (
     DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX,
     get_forwarder_telemetry_tags,
 )
-
 
 JITTER_MIN = 1
 JITTER_MAX = 100
@@ -109,7 +110,6 @@ def get_last_modified_time(s3_file):
 
 
 class LambdaTagsCache(object):
-
     CACHE_FILENAME = None
     CACHE_LOCK_FILENAME = None
 
@@ -310,7 +310,7 @@ class LambdaCustomTagsCache(LambdaTagsCache):
 
         try:
             for page in get_resources_paginator.paginate(
-                ResourceTypeFilters=[GET_RESOURCES_LAMBDA_FILTER], ResourcesPerPage=100
+                    ResourceTypeFilters=[GET_RESOURCES_LAMBDA_FILTER], ResourcesPerPage=100
             ):
                 send_forwarder_internal_metrics("get_resources_api_calls")
                 page_tags_by_arn = parse_get_resources_response_for_tags_by_arn(page)
@@ -442,3 +442,35 @@ class CloudwatchLogGroupTagsCache(LambdaTagsCache):
             self.tags_by_id[log_group] = log_group_tags
 
         return log_group_tags
+
+
+resource_group_tagging_client = boto3.client('resourcegroupstaggingapi')
+RESOURCES_PER_PAGE = 100
+LRU_CACHE_SIZE = 50
+STEP_FUNCTIONS_TAGS_CACHE_TTL = 3600  # an hour
+
+
+def get_ttl_hash(ttl=STEP_FUNCTIONS_TAGS_CACHE_TTL) -> float:
+    """Return the same value within `ttl` seconds"""
+    return time() // ttl
+
+
+@lru_cache(maxsize=LRU_CACHE_SIZE)
+def get_step_function_tags(step_function_arn: str, time_hash: float = get_ttl_hash()) -> List[str]:
+    """
+    time_hash param is to clear the lru cache periodically so that new tag values can be updated.
+    Returns: list of formatted tags, e.g. ["k1:v1", "k2:v2"]
+    """
+
+    formatted_tags_string = []
+    response = resource_group_tagging_client.get_resources(
+        ResourceARNList=[step_function_arn],
+        ResourceTypeFilters=['states']
+    )
+    if len(response.get("ResourceTagMappingList", {})) > 0:
+        resource_dict = response.get("ResourceTagMappingList")[0]
+        for a_tag in resource_dict.get("Tags", []):
+            key, value = a_tag["Key"], a_tag["Value"]
+            formatted_tags_string.append(f"{key}:{value}")
+
+    return formatted_tags_string
