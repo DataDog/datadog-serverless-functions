@@ -102,7 +102,9 @@ def should_fetch_log_group_tags():
 
 def get_last_modified_time(s3_file):
     last_modified_str = s3_file["ResponseMetadata"]["HTTPHeaders"]["last-modified"]
-    last_modified_date = datetime.datetime.strptime(last_modified_str, "%a, %d %b %Y %H:%M:%S %Z")
+    last_modified_date = datetime.datetime.strptime(
+        last_modified_str, "%a, %d %b %Y %H:%M:%S %Z"
+    )
     last_modified_unix_time = int(last_modified_date.strftime("%s"))
     return last_modified_unix_time
 
@@ -129,7 +131,9 @@ class LambdaTagsCache(object):
 
     def acquire_s3_cache_lock(self):
         """Acquire cache lock"""
-        cache_lock_object = s3_client.Object(DD_S3_BUCKET_NAME, self.CACHE_LOCK_FILENAME)
+        cache_lock_object = s3_client.Object(
+            DD_S3_BUCKET_NAME, self.CACHE_LOCK_FILENAME
+        )
         try:
             file_content = cache_lock_object.get()
 
@@ -154,7 +158,9 @@ class LambdaTagsCache(object):
     def release_s3_cache_lock(self):
         """Release cache lock"""
         try:
-            cache_lock_object = s3_client.Object(DD_S3_BUCKET_NAME, self.CACHE_LOCK_FILENAME)
+            cache_lock_object = s3_client.Object(
+                DD_S3_BUCKET_NAME, self.CACHE_LOCK_FILENAME
+            )
             cache_lock_object.delete()
             send_forwarder_internal_metrics("s3_cache_lock_released")
             logger.debug("S3 cache lock released")
@@ -319,9 +325,13 @@ class LambdaCustomTagsCache(LambdaTagsCache):
             additional_tags = [
                 f"http_status_code:{e.response['ResponseMetadata']['HTTPStatusCode']}"
             ]
-            send_forwarder_internal_metrics("client_error", additional_tags=additional_tags)
+            send_forwarder_internal_metrics(
+                "client_error", additional_tags=additional_tags
+            )
 
-        logger.debug("Built this tags cache from GetResources API calls: %s", tags_by_arn_cache)
+        logger.debug(
+            "Built this tags cache from GetResources API calls: %s", tags_by_arn_cache
+        )
 
         return tags_fetch_success, tags_by_arn_cache
 
@@ -446,7 +456,9 @@ def get_ttl_hash(ttl=STEP_FUNCTIONS_TAGS_CACHE_TTL) -> float:
 
 
 @lru_cache(maxsize=LRU_CACHE_SIZE)
-def get_step_function_tags(step_function_arn: str, time_hash: float = get_ttl_hash()) -> List[str]:
+def get_step_function_tags(
+    step_function_arn: str, time_hash: float = get_ttl_hash()
+) -> List[str]:
     """
     time_hash param is to clear the lru cache periodically so that new tag values can be updated.
     Returns: list of formatted tags, e.g. ["k1:v1", "k2:v2"]

@@ -42,14 +42,18 @@ logger = logging.getLogger()
 
 if DD_MULTILINE_LOG_REGEX_PATTERN:
     try:
-        multiline_regex = re.compile("[\n\r\f]+(?={})".format(DD_MULTILINE_LOG_REGEX_PATTERN))
+        multiline_regex = re.compile(
+            "[\n\r\f]+(?={})".format(DD_MULTILINE_LOG_REGEX_PATTERN)
+        )
     except Exception:
         raise Exception(
             "could not compile multiline regex with pattern: {}".format(
                 DD_MULTILINE_LOG_REGEX_PATTERN
             )
         )
-    multiline_regex_start_pattern = re.compile("^{}".format(DD_MULTILINE_LOG_REGEX_PATTERN))
+    multiline_regex_start_pattern = re.compile(
+        "^{}".format(DD_MULTILINE_LOG_REGEX_PATTERN)
+    )
 
 rds_regex = re.compile("/aws/rds/(instance|cluster)/(?P<host>[^/]+)/(?P<name>[^/]+)")
 
@@ -84,7 +88,9 @@ def parse(event, context):
             events = kinesis_awslogs_handler(event, context, metadata)
     except Exception as e:
         # Logs through the socket the error
-        err_message = "Error parsing the object. Exception: {} for event {}".format(str(e), event)
+        err_message = "Error parsing the object. Exception: {} for event {}".format(
+            str(e), event
+        )
         events = [err_message]
 
     set_forwarder_telemetry_tags(context, event_type)
@@ -112,7 +118,9 @@ def generate_metadata(context):
             None,
             [
                 DD_TAGS,
-                ",".join(["{}:{}".format(k, v) for k, v in dd_custom_tags_data.items()]),
+                ",".join(
+                    ["{}:{}".format(k, v) for k, v in dd_custom_tags_data.items()]
+                ),
             ],
         )
     )
@@ -511,7 +519,9 @@ def awslogs_handler(event, context, metadata):
     if metadata[DD_SOURCE] == "appsync":
         metadata[DD_HOST] = aws_attributes["aws"]["awslogs"]["logGroup"].split("/")[-1]
 
-    if metadata[DD_SOURCE] == "stepfunction" and logs["logStream"].startswith("states/"):
+    if metadata[DD_SOURCE] == "stepfunction" and logs["logStream"].startswith(
+        "states/"
+    ):
         try:
             message = json.loads(logs["logEvents"][0]["message"])
             if message.get("execution_arn") is not None:
@@ -538,7 +548,9 @@ def awslogs_handler(event, context, metadata):
             metadata[DD_CUSTOM_TAGS] = (
                 ",".join(formatted_stepfunctions_tags)
                 if not metadata[DD_CUSTOM_TAGS]
-                else metadata[DD_CUSTOM_TAGS] + "," + ",".join(formatted_stepfunctions_tags)
+                else metadata[DD_CUSTOM_TAGS]
+                + ","
+                + ",".join(formatted_stepfunctions_tags)
             )
 
     # When parsing rds logs, use the cloudwatch log group name to derive the
@@ -547,7 +559,9 @@ def awslogs_handler(event, context, metadata):
         match = rds_regex.match(logs["logGroup"])
         if match is not None:
             metadata[DD_HOST] = match.group("host")
-            metadata[DD_CUSTOM_TAGS] = metadata[DD_CUSTOM_TAGS] + ",logname:" + match.group("name")
+            metadata[DD_CUSTOM_TAGS] = (
+                metadata[DD_CUSTOM_TAGS] + ",logname:" + match.group("name")
+            )
 
     # For Lambda logs we want to extract the function name,
     # then rebuild the arn of the monitored lambda using that name.
@@ -690,15 +704,24 @@ def parse_aws_waf_logs(event):
             if "nonTerminatingMatchingRules" in rule_group and isinstance(
                 rule_group["nonTerminatingMatchingRules"], list
             ):
-                non_terminating_rules = rule_group.pop("nonTerminatingMatchingRules", None)
-                if "nonTerminatingMatchingRules" not in message["ruleGroupList"][group_id]:
-                    message["ruleGroupList"][group_id]["nonTerminatingMatchingRules"] = {}
-                message["ruleGroupList"][group_id]["nonTerminatingMatchingRules"].update(
-                    convert_rule_to_nested_json(non_terminating_rules)
+                non_terminating_rules = rule_group.pop(
+                    "nonTerminatingMatchingRules", None
                 )
+                if (
+                    "nonTerminatingMatchingRules"
+                    not in message["ruleGroupList"][group_id]
+                ):
+                    message["ruleGroupList"][group_id][
+                        "nonTerminatingMatchingRules"
+                    ] = {}
+                message["ruleGroupList"][group_id][
+                    "nonTerminatingMatchingRules"
+                ].update(convert_rule_to_nested_json(non_terminating_rules))
 
             # Iterate through array of excluded rules and nest each under its own id
-            if "excludedRules" in rule_group and isinstance(rule_group["excludedRules"], list):
+            if "excludedRules" in rule_group and isinstance(
+                rule_group["excludedRules"], list
+            ):
                 excluded_rules = rule_group.pop("excludedRules", None)
                 if "excludedRules" not in message["ruleGroupList"][group_id]:
                     message["ruleGroupList"][group_id]["excludedRules"] = {}
@@ -712,7 +735,9 @@ def parse_aws_waf_logs(event):
 
     non_terminating_rules = message.get("nonTerminatingMatchingRules", {})
     if non_terminating_rules:
-        message["nonTerminatingMatchingRules"] = convert_rule_to_nested_json(non_terminating_rules)
+        message["nonTerminatingMatchingRules"] = convert_rule_to_nested_json(
+            non_terminating_rules
+        )
 
     event_copy["message"] = message
     return event_copy
@@ -744,7 +769,9 @@ def separate_security_hub_findings(event):
     Each event should contain one finding only.
     This prevents having an unparsable array of objects in the final log.
     """
-    if event.get(DD_SOURCE) != "securityhub" or not event.get("detail", {}).get("findings"):
+    if event.get(DD_SOURCE) != "securityhub" or not event.get("detail", {}).get(
+        "findings"
+    ):
         return None
     events = []
     event_copy = copy.deepcopy(event)
@@ -771,7 +798,9 @@ def separate_security_hub_findings(event):
                     # Capture the type and use it as the distinguishing key
                     resource_type = current_resource.get("Type", {})
                     del current_resource["Type"]
-                    new_event["detail"]["finding"]["resources"][resource_type] = current_resource
+                    new_event["detail"]["finding"]["resources"][
+                        resource_type
+                    ] = current_resource
             events.append(new_event)
     return events
 
