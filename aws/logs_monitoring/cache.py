@@ -102,9 +102,7 @@ def should_fetch_log_group_tags():
 
 def get_last_modified_time(s3_file):
     last_modified_str = s3_file["ResponseMetadata"]["HTTPHeaders"]["last-modified"]
-    last_modified_date = datetime.datetime.strptime(
-        last_modified_str, "%a, %d %b %Y %H:%M:%S %Z"
-    )
+    last_modified_date = datetime.datetime.strptime(last_modified_str, "%a, %d %b %Y %H:%M:%S %Z")
     last_modified_unix_time = int(last_modified_date.strftime("%s"))
     return last_modified_unix_time
 
@@ -131,9 +129,7 @@ class LambdaTagsCache(object):
 
     def acquire_s3_cache_lock(self):
         """Acquire cache lock"""
-        cache_lock_object = s3_client.Object(
-            DD_S3_BUCKET_NAME, self.CACHE_LOCK_FILENAME
-        )
+        cache_lock_object = s3_client.Object(DD_S3_BUCKET_NAME, self.CACHE_LOCK_FILENAME)
         try:
             file_content = cache_lock_object.get()
 
@@ -158,9 +154,7 @@ class LambdaTagsCache(object):
     def release_s3_cache_lock(self):
         """Release cache lock"""
         try:
-            cache_lock_object = s3_client.Object(
-                DD_S3_BUCKET_NAME, self.CACHE_LOCK_FILENAME
-            )
+            cache_lock_object = s3_client.Object(DD_S3_BUCKET_NAME, self.CACHE_LOCK_FILENAME)
             cache_lock_object.delete()
             send_forwarder_internal_metrics("s3_cache_lock_released")
             logger.debug("S3 cache lock released")
@@ -310,7 +304,7 @@ class LambdaCustomTagsCache(LambdaTagsCache):
 
         try:
             for page in get_resources_paginator.paginate(
-                    ResourceTypeFilters=[GET_RESOURCES_LAMBDA_FILTER], ResourcesPerPage=100
+                ResourceTypeFilters=[GET_RESOURCES_LAMBDA_FILTER], ResourcesPerPage=100
             ):
                 send_forwarder_internal_metrics("get_resources_api_calls")
                 page_tags_by_arn = parse_get_resources_response_for_tags_by_arn(page)
@@ -325,13 +319,9 @@ class LambdaCustomTagsCache(LambdaTagsCache):
             additional_tags = [
                 f"http_status_code:{e.response['ResponseMetadata']['HTTPStatusCode']}"
             ]
-            send_forwarder_internal_metrics(
-                "client_error", additional_tags=additional_tags
-            )
+            send_forwarder_internal_metrics("client_error", additional_tags=additional_tags)
 
-        logger.debug(
-            "Built this tags cache from GetResources API calls: %s", tags_by_arn_cache
-        )
+        logger.debug("Built this tags cache from GetResources API calls: %s", tags_by_arn_cache)
 
         return tags_fetch_success, tags_by_arn_cache
 
@@ -444,7 +434,7 @@ class CloudwatchLogGroupTagsCache(LambdaTagsCache):
         return log_group_tags
 
 
-resource_group_tagging_client = boto3.client('resourcegroupstaggingapi')
+resource_group_tagging_client = boto3.client("resourcegroupstaggingapi")
 RESOURCES_PER_PAGE = 100
 LRU_CACHE_SIZE = 50
 STEP_FUNCTIONS_TAGS_CACHE_TTL = 3600  # an hour
@@ -464,8 +454,7 @@ def get_step_function_tags(step_function_arn: str, time_hash: float = get_ttl_ha
 
     formatted_tags_string = []
     response = resource_group_tagging_client.get_resources(
-        ResourceARNList=[step_function_arn],
-        ResourceTypeFilters=['states']
+        ResourceARNList=[step_function_arn], ResourceTypeFilters=["states"]
     )
     if len(response.get("ResourceTagMappingList", {})) > 0:
         resource_dict = response.get("ResourceTagMappingList")[0]
