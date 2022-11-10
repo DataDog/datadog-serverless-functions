@@ -14,6 +14,8 @@ from botocore.exceptions import ClientError
 
 from settings import (
     DD_S3_BUCKET_NAME,
+    DD_S3_STEP_FUNCTIONS_CACHE_FILENAME,
+    DD_S3_STEP_FUNCTIONS_CACHE_LOCK_FILENAME,
     DD_TAGS_CACHE_TTL_SECONDS,
     DD_S3_CACHE_LOCK_TTL_SECONDS,
     DD_S3_CACHE_FILENAME,
@@ -98,6 +100,11 @@ def should_fetch_lambda_tags():
 def should_fetch_log_group_tags():
     """Checks the env var to determine if the customer has opted-in to fetching log group tags"""
     return os.environ.get("DD_FETCH_LOG_GROUP_TAGS", "false").lower() == "true"
+
+
+def should_fetch_step_functions_tags():
+    """Checks the env var to determine if the customer has opted-in to fetching step functions tags"""
+    return os.environ.get("DD_FETCH_STEP_FUNCTIONS_TAGS", "false").lower() == "true"
 
 
 def get_last_modified_time(s3_file):
@@ -435,7 +442,8 @@ class CloudwatchLogGroupTagsCache(LambdaTagsCache):
             # If the custom tag fetch env var is not set to true do not fetch
             if not self.should_fetch_tags():
                 logger.debug(
-                    "Not fetching custom tags because the env variable DD_FETCH_LAMBDA_TAGS is not set to true"
+                    "Not fetching custom tags because the env variable DD_FETCH_LOG_GROUP_TAGS is "
+                    "not set to true"
                 )
                 return []
             log_group_tags = get_log_group_tags(log_group) or []
@@ -444,34 +452,89 @@ class CloudwatchLogGroupTagsCache(LambdaTagsCache):
         return log_group_tags
 
 
+#######################
+# Step Functions Tags #
+#######################
+
 resource_group_tagging_client = boto3.client("resourcegroupstaggingapi")
-RESOURCES_PER_PAGE = 100
-LRU_CACHE_SIZE = 50
-STEP_FUNCTIONS_TAGS_CACHE_TTL = 3600  # an hour
 
 
-def get_ttl_hash(ttl=STEP_FUNCTIONS_TAGS_CACHE_TTL) -> float:
-    """Return the same value within `ttl` seconds"""
-    return time() // ttl
+class StepFunctionsTagsCache(LambdaTagsCache):
+    CACHE_FILENAME = DD_S3_STEP_FUNCTIONS_CACHE_FILENAME
+    CACHE_LOCK_FILENAME = DD_S3_STEP_FUNCTIONS_CACHE_LOCK_FILENAME
+
+    def should_fetch_tags(self):
+        return should_fetch_step_functions_tags()
+
+    def build_tags_cache(self):
+        """Makes API calls to GetResources to get the live tags of the account's Step Functions
+        Returns an empty dict instead of fetching custom tags if the tag fetch env variable is not
+        set to true.
+        Returns:
+            tags_by_arn_cache (dict<str, str[]>): each Lambda's tags in a dict keyed by ARN
+        """
+        new_tags = {}
+        for state_machine_arn in self.tags_by_id.keys():  # local cache
+            log_group_tags = get_state_machine_tags(state_machine_arn)
+            # If we didn't get StepFunctions tags back we'll use the locally cached ones
+            # This avoids losing tags on a failed api call
+            if not log_group_tags:
+                log_group_tags = self.tags_by_id.get(state_machine_arn, [])
+            new_tags[state_machine_arn] = log_group_tags
+
+        logger.debug("All Step Functions tags refreshed: {}".format(new_tags))
+        return True, new_tags
+
+    def get(self, state_machine_arn):
+        """Get the tags for the Step Functions from the cache
+
+        Will re-fetch the tags if they are out of date, or a log group is encountered
+        which isn't in the tag list
+
+        Args:
+            state_machine_arn (str): the key we're getting tags from the cache for
+
+        Returns:
+            state_machine_tags (str[]): the list of "key:value" Datadog tag strings
+        """
+        if self._is_expired():
+            send_forwarder_internal_metrics("local_step_functions_tags_cache_expired")
+            logger.debug(
+                "Local cache expired for Step Functions tags. Fetching cache from S3"
+            )
+            self._refresh()
+
+        state_machine_tags = self.tags_by_id.get(state_machine_arn, None)
+        if state_machine_tags is None:
+            # If the custom tag fetch env var is not set to true do not fetch
+            if not self.should_fetch_tags():
+                logger.debug(
+                    "Not fetching custom tags because the env variable DD_FETCH_STEP_FUNCTIONS_TAGS"
+                    " is not set to true"
+                )
+                return []
+            state_machine_tags = get_state_machine_tags(state_machine_arn) or []
+            self.tags_by_id[state_machine_arn] = state_machine_tags
+
+        return state_machine_tags
 
 
-@lru_cache(maxsize=LRU_CACHE_SIZE)
-def get_step_function_tags(
-    step_function_arn: str, time_hash: float = get_ttl_hash()
-) -> List[str]:
-    """
-    time_hash param is to clear the lru cache periodically so that new tag values can be updated.
-    Returns: list of formatted tags, e.g. ["k1:v1", "k2:v2"]
-    """
+def get_state_machine_tags(state_machine_arn):
+    response = None
+    formatted_tags = []
 
-    formatted_tags_string = []
-    response = resource_group_tagging_client.get_resources(
-        ResourceARNList=[step_function_arn], ResourceTypeFilters=["states"]
-    )
+    try:
+        send_forwarder_internal_metrics("get_state_machine_tags")
+        response = resource_group_tagging_client.get_resources(
+            ResourceARNList=[state_machine_arn], ResourceTypeFilters=["states"]
+        )
+    except Exception as e:
+        logger.exception(f"Failed to get Step Functions tags due to {e}")
+
     if len(response.get("ResourceTagMappingList", {})) > 0:
         resource_dict = response.get("ResourceTagMappingList")[0]
         for a_tag in resource_dict.get("Tags", []):
             key, value = a_tag["Key"], a_tag["Value"]
-            formatted_tags_string.append(f"{key}:{value}")
+            formatted_tags.append(f"{key}:{value}")
 
-    return formatted_tags_string
+    return formatted_tags

@@ -236,6 +236,8 @@ DD_S3_CACHE_FILENAME = "cache.json"
 DD_S3_CACHE_LOCK_FILENAME = "cache.lock"
 DD_S3_LOG_GROUP_CACHE_FILENAME = "log-group-cache.json"
 DD_S3_LOG_GROUP_CACHE_LOCK_FILENAME = "log-group-cache.lock"
+DD_S3_STEP_FUNCTIONS_CACHE_FILENAME = "step-functions-cache.json"
+DD_S3_STEP_FUNCTIONS_CACHE_LOCK_FILENAME = "step-functions-cache.lock"
 
 DD_TAGS_CACHE_TTL_SECONDS = int(get_env_var("DD_TAGS_CACHE_TTL_SECONDS", default=300))
 DD_S3_CACHE_LOCK_TTL_SECONDS = 60
