@@ -4,7 +4,7 @@ import json
 import datetime
 import re
 from collections import defaultdict
-from functools import cache, lru_cache
+from functools import lru_cache
 from time import time
 from random import randint
 from typing import List
