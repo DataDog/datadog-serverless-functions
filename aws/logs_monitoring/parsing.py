@@ -522,6 +522,7 @@ def awslogs_handler(event, context, metadata):
     if metadata[DD_SOURCE] == "stepfunction" and logs["logStream"].startswith(
         "states/"
     ):
+        state_machine_arn = ""
         try:
             message = json.loads(logs["logEvents"][0]["message"])
             if message.get("execution_arn") is not None:
@@ -529,20 +530,14 @@ def awslogs_handler(event, context, metadata):
                 arn_tokens = execution_arn.split(":")
                 arn_tokens[5] = "stateMachine"
                 metadata[DD_HOST] = ":".join(arn_tokens[:-1])
+                state_machine_arn = ":".join(execution_arn.split(":")[:7])
         except Exception as e:
-            logger.debug("Unable to set stepfunction host: %s" % e)
-
-        step_function_arn = ""
-        try:
-            if len(logs["logEvents"]) > 0:
-                execution_arn = logs["logEvents"]["execution_arn"]
-                step_function_arn = ":".join(execution_arn.split(":")[:7])
-
-        except Exception as e:
-            logger.debug("Unable to get step_function_arn %s" % e)
+            logger.debug(
+                "Unable to set stepfunction host or get state_machine_arn: %s" % e
+            )
 
         formatted_stepfunctions_tags = (
-            get_step_function_tags(step_function_arn) if step_function_arn else []
+            get_step_function_tags(state_machine_arn) if state_machine_arn else []
         )
         if len(formatted_stepfunctions_tags) > 0:
             metadata[DD_CUSTOM_TAGS] = (
