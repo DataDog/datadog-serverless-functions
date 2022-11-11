@@ -4,10 +4,8 @@ import json
 import datetime
 import re
 from collections import defaultdict
-from functools import lru_cache
 from time import time
 from random import randint
-from typing import List
 
 import boto3
 from botocore.exceptions import ClientError
@@ -495,7 +493,7 @@ class StepFunctionsTagsCache(LambdaTagsCache):
             state_machine_arn (str): the key we're getting tags from the cache for
 
         Returns:
-            state_machine_tags (str[]): the list of "key:value" Datadog tag strings
+            state_machine_tags (List[str]): the list of "key:value" Datadog tag strings
         """
         if self._is_expired():
             send_forwarder_internal_metrics("local_step_functions_tags_cache_expired")

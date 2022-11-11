@@ -19,7 +19,11 @@ from io import BytesIO, BufferedReader
 
 from datadog_lambda.metric import lambda_stats
 
-from cache import CloudwatchLogGroupTagsCache, get_step_function_tags
+from cache import (
+    CloudwatchLogGroupTagsCache,
+    StepFunctionsTagsCache,
+    get_step_function_tags,
+)
 from telemetry import (
     DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX,
     get_forwarder_telemetry_tags,
@@ -65,6 +69,7 @@ cloudtrail_regex = re.compile(
 # Store the cache in the global scope so that it will be reused as long as
 # the log forwarder Lambda container is running
 account_cw_logs_tags_cache = CloudwatchLogGroupTagsCache()
+account_step_functions_tags_cache = StepFunctionsTagsCache()
 
 
 def parse(event, context):
@@ -536,9 +541,7 @@ def awslogs_handler(event, context, metadata):
                 "Unable to set stepfunction host or get state_machine_arn: %s" % e
             )
 
-        formatted_stepfunctions_tags = (
-            get_step_function_tags(state_machine_arn) if state_machine_arn else []
-        )
+        formatted_stepfunctions_tags = account_step_functions_tags_cache.get(state_machine_arn)
         if len(formatted_stepfunctions_tags) > 0:
             metadata[DD_CUSTOM_TAGS] = (
                 ",".join(formatted_stepfunctions_tags)
