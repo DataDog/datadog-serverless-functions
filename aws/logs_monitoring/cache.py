@@ -518,6 +518,28 @@ class StepFunctionsTagsCache(LambdaTagsCache):
 
 
 def get_state_machine_tags(state_machine_arn):
+    """Return a list of tags of a state machine in dd format (max 200 chars)
+
+    Example response from get source api:
+    {
+        "ResourceTagMappingList": [
+            {
+                "ResourceARN": "arn:aws:states:us-east-1:1234567890:stateMachine:example-machine",
+                "Tags": [
+                    {
+                        "Key": "ENV",
+                        "Value": "staging"
+                    }
+                ]
+            }
+        ]
+    }
+
+    Args:
+            state_machine_arn (str): the key we're getting tags from the cache for
+    Returns:
+        state_machine_arn (List[str]): e.g. ["k1:v1", "k2:v2"]
+    """
     response = None
     formatted_tags = []
 
@@ -532,7 +554,10 @@ def get_state_machine_tags(state_machine_arn):
     if len(response.get("ResourceTagMappingList", {})) > 0:
         resource_dict = response.get("ResourceTagMappingList")[0]
         for a_tag in resource_dict.get("Tags", []):
-            key, value = a_tag["Key"], a_tag["Value"]
-            formatted_tags.append(f"{key}:{value}")
+            key = sanitize_aws_tag_string(a_tag["Key"], remove_colons=True)
+            value = sanitize_aws_tag_string(
+                a_tag.get("Value"), remove_leading_digits=False
+            )
+            formatted_tags.append(f"{key}:{value}"[:200])  # same logic as lambda
 
     return formatted_tags
