@@ -473,12 +473,12 @@ class StepFunctionsTagsCache(LambdaTagsCache):
         """
         new_tags = {}
         for state_machine_arn in self.tags_by_id.keys():  # local cache
-            log_group_tags = get_state_machine_tags(state_machine_arn)
+            state_machine_tags = get_state_machine_tags(state_machine_arn)
             # If we didn't get StepFunctions tags back we'll use the locally cached ones
             # This avoids losing tags on a failed api call
-            if not log_group_tags:
-                log_group_tags = self.tags_by_id.get(state_machine_arn, [])
-            new_tags[state_machine_arn] = log_group_tags
+            if not state_machine_tags:
+                state_machine_tags = self.tags_by_id.get(state_machine_arn, [])
+            new_tags[state_machine_arn] = state_machine_tags
 
         logger.debug("All Step Functions tags refreshed: {}".format(new_tags))
         return True, new_tags
