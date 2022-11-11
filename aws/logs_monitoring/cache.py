@@ -198,15 +198,12 @@ class LambdaTagsCache(object):
 
         tags_fetched, last_modified = self.get_cache_from_s3()
 
-        # tags exist, but building tags partially fails, then use existing tags
-
         if self._is_expired(last_modified):
             send_forwarder_internal_metrics("s3_cache_expired")
             logger.debug("S3 cache expired, rebuilding cache")
             lock_acquired = self.acquire_s3_cache_lock()
             if lock_acquired:
                 success, new_tags_fetched = self.build_tags_cache()
-                # Potential reason - build tags fails partially
                 if success:
                     self.tags_by_id = new_tags_fetched
                     self.write_cache_to_s3(self.tags_by_id)
