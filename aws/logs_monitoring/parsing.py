@@ -541,7 +541,9 @@ def awslogs_handler(event, context, metadata):
                 "Unable to set stepfunction host or get state_machine_arn: %s" % e
             )
 
-        formatted_stepfunctions_tags = account_step_functions_tags_cache.get(state_machine_arn)
+        formatted_stepfunctions_tags = account_step_functions_tags_cache.get(
+            state_machine_arn
+        )
         if len(formatted_stepfunctions_tags) > 0:
             metadata[DD_CUSTOM_TAGS] = (
                 ",".join(formatted_stepfunctions_tags)
