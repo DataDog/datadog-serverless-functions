@@ -22,7 +22,6 @@ from datadog_lambda.metric import lambda_stats
 from cache import (
     CloudwatchLogGroupTagsCache,
     StepFunctionsTagsCache,
-    get_step_function_tags,
 )
 from telemetry import (
     DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX,
