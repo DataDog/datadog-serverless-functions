@@ -203,10 +203,12 @@ class LambdaTagsCache(object):
             logger.debug("S3 cache expired, rebuilding cache")
             lock_acquired = self.acquire_s3_cache_lock()
             if lock_acquired:
-                success, tags_fetched = self.build_tags_cache()
+                success, new_tags_fetched = self.build_tags_cache()
                 if success:
-                    self.tags_by_id = tags_fetched
+                    self.tags_by_id = new_tags_fetched
                     self.write_cache_to_s3(self.tags_by_id)
+                elif tags_fetched != {}:
+                    self.tags_by_id = tags_fetched
 
                 self.release_s3_cache_lock()
         # s3 cache fetch succeeded and isn't expired
@@ -328,6 +330,7 @@ class LambdaCustomTagsCache(LambdaTagsCache):
             send_forwarder_internal_metrics(
                 "client_error", additional_tags=additional_tags
             )
+            tags_fetch_success = False
 
         logger.debug(
             "Built this tags cache from GetResources API calls: %s", tags_by_arn_cache
