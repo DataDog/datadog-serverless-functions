@@ -454,8 +454,6 @@ class CloudwatchLogGroupTagsCache(LambdaTagsCache):
 # Step Functions Tags #
 #######################
 
-resource_group_tagging_client = boto3.client("resourcegroupstaggingapi")
-
 
 class StepFunctionsTagsCache(LambdaTagsCache):
     CACHE_FILENAME = DD_S3_STEP_FUNCTIONS_CACHE_FILENAME
@@ -471,17 +469,36 @@ class StepFunctionsTagsCache(LambdaTagsCache):
         Returns:
             tags_by_arn_cache (dict<str, str[]>): each Lambda's tags in a dict keyed by ARN
         """
-        new_tags = {}
-        for state_machine_arn in self.tags_by_id.keys():  # local cache
-            state_machine_tags = get_state_machine_tags(state_machine_arn)
-            # If we didn't get StepFunctions tags back we'll use the locally cached ones
-            # This avoids losing tags on a failed api call
-            if not state_machine_tags:
-                state_machine_tags = self.tags_by_id.get(state_machine_arn, [])
-            new_tags[state_machine_arn] = state_machine_tags
+        tags_fetch_success = False
+        tags_by_arn_cache = {}
+        get_resources_paginator = resource_tagging_client.get_paginator("get_resources")
 
-        logger.debug("All Step Functions tags refreshed: {}".format(new_tags))
-        return True, new_tags
+        try:
+            for page in get_resources_paginator.paginate(
+                ResourceTypeFilters=["states"], ResourcesPerPage=100
+            ):
+                send_forwarder_internal_metrics(
+                    "step_functions_get_resources_api_calls"
+                )
+                page_tags_by_arn = parse_get_resources_response_for_tags_by_arn(page)
+                tags_by_arn_cache.update(page_tags_by_arn)
+                tags_fetch_success = True
+
+        except ClientError as e:
+            logger.exception(
+                "Encountered a ClientError when trying to fetch tags. You may need to give "
+                "this Lambda's role the 'tag:GetResources' permission"
+            )
+            additional_tags = [
+                f"http_status_code:{e.response['ResponseMetadata']['HTTPStatusCode']}"
+            ]
+            send_forwarder_internal_metrics(
+                "client_error", additional_tags=additional_tags
+            )
+
+        logger.debug("All Step Functions tags refreshed: {}".format(tags_by_arn_cache))
+
+        return tags_fetch_success, tags_by_arn_cache
 
     def get(self, state_machine_arn):
         """Get the tags for the Step Functions from the cache
@@ -545,7 +562,7 @@ def get_state_machine_tags(state_machine_arn: str):
 
     try:
         send_forwarder_internal_metrics("get_state_machine_tags")
-        response = resource_group_tagging_client.get_resources(
+        response = resource_tagging_client.get_resources(
             ResourceARNList=[state_machine_arn]
         )
     except Exception as e:
