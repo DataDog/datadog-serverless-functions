@@ -534,7 +534,7 @@ def awslogs_handler(event, context, metadata):
                 arn_tokens = execution_arn.split(":")
                 arn_tokens[5] = "stateMachine"
                 metadata[DD_HOST] = ":".join(arn_tokens[:-1])
-                state_machine_arn = ":".join(execution_arn.split(":")[:7])
+                state_machine_arn = ":".join(arn_tokens[:7])
         except Exception as e:
             logger.debug(
                 "Unable to set stepfunction host or get state_machine_arn: %s" % e

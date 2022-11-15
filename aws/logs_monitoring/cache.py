@@ -517,7 +517,7 @@ class StepFunctionsTagsCache(LambdaTagsCache):
         return state_machine_tags
 
 
-def get_state_machine_tags(state_machine_arn):
+def get_state_machine_tags(state_machine_arn: str):
     """Return a list of tags of a state machine in dd format (max 200 chars)
 
     Example response from get source api:
@@ -546,7 +546,7 @@ def get_state_machine_tags(state_machine_arn):
     try:
         send_forwarder_internal_metrics("get_state_machine_tags")
         response = resource_group_tagging_client.get_resources(
-            ResourceARNList=[state_machine_arn], ResourceTypeFilters=["states"]
+            ResourceARNList=[state_machine_arn]
         )
     except Exception as e:
         logger.exception(f"Failed to get Step Functions tags due to {e}")
