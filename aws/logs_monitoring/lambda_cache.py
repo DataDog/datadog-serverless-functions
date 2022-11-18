@@ -51,6 +51,7 @@ class LambdaTagsCache(BaseTagsCache):
             send_forwarder_internal_metrics(
                 "client_error", additional_tags=additional_tags
             )
+            tags_fetch_success = False
 
         logger.debug(
             "Built this tags cache from GetResources API calls: %s", tags_by_arn_cache

@@ -202,10 +202,12 @@ class BaseTagsCache(object):
             logger.debug("S3 cache expired, rebuilding cache")
             lock_acquired = self.acquire_s3_cache_lock()
             if lock_acquired:
-                success, tags_fetched = self.build_tags_cache()
+                success, new_tags_fetched = self.build_tags_cache()
                 if success:
-                    self.tags_by_id = tags_fetched
+                    self.tags_by_id = new_tags_fetched
                     self.write_cache_to_s3(self.tags_by_id)
+                elif tags_fetched != {}:
+                    self.tags_by_id = tags_fetched
 
                 self.release_s3_cache_lock()
         # s3 cache fetch succeeded and isn't expired
