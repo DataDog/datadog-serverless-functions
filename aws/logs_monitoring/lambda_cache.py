@@ -1,6 +1,6 @@
 from botocore.exceptions import ClientError
 
-from aws.logs_monitoring.base_tags_cache import (
+from base_tags_cache import (
     GET_RESOURCES_LAMBDA_FILTER,
     BaseTagsCache,
     logger,
@@ -9,7 +9,7 @@ from aws.logs_monitoring.base_tags_cache import (
     send_forwarder_internal_metrics,
     should_fetch_lambda_tags,
 )
-from aws.logs_monitoring.settings import DD_S3_CACHE_FILENAME, DD_S3_CACHE_LOCK_FILENAME
+from settings import DD_S3_CACHE_FILENAME, DD_S3_CACHE_LOCK_FILENAME
 
 
 class LambdaTagsCache(BaseTagsCache):

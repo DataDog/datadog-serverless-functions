@@ -1,6 +1,6 @@
 from botocore.exceptions import ClientError
 
-from aws.logs_monitoring.base_tags_cache import (
+from base_tags_cache import (
     BaseTagsCache,
     logger,
     parse_get_resources_response_for_tags_by_arn,
@@ -9,7 +9,7 @@ from aws.logs_monitoring.base_tags_cache import (
     send_forwarder_internal_metrics,
     should_fetch_step_functions_tags,
 )
-from aws.logs_monitoring.settings import (
+from settings import (
     DD_S3_STEP_FUNCTIONS_CACHE_FILENAME,
     DD_S3_STEP_FUNCTIONS_CACHE_LOCK_FILENAME,
 )

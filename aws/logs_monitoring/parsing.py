@@ -19,8 +19,8 @@ from io import BytesIO, BufferedReader
 
 from datadog_lambda.metric import lambda_stats
 
-from aws.logs_monitoring.step_functions_cache import StepFunctionsTagsCache
-from aws.logs_monitoring.cloudwatch_log_group_cache import CloudwatchLogGroupTagsCache
+from step_functions_cache import StepFunctionsTagsCache
+from cloudwatch_log_group_cache import CloudwatchLogGroupTagsCache
 from telemetry import (
     DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX,
     get_forwarder_telemetry_tags,

@@ -1,13 +1,13 @@
 import boto3
 
-from aws.logs_monitoring.base_tags_cache import (
+from base_tags_cache import (
     BaseTagsCache,
     logger,
     sanitize_aws_tag_string,
     send_forwarder_internal_metrics,
     should_fetch_log_group_tags,
 )
-from aws.logs_monitoring.settings import (
+from settings import (
     DD_S3_LOG_GROUP_CACHE_FILENAME,
     DD_S3_LOG_GROUP_CACHE_LOCK_FILENAME,
 )
