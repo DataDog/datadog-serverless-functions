@@ -1,4 +1,4 @@
 *
-!*.py
+!**.py
 !template.yaml
 !trace_forwarder/bin
