@@ -1,0 +1,14 @@
+{
+  "messageType":"DATA_MESSAGE",
+  "owner":"425362996713",
+  "logGroup":"/aws/vendedlogs/states/logs-to-traces-sequential-Logs",
+  "logStream":"states/logs-to-traces-sequential/2022-11-10-15-50/7851b2d9",
+  "subscriptionFilters":["testFilter"],
+  "logEvents":[
+    {
+      "id":"37199773595581154154810589279545129148442535997644275712",
+      "timestamp":1668095539607,
+      "message":"{\"id\":\"1\",\"type\":\"ExecutionStarted\",\"details\":{\"input\":\"{\"Comment\": \"Insert your JSON here\"}\",\"inputDetails\":{\"truncated\":false},\"roleArn\":\"arn:aws:iam::425362996713:role/service-role/StepFunctions-logs-to-traces-sequential-role-ccd69c03\"},\",previous_event_id\":\"0\",\"event_timestamp\":\"1668095539607\",\"execution_arn\":\"arn:aws:states:sa-east-1:425362996713:express:logs-to-traces-sequential:d0dbefd8-a0f6-b402-da4c-f4863def7456:7fa0cfbe-be28-4a20-9875-73c37f5dc39e\"}"
+    }
+  ]
+}

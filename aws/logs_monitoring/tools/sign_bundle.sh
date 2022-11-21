@@ -30,7 +30,11 @@ if [[ ! "${VALID_ACCOUNTS[@]}" =~ $2 ]]; then
 fi
 if [ "$2" = "sandbox" ]; then
     REGION="sa-east-1"
-    S3_BUCKET_NAME="dd-lambda-signing-bucket-sandbox"
+    if [ "$DEPLOY_TO_SERVERLESS_SANDBOX" = "true" ] ; then
+        S3_BUCKET_NAME="dd-lambda-signing-bucket-serverless-sandbox"
+    else
+        S3_BUCKET_NAME="dd-lambda-signing-bucket-sandbox"
+    fi
 fi
 if [ "$2" = "prod" ]; then
     REGION="us-east-1"

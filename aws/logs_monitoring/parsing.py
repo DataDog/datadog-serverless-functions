@@ -19,7 +19,8 @@ from io import BytesIO, BufferedReader
 
 from datadog_lambda.metric import lambda_stats
 
-from cache import CloudwatchLogGroupTagsCache
+from step_functions_cache import StepFunctionsTagsCache
+from cloudwatch_log_group_cache import CloudwatchLogGroupTagsCache
 from telemetry import (
     DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX,
     get_forwarder_telemetry_tags,
@@ -37,7 +38,6 @@ from settings import (
 )
 
 GOV, CN = "gov", "cn"
-
 
 logger = logging.getLogger()
 
@@ -66,6 +66,7 @@ cloudtrail_regex = re.compile(
 # Store the cache in the global scope so that it will be reused as long as
 # the log forwarder Lambda container is running
 account_cw_logs_tags_cache = CloudwatchLogGroupTagsCache()
+account_step_functions_tags_cache = StepFunctionsTagsCache()
 
 
 def parse(event, context):
@@ -523,6 +524,7 @@ def awslogs_handler(event, context, metadata):
     if metadata[DD_SOURCE] == "stepfunction" and logs["logStream"].startswith(
         "states/"
     ):
+        state_machine_arn = ""
         try:
             message = json.loads(logs["logEvents"][0]["message"])
             if message.get("execution_arn") is not None:
@@ -530,8 +532,23 @@ def awslogs_handler(event, context, metadata):
                 arn_tokens = execution_arn.split(":")
                 arn_tokens[5] = "stateMachine"
                 metadata[DD_HOST] = ":".join(arn_tokens[:-1])
+                state_machine_arn = ":".join(arn_tokens[:7])
         except Exception as e:
-            logger.debug("Unable to set stepfunction host: %s" % e)
+            logger.debug(
+                "Unable to set stepfunction host or get state_machine_arn: %s" % e
+            )
+
+        formatted_stepfunctions_tags = account_step_functions_tags_cache.get(
+            state_machine_arn
+        )
+        if len(formatted_stepfunctions_tags) > 0:
+            metadata[DD_CUSTOM_TAGS] = (
+                ",".join(formatted_stepfunctions_tags)
+                if not metadata[DD_CUSTOM_TAGS]
+                else metadata[DD_CUSTOM_TAGS]
+                + ","
+                + ",".join(formatted_stepfunctions_tags)
+            )
 
     # When parsing rds logs, use the cloudwatch log group name to derive the
     # rds instance name, and add the log name of the stream ingested

@@ -129,9 +129,9 @@ def create_cloudwatch_log_event_from_data(data):
 
 
 class TestLambdaFunctionEndToEnd(unittest.TestCase):
-    @patch("cache.CloudwatchLogGroupTagsCache.get")
-    @patch("cache.send_forwarder_internal_metrics")
-    @patch("cache.LambdaTagsCache.get_cache_from_s3")
+    @patch("cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.get")
+    @patch("base_tags_cache.send_forwarder_internal_metrics")
+    @patch("enhanced_lambda_metrics.LambdaTagsCache.get_cache_from_s3")
     def test_datadog_forwarder(
         self, mock_get_s3_cache, mock_forward_metrics, cw_logs_tags_get
     ):

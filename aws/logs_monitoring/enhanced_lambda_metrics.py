@@ -9,7 +9,7 @@ import datetime
 
 from time import time
 
-from cache import LambdaCustomTagsCache
+from lambda_cache import LambdaTagsCache
 
 ENHANCED_METRICS_NAMESPACE_PREFIX = "aws.lambda.enhanced"
 
@@ -86,7 +86,7 @@ except ImportError:
 
 # Store the cache in the global scope so that it will be reused as long as
 # the log forwarder Lambda container is running
-account_lambda_custom_tags_cache = LambdaCustomTagsCache()
+account_lambda_custom_tags_cache = LambdaTagsCache()
 
 
 class DatadogMetricPoint(object):

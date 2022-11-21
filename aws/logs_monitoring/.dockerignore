@@ -1,13 +1,4 @@
 *
-!lambda_function.py
-!enhanced_lambda_metrics.py
-!logs.py
-!parsing.py
-!cache.py
-!telemetry.py
-!settings.py
-!setup.py
+!**.py
 !template.yaml
 !trace_forwarder/bin
-!trace_forwarder/__init__.py
-!trace_forwarder/connection.py
