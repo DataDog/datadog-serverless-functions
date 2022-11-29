@@ -44,7 +44,7 @@ Parameters:
     Type: String
     AllowedPattern: "[0-9]*"
     ConstraintDescription: ReservedConcurrency must be an integer number
-    Default: 100
+    Default: ""
     Description: Reserved concurrency for the Datadog Forwarder Lambda function. If empty, use unreserved account concurrency.
   LogRetentionInDays:
     Type: Number
