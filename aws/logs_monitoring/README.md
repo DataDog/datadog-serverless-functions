@@ -91,12 +91,13 @@ resource "aws_cloudformation_stack" "datadog_forwarder" {
   capabilities = ["CAPABILITY_IAM", "CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND"]
   parameters   = {
     DdApiKeySecretArn  = "REPLACE ME WITH THE SECRETS ARN",
-    DdSite             = "{{< region-param key="dd_site" code="true" >}}",
+    DdSite             = "datadoghq.com",
     FunctionName       = "datadog-forwarder"
   }
   template_url = "https://datadog-cloudformation-template.s3.amazonaws.com/aws/forwarder/latest.yaml"
 }
 ```
+Note: Please ensure `DdSite` matches your site.  For valid options see "site parameters" at https://docs.datadoghq.com/getting_started/site/#access-the-datadog-site
 
 <!-- xxz tab xxx -->
 <!-- xxx tab "Manual" xxx -->
