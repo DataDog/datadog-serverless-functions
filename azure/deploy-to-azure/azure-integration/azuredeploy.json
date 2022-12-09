@@ -1,6 +1,6 @@
 {
-//     "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
-    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+    // "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
         "location": {
@@ -129,7 +129,7 @@
                 // "azCliVersion": "2.0.81",
                 // "scriptContent": "echo $SUBSCRIPTION_ID; echo "
                 "azPowerShellVersion": "8.1",
-                "scriptContent": "Write-Output -ContentType \"application/json\" -Method Post -Uri \"https://api.$Env:datadogSite/api/v1/integration/azure\" -Headers @{\"Accept\"=\"application/json\"; \"DD-APPLICATION-KEY\"=$Env:datadogApplicationKey; \"DD-API-KEY\"=$Env:datadogApiKey} -Body (@{\"automute\"=$Env:automute; \"client_id\"=$Env:servicePrincipalId; \"client_secret\"=$Env:servicePrincipalSecret; \"host_filters\"=$Env:hostFilters; \"tenant_name\"=$Env:tenantName} | ConvertTo-Json )"
+                "scriptContent": "Invoke-WebRequest -ContentType \"application/json\" -Method Post -Uri \"https://api.$Env:datadogSite/api/v1/integration/azure\" -Headers @{\"Accept\"=\"application/json\"; \"DD-APPLICATION-KEY\"=$Env:datadogApplicationKey; \"DD-API-KEY\"=$Env:datadogApiKey} -Body (@{\"automute\"=$Env:automute; \"client_id\"=$Env:servicePrincipalId; \"client_secret\"=$Env:servicePrincipalSecret; \"host_filters\"=$Env:hostFilters; \"tenant_name\"=$Env:tenantName} | ConvertTo-Json )"
                 // Invoke-WebRequest
                 // "Write-Output \"ShellPower!\" \r\nWrite-Output $env:servicePrincipalId $env:username $Env:servicePrincipalSecret"
             }
