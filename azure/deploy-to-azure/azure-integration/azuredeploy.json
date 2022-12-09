@@ -1,11 +1,12 @@
 {
-    "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+    // "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
     // "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "$schema": "https://schema.management.azure.com/schemas/2019-08-01/managementGroupDeploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
         "location": {
             "type": "string",
-            "defaultValue": "westus2",
+            "defaultValue": "global",
             "metadata": {
                 "description": "Resources location"
             }
@@ -65,7 +66,7 @@
     "resources": [
         {
             "type": "Microsoft.Authorization/roleAssignments",
-            "apiVersion": "2020-10-01-preview",
+            "apiVersion": "2022-04-01",
             "name": "[variables('roleAssignmentId')]",
             "properties": {
                 "roleDefinitionId": "[variables('monitoringReaderRoleDefinitionId')]",
