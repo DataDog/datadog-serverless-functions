@@ -57,7 +57,7 @@
         }
     },
     "variables": {
-        "roleAssignmentId": "[guid(subscription().subscriptionId, 'monitoring reader')]",
+        "roleAssignmentId": "[guid(subscription().subscriptionId, 'monitoring reader', parameters('servicePrincipalId'))]",
         // Monitoring reader 
         "monitoringReaderRoleDefinitionId": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', '43d0d8ad-25c7-4714-9337-8ba259a9fe05')]"
         // subscriptionResourceId('8c56d827-5f07-45ce-8f2b-6c5001db5c6f','/providers/Microsoft.Authorization/roleDefinitions/', '43d0d8ad-25c7-4714-9337-8ba259a9fe05')
@@ -70,7 +70,7 @@
             "properties": {
                 "roleDefinitionId": "[variables('monitoringReaderRoleDefinitionId')]",
                 "principalId": "[parameters('servicePrincipalId')]",
-                "scope": "[subscription().id]",
+                // "scope": "[subscription().id]",
                 "principalType": "ServicePrincipal"
             }
         },

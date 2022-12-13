@@ -185,7 +185,7 @@
         ],
         "outputs": {
             "location": "[location()]",
-            "servicePrincipalId": "[basics('ServicePrincipal').appId]",
+            "servicePrincipalId": "[first(basics('ServicePrincipal').objectId)]",
             "servicePrincipalSecret": "[basics('ServicePrincipal').password]",
             "subscriptionsList": "[basics('subscriptionsList')]",
             "datadogApplicationKey": "[basics('datadogApplicationKey')]",
