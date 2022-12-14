@@ -18,7 +18,7 @@
                 "visible": true,
                 "options": {
                     "icon": "Info",
-                    "text": "Please choose create a new Service Principal, add a Client secret to it, copy/paste it in the Client secret field below. Press the X on top right to return to this form and paste it"
+                    "text": "Create a new Service Principal, add a Client Secret to it and copy it, then Press the X on top right to return to this form and paste it in the Client Secret field below."
                 }
             },
             {
@@ -185,8 +185,9 @@
         ],
         "outputs": {
             "location": "[location()]",
-            "servicePrincipalId": "[first(basics('ServicePrincipal').objectId)]",
-            "servicePrincipalSecret": "[basics('ServicePrincipal').password]",
+            "servicePrincipalClientId": "[basics('ServicePrincipal').appId]",
+            "servicePrincipalObjectId": "[first(basics('ServicePrincipal').objectId)]",
+            "servicePrincipalClientSecret": "[basics('ServicePrincipal').password]",
             "subscriptionsList": "[basics('subscriptionsList')]",
             "datadogApplicationKey": "[basics('datadogApplicationKey')]",
             "datadogApiKey": "[basics('datadogApiKey')]",

@@ -10,16 +10,22 @@
                 "description": "Resources location"
             }
         },
-        "servicePrincipalId": {
+        "servicePrincipalObjectId": {
             "type": "String",
             "metadata": {
-                "description": "Service principal Id"
+                "description": "Service principal object Id, needed for Role Assignment"
             }
         },
-        "servicePrincipalSecret": {
+        "servicePrincipalClientId": {
+            "type": "String",
+            "metadata": {
+                "description": "Service principal Client Id"
+            }
+        },
+        "servicePrincipalClientSecret": {
             "type": "securestring",
             "metadata": {
-                "description": "Service principal secret"
+                "description": "Service principal client secret"
             }
         },
         "datadogApplicationKey": {
@@ -57,7 +63,7 @@
         }
     },
     "variables": {
-        "roleAssignmentId": "[guid(subscription().subscriptionId, 'monitoring reader', parameters('servicePrincipalId'))]",
+        "roleAssignmentId": "[guid(subscription().subscriptionId, 'monitoring reader', parameters('servicePrincipalObjectId'))]",
         // Monitoring reader 
         "monitoringReaderRoleDefinitionId": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', '43d0d8ad-25c7-4714-9337-8ba259a9fe05')]"
         // subscriptionResourceId('8c56d827-5f07-45ce-8f2b-6c5001db5c6f','/providers/Microsoft.Authorization/roleDefinitions/', '43d0d8ad-25c7-4714-9337-8ba259a9fe05')
@@ -69,7 +75,7 @@
             "name": "[variables('roleAssignmentId')]",
             "properties": {
                 "roleDefinitionId": "[variables('monitoringReaderRoleDefinitionId')]",
-                "principalId": "[parameters('servicePrincipalId')]",
+                "principalId": "[parameters('servicePrincipalObjectId')]",
                 // "scope": "[subscription().id]",
                 "principalType": "ServicePrincipal"
             }
@@ -90,12 +96,12 @@
                         "value": "[subscription().subscriptionId]"
                     },
                     {
-                        "name": "servicePrincipalId",
-                        "value": "[parameters('servicePrincipalId')]"
+                        "name": "clientId",
+                        "value": "[parameters('servicePrincipalClientId')]"
                     },
                     {
-                        "name": "servicePrincipalSecret",
-                        "value": "[parameters('servicePrincipalSecret')]"
+                        "name": "clientSecret",
+                        "value": "[parameters('servicePrincipalClientSecret')]"
                     },
                     {
                         "name": "datadogApplicationKey",
@@ -129,9 +135,9 @@
                 // "azCliVersion": "2.0.81",
                 // "scriptContent": "echo $SUBSCRIPTION_ID; echo "
                 "azPowerShellVersion": "8.1",
-                "scriptContent": "Invoke-WebRequest -ContentType \"application/json\" -Method Post -Uri \"https://api.$Env:datadogSite/api/v1/integration/azure\" -Headers @{\"Accept\"=\"application/json\"; \"DD-APPLICATION-KEY\"=$Env:datadogApplicationKey; \"DD-API-KEY\"=$Env:datadogApiKey} -Body (@{\"automute\"=$Env:automute; \"client_id\"=$Env:servicePrincipalId; \"client_secret\"=$Env:servicePrincipalSecret; \"host_filters\"=$Env:hostFilters; \"tenant_name\"=$Env:tenantName} | ConvertTo-Json )"
+                "scriptContent": "Invoke-WebRequest -ContentType \"application/json\" -Method Post -Uri \"https://api.$Env:datadogSite/api/v1/integration/azure\" -Headers @{\"Accept\"=\"application/json\"; \"DD-APPLICATION-KEY\"=$Env:datadogApplicationKey; \"DD-API-KEY\"=$Env:datadogApiKey} -Body (@{\"automute\"=$Env:automute; \"client_id\"=$Env:clientId; \"client_secret\"=$Env:clientSecret; \"host_filters\"=$Env:hostFilters; \"tenant_name\"=$Env:tenantName} | ConvertTo-Json )"
                 // Invoke-WebRequest
-                // "Write-Output \"ShellPower!\" \r\nWrite-Output $env:servicePrincipalId $env:username $Env:servicePrincipalSecret"
+                // "Write-Output \"ShellPower!\" \r\nWrite-Output $env:clientId $env:username $Env:clientSecret"
             }
         }
     ],
