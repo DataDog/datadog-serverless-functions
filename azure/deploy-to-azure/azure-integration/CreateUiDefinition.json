@@ -17,7 +17,7 @@
                 "type": "Microsoft.Common.InfoBox",
                 "visible": true,
                 "options": {
-                    "icon": "Info",
+                    "icon": "Warning",
                     "text": "Create a new Service Principal, add a Client Secret to it and copy it, then Press the X on top right to return to this form and paste it in the Client Secret field below."
                 }
             },
