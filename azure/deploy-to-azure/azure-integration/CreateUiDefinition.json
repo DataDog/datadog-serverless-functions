@@ -126,6 +126,10 @@
                         {
                             "label": "US1-FED",
                             "value": "ddog-gov.com"
+                        },
+                        {
+                            "label": "Staging",
+                            "value": "ddstaging.datadoghq.com"
                         }
                     ],
                     "required": false
