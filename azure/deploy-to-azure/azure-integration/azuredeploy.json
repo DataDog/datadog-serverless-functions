@@ -83,7 +83,7 @@
         {
             "type": "Microsoft.Resources/deploymentScripts",
             "apiVersion": "2020-10-01",
-            "name": "datadog-sp",
+            "name": "datadog-integration-script",
             "location": "[parameters('location')]",
             "dependsOn": [
                 "[resourceId('Microsoft.Authorization/roleAssignments', variables('roleAssignmentId'))]"
@@ -128,10 +128,10 @@
                         "value": "[subscription().tenantId]"
                     }
                 ],
-                "retentionInterval": "PT26H",
-                "timeout": "PT60M",
+                "retentionInterval": "PT2M",
+                "timeout": "PT2M",
                 "containerSettings": {},
-                "cleanupPreference": "OnSuccess",
+                "cleanupPreference": "Always",
                 // "azCliVersion": "2.0.81",
                 // "scriptContent": "echo $SUBSCRIPTION_ID; echo "
                 "azPowerShellVersion": "8.1",
