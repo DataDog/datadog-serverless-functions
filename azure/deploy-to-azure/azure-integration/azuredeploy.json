@@ -28,6 +28,20 @@
                 "description": "Service principal client secret"
             }
         },
+        "managementGroupsList": {
+            "type": "array",
+            "defaultValue": [],
+            "metadata": {
+                "description": "Management groups list to monitor"
+            }
+        },
+        "subscriptionsList": {
+            "type": "array",
+            "defaultValue": "[subscription().id]",
+            "metadata": {
+                "description": "Subscriptions list to monitor"
+            }
+        },
         "datadogApplicationKey": {
             "type": "secureString",
             "metadata": {
@@ -62,21 +76,21 @@
             }
         }
     },
-    "variables": {
-        "roleAssignmentId": "[guid(subscription().subscriptionId, 'monitoring reader', parameters('servicePrincipalObjectId'))]",
-        // Monitoring reader 
-        "monitoringReaderRoleDefinitionId": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', '43d0d8ad-25c7-4714-9337-8ba259a9fe05')]"
-        // subscriptionResourceId('8c56d827-5f07-45ce-8f2b-6c5001db5c6f','/providers/Microsoft.Authorization/roleDefinitions/', '43d0d8ad-25c7-4714-9337-8ba259a9fe05')
-    },
+    "variables": {},
     "resources": [
         {
+            "copy": {
+                "name": "roleAssignmentSubscriptionsCopy",
+                "count": "[length(parameters('subscriptionsList'))]",
+                "mode": "Parallel"
+            },
             "type": "Microsoft.Authorization/roleAssignments",
             "apiVersion": "2020-10-01-preview",
-            "name": "[variables('roleAssignmentId')]",
+            "name": "[guid(parameters('subscriptionsList')[copyIndex()], 'monitoring reader', parameters('servicePrincipalObjectId'))]",
             "properties": {
-                "roleDefinitionId": "[variables('monitoringReaderRoleDefinitionId')]",
+                "roleDefinitionId": "[concat(parameters('subscriptionsList')[copyIndex()], '/providers/Microsoft.Authorization/roleDefinitions/', '43d0d8ad-25c7-4714-9337-8ba259a9fe05')]",
                 "principalId": "[parameters('servicePrincipalObjectId')]",
-                // "scope": "[subscription().id]",
+                "scope": "[parameters('subscriptionsList')[copyIndex()]]",
                 "principalType": "ServicePrincipal"
             }
         },
@@ -85,16 +99,10 @@
             "apiVersion": "2020-10-01",
             "name": "datadog-integration-script",
             "location": "[parameters('location')]",
-            "dependsOn": [
-                "[resourceId('Microsoft.Authorization/roleAssignments', variables('roleAssignmentId'))]"
-            ],
+            "dependsOn": ["roleAssignmentSubscriptionsCopy"],
             "kind": "AzurePowerShell",
             "properties": {
                 "environmentVariables": [
-                    {
-                        "name": "subscription_id",
-                        "value": "[subscription().subscriptionId]"
-                    },
                     {
                         "name": "clientId",
                         "value": "[parameters('servicePrincipalClientId')]"
