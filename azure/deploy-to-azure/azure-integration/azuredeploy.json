@@ -90,7 +90,7 @@
             "properties": {
                 "roleDefinitionId": "[concat(parameters('subscriptionsList')[copyIndex()], '/providers/Microsoft.Authorization/roleDefinitions/', '43d0d8ad-25c7-4714-9337-8ba259a9fe05')]",
                 "principalId": "[parameters('servicePrincipalObjectId')]",
-                "scope": "[parameters('subscriptionsList')[copyIndex()]]",
+                // "scope": "[parameters('subscriptionsList')[copyIndex()]]",
                 "principalType": "ServicePrincipal"
             }
         },
