@@ -12,7 +12,7 @@
                 "toolTip": "Resources location",
                 "visible": false
             },
-			{
+            {
                 "name": "infoServicePrincipal",
                 "type": "Microsoft.Common.InfoBox",
                 "visible": true,
@@ -45,46 +45,46 @@
                 },
                 "visible": true
             },
-			{
-				"name": "armio",
-				"type": "Microsoft.Solutions.ArmApiControl",
-				"request": {
-					"method": "POST",
-					"path": "/providers/Microsoft.Management/getEntities?api-version=2020-05-01"
-				}
-			},
-			{
-				"name": "managementGroupsList",
-				"type": "Microsoft.Common.DropDown",
-				"label": "Management groups to monitor",
-				"toolTip": "Optional list of Management Groups to monitor",
-				"filterPlaceholder": "Select Management Groups to monitor",
-				"filter": true,
-				"multiselect": true,
+            {
+                "name": "armio",
+                "type": "Microsoft.Solutions.ArmApiControl",
+                "request": {
+                    "method": "POST",
+                    "path": "/providers/Microsoft.Management/getEntities?api-version=2020-05-01"
+                }
+            },
+            {
+                "name": "managementGroupsList",
+                "type": "Microsoft.Common.DropDown",
+                "label": "Management groups to monitor",
+                "toolTip": "Optional list of Management Groups to monitor",
+                "filterPlaceholder": "Select Management Groups to monitor",
+                "filter": true,
+                "multiselect": true,
                 "selectAll": true,
-				"defaultValue": "",
-				"constraints": {
-					"allowedValues": "[map(filter(steps('basics').armio.value, (i)=>and(not(equals(i.properties.permissions, 'noaccess')), equals(i.type, 'Microsoft.Management/managementGroups'))), (item)=> parse(concat('{\"label\":\"', item.properties.displayName, '\",\"value\":\"', item.id, '\"}')))]",
-					"required": false
-				},
-				"visible": true
-			},
-			{
-				"name": "subscriptionsList",
-				"type": "Microsoft.Common.DropDown",
-				"label": "Subscriptions to monitor",
-				"toolTip": "The list of subscriptions to monitor",
-				"filterPlaceholder": "Select one or more subscriptions to monitor",
-				"filter": true,
-				"multiselect": true,
+                "defaultValue": "",
+                "constraints": {
+                    "allowedValues": "[map(filter(steps('basics').armio.value, (i)=>and(not(equals(i.properties.permissions, 'noaccess')), equals(i.type, 'Microsoft.Management/managementGroups'))), (item)=> parse(concat('{\"label\":\"', item.properties.displayName, '\",\"value\":\"', item.id, '\"}')))]",
+                    "required": false
+                },
+                "visible": true
+            },
+            {
+                "name": "subscriptionsList",
+                "type": "Microsoft.Common.DropDown",
+                "label": "Subscriptions to monitor",
+                "toolTip": "The list of subscriptions to monitor",
+                "filterPlaceholder": "Select one or more subscriptions to monitor",
+                "filter": true,
+                "multiselect": true,
                 "selectAll": true,
-				"defaultValue": "[map(filter(steps('basics').armio.value, (i)=>and(not(equals(i.properties.permissions, 'noaccess')), not(equals(i.type, 'Microsoft.Management/managementGroups')))), (item)=> item.properties.displayName)]",
-				"constraints": {
-					"allowedValues": "[map(filter(steps('basics').armio.value, (i)=>and(not(equals(i.properties.permissions, 'noaccess')), not(equals(i.type, 'Microsoft.Management/managementGroups')))), (item)=> parse(concat('{\"label\":\"', item.properties.displayName, '\",\"value\":\"', item.id, '\"}')))]",
-					"required": false
-				},
-				"visible": true
-			},
+                "defaultValue": "[map(filter(steps('basics').armio.value, (i)=>and(not(equals(i.properties.permissions, 'noaccess')), not(equals(i.type, 'Microsoft.Management/managementGroups')))), (item)=> item.properties.displayName)]",
+                "constraints": {
+                    "allowedValues": "[map(filter(steps('basics').armio.value, (i)=>and(not(equals(i.properties.permissions, 'noaccess')), not(equals(i.type, 'Microsoft.Management/managementGroups')))), (item)=> parse(concat('{\"label\":\"', item.properties.displayName, '\",\"value\":\"', item.id, '\"}')))]",
+                    "required": false
+                },
+                "visible": true
+            },
             {
                 "name": "datadogApplicationKey",
                 "type": "Microsoft.Common.PasswordBox",
@@ -158,48 +158,48 @@
                 "name": "metrics",
                 "label": "Metrics",
                 "elements": [
-					{
-						"name": "metrics",
-						"type": "Microsoft.Common.Section",
-						"label": "Metrics",
-						"elements": [
-							{
-								"name": "textBlock1",
-								"type": "Microsoft.Common.TextBlock",
-								"visible": true,
-								"options": {
-									"text": "Metrics will be collected for all resoures, except Virtual Machines, Virtual Machine Scale Sets and App Service Plans which can be filtered by tags."
-								}
-							},
-							{
-								"name": "textBlock2",
-								"type": "Microsoft.Common.TextBlock",
-								"visible": true,
-								"options": {
-									"text": "Optionally limit metrics collection to Virtual Machines, Virtual Machine Scale Sets and App Service Plans to hosts using tags."
-								}
-							},
-							{
-								"name": "hostFilters",
-								"type": "Microsoft.Common.TextBox",
-								"label": "Host Filters",
-								"defaultValue": "",
-								"toolTip": "Filter to include/exclude hosts",
-								"constraints": {
-									"required": false
-								},
-								"visible": true
-							},
-							{
-								"name": "automute",
-								"type": "Microsoft.Common.CheckBox",
-								"label": "Automute",
-								"toolTip": "Whether or not to use automute for hosts",
-								"defaultValue": "true"
-							}
-						],
-						"visible": true
-					}
+                    {
+                        "name": "metrics",
+                        "type": "Microsoft.Common.Section",
+                        "label": "Metrics",
+                        "elements": [
+                            {
+                                "name": "textBlock1",
+                                "type": "Microsoft.Common.TextBlock",
+                                "visible": true,
+                                "options": {
+                                    "text": "Metrics will be collected for all resoures, except Virtual Machines, Virtual Machine Scale Sets and App Service Plans which can be filtered by tags."
+                                }
+                            },
+                            {
+                                "name": "textBlock2",
+                                "type": "Microsoft.Common.TextBlock",
+                                "visible": true,
+                                "options": {
+                                    "text": "Optionally limit metrics collection to Virtual Machines, Virtual Machine Scale Sets and App Service Plans to hosts using tags."
+                                }
+                            },
+                            {
+                                "name": "hostFilters",
+                                "type": "Microsoft.Common.TextBox",
+                                "label": "Host Filters",
+                                "defaultValue": "",
+                                "toolTip": "Filter to include/exclude hosts",
+                                "constraints": {
+                                    "required": false
+                                },
+                                "visible": true
+                            },
+                            {
+                                "name": "automute",
+                                "type": "Microsoft.Common.CheckBox",
+                                "label": "Automute",
+                                "toolTip": "Whether or not to use automute for hosts",
+                                "defaultValue": "true"
+                            }
+                        ],
+                        "visible": true
+                    }
                 ]
             }
         ],
