@@ -64,7 +64,7 @@
                 "selectAll": true,
                 "defaultValue": "",
                 "constraints": {
-                    "allowedValues": "[map(filter(steps('basics').armio.value, (i)=>and(not(equals(i.properties.permissions, 'noaccess')), equals(i.type, 'Microsoft.Management/managementGroups'))), (item)=> parse(concat('{\"label\":\"', item.properties.displayName, '\",\"value\":\"', item.id, '\"}')))]",
+                    "allowedValues": "[map(filter(steps('basics').armio.value, (i)=>and(not(equals(i.properties.permissions, 'noaccess')), equals(i.type, 'Microsoft.Management/managementGroups'))), (item)=> parse(concat('{\"label\":\"', item.properties.displayName, '\",\"value\":\"', item.name, '\"}')))]",
                     "required": false
                 },
                 "visible": true
@@ -80,7 +80,7 @@
                 "selectAll": true,
                 "defaultValue": "[map(filter(steps('basics').armio.value, (i)=>and(not(equals(i.properties.permissions, 'noaccess')), not(equals(i.type, 'Microsoft.Management/managementGroups')))), (item)=> item.properties.displayName)]",
                 "constraints": {
-                    "allowedValues": "[map(filter(steps('basics').armio.value, (i)=>and(not(equals(i.properties.permissions, 'noaccess')), not(equals(i.type, 'Microsoft.Management/managementGroups')))), (item)=> parse(concat('{\"label\":\"', item.properties.displayName, '\",\"value\":\"', item.id, '\"}')))]",
+                    "allowedValues": "[map(filter(steps('basics').armio.value, (i)=>and(not(equals(i.properties.permissions, 'noaccess')), not(equals(i.type, 'Microsoft.Management/managementGroups')))), (item)=> parse(concat('{\"label\":\"', item.properties.displayName, '\",\"value\":\"', item.name, '\"}')))]",
                     "required": false
                 },
                 "visible": true
