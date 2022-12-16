@@ -97,7 +97,7 @@
         {
             "type": "Microsoft.Resources/deploymentScripts",
             "apiVersion": "2020-10-01",
-            "name": "datadog-integration-script",
+            "name": "[concat('datadog-integration-script-', utcNow())]",
             "location": "[parameters('location')]",
             "dependsOn": ["roleAssignmentSubscriptionsCopy"],
             "kind": "AzurePowerShell",
