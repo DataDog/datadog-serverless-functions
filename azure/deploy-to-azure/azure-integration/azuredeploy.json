@@ -73,6 +73,13 @@
             "metadata": {
                 "description": "The datadog site, e.g. eu1.datadoghq.com"
             }
+        },
+        "newguid": {
+            "type": "string",
+            "defaultValue": "[newGuid()]",
+            "metadata": {
+                "description": "Just a Guid to append to deployment script name"
+            }
         }
     },
     "variables": {},
@@ -155,16 +162,12 @@
         {
             "type": "Microsoft.Resources/deploymentScripts",
             "apiVersion": "2020-10-01",
-            "name": "[concat('datadog-integration-script-', guid(parameters('servicePrincipalClientId'), parameters('servicePrincipalClientSecret'), parameters('datadogSite'),parameters('datadogApplicationKey'),parameters('datadogApiKey')))]",
+            "name": "[concat('datadog-integration-script-', parameters('newguid'))]",
             "location": "[parameters('location')]",
             // "dependsOn": ["roleAssignmentSubscriptionsCopy"],
             "kind": "AzurePowerShell",
             "properties": {
                 "environmentVariables": [
-                    {
-                        "name": "subscription_id",
-                        "value": "[subscription().subscriptionId]"
-                    },
                     {
                         "name": "clientId",
                         "value": "[parameters('servicePrincipalClientId')]"
