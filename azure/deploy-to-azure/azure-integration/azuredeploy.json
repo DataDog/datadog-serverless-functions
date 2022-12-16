@@ -99,7 +99,7 @@
             },
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2021-04-01",
-            "name": "[concat('roleAssignmentManagementGroupTemplate', copyIndex())]",
+            "name": "[concat('roleAssignmentManagementGroupTemplate-', parameters('newguid'), copyIndex())]",
             "properties": {
                 "mode": "Incremental",
                 "parameters": {
@@ -122,7 +122,7 @@
             },
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2021-04-01",
-            "name": "[concat('roleAssignmentSubscriptionsTemplate', copyIndex())]",
+            "name": "[concat('roleAssignmentSubscriptionsTemplate-', parameters('newguid'), copyIndex())]",
             "properties": {
                 "mode": "Incremental",
                 "expressionEvaluationOptions": {
