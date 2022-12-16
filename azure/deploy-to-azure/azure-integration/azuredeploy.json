@@ -162,6 +162,10 @@
             "properties": {
                 "environmentVariables": [
                     {
+                        "name": "subscription_id",
+                        "value": "[subscription().subscriptionId]"
+                    },
+                    {
                         "name": "clientId",
                         "value": "[parameters('servicePrincipalClientId')]"
                     },
