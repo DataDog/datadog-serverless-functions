@@ -79,6 +79,56 @@
     "resources": [
         {
             "copy": {
+                "name": "managementGroupTemplateCopy",
+                "count": "[length(parameters('managementGroupsList'))]",
+                "mode": "Parallel"
+            },
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2021-04-01",
+            "name": "[concat('roleAssignmentManagementGroupTemplate', copyIndex())]",
+            "properties": {
+                "mode": "Incremental",
+                "expressionEvaluationOptions": {
+                    "scope": "inner"
+                },
+                "parameters": {
+                    "servicePrincipalObjectId": {
+                        "value": "[parameters('servicePrincipalObjectId')]"
+                    }
+                },
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-08-01/managementGroupDeploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "servicePrincipalObjectId": {
+                            "type": "String",
+                            "metadata": {
+                                "description": "Service principal object Id, needed for Role Assignment"
+                            }
+                        }
+                    },
+                    "variables": {},
+                    "resources": [
+                        {
+                            "type": "Microsoft.Authorization/roleAssignments",
+                            "apiVersion": "2020-10-01-preview",
+                            "name": "[guid(managementGroup().id, 'monitoring reader', parameters('servicePrincipalObjectId'))]",
+                            "properties": {
+                                "roleDefinitionId": "[concat(managementGroup().id, '/providers/Microsoft.Authorization/roleDefinitions/', '43d0d8ad-25c7-4714-9337-8ba259a9fe05')]",
+                                "principalId": "[parameters('servicePrincipalObjectId')]",
+                                "principalType": "ServicePrincipal"
+                            }
+                        }
+                    ],
+                    "outputs": {
+                    }
+                }
+            },
+            "scope": "[concat('Microsoft.Management/managementGroups/', parameters('managementGroupsList')[copyIndex()])]",
+            "location": "[parameters('location')]"
+        },
+        {
+            "copy": {
                 "name": "subscriptionsTemplateCopy",
                 "count": "[length(parameters('subscriptionsList'))]",
                 "mode": "Parallel"
@@ -96,8 +146,6 @@
                         "value": "[parameters('servicePrincipalObjectId')]"
                     }
                 },
-                // ===============
-
                 "template": {
                     "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
                     "contentVersion": "1.0.0.0",
@@ -114,12 +162,10 @@
                         {
                             "type": "Microsoft.Authorization/roleAssignments",
                             "apiVersion": "2020-10-01-preview",
-                            // TODO io107
                             "name": "[guid(subscription().id, 'monitoring reader', parameters('servicePrincipalObjectId'))]",
                             "properties": {
                                 "roleDefinitionId": "[concat(subscription().id, '/providers/Microsoft.Authorization/roleDefinitions/', '43d0d8ad-25c7-4714-9337-8ba259a9fe05')]",
                                 "principalId": "[parameters('servicePrincipalObjectId')]",
-                                // "scope": "[parameters('subscriptionsList')[copyIndex()]]",
                                 "principalType": "ServicePrincipal"
                             }
                         }
