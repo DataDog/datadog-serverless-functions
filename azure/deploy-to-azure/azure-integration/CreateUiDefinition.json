@@ -46,12 +46,28 @@
                 "visible": true
             },
 			{
-				"name": "armApi",
+				"name": "armio",
 				"type": "Microsoft.Solutions.ArmApiControl",
 				"request": {
-					"method": "GET",
-					"path": "subscriptions?api-version=2020-01-01"
+					"method": "POST",
+					"path": "/providers/Microsoft.Management/getEntities?api-version=2020-05-01"
 				}
+			},
+			{
+				"name": "managementGroupsList",
+				"type": "Microsoft.Common.DropDown",
+				"label": "Management groups to monitor",
+				"toolTip": "Optional list of Management Groups to monitor",
+				"filterPlaceholder": "Select Management Groups to monitor",
+				"filter": true,
+				"multiselect": true,
+                "selectAll": true,
+				"defaultValue": "",
+				"constraints": {
+					"allowedValues": "[map(filter(steps('basics').armio.value, (i)=>and(not(equals(i.properties.permissions, 'noaccess')), equals(i.type, 'Microsoft.Management/managementGroups'))), (item)=> parse(concat('{\"label\":\"', item.properties.displayName, '\",\"value\":\"', item.id, '\"}')))]",
+					"required": false
+				},
+				"visible": true
 			},
 			{
 				"name": "subscriptionsList",
@@ -61,11 +77,11 @@
 				"filterPlaceholder": "Select one or more subscriptions to monitor",
 				"filter": true,
 				"multiselect": true,
-    			"selectAll": true,
-				"defaultValue": "[map(basics('armApi').value, (item) => item.displayName)]",
+                "selectAll": true,
+				"defaultValue": "[map(filter(steps('basics').armio.value, (i)=>and(not(equals(i.properties.permissions, 'noaccess')), not(equals(i.type, 'Microsoft.Management/managementGroups')))), (item)=> item.properties.displayName)]",
 				"constraints": {
-					"allowedValues": "[map(basics('armApi').value, (item) => parse(concat('{\"label\":\"', item.displayName, '\",\"value\":\"', item.id, '\"}')))]",
-					"required": true
+					"allowedValues": "[map(filter(steps('basics').armio.value, (i)=>and(not(equals(i.properties.permissions, 'noaccess')), not(equals(i.type, 'Microsoft.Management/managementGroups')))), (item)=> parse(concat('{\"label\":\"', item.properties.displayName, '\",\"value\":\"', item.id, '\"}')))]",
+					"required": false
 				},
 				"visible": true
 			},
@@ -193,6 +209,7 @@
             "servicePrincipalObjectId": "[first(basics('ServicePrincipal').objectId)]",
             "servicePrincipalClientSecret": "[basics('ServicePrincipal').password]",
             "subscriptionsList": "[basics('subscriptionsList')]",
+            "managementGroupsList": "[basics('managementGroupsList')]",
             "datadogApplicationKey": "[basics('datadogApplicationKey')]",
             "datadogApiKey": "[basics('datadogApiKey')]",
             "datadogSite": "[basics('datadogSite')]",
