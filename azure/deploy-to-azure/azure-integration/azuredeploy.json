@@ -67,6 +67,13 @@
                 "description": "Whether or not to use automute for hosts"
             }
         },
+        "cspm_enabled": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Collect resources for Cloud Security Posture Management"
+            }
+        },
         "datadogSite": {
             "type": "String",
             "defaultValue": "datadoghq.com",
@@ -105,8 +112,7 @@
                     "contentVersion":"1.0.0.0"
                 }
             },
-            "scope": "[concat('/providers/Microsoft.Management/managementGroups/', parameters('managementGroupsList')[copyIndex()])]",
-            "location": "[parameters('location')]"
+            "scope": "[concat('/providers/Microsoft.Management/managementGroups/', parameters('managementGroupsList')[copyIndex()])]"
         },
         {
             "copy": {
@@ -193,6 +199,10 @@
                         "value": "[parameters('automute')]"
                     },
                     {
+                        "name": "cspm_enabled",
+                        "value": "[parameters('cspm_enabled')]"
+                    },
+                    {
                         "name": "datadogSite",
                         "value": "[parameters('datadogSite')]"
                     },
@@ -206,7 +216,7 @@
                 "containerSettings": {},
                 "cleanupPreference": "Always",
                 "azPowerShellVersion": "8.1",
-                "scriptContent": "Invoke-WebRequest -SkipCertificateCheck -ContentType \"application/json\" -Method Post -Uri \"https://api.$Env:datadogSite/api/v1/integration/azure\" -Headers @{\"Accept\"=\"application/json\"; \"DD-APPLICATION-KEY\"=$Env:datadogApplicationKey; \"DD-API-KEY\"=$Env:datadogApiKey} -Body (@{\"automute\"=[bool]::Parse($Env:automute); \"client_id\"=$Env:clientId; \"client_secret\"=$Env:clientSecret; \"host_filters\"=$Env:hostFilters; \"tenant_name\"=$Env:tenantName} | ConvertTo-Json )"
+                "scriptContent": "Invoke-WebRequest -SkipCertificateCheck -ContentType \"application/json\" -Method Post -Uri \"https://api.$Env:datadogSite/api/v1/integration/azure\" -Headers @{\"Accept\"=\"application/json\"; \"DD-APPLICATION-KEY\"=$Env:datadogApplicationKey; \"DD-API-KEY\"=$Env:datadogApiKey} -Body (@{\"automute\"=[bool]::Parse($Env:automute); \"cspm_enabled\"=[bool]::Parse($Env:cspm_enabled); \"client_id\"=$Env:clientId; \"client_secret\"=$Env:clientSecret; \"host_filters\"=$Env:hostFilters; \"tenant_name\"=$Env:tenantName} | ConvertTo-Json )"
             }
         }
     ],
