@@ -115,7 +115,7 @@
                     "contentVersion":"1.0.0.0"
                 }
             },
-            "scope": "[concat('/providers/Microsoft.Management/managementGroups/', parameters('managementGroupsList')[copyIndex()])]"
+            "scope": "[parameters('managementGroupsList')[copyIndex()]]"
         },
         {
             "copy": {

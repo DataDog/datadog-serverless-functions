@@ -23,6 +23,7 @@
             "apiVersion": "2020-10-01-preview",
             "name": "[guid(parameters('managementGroupName'), 'monitoring reader', parameters('servicePrincipalObjectId'))]",
             "properties": {
+                                        //    "['/providers/Microsoft.Management/managementGroups/','Azure-Integrations-Mg',            '/providers/Microsoft.Authorization/roleAssignments/2770fa11-da54-56c7-b141-67a36fe9dbf5']"
                 "roleDefinitionId": "[concat('/providers/Microsoft.Management/managementGroups/', parameters('managementGroupName'), '/providers/Microsoft.Authorization/roleDefinitions/', '43d0d8ad-25c7-4714-9337-8ba259a9fe05')]",
                 "principalId": "[parameters('servicePrincipalObjectId')]",
                 "principalType": "ServicePrincipal"
