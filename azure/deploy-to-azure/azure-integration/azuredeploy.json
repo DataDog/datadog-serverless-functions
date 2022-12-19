@@ -99,7 +99,7 @@
             },
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2021-04-01",
-            "name": "[concat('roleAssignmentManagementGroupTemplate-', parameters('newguid'), copyIndex())]",
+            "name": "[concat('roleAssignMgTemplate-', parameters('newguid'), copyIndex())]",
             "properties": {
                 "mode": "Incremental",
                 "parameters": {
@@ -115,7 +115,7 @@
                     "contentVersion":"1.0.0.0"
                 }
             },
-            "scope": "[parameters('managementGroupsList')[copyIndex()]]"
+            "scope": "[tenantResourceId('Microsoft.Management/managementGroups', parameters('managementGroupsList')[copyIndex()])]"
         },
         {
             "copy": {
@@ -125,7 +125,7 @@
             },
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2021-04-01",
-            "name": "[concat('roleAssignmentSubscriptionsTemplate-', parameters('newguid'), copyIndex())]",
+            "name": "[concat('roleAssignSubscriptionsTemplate-', parameters('newguid'), copyIndex())]",
             "properties": {
                 "mode": "Incremental",
                 "expressionEvaluationOptions": {
