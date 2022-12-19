@@ -64,7 +64,7 @@
                 "selectAll": true,
                 "defaultValue": "",
                 "constraints": {
-                    "allowedValues": "[map(filter(steps('basics').armio.value, (i)=>and(not(equals(i.properties.permissions, 'noaccess')), equals(i.type, 'Microsoft.Management/managementGroups'))), (item)=> parse(concat('{\"label\":\"', item.properties.displayName, '\",\"value\":\"', item.name, '\"}')))]",
+                    "allowedValues": "[map(filter(steps('basics').armio.value, (i)=>and(   equals(i.type, 'Microsoft.Management/managementGroups'),   not(and(equals(i.properties.permissions, 'noaccess'),equals(i.properties.inheritedPermissions, 'noaccess')))  )), (item)=> parse(concat('{\"label\":\"', item.properties.displayName, '\",\"value\":\"', item.name, '\"}')))]",
                     "required": false
                 },
                 "visible": true
@@ -78,9 +78,9 @@
                 "filter": true,
                 "multiselect": true,
                 "selectAll": true,
-                "defaultValue": "[map(filter(steps('basics').armio.value, (i)=>and(not(equals(i.properties.permissions, 'noaccess')), not(equals(i.type, 'Microsoft.Management/managementGroups')))), (item)=> item.properties.displayName)]",
+                "defaultValue": "[map(filter(steps('basics').armio.value, (i)=>and(   not(equals(i.type, 'Microsoft.Management/managementGroups')),   not(and(equals(i.properties.permissions, 'noaccess'),equals(i.properties.inheritedPermissions, 'noaccess')))  )), (item)=> parse(concat('{\"label\":\"', item.properties.displayName, '\",\"value\":\"', item.name, '\"}')))]",
                 "constraints": {
-                    "allowedValues": "[map(filter(steps('basics').armio.value, (i)=>and(not(equals(i.properties.permissions, 'noaccess')), not(equals(i.type, 'Microsoft.Management/managementGroups')))), (item)=> parse(concat('{\"label\":\"', item.properties.displayName, '\",\"value\":\"', item.name, '\"}')))]",
+                    "allowedValues": "[map(filter(steps('basics').armio.value, (i)=>and(   not(equals(i.type, 'Microsoft.Management/managementGroups')),   not(and(equals(i.properties.permissions, 'noaccess'),equals(i.properties.inheritedPermissions, 'noaccess')))  )), (item)=> parse(concat('{\"label\":\"', item.properties.displayName, '\",\"value\":\"', item.name, '\"}')))]",
                     "required": false
                 },
                 "visible": true
