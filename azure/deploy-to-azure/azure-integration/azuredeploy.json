@@ -103,6 +103,9 @@
             "properties": {
                 "mode": "Incremental",
                 "parameters": {
+                    "managementGroupName": {
+                        "value": "[parameters('managementGroupsList')[copyIndex()]]"
+                    },
                     "servicePrincipalObjectId": {
                         "value": "[parameters('servicePrincipalObjectId')]"
                     }
