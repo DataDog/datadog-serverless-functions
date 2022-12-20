@@ -111,7 +111,7 @@
                     }
                 },
                 "templateLink": {
-                    "uri":"https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/islam/ui-sandbox/azure/deploy-to-azure/azure-integration/azuredeploy-managementgroups.json",
+                    "uri":"https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/islam/ui-integration/azure/deploy-to-azure/azure-integration/azuredeploy-managementgroups.json",
                     "contentVersion":"1.0.0.0"
                 }
             },
