@@ -22,7 +22,6 @@
             }
         }
     },
-    "location": "[deployment().location]",
     "variables": {},
     "resources": [
         {
