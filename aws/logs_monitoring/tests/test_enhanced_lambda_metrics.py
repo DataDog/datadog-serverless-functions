@@ -301,7 +301,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
             len(create_out_of_memory_enhanced_metric(node_out_of_memory_error)), 1
         )
 
-        python_out_of_memory_error = "fatal error: runtime: out of memory"
+        python_out_of_memory_error = "MemoryError"
         self.assertEqual(
             len(create_out_of_memory_enhanced_metric(python_out_of_memory_error)), 1
         )
