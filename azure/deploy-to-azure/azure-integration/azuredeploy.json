@@ -172,7 +172,6 @@
             "apiVersion": "2020-10-01",
             "name": "[concat('datadog-integration-script-', parameters('newguid'))]",
             "location": "[parameters('location')]",
-            // "dependsOn": ["roleAssignmentSubscriptionsCopy"],
             "kind": "AzurePowerShell",
             "properties": {
                 "environmentVariables": [
@@ -186,15 +185,15 @@
                     },
                     {
                         "name": "clientSecret",
-                        "value": "[parameters('servicePrincipalClientSecret')]"
+                        "secureValue": "[parameters('servicePrincipalClientSecret')]"
                     },
                     {
                         "name": "datadogApplicationKey",
-                        "value": "[parameters('datadogApplicationKey')]"
+                        "secureValue": "[parameters('datadogApplicationKey')]"
                     },
                     {
                         "name": "datadogApiKey",
-                        "value": "[parameters('datadogApiKey')]"
+                        "secureValue": "[parameters('datadogApiKey')]"
                     },
                     {
                         "name": "hostFilters",
