@@ -54,22 +54,6 @@
                 }
             },
             {
-                "name": "managementGroupsList",
-                "type": "Microsoft.Common.DropDown",
-                "label": "Management groups to monitor",
-                "toolTip": "Optional list of Management Groups to monitor",
-                "filterPlaceholder": "Select Management Groups to monitor",
-                "filter": true,
-                "multiselect": true,
-                "selectAll": true,
-                "defaultValue": "",
-                "constraints": {
-                    "allowedValues": "[map(filter(steps('basics').armio.value, (i)=>and(   equals(i.type, 'Microsoft.Management/managementGroups'),   not(and(equals(i.properties.permissions, 'noaccess'),equals(i.properties.inheritedPermissions, 'noaccess')))  )), (item)=> parse(concat('{\"label\":\"', item.properties.displayName, '\",\"value\":\"', item.name, '\"}')))]",
-                    "required": false
-                },
-                "visible": true
-            },
-            {
                 "name": "subscriptionsList",
                 "type": "Microsoft.Common.DropDown",
                 "label": "Subscriptions to monitor",
