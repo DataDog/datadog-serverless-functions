@@ -27,13 +27,6 @@
                 "description": "Service principal client secret"
             }
         },
-        "managementGroupsList": {
-            "type": "array",
-            "defaultValue": [],
-            "metadata": {
-                "description": "Management groups list to monitor"
-            }
-        },
         "subscriptionsList": {
             "type": "array",
             "defaultValue": "[subscription().id]",
@@ -91,32 +84,6 @@
     },
     "variables": {},
     "resources": [
-        {
-            "copy": {
-                "name": "managementGroupTemplateCopy",
-                "count": "[length(parameters('managementGroupsList'))]",
-                "mode": "Parallel"
-            },
-            "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2021-04-01",
-            "name": "[concat('roleAssignMgTpl-', parameters('newguid'), copyIndex())]",
-            "properties": {
-                "mode": "Incremental",
-                "parameters": {
-                    "managementGroupName": {
-                        "value": "[parameters('managementGroupsList')[copyIndex()]]"
-                    },
-                    "servicePrincipalObjectId": {
-                        "value": "[parameters('servicePrincipalObjectId')]"
-                    }
-                },
-                "templateLink": {
-                    "uri":"https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/islam/ui-integration/azure/deploy-to-azure/azure-integration/azuredeploy-managementgroups.json",
-                    "contentVersion":"1.0.0.0"
-                }
-            },
-            "scope": "[tenantResourceId('Microsoft.Management/managementGroups', parameters('managementGroupsList')[copyIndex()])]"
-        },
         {
             "copy": {
                 "name": "subscriptionsTemplateCopy",
