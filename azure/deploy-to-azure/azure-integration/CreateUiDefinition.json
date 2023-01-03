@@ -199,7 +199,6 @@
             "servicePrincipalClientId": "[basics('ServicePrincipal').appId]",
             "servicePrincipalObjectId": "[first(basics('ServicePrincipal').objectId)]",
             "servicePrincipalClientSecret": "[basics('ServicePrincipal').password]",
-            "managementGroupsList": "[basics('managementGroupsList')]",
             "subscriptionsList": "[basics('subscriptionsList')]",
             "datadogApplicationKey": "[basics('datadogApplicationKey')]",
             "datadogApiKey": "[basics('datadogApiKey')]",
