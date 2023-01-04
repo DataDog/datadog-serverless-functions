@@ -18,7 +18,7 @@
                 "visible": "[not(empty(basics('subscriptionsList')))]",
                 "options": {
                     "icon": "Warning",
-                    "text": "[concat('az ad sp create-for-rbac --role \"Monitoring Reader\" --scopes ',map(basics('subscriptionsList'), (i)=>concat(i,' ')))]"
+                    "text": "[replace(   concat('az ad sp create-for-rbac --role \"Monitoring Reader\" --scopes ',map(basics('subscriptionsList'), (i)=>concat(i,' '))),  ',', ' ')]"
                 }
             },
             {
