@@ -227,7 +227,7 @@ You can run the Forwarder in a VPC private subnet and send data to Datadog over 
 1. Follow the [instructions](https://docs.datadoghq.com/agent/guide/private-link/?tab=logs#create-your-vpc-endpoint) to add the Datadog `api`, `http-logs.intake` and `trace.agent` endpoints to your VPC.
 2. Follow the [instructions](https://docs.aws.amazon.com/vpc/latest/userguide/vpce-interface.html#create-interface-endpoint) to add the AWS Secrets Manager and S3 endpoints to your VPC.
 3. When installing the Forwarder with the CloudFormation template,
-   1. set `UseVPC` to `true`
+   1. set `DdUseVPC` to `true`
    2. set `VPCSecurityGroupIds` and `VPCSubnetIds` based on your VPC settings
    3. set `DdFetchLambdaTags` to `false`, because AWS Resource Groups Tagging API doesn't support PrivateLink
 
