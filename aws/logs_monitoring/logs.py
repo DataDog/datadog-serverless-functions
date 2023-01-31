@@ -264,9 +264,8 @@ class DatadogTCPClient(object):
         if self._use_ssl:
             context = ssl.create_default_context()
             context.options |= ssl.OP_NO_TLSv1 | ssl.OP_NO_TLSv1_1
-            sock = context.wrap_socket(
-                sock, server_hostname=self.host
-            )
+            context.minimum_version = ssl.TLSVersion.TLSv1_2
+            sock = context.wrap_socket(sock, server_hostname=self.host)
         sock.connect((self.host, self.port))
         self._sock = sock
 
