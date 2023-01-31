@@ -262,7 +262,9 @@ class DatadogTCPClient(object):
     def _connect(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         if self._use_ssl:
-            sock = ssl.create_default_context().wrap_socket(
+            context = ssl.create_default_context()
+            context.options |= ssl.OP_NO_TLSv1 | ssl.OP_NO_TLSv1_1
+            sock = context.wrap_socket(
                 sock, server_hostname=self.host
             )
         sock.connect((self.host, self.port))
