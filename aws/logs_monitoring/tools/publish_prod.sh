@@ -37,12 +37,12 @@ else
 fi
 
 # Ensure AWS access before proceeding
-saml2aws login -a govcloud-us1-fed-human-engineering
+SAML2AWS_IDP_PROVIDER=Browser ddsaml2aws login -a govcloud-us1-fed-human-engineering
 AWS_PROFILE=govcloud-us1-fed-human-engineering aws sts get-caller-identity
 aws-vault exec prod-engineering -- aws sts get-caller-identity
 
 echo "Publishing layers to GovCloud AWS regions"
-saml2aws login -a govcloud-us1-fed-human-engineering
+SAML2AWS_IDP_PROVIDER=Browser ddsaml2aws login -a govcloud-us1-fed-human-engineering
 LAYER_VERSION=$LAYER_VERSION FORWARDER_VERSION=$FORWARDER_VERSION AWS_PROFILE=govcloud-us1-fed-human-engineering ./tools/publish_layers.sh
 
 echo
