@@ -9,16 +9,16 @@ aliases:
   - /serverless/libraries_integrations/forwarder/
 ---
 
-The Datadog Forwarder is an AWS Lambda function that ships logs, custom metrics, and traces from your environment to Datadog. The Forwarder can:
+The Datadog Forwarder is an AWS Lambda function that ships logs from AWS to Datadog, specifically:
 
 - Forward CloudWatch, ELB, S3, CloudTrail, VPC, SNS, and CloudFront logs to Datadog
 - Forward S3 events to Datadog
 - Forward Kinesis data stream events to Datadog (only CloudWatch logs are supported)
-- Forward custom metrics from AWS Lambda functions using CloudWatch logs
-- Forward traces from AWS Lambda functions using CloudWatch logs
-- Generate and submit enhanced Lambda metrics (`aws.lambda.enhanced.*`) parsed from the AWS REPORT log: `duration`, `billed_duration`, `max_memory_used`, `timeouts`, `out_of_memory`, and `estimated_cost`
+- Forward metrics, traces, and logs from AWS Lambda functions to Datadog. **Note**: Datadog recommends that you use the [Datadog Lambda Extension](https://github.com/DataDog/datadog-lambda-extension) to monitor your Lambda functions.
 
 For additional information on sending AWS services logs with the Datadog Forwarder, read the [Send AWS Services Logs with the Datadog Lambda Function](https://docs.datadoghq.com/logs/guide/send-aws-services-logs-with-the-datadog-lambda-function/) guide.
+
+For serverless customers using the Forwarder to forward metrics, traces, and logs from AWS Lambda logs to Datadog, it is recommended that you [migrate to the Datadog Lambda Extension](https://docs.datadoghq.com/serverless/guide/extension_motivation/) to collect telemetry directly from the Lambda execution environments. The Forwarder is still available for use, but will only receive security updates.
 
 ## Installation
 
