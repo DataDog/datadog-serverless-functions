@@ -18,7 +18,7 @@ The Datadog Forwarder is an AWS Lambda function that ships logs from AWS to Data
 
 For additional information on sending AWS services logs with the Datadog Forwarder, read the [Send AWS Services Logs with the Datadog Lambda Function](https://docs.datadoghq.com/logs/guide/send-aws-services-logs-with-the-datadog-lambda-function/) guide.
 
-For serverless customers using the Forwarder to forward metrics, traces and logs from AWS Lambda logs to Datadog, we recommend [migrating to the Datadog Lambda Extension](https://docs.datadoghq.com/serverless/guide/extension_motivation/) to collect telemetry directly from the Lambda execution environments. The Forwarder is still available for use, but will only receive security updates after May 1st, 2023.
+For serverless customers using the Forwarder to forward metrics, traces and logs from AWS Lambda logs to Datadog, we recommend [migrating to the Datadog Lambda Extension](https://docs.datadoghq.com/serverless/guide/extension_motivation/) to collect telemetry directly from the Lambda execution environments. The Forwarder is still available for use, but will only receive security updates.
 
 ## Installation
 
