@@ -8,8 +8,8 @@
                 "description": "Service principal object Id, needed for Role Assignment"
             }
         },
-        "managementGroupName": {
-            "type": "String",
+        "managementGroupList": {
+            "type": "Array",
             "defaultValue": "[managementGroup().name]",
             "metadata": {
                 "description": "Management group Id, to assign a role assignment to"
@@ -19,11 +19,16 @@
     "variables": {},
     "resources": [
         {
+            "copy": {
+                "name": "managementGroupCopy",
+                "count": "[length(parameters('managementGroupList'))]",
+                "mode": "Parallel"
+            },
             "type": "Microsoft.Authorization/roleAssignments",
             "apiVersion": "2020-10-01-preview",
-            "name": "[guid(parameters('managementGroupName'), 'monitoring reader', parameters('servicePrincipalObjectId'))]",
+            "name": "[guid(parameters('managementGroupList')[copyIndex()], 'monitoring reader', parameters('servicePrincipalObjectId'))]",
             "properties": {
-                "roleDefinitionId": "[concat('/providers/Microsoft.Management/managementGroups/', parameters('managementGroupName'), '/providers/Microsoft.Authorization/roleDefinitions/', '43d0d8ad-25c7-4714-9337-8ba259a9fe05')]",
+                "roleDefinitionId": "[concat('/providers/Microsoft.Management/managementGroups/', parameters('managementGroupList')[copyIndex()], '/providers/Microsoft.Authorization/roleDefinitions/', '43d0d8ad-25c7-4714-9337-8ba259a9fe05')]",
                 "principalId": "[parameters('servicePrincipalObjectId')]",
                 "principalType": "ServicePrincipal"
             }
