@@ -330,6 +330,7 @@ def find_cloudwatch_source(log_group):
         "msk",
         "elasticsearch",
         "transitgateway",
+        "verified-access",
     ]:
         if source in log_group:
             return source
@@ -379,6 +380,7 @@ def find_s3_source(key):
         "amazon_msk",
         "network-firewall",
         "cloudfront",
+        "verified-access",
     ]:
         if source in key:
             return source.replace("amazon_", "")
