@@ -22,7 +22,6 @@ from lambda_cache import LambdaTagsCache
 
 
 class TestEnhancedLambdaMetrics(unittest.TestCase):
-
     maxDiff = None
 
     malformed_report = "REPORT invalid report log line"
@@ -730,7 +729,6 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
     def test_generate_enhanced_lambda_metrics_timeout(
         self, mock_get_s3_cache, mock_forward_metrics
     ):
-
         mock_get_s3_cache.return_value = (
             {
                 "arn:aws:lambda:us-east-1:0:function:cloudwatch-event": [
@@ -789,7 +787,6 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
     def test_generate_enhanced_lambda_metrics_out_of_memory(
         self, mock_get_s3_cache, mock_forward_metrics
     ):
-
         mock_get_s3_cache.return_value = (
             {
                 "arn:aws:lambda:us-east-1:0:function:cloudwatch-event": [
