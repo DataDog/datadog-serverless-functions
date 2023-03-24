@@ -369,11 +369,11 @@ class TestParseServiceArn(unittest.TestCase):
         self.assertEqual(
             parse_service_arn(
                 "elb",
-                "elasticloadbalancing/my-alb-name/AWSLogs/123456789123/elasticloadbalancing/us-east-1/2022/02/08/123456789123_elasticloadbalancing_us-east-1_app.my-alb-name.123456789aabcdef_20220208T1127Z_10.0.0.2_1abcdef2.log.gz",
+                "test/manager/AWSLogs/123456789123/elasticloadbalancing/us-east-1/2022/02/08/123456789123_elasticloadbalancing_us-east-1_app.my-alb-name.123456789aabcdef_20220208T1127Z_10.0.0.2_1abcdef2.log.gz",
                 None,
                 None,
             ),
-            "arn:aws:elasticloadbalancing:us-east-1:123456789123:loadbalancer/app/my-alb-name/123456789aabcdef",
+            "arn:aws:elasticloadbalancing:us-east-1:777707077777:targetgroup/awseb-AWS-test1234",
         )
 
     def test_elb_s3_key_multi_prefix_gov(self):

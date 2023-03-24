@@ -426,13 +426,21 @@ def parse_service_arn(source, key, bucket, context):
             elbname = name.replace(".", "/")
             if len(idsplit) > 1:
                 partition = get_partition_from_region(region)
-                pattern = re.compile("^[0-9]{12}$") #regex to check for 12-digits only - AWS account id is 12 digit
-                if bool(pattern.match(idsplit[1])): #checking that id is 12-digit
+                pattern = re.compile(
+                    "^[0-9]{12}$"
+                )  # regex to check for 12-digits only - AWS account id is 12 digit
+                if bool(pattern.match(idsplit[1])):  # checking that id is 12-digit
                     idvalue = idsplit[1]
-                    return "arn:{}:elasticloadbalancing:{}:{}:loadbalancer/{}".format(partition, region, idvalue, elbname)
-                elif bool(pattern.match(idsplit[3])): #checking if idsplit[3] contains aws account id
+                    return "arn:{}:elasticloadbalancing:{}:{}:loadbalancer/{}".format(
+                        partition, region, idvalue, elbname
+                    )
+                elif bool(
+                    pattern.match(idsplit[3])
+                ):  # checking if idsplit[3] contains aws account id
                     idvalue = idsplit[3]
-                    return "arn:{}:elasticloadbalancing:{}:{}:loadbalancer/{}".format(partition, region, idvalue, elbname)
+                    return "arn:{}:elasticloadbalancing:{}:{}:loadbalancer/{}".format(
+                        partition, region, idvalue, elbname
+                    )
     if source == "s3":
         # For S3 access logs we use the bucket name to rebuild the arn
         if bucket:
