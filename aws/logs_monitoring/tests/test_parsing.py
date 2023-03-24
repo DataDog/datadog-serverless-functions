@@ -373,7 +373,7 @@ class TestParseServiceArn(unittest.TestCase):
                 None,
                 None,
             ),
-            "arn:aws:elasticloadbalancing:us-east-1:123456789123:targetgroup/awseb-AWS-test1234",
+            "arn:aws:elasticloadbalancing:us-east-1:123456789123:loadbalancer/app/my-alb-name/123456789aabcdef",
         )
 
     def test_elb_s3_key_multi_prefix_gov(self):
