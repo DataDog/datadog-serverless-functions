@@ -320,6 +320,9 @@ def find_cloudwatch_source(log_group):
         if log_group.startswith(source):
             return source.replace("/aws/", "")
 
+    if "verified-access" in log_group:
+        return "amazon-verified-access"
+
     # the below substrings must be in your log group to be detected
     for source in [
         "network-firewall",
@@ -330,7 +333,6 @@ def find_cloudwatch_source(log_group):
         "msk",
         "elasticsearch",
         "transitgateway",
-        "verified-access",
     ]:
         if source in log_group:
             return source
@@ -372,6 +374,9 @@ def find_s3_source(key):
     if "carbon-black" in key:
         return "carbonblack"
 
+    if "verified-access" in key:
+        return "amazon-verified-access"
+
     # the below substrings must be in your target prefix to be detected
     for source in [
         "amazon_codebuild",
@@ -380,7 +385,6 @@ def find_s3_source(key):
         "amazon_msk",
         "network-firewall",
         "cloudfront",
-        "verified-access",
     ]:
         if source in key:
             return source.replace("amazon_", "")
