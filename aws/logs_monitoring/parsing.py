@@ -523,6 +523,13 @@ def awslogs_handler(event, context, metadata):
     if metadata[DD_SOURCE] == "appsync":
         metadata[DD_HOST] = aws_attributes["aws"]["awslogs"]["logGroup"].split("/")[-1]
 
+    if metadata[DD_SOURCE] == "verified-access":
+        try:
+            message = json.loads(logs["logEvents"][0]["message"])
+            metadata[DD_HOST] = message["http_request"]["url"]["hostname"]
+        except Exception as e:
+            logger.debug("Unable to set verified-access log host: %s" % e)
+
     if metadata[DD_SOURCE] == "stepfunction" and logs["logStream"].startswith(
         "states/"
     ):
