@@ -526,12 +526,7 @@ def awslogs_handler(event, context, metadata):
     if metadata[DD_SOURCE] == "verified-access":
         try:
             message = json.loads(logs["logEvents"][0]["message"])
-            if (
-                message["http_request"]
-                and message["http_request"]["url"]
-                and message["http_request"]["url"]["hostname"]
-            ):
-                metadata[DD_HOST] = message["http_request"]["url"]["hostname"]
+            metadata[DD_HOST] = message["http_request"]["url"]["hostname"]
         except Exception as e:
             logger.debug("Unable to set verified-access log host: %s" % e)
 
