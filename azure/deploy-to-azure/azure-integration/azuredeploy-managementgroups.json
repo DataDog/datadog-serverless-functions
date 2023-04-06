@@ -34,13 +34,5 @@
             }
         }
     ],
-    "outputs": {
-        "managementGroupOutput": {
-            "type": "array",
-            "copy": {
-                "count": "[length(parameters('managementGroupList'))]",
-                "input": "[concat(copyIndex(), 'hello')]"
-            }
-        }
-    }
+    "outputs": {}
 }
