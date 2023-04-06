@@ -68,144 +68,18 @@
                     "required": false
                 },
                 "visible": true
-            },
-            {
-                "name": "datadogApplicationKey",
-                "type": "Microsoft.Common.PasswordBox",
-                "label": {
-                    "password": "Datadog Application Key",
-                    "confirmPassword": "Re-enter Datadog Application Key"
-                },
-                "toolTip": "Your Datadog Application key",
-                "constraints": {
-                    "required": true,
-                    "validationMessage": "Must be a valid Application Key"
-                },
-                "options": {
-                    "hideConfirmation": true
-                },
-                "visible": true
-            },
-            {
-                "name": "datadogApiKey",
-                "type": "Microsoft.Common.PasswordBox",
-                "label": {
-                    "password": "Datadog API Key",
-                    "confirmPassword": "Re-enter Datadog Api Key"
-                },
-                "toolTip": "Your Datadog API key",
-                "constraints": {
-                    "required": true,
-                    "validationMessage": "Must be a valid API Key"
-                },
-                "options": {
-                    "hideConfirmation": true
-                },
-                "visible": true
-            },
-            {
-                "name": "datadogSite",
-                "type": "Microsoft.Common.DropDown",
-                "label": "Datadog Site",
-                "defaultValue": "US1",
-                "toolTip": "The datadog site where you usually login. For US3, search for and install the Datadog Resource from the Azure Marketplace instead of using this form",
-                "constraints": {
-                    "allowedValues": [
-                        {
-                            "label": "US1",
-                            "value": "datadoghq.com"
-                        },
-                        {
-                            "label": "US5",
-                            "value": "us5.datadoghq.com"
-                        },
-                        {
-                            "label": "EU1",
-                            "value": "datadoghq.eu"
-                        },
-                        {
-                            "label": "US1-FED",
-                            "value": "ddog-gov.com"
-                        },
-                        {
-                            "label": "Staging",
-                            "value": "ddstaging.datadoghq.com"
-                        }
-                    ],
-                    "required": false
-                },
-                "visible": true
             }
         ],
         "steps": [
-            {
-                "name": "metrics",
-                "label": "Metrics",
-                "elements": [
-                    {
-                        "name": "metrics",
-                        "type": "Microsoft.Common.Section",
-                        "label": "Metrics",
-                        "elements": [
-                            {
-                                "name": "textBlock1",
-                                "type": "Microsoft.Common.TextBlock",
-                                "visible": true,
-                                "options": {
-                                    "text": "Metrics will be collected for all resoures, except Virtual Machines, Virtual Machine Scale Sets and App Service Plans which can be filtered by tags."
-                                }
-                            },
-                            {
-                                "name": "textBlock2",
-                                "type": "Microsoft.Common.TextBlock",
-                                "visible": true,
-                                "options": {
-                                    "text": "Optionally limit metrics collection to Virtual Machines, Virtual Machine Scale Sets and App Service Plans to hosts using tags."
-                                }
-                            },
-                            {
-                                "name": "hostFilters",
-                                "type": "Microsoft.Common.TextBox",
-                                "label": "Host Filters",
-                                "defaultValue": "",
-                                "toolTip": "This comma-separated list of Azure tags (in the form key:value) defines a filter that we will use when collecting metrics from Azure. Only hosts that match one of the defined labels will be imported into Datadog. The rest will be ignored.  Wildcards, such as ? (for single characters) and * (for multiple characters) can also be used. Hosts matching a given label can also be excluded by adding ! before the label.  Example: datadog:monitored,env:production,!env:staging,instance-type:c1.*",
-                                "constraints": {
-                                    "required": false
-                                },
-                                "visible": true
-                            },
-                            {
-                                "name": "automute",
-                                "type": "Microsoft.Common.CheckBox",
-                                "label": "Automute",
-                                "toolTip": "Whether or not to use automute for hosts",
-                                "defaultValue": "true"
-                            },
-                            {
-                                "name": "cspm_enabled",
-                                "type": "Microsoft.Common.CheckBox",
-                                "label": "Cloud Security Posture Management",
-                                "toolTip": "When enabled, Datadog performs configuration checks across your Azure environment by continuously scanning every resource. Use Datadog's executive reporting summaries to track conformance to industry benchmark criteria.",
-                                "defaultValue": "true"
-                            }
-                        ],
-                        "visible": true
-                    }
-                ]
-            }
+            {}
         ],
         "outputs": {
             "location": "[location()]",
             "servicePrincipalClientId": "[basics('ServicePrincipal').appId]",
             "servicePrincipalObjectId": "[first(basics('ServicePrincipal').objectId)]",
             "servicePrincipalClientSecret": "[basics('ServicePrincipal').password]",
-            "subscriptionsList": "[basics('subscriptionsList')]",
-            "datadogApplicationKey": "[basics('datadogApplicationKey')]",
-            "datadogApiKey": "[basics('datadogApiKey')]",
-            "datadogSite": "[basics('datadogSite')]",
-            "hostFilters": "[steps('metrics').metrics.hostFilters]",
-            "automute": "[steps('metrics').metrics.automute]",
-            "cspm_enabled": "[steps('metrics').metrics.cspm_enabled]"
+            "subscriptionsList": "[basics('subscriptionsList')]"
+
         }
     }
 }
