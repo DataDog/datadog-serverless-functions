@@ -80,7 +80,7 @@
         {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2021-04-01",
-            "name": "[concat('roleAssignSubsTpl-', parameters('newguid'), copyIndex())]",
+            "name": "[concat('roleAssignSubsTpl-', parameters('newguid'))]",
             "properties": {
                 "mode": "Incremental",
                 "expressionEvaluationOptions": {
