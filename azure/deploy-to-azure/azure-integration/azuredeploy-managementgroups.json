@@ -11,6 +11,7 @@
         },
         "managementGroupName": {
             "type": "String",
+            "defaultValue": "[managementGroup().name]",
             "metadata": {
                 "description": "managementGroup, needed for Role Assignment"
             }
