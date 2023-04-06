@@ -33,7 +33,6 @@
                 "principalType": "ServicePrincipal"
             },
             "managementGroupId": "[parameters('managementGroupList')[copyIndex()]]",
-            "location": "[parameters('location')]"
         }
     ],
     "outputs": {}
