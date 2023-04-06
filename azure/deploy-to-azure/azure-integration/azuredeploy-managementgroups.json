@@ -9,7 +9,7 @@
             }
         },
         "managementGroupList": {
-            "type": "Array",
+            "type": "array",
             "defaultValue": "[managementGroup().name]",
             "metadata": {
                 "description": "Management group Id, to assign a role assignment to"
