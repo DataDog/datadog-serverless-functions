@@ -32,7 +32,7 @@
                 "principalId": "[parameters('servicePrincipalObjectId')]",
                 "principalType": "ServicePrincipal"
             },
-            "managementGroupId": "[parameters('managementGroupList')[copyIndex()]]",
+            "managementGroupId": "[parameters('managementGroupList')[copyIndex()]]"
         }
     ],
     "outputs": {}
