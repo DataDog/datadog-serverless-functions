@@ -180,7 +180,7 @@
         ],
         "outputs": {
             "location": "[location()]",
-            "managementGroupName": "[basics(managementGroupName)]",
+            "managementGroupName": "[basics('managementGroupName')]",
             "servicePrincipalClientId": "[basics('ServicePrincipal').appId]",
             "servicePrincipalObjectId": "[first(basics('ServicePrincipal').objectId)]",
             "servicePrincipalClientSecret": "[basics('ServicePrincipal').password]",
