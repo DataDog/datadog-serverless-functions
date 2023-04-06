@@ -9,6 +9,12 @@
                 "description": "Resources location"
             }
         },
+        "managementGroupName": {
+            "type": "String",
+            "metadata": {
+                "description": "managementGroup, needed for Role Assignment"
+            }
+        },
         "servicePrincipalObjectId": {
             "type": "String",
             "metadata": {
@@ -89,6 +95,9 @@
                 "parameters": {
                     "servicePrincipalObjectId": {
                         "value": "[parameters('servicePrincipalObjectId')]"
+                    },
+                    "managementGroupName": {
+                        "value": "[parameters('managementGroupName')]"
                     }
                 },
                 "template": {

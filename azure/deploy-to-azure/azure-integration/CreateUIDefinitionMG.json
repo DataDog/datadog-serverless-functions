@@ -13,6 +13,14 @@
                 "visible": false
             },
             {
+                "name": "managementGroupName",
+                "type": "Microsoft.Common.TextBox",
+                "label": "management Group Name",
+                "defaultValue": "global",
+                "toolTip": "managementGroupName",
+                "visible": true
+            },
+            {
                 "name": "infoServicePrincipal",
                 "type": "Microsoft.Common.InfoBox",
                 "visible": true,
@@ -172,6 +180,7 @@
         ],
         "outputs": {
             "location": "[location()]",
+            "managementGroupName": "[basics(managementGroupName)]",
             "servicePrincipalClientId": "[basics('ServicePrincipal').appId]",
             "servicePrincipalObjectId": "[first(basics('ServicePrincipal').objectId)]",
             "servicePrincipalClientSecret": "[basics('ServicePrincipal').password]",
