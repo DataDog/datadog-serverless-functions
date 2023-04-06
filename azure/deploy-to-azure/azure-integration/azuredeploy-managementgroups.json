@@ -24,15 +24,49 @@
                 "count": "[length(parameters('managementGroupList'))]",
                 "mode": "Parallel"
             },
-            "type": "Microsoft.Authorization/roleAssignments",
-            "apiVersion": "2020-10-01-preview",
-            "name": "[guid(parameters('managementGroupList')[copyIndex()], 'monitoring reader', parameters('servicePrincipalObjectId'))]",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2021-04-01",
+            "name": "[concat('roleAssignMGTpl-', parameters('newguid'), copyIndex())]",
             "properties": {
-                "roleDefinitionId": "[concat('/providers/Microsoft.Management/managementGroups/', parameters('managementGroupList')[copyIndex()], '/providers/Microsoft.Authorization/roleDefinitions/', '43d0d8ad-25c7-4714-9337-8ba259a9fe05')]",
-                "principalId": "[parameters('servicePrincipalObjectId')]",
-                "principalType": "ServicePrincipal"
-            }
+                "mode": "Incremental",
+                "expressionEvaluationOptions": {
+                    "scope": "inner"
+                },
+                "parameters": {
+                    "servicePrincipalObjectId": {
+                        "value": "[parameters('servicePrincipalObjectId')]"
+                    }
+                },
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-08-01/managementGroupDeploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "servicePrincipalObjectId": {
+                            "type": "String",
+                            "metadata": {
+                                "description": "Service principal object Id, needed for Role Assignment"
+                            }
+                        }
+                    },
+                    "variables": {},
+                    "resources": [
+                        {
+                            "type": "Microsoft.Authorization/roleAssignments",
+                            "apiVersion": "2020-10-01-preview",
+                            "name": "[guid(parameters('managementGroupList')[copyIndex()], 'monitoring reader', parameters('servicePrincipalObjectId'))]",
+                            "properties": {
+                                "roleDefinitionId": "[concat('/providers/Microsoft.Management/managementGroups/', managementGroup().name, '/providers/Microsoft.Authorization/roleDefinitions/', '43d0d8ad-25c7-4714-9337-8ba259a9fe05')]",
+                                "principalId": "[parameters('servicePrincipalObjectId')]",
+                                "principalType": "ServicePrincipal"
+                            }
+                        }
+                    ],
+                    "outputs": {}
+                }
+            },
+            "scope": "[parameters('managementGroupList')[copyIndex()]]",
+            "location": "eastus"
         }
-    ],
-    "outputs": {}
+    ]
 }
+
