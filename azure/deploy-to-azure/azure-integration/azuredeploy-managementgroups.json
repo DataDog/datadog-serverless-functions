@@ -92,39 +92,37 @@
                     }
                 },
                 "template": {
-                    {
-                        "$schema": "https://schema.management.azure.com/schemas/2019-08-01/managementGroupDeploymentTemplate.json#",
-                        "contentVersion": "1.0.0.0",
-                        "parameters": {
-                            "servicePrincipalObjectId": {
-                                "type": "String",
-                                "metadata": {
-                                    "description": "Service principal object Id, needed for Role Assignment"
-                                }
-                            },
-                            "managementGroupName": {
-                                "type": "String",
-                                "defaultValue": "[managementGroup().name]",
-                                "metadata": {
-                                    "description": "Management group Id, to assign a role assignment to"
-                                }
+                    "$schema": "https://schema.management.azure.com/schemas/2019-08-01/managementGroupDeploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "servicePrincipalObjectId": {
+                            "type": "String",
+                            "metadata": {
+                                "description": "Service principal object Id, needed for Role Assignment"
                             }
                         },
-                        "variables": {},
-                        "resources": [
-                            {
-                                "type": "Microsoft.Authorization/roleAssignments",
-                                "apiVersion": "2020-10-01-preview",
-                                "name": "[guid(parameters('managementGroupName'), 'monitoring reader', parameters('servicePrincipalObjectId'))]",
-                                "properties": {
-                                    "roleDefinitionId": "[concat('/providers/Microsoft.Management/managementGroups/', parameters('managementGroupName'), '/providers/Microsoft.Authorization/roleDefinitions/', '43d0d8ad-25c7-4714-9337-8ba259a9fe05')]",
-                                    "principalId": "[parameters('servicePrincipalObjectId')]",
-                                    "principalType": "ServicePrincipal"
-                                }
+                        "managementGroupName": {
+                            "type": "String",
+                            "defaultValue": "[managementGroup().name]",
+                            "metadata": {
+                                "description": "Management group Id, to assign a role assignment to"
                             }
-                        ],
-                        "outputs": {}
+                        }
                     },
+                    "variables": {},
+                    "resources": [
+                        {
+                            "type": "Microsoft.Authorization/roleAssignments",
+                            "apiVersion": "2020-10-01-preview",
+                            "name": "[guid(parameters('managementGroupName'), 'monitoring reader', parameters('servicePrincipalObjectId'))]",
+                            "properties": {
+                                "roleDefinitionId": "[concat('/providers/Microsoft.Management/managementGroups/', parameters('managementGroupName'), '/providers/Microsoft.Authorization/roleDefinitions/', '43d0d8ad-25c7-4714-9337-8ba259a9fe05')]",
+                                "principalId": "[parameters('servicePrincipalObjectId')]",
+                                "principalType": "ServicePrincipal"
+                            }
+                        }
+                    ],
+                    "outputs": {}
                 }
             }
         },
@@ -167,7 +165,7 @@
                     {
                         "name": "datadogSite",
                         "value": "[parameters('datadogSite')]"
-                    },
+                    }
                 ],
                 "retentionInterval": "PT1H",
                 "timeout": "PT2M",

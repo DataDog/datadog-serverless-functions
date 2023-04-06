@@ -127,8 +127,7 @@
                             }
                         }
                     ],
-                    "outputs": {
-                    }
+                    "outputs": {}
                 }
             },
             "subscriptionId": "[parameters('subscriptionsList')[copyIndex()]]",
