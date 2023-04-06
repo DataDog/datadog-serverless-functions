@@ -28,10 +28,12 @@
             "apiVersion": "2020-10-01-preview",
             "name": "[guid(parameters('managementGroupList')[copyIndex()], 'monitoring reader', parameters('servicePrincipalObjectId'))]",
             "properties": {
-                "roleDefinitionId": "[concat('/providers/Microsoft.Management/managementGroups/', parameters('managementGroupList')[copyIndex()], '/providers/Microsoft.Authorization/roleDefinitions/', '43d0d8ad-25c7-4714-9337-8ba259a9fe05')]",
+                "roleDefinitionId": "[concat('/providers/Microsoft.Management/managementGroups/', managementGroupId.name, '/providers/Microsoft.Authorization/roleDefinitions/', '43d0d8ad-25c7-4714-9337-8ba259a9fe05')]",
                 "principalId": "[parameters('servicePrincipalObjectId')]",
                 "principalType": "ServicePrincipal"
-            }
+            },
+            "managementGroupId": "[parameters('managementGroupList')[copyIndex()]]",
+            "location": "[parameters('location')]"
         }
     ],
     "outputs": {}
