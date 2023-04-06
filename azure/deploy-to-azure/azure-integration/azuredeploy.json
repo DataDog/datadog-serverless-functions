@@ -121,7 +121,7 @@
                             "apiVersion": "2020-10-01-preview",
                             "name": "[guid(subscription().id, 'monitoring reader', parameters('servicePrincipalObjectId'))]",
                             "properties": {
-                                "roleDefinitionId": "[concat(parameters('subscriptionsList')[copyIndex()].subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', '43d0d8ad-25c7-4714-9337-8ba259a9fe05')]",
+                                "roleDefinitionId": "[concat(subscription().id, '/providers/Microsoft.Authorization/roleDefinitions/', '43d0d8ad-25c7-4714-9337-8ba259a9fe05')]",
                                 "principalId": "[parameters('servicePrincipalObjectId')]",
                                 "principalType": "ServicePrincipal"
                             }
@@ -131,6 +131,7 @@
                     }
                 }
             },
+            "subscriptionId": "[parameters('subscriptionsList')[copyIndex()]]",
             "location": "[parameters('location')]"
         },
         {
