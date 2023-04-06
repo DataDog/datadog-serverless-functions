@@ -26,7 +26,7 @@
             },
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2021-04-01",
-            "name": "[concat('roleAssignMGTpl-', newGuid(), copyIndex())]",
+            "name": "[guid(concat('roleAssignMGTpl-', copyIndex()))]",
             "properties": {
                 "mode": "Incremental",
                 "expressionEvaluationOptions": {
