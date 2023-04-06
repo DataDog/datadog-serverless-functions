@@ -131,7 +131,6 @@
                     }
                 }
             },
-            "subscriptionId": "[parameters('subscriptionsList')[copyIndex()]]",
             "location": "[parameters('location')]"
         },
         {
