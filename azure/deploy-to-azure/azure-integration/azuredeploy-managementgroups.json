@@ -10,7 +10,7 @@
         },
         "managementGroupList": {
             "type": "array",
-            "defaultValue": "[managementGroup().name]",
+            "defaultValue": ["[managementGroup().id]"],
             "metadata": {
                 "description": "Management group Id, to assign a role assignment to"
             }
@@ -36,8 +36,8 @@
                     "servicePrincipalObjectId": {
                         "value": "[parameters('servicePrincipalObjectId')]"
                     },
-                    "managementGroupList": {
-                        "value": "[parameters('managementGroupList')]"
+                    "managementGroupId": {
+                        "value": "[parameters('managementGroupList')[copyIndex()]]"
                   }
                 },
                 "template": {
@@ -50,8 +50,8 @@
                                 "description": "Service principal object Id, needed for Role Assignment"
                             }
                         },
-                        "managementGroupList": {
-                            "type": "array"
+                        "managementGroupId": {
+                            "type": "string"
                         }
                     },
                     "variables": {},
@@ -59,9 +59,9 @@
                         {
                             "type": "Microsoft.Authorization/roleAssignments",
                             "apiVersion": "2020-10-01-preview",
-                            "name": "[guid(managementGroup().name, 'monitoring reader', parameters('servicePrincipalObjectId'))]",
+                            "name": "[guid(parameters('managementGroupId'), 'monitoring reader', parameters('servicePrincipalObjectId'))]",
                             "properties": {
-                                "roleDefinitionId": "[concat('/providers/Microsoft.Management/managementGroups/', managementGroup().name, '/providers/Microsoft.Authorization/roleDefinitions/', '43d0d8ad-25c7-4714-9337-8ba259a9fe05')]",
+                                "roleDefinitionId": "[concat(parameters('managementGroupId'), '/providers/Microsoft.Authorization/roleDefinitions/', '43d0d8ad-25c7-4714-9337-8ba259a9fe05')]",
                                 "principalId": "[parameters('servicePrincipalObjectId')]",
                                 "principalType": "ServicePrincipal"
                             }
@@ -75,4 +75,3 @@
         }
     ]
 }
-
