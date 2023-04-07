@@ -50,10 +50,11 @@ Once installed, you can subscribe the Forwarder to log sources, such as S3 bucke
 
 Install the Forwarder using the Terraform resource [aws_cloudformation_stack](https://www.terraform.io/docs/providers/aws/r/cloudformation_stack) as a wrapper on top of the provided CloudFormation template.
 
-Datadog recommends creating two separate Terraform configurations:
+Datadog recommends creating separate Terraform configurations:
 
 - Use the first one to store the [Datadog API key](https://app.datadoghq.com/organization-settings/api-keys) in the AWS Secrets Manager, and note down the secrets ARN from the output of apply.
-- Then create another configuration for the forwarder and supply the secrets ARN through the `DdApiKeySecretArn` parameter.
+- Then, create a configuration for the forwarder and supply the secrets ARN through the `DdApiKeySecretArn` parameter.
+- Finally, create a configuration to [set up triggers on the Forwarder](https://docs.datadoghq.com/logs/guide/send-aws-services-logs-with-the-datadog-lambda-function/#set-up-triggers). 
 
 Separating the configurations of the API key and the forwarder means that you don't need to provide the Datadog API key when updating the forwarder.
 
