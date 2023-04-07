@@ -218,7 +218,7 @@ We love pull requests. Here's a quick guide.
 
 ### Shipping logs to multiple destinations
 
-If you need to ship logs to multiple Datadog organizations or other destinations, configure the `AdditionalTargetLambdaARNs` Cloudformation parameter to let the Datadog Forwarder copy the incoming logs to the specified Lambda functions. These additional Lambda functions will be called asynchronously with the exact same `event` the Datadog Forwarder receives.
+If you need to ship logs to multiple Datadog organizations or other destinations, configure the `AdditionalTargetLambdaArns` Cloudformation parameter to let the Datadog Forwarder copy the incoming logs to the specified Lambda functions. These additional Lambda functions will be called asynchronously with the exact same `event` the Datadog Forwarder receives.
 
 ### AWS PrivateLink support
 
@@ -399,7 +399,7 @@ To test different patterns against your logs, turn on [debug logs](#troubleshoot
 `VPCSubnetIds`
 : Comma separated list of VPC Subnet Ids. Used when AWS PrivateLink is enabled.
 
-`AdditionalTargetLambdaARNs`
+`AdditionalTargetLambdaArns`
 : Comma separated list of Lambda ARNs that will get called asynchronously with the same `event` the Datadog Forwarder receives.
 
 `InstallAsLayer`
