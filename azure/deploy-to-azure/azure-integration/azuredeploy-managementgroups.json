@@ -46,6 +46,9 @@
                             "metadata": {
                                 "description": "Service principal object Id, needed for Role Assignment"
                             }
+                        },
+                        "managementGroupList": {
+                            "type": "array"
                         }
                     },
                     "variables": {},
