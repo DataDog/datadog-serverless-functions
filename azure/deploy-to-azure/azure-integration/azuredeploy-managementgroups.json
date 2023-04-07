@@ -35,7 +35,10 @@
                 "parameters": {
                     "servicePrincipalObjectId": {
                         "value": "[parameters('servicePrincipalObjectId')]"
-                    }
+                    },
+                    "managementGroupList": {
+                        "value": "[parameters('managementGroupList')]"
+                  }
                 },
                 "template": {
                     "$schema": "https://schema.management.azure.com/schemas/2019-08-01/managementGroupDeploymentTemplate.json#",
@@ -46,6 +49,9 @@
                             "metadata": {
                                 "description": "Service principal object Id, needed for Role Assignment"
                             }
+                        },
+                        "managementGroupList": {
+                            "type": "array"
                         }
                     },
                     "variables": {},
