@@ -2,6 +2,13 @@
     "$schema": "https://schema.management.azure.com/schemas/2019-08-01/managementGroupDeploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
+        "location": {
+            "type": "string",
+            "defaultValue": "westus2",
+            "metadata": {
+                "description": "Resources location"
+            }
+        },
         "servicePrincipalObjectId": {
             "type": "String",
             "metadata": {
@@ -71,7 +78,7 @@
                 }
             },
             "scope": "[parameters('managementGroupList')[copyIndex()]]",
-            "location": "eastus"
+            "location": "[parameters('location')]"
         }
     ]
 }
