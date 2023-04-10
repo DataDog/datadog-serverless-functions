@@ -1,5 +1,5 @@
 {
-    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "$schema": "https://schema.management.azure.com/schemas/2019-08-01/managementGroupDeploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
         "location": {
@@ -9,20 +9,32 @@
                 "description": "Resources location"
             }
         },
-        "managementGroupName": {
-            "type": "String",
-            "defaultValue": "[managementGroup().name]",
-            "metadata": {
-                "description": "managementGroup, needed for Role Assignment"
-            }
-        },
         "servicePrincipalObjectId": {
             "type": "String",
             "metadata": {
                 "description": "Service principal object Id, needed for Role Assignment"
             }
         },
-        "servicePrincipalClientId": {
+        "managementGroupName": {
+            "type": "String",
+            "defaultValue": "[managementGroup().name]",
+            "metadata": {
+                "description": "Management group Id, to assign a role assignment to"
+            }
+        },
+        "subscriptionID": {
+            "type": "String",
+            "metadata": {
+                "description": "Subscription Id"
+            }
+        },
+        "resourcegroup": {
+            "type": "String",
+            "metadata": {
+                "description": "resource group"
+            }
+        },
+         "servicePrincipalClientId": {
             "type": "String",
             "metadata": {
                 "description": "Service principal Client Id"
@@ -85,107 +97,143 @@
     "variables": {},
     "resources": [
         {
+            "type": "Microsoft.Authorization/roleAssignments",
+            "apiVersion": "2020-10-01-preview",
+            "name": "[guid(parameters('managementGroupName'), 'monitoring reader', parameters('servicePrincipalObjectId'))]",
+            "properties": {
+                "roleDefinitionId": "[concat('/providers/Microsoft.Management/managementGroups/', parameters('managementGroupName'), '/providers/Microsoft.Authorization/roleDefinitions/', '43d0d8ad-25c7-4714-9337-8ba259a9fe05')]",
+                "principalId": "[parameters('servicePrincipalObjectId')]",
+                "principalType": "ServicePrincipal"
+            }
+        },
+        {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2021-04-01",
-            "name": "[concat('roleAssignSubsTpl-', parameters('newguid'))]",
+            "name": "[concat('appregistration-', parameters('newguid'))]",
             "properties": {
                 "mode": "Incremental",
                 "expressionEvaluationOptions": {
                     "scope": "inner"
                 },
                 "parameters": {
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
                     "servicePrincipalObjectId": {
                         "value": "[parameters('servicePrincipalObjectId')]"
                     },
-                    "managementGroupName": {
-                        "value": "[parameters('managementGroupName')]"
+                    "subscriptionID": {
+                        "type": "String",
+                        "value": "[parameters('subscriptionID')]"
+                    },
+                    "resourcegroup": {
+                        "type": "String",
+                        "value": "[parameters('resourcegroup')]"
+                    },
+                     "servicePrincipalClientId": {
+                        "type": "String",
+                        "value": "[parameters('servicePrincipalClientId')]"
+                    },
+                    "servicePrincipalClientSecret": {
+                        "type": "securestring",
+                        "value": "[parameters('servicePrincipalClientSecret')]"
+                    },
+                    "datadogApplicationKey": {
+                        "type": "secureString",
+                        "value": "[parameters('datadogApplicationKey')]"
+                    },
+                    "datadogApiKey": {
+                        "type": "secureString",
+                        "value": "[parameters('datadogApiKey')]"
+                    },
+                    "hostFilters": {
+                        "type": "string",
+                        "value": "[parameters('hostFilters')]"
+                    },
+                    "automute": {
+                        "type": "bool",
+                        "value": "[parameters('automute')]"
+                    },
+                    "cspm_enabled": {
+                        "type": "bool",
+                        "value": "[parameters('cspm_enabled')]"
+                    },
+                    "datadogSite": {
+                        "type": "String",
+                        "value": "[parameters('datadogSite')]"
+                    },
+                    "newguid": {
+                        "type": "string",
+                        "value": "[parameters('newguid')]"
                     }
                 },
                 "template": {
-                    "$schema": "https://schema.management.azure.com/schemas/2019-08-01/managementGroupDeploymentTemplate.json#",
+                    "$schema": "https://schema.management.azure.com/schemas/2018-05-01/deploymentTemplate.json#",
                     "contentVersion": "1.0.0.0",
-                    "parameters": {
-                        "servicePrincipalObjectId": {
-                            "type": "String",
-                            "metadata": {
-                                "description": "Service principal object Id, needed for Role Assignment"
-                            }
-                        },
-                        "managementGroupName": {
-                            "type": "String",
-                            "defaultValue": "[managementGroup().name]",
-                            "metadata": {
-                                "description": "Management group Id, to assign a role assignment to"
-                            }
-                        }
-                    },
-                    "variables": {},
                     "resources": [
                         {
-                            "type": "Microsoft.Authorization/roleAssignments",
-                            "apiVersion": "2020-10-01-preview",
-                            "name": "[guid(parameters('managementGroupName'), 'monitoring reader', parameters('servicePrincipalObjectId'))]",
+                            "type": "Microsoft.Resources/deploymentScripts",
+                            "apiVersion": "2020-10-01",
+                            "name": "[concat('datadog-integration-script-', parameters('newguid'))]",
+                            "location": "[parameters('location')]",
+                            "subscriptionId":"[parameters('subscriptionID')]",
+                            "resourceGroup":"[parameters('resourcegroup')]",
+                            "kind": "AzurePowerShell",
                             "properties": {
-                                "roleDefinitionId": "[concat('/providers/Microsoft.Management/managementGroups/', parameters('managementGroupName'), '/providers/Microsoft.Authorization/roleDefinitions/', '43d0d8ad-25c7-4714-9337-8ba259a9fe05')]",
-                                "principalId": "[parameters('servicePrincipalObjectId')]",
-                                "principalType": "ServicePrincipal"
+                                "environmentVariables": [
+                                    {
+                                        "name": "subscription_id",
+                                        "value": "[subscription().subscriptionId]"
+                                    },
+                                    {
+                                        "name": "clientId",
+                                        "value": "[parameters('servicePrincipalClientId')]"
+                                    },
+                                    {
+                                        "name": "clientSecret",
+                                        "secureValue": "[parameters('servicePrincipalClientSecret')]"
+                                    },
+                                    {
+                                        "name": "datadogApplicationKey",
+                                        "secureValue": "[parameters('datadogApplicationKey')]"
+                                    },
+                                    {
+                                        "name": "datadogApiKey",
+                                        "secureValue": "[parameters('datadogApiKey')]"
+                                    },
+                                    {
+                                        "name": "hostFilters",
+                                        "value": "[parameters('hostFilters')]"
+                                    },
+                                    {
+                                        "name": "automute",
+                                        "value": "[parameters('automute')]"
+                                    },
+                                    {
+                                        "name": "cspm_enabled",
+                                        "value": "[parameters('cspm_enabled')]"
+                                    },
+                                    {
+                                        "name": "datadogSite",
+                                        "value": "[parameters('datadogSite')]"
+                                    },
+                                    {
+                                        "name": "tenantName",
+                                        "value": "[subscription().tenantId]"
+                                    }
+                                ],
+                                "retentionInterval": "PT1H",
+                                "timeout": "PT2M",
+                                "containerSettings": {},
+                                "cleanupPreference": "Always",
+                                "azPowerShellVersion": "8.1",
+                                "scriptContent": "Invoke-WebRequest -SkipCertificateCheck -ContentType \"application/json\" -Method Post -Uri \"https://api.$Env:datadogSite/api/v1/integration/azure\" -Headers @{\"Accept\"=\"application/json\"; \"DD-APPLICATION-KEY\"=$Env:datadogApplicationKey; \"DD-API-KEY\"=$Env:datadogApiKey} -Body (@{\"automute\"=[bool]::Parse($Env:automute); \"cspm_enabled\"=[bool]::Parse($Env:cspm_enabled); \"client_id\"=$Env:clientId; \"client_secret\"=$Env:clientSecret; \"host_filters\"=$Env:hostFilters; \"tenant_name\"=$Env:tenantName} | ConvertTo-Json )"
                             }
                         }
-                    ],
-                    "outputs": {}
+                    ]
                 }
-            }
-        },
-        {
-            "type": "Microsoft.Resources/deploymentScripts",
-            "apiVersion": "2020-10-01",
-            "name": "[concat('datadog-integration-script-', parameters('newguid'))]",
-            "location": "[parameters('location')]",
-            "kind": "AzurePowerShell",
-            "properties": {
-                "environmentVariables": [
-                    {
-                        "name": "clientId",
-                        "value": "[parameters('servicePrincipalClientId')]"
-                    },
-                    {
-                        "name": "clientSecret",
-                        "secureValue": "[parameters('servicePrincipalClientSecret')]"
-                    },
-                    {
-                        "name": "datadogApplicationKey",
-                        "secureValue": "[parameters('datadogApplicationKey')]"
-                    },
-                    {
-                        "name": "datadogApiKey",
-                        "secureValue": "[parameters('datadogApiKey')]"
-                    },
-                    {
-                        "name": "hostFilters",
-                        "value": "[parameters('hostFilters')]"
-                    },
-                    {
-                        "name": "automute",
-                        "value": "[parameters('automute')]"
-                    },
-                    {
-                        "name": "cspm_enabled",
-                        "value": "[parameters('cspm_enabled')]"
-                    },
-                    {
-                        "name": "datadogSite",
-                        "value": "[parameters('datadogSite')]"
-                    }
-                ],
-                "retentionInterval": "PT1H",
-                "timeout": "PT2M",
-                "containerSettings": {},
-                "cleanupPreference": "Always",
-                "azPowerShellVersion": "8.1",
-                "scriptContent": "Invoke-WebRequest -SkipCertificateCheck -ContentType \"application/json\" -Method Post -Uri \"https://api.$Env:datadogSite/api/v1/integration/azure\" -Headers @{\"Accept\"=\"application/json\"; \"DD-APPLICATION-KEY\"=$Env:datadogApplicationKey; \"DD-API-KEY\"=$Env:datadogApiKey} -Body (@{\"automute\"=[bool]::Parse($Env:automute); \"cspm_enabled\"=[bool]::Parse($Env:cspm_enabled); \"client_id\"=$Env:clientId; \"client_secret\"=$Env:clientSecret; \"host_filters\"=$Env:hostFilters; \"tenant_name\"=$Env:tenantName} | ConvertTo-Json )"
             }
         }
     ],
-    "outputs": {
-    }
+    "outputs": {}
 }
