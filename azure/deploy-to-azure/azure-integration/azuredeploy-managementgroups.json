@@ -3,8 +3,8 @@
     "contentVersion": "1.0.0.0",
     "parameters": {
         "location": {
-            "type": "string",
             "defaultValue": "westus2",
+            "type": "String",
             "metadata": {
                 "description": "Resources location"
             }
@@ -16,8 +16,8 @@
             }
         },
         "managementGroupName": {
-            "type": "String",
             "defaultValue": "[managementGroup().name]",
+            "type": "String",
             "metadata": {
                 "description": "Management group Id, to assign a role assignment to"
             }
@@ -34,61 +34,61 @@
                 "description": "resource group"
             }
         },
-         "servicePrincipalClientId": {
+        "servicePrincipalClientId": {
             "type": "String",
             "metadata": {
                 "description": "Service principal Client Id"
             }
         },
         "servicePrincipalClientSecret": {
-            "type": "securestring",
+            "type": "SecureString",
             "metadata": {
                 "description": "Service principal client secret"
             }
         },
         "datadogApplicationKey": {
-            "type": "secureString",
+            "type": "SecureString",
             "metadata": {
                 "description": "Your Datadog Application key"
             }
         },
         "datadogApiKey": {
-            "type": "secureString",
+            "type": "SecureString",
             "metadata": {
                 "description": "Your Datadog API key"
             }
         },
         "hostFilters": {
-            "type": "string",
             "defaultValue": "",
+            "type": "String",
             "metadata": {
                 "description": "Filter to include/exclude hosts"
             }
         },
         "automute": {
-            "type": "bool",
             "defaultValue": true,
+            "type": "Bool",
             "metadata": {
                 "description": "Whether or not to use automute for hosts"
             }
         },
         "cspm_enabled": {
-            "type": "bool",
             "defaultValue": true,
+            "type": "Bool",
             "metadata": {
                 "description": "Collect resources for Cloud Security Posture Management"
             }
         },
         "datadogSite": {
-            "type": "String",
             "defaultValue": "datadoghq.com",
+            "type": "String",
             "metadata": {
                 "description": "The datadog site, e.g. eu1.datadoghq.com"
             }
         },
         "newguid": {
-            "type": "string",
             "defaultValue": "[newGuid()]",
+            "type": "String",
             "metadata": {
                 "description": "Just a Guid to append to deployment script name"
             }
@@ -110,7 +110,6 @@
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2021-04-01",
             "name": "[concat('appregistration-', parameters('newguid'))]",
-            "location": "[parameters('location')]",
             "properties": {
                 "mode": "Incremental",
                 "expressionEvaluationOptions": {
@@ -123,62 +122,78 @@
                     "servicePrincipalObjectId": {
                         "value": "[parameters('servicePrincipalObjectId')]"
                     },
-                    "subscriptionID": {
-                        "type": "String",
-                        "value": "[parameters('subscriptionID')]"
-                    },
-                    "resourcegroup": {
-                        "type": "String",
-                        "value": "[parameters('resourcegroup')]"
-                    },
-                     "servicePrincipalClientId": {
-                        "type": "String",
+                    "servicePrincipalClientId": {
                         "value": "[parameters('servicePrincipalClientId')]"
                     },
                     "servicePrincipalClientSecret": {
-                        "type": "securestring",
                         "value": "[parameters('servicePrincipalClientSecret')]"
                     },
                     "datadogApplicationKey": {
-                        "type": "secureString",
                         "value": "[parameters('datadogApplicationKey')]"
                     },
                     "datadogApiKey": {
-                        "type": "secureString",
                         "value": "[parameters('datadogApiKey')]"
                     },
                     "hostFilters": {
-                        "type": "string",
                         "value": "[parameters('hostFilters')]"
                     },
                     "automute": {
-                        "type": "bool",
                         "value": "[parameters('automute')]"
                     },
                     "cspm_enabled": {
-                        "type": "bool",
                         "value": "[parameters('cspm_enabled')]"
                     },
                     "datadogSite": {
-                        "type": "String",
                         "value": "[parameters('datadogSite')]"
                     },
                     "newguid": {
-                        "type": "string",
                         "value": "[parameters('newguid')]"
                     }
                 },
                 "template": {
                     "$schema": "https://schema.management.azure.com/schemas/2018-05-01/deploymentTemplate.json#",
                     "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "location": {
+                            "type": "String"
+                        },
+                        "servicePrincipalObjectId": {
+                            "type": "String"
+                        },
+                        "servicePrincipalClientId": {
+                            "type": "String"
+                        },
+                        "servicePrincipalClientSecret": {
+                            "type": "securestring"
+                        },
+                        "datadogApplicationKey": {
+                            "type": "secureString"
+                        },
+                        "datadogApiKey": {
+                            "type": "secureString"
+                        },
+                        "hostFilters": {
+                            "type": "string"
+                        },
+                        "automute": {
+                            "type": "bool"
+                        },
+                        "cspm_enabled": {
+                            "type": "bool"
+                        },
+                        "datadogSite": {
+                            "type": "String"
+                        },
+                        "newguid": {
+                            "type": "string"
+                        }
+                    },
                     "resources": [
                         {
                             "type": "Microsoft.Resources/deploymentScripts",
                             "apiVersion": "2020-10-01",
                             "name": "[concat('datadog-integration-script-', parameters('newguid'))]",
                             "location": "[parameters('location')]",
-                            "subscriptionId":"[parameters('subscriptionID')]",
-                            "resourceGroup":"[parameters('resourcegroup')]",
                             "kind": "AzurePowerShell",
                             "properties": {
                                 "environmentVariables": [
@@ -233,7 +248,9 @@
                         }
                     ]
                 }
-            }
+            },
+            "subscriptionId": "[parameters('subscriptionID')]",
+            "resourceGroup": "[parameters('resourcegroup')]"
         }
     ],
     "outputs": {}
