@@ -9,17 +9,22 @@
                 "description": "Resources location"
             }
         },
+        "servicePrincipalClientId": {
+            "type": "String",
+            "metadata": {
+                "description": "Service principal Client Id"
+            }
+        },
         "servicePrincipalObjectId": {
             "type": "String",
             "metadata": {
                 "description": "Service principal object Id, needed for Role Assignment"
             }
         },
-        "managementGroupName": {
-            "defaultValue": "[managementGroup().name]",
-            "type": "String",
+        "servicePrincipalClientSecret": {
+            "type": "SecureString",
             "metadata": {
-                "description": "Management group Id, to assign a role assignment to"
+                "description": "Service principal client secret"
             }
         },
         "subscriptionID": {
@@ -32,18 +37,6 @@
             "type": "String",
             "metadata": {
                 "description": "resource group"
-            }
-        },
-        "servicePrincipalClientId": {
-            "type": "String",
-            "metadata": {
-                "description": "Service principal Client Id"
-            }
-        },
-        "servicePrincipalClientSecret": {
-            "type": "SecureString",
-            "metadata": {
-                "description": "Service principal client secret"
             }
         },
         "datadogApplicationKey": {
@@ -91,6 +84,13 @@
             "type": "String",
             "metadata": {
                 "description": "Just a Guid to append to deployment script name"
+            }
+        },
+        "managementGroupName": {
+            "defaultValue": "[managementGroup().name]",
+            "type": "String",
+            "metadata": {
+                "description": "Management group Id, to assign a role assignment to"
             }
         }
     },
