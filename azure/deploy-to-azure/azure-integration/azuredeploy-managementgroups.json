@@ -249,8 +249,7 @@
                     ]
                 }
             },
-            "subscriptionId": "[parameters('subscriptionID')]",
-            "resourceGroup": "[parameters('resourcegroup')]"
+            "subscriptionId": "[parameters('subscriptionID')]"
         }
     ],
     "outputs": {}
