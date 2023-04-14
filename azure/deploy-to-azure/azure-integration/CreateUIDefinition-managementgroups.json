@@ -57,7 +57,7 @@
                 "name": "subscriptionsID",
                 "type": "Microsoft.Common.DropDown",
                 "label": "Subscription",
-                "toolTip": "Subscription to run the deployment script on",
+                "toolTip": "Subscription to run the deployment on",
                 "filterPlaceholder": "Select subscription to run the deployment script on",
                 "filter": true,
                 "multiselect": false,
@@ -65,7 +65,7 @@
                 "defaultValue": "[map(filter(steps('basics').armio.value,(i) => and(not(equals(i.type,'Microsoft.Management/managementGroups')),not(and(equals(i.properties.permissions,'noaccess'),equals(i.properties.inheritedPermissions,'noaccess'))))),(item) => item.properties.displayName)]",
                 "constraints": {
                     "allowedValues": "[map(filter(steps('basics').armio.value,(i)=>and(not(equals(i.type, 'Microsoft.Management/managementGroups')),not(and(equals(i.properties.permissions, 'noaccess'),equals(i.properties.inheritedPermissions, 'noaccess')))  )), (item)=> parse(concat('{\"label\":\"', item.properties.displayName, '\",\"value\":\"', item.name, '\"}')))]",
-                    "required": false
+                    "required": true
                 },
                 "visible": true
             },
@@ -81,15 +81,15 @@
                "name": "resourceGroup",
                "type": "Microsoft.Common.DropDown",
                "label": "Resource Group",
-               "toolTip": "Resources Group",
-               "filterPlaceholder": "Select subscription to run the deployment script on",
+               "toolTip": "Resource Group to run the deployment on",
+               "filterPlaceholder": "Select resourceGroup to run the deployment script on",
                "filter": true,
                "multiselect": false,
                "selectAll": false,
                "defaultValue": "[map(basics('armrg').value, (item) => parse(concat('{\"label\":\"', item.name, '\",\"value\":\"', item.name, '\"}')))]",
                "constraints": {
                      "allowedValues": "[map(basics('armrg').value, (item) => parse(concat('{\"label\":\"', item.name, '\",\"value\":\"', item.name, '\"}')))]",
-                     "required": false
+                     "required": true
                },
                "visible": true
             },
