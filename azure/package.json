@@ -22,7 +22,7 @@
     "homepage": "https://github.com/DataDog/datadog-serverless-functions#readme",
     "dependencies": {},
     "devDependencies": {
-        "mocha": "^7.2.0",
+        "mocha": "^10.2.0",
         "prettier": "^1.19.1",
         "sinon": "^9.2.4",
         "lodash": ">=4.17.21"
