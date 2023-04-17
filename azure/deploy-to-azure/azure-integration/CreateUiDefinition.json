@@ -192,8 +192,7 @@
                                 "name": "custom_metrics_enabled",
                                 "type": "Microsoft.Common.CheckBox",
                                 "label": "Custom Metrics",
-                                "toolTip": "Whether or not to use custom metrics",
-                                "defaultValue": "false"
+                                "toolTip": "Whether or not to use custom metrics"
                             }
                         ],
                         "visible": true
