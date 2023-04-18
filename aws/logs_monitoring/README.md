@@ -24,12 +24,10 @@ For more information about sending AWS services logs with the Datadog Forwarder,
 
 ## Installation
 
-Datadog recommends using [CloudFormation](#cloudformation) to automatically install the Forwarder. You can also complete the setup process using [Terraform](#terraform) or [manually](#manual).
+Datadog recommends using [CloudFormation](#cloudformation) to automatically install the Forwarder. You can also complete the setup process using [Terraform](#terraform) or [manually](#manual). Once installed, you can subscribe the Forwarder to log sources such as S3 buckets or CloudWatch log groups by [setting up triggers][4].
 
-Once installed, you can subscribe the Forwarder to log sources, such as S3 buckets or CloudWatch log groups, by [setting up triggers][4].
-
-<!-- xxx tabs xxx -->
-<!-- xxx tab "CloudFormation" xxx -->
+{{< tabs >}}
+{{% tab "CloudFormation" %}}
 
 ### CloudFormation
 
@@ -49,8 +47,8 @@ If you had previously enabled your AWS Integration using the [following CloudFor
 [101]: https://docs.datadoghq.com/logs/guide/send-aws-services-logs-with-the-datadog-lambda-function/#set-up-triggers
 [102]: https://github.com/DataDog/cloudformation-template/tree/master/aws
 
-<!-- xxz tab xxx -->
-<!-- xxx tab "Terraform" xxx -->
+{{% /tab %}}
+{{% tab "Terraform" %}}
 
 ### Terraform
 
@@ -109,8 +107,8 @@ resource "aws_cloudformation_stack" "datadog_forwarder" {
 [103]: https://docs.datadoghq.com/logs/guide/send-aws-services-logs-with-the-datadog-lambda-function/#set-up-triggers
 [104]: https://docs.datadoghq.com/getting_started/site/#access-the-datadog-site
 
-<!-- xxz tab xxx -->
-<!-- xxx tab "Manual" xxx -->
+{{% /tab %}}
+{{% tab "Manual" %}}
 
 ### Manual
 
@@ -129,8 +127,8 @@ If you can't install the Forwarder using the provided CloudFormation template, y
 [103]: https://github.com/DataDog/datadog-serverless-functions/blob/029bd46e5c6d4e8b1ae647ed3b4d1917ac3cd793/aws/logs_monitoring/template.yaml#L680
 [104]: https://docs.datadoghq.com/logs/guide/send-aws-services-logs-with-the-datadog-lambda-function/?tab=awsconsole#set-up-triggers
 
-<!-- xxz tab xxx -->
-<!-- xxz tabs xxx -->
+{{% /tab %}}
+{{< /tabs >}}
 
 ### Upgrade to a new version
 
