@@ -73,7 +73,7 @@
     },
     "diagnosticSettingName": {
         "type": "string",
-        "defaultValue": "datadog-activity-logs-diagnostic-setting",
+        "defaultValue": "[concat('datadog-activity-logs-diagnostic-setting-', newGuid())]",
         "metadata": {
             "description": "The name of the diagnostic setting if sending Activity Logs"
         }
