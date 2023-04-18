@@ -31,7 +31,7 @@
     },
     "eventHubName": {
       "type": "string",
-      "defaultValue": "datadog-eventhub",
+      "defaultValue": "[concat('datadog-eventhub-', newGuid())]",
       "metadata": {
         "description": "Name of Event Hub"
       }
@@ -52,7 +52,7 @@
     },
     "functionName": {
       "type": "string",
-      "defaultValue": "datadog-function",
+      "defaultValue": "[concat('datadog-function-', newGuid())]",
       "metadata": {
         "description": "The name of the function."
       }
