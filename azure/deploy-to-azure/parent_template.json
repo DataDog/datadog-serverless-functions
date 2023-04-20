@@ -31,7 +31,7 @@
     },
     "eventHubName": {
       "type": "string",
-      "defaultValue": "[concat('datadog-eventhub-', newGuid())]",
+      "defaultValue": "datadog-eventhub",
       "metadata": {
         "description": "Name of Event Hub"
       }
@@ -52,7 +52,7 @@
     },
     "functionName": {
       "type": "string",
-      "defaultValue": "[concat('datadog-function-', newGuid())]",
+      "defaultValue": "datadog-function",
       "metadata": {
         "description": "The name of the function."
       }
@@ -73,7 +73,7 @@
     },
     "diagnosticSettingName": {
         "type": "string",
-        "defaultValue": "[concat('datadog-activity-logs-diagnostic-setting-', newGuid())]",
+        "defaultValue": "datadog-activity-logs-diagnostic-setting",
         "metadata": {
             "description": "The name of the diagnostic setting if sending Activity Logs"
         }
@@ -155,7 +155,7 @@
     {
       "condition": "[parameters('sendActivityLogs')]",
       "type": "Microsoft.Resources/deployments",
-      "name": "activityLogDiagnosticSettingsTemplate",
+      "name": "[concat('activityLogDiagnosticSettingsTemplate-', newGuid())]",
       "apiVersion": "2018-05-01",
       "properties": {
         "mode": "Incremental",
