@@ -84,7 +84,7 @@
       "metadata": {
           "description": "Just a Guid to append to deployment script name"
       }
-  }
+    }
   },
   "variables": {
     "eventHubTemplateLink": "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/deploy-to-azure/event_hub.json",
