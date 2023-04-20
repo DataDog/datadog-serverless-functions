@@ -77,7 +77,14 @@
         "metadata": {
             "description": "The name of the diagnostic setting if sending Activity Logs"
         }
-    }
+    },
+    "newguid": {
+      "type": "string",
+      "defaultValue": "[newGuid()]",
+      "metadata": {
+          "description": "Just a Guid to append to deployment script name"
+      }
+  }
   },
   "variables": {
     "eventHubTemplateLink": "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/deploy-to-azure/event_hub.json",
@@ -155,7 +162,7 @@
     {
       "condition": "[parameters('sendActivityLogs')]",
       "type": "Microsoft.Resources/deployments",
-      "name": "[concat('activityLogDiagnosticSettingsTemplate-', newGuid())]",
+      "name": "[concat('activityLogDiagnosticSettingsTemplate-', parameters('newguid'))]",
       "apiVersion": "2018-05-01",
       "properties": {
         "mode": "Incremental",
