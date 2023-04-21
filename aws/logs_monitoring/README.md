@@ -18,7 +18,7 @@ The Datadog Forwarder is an AWS Lambda function that ships logs from AWS to Data
 - Forward Kinesis data stream events to Datadog (only CloudWatch logs are supported).
 - Forward metrics, traces, and logs from AWS Lambda functions to Datadog. Datadog recommends you use the [Datadog Lambda Extension][1] to monitor your Lambda functions.
 
-For serverless customers using the Forwarder to forward metrics, traces, and logs from AWS Lambda logs to Datadog, you can [migrate to the Datadog Lambda Extension][3] to collect telemetry directly from the Lambda execution environments. The Forwarder is still available for use, but will only receive security updates.
+For Serverless customers using the Forwarder to forward metrics, traces, and logs from AWS Lambda logs to Datadog, you should [migrate to the Datadog Lambda Extension][3] to collect telemetry directly from the Lambda execution environments. The Forwarder is still available for use in Serverless Monitoring, but will not be updated to support the latest features.
 
 For more information about sending AWS services logs with the Datadog Forwarder, read the [Send AWS Services Logs with the Datadog Lambda Function guide][2].
 
@@ -40,7 +40,7 @@ Datadog recommends using [CloudFormation](#cloudformation) to automatically inst
 5. [Set up triggers to the installed Forwarder][101].
 6. Repeat the steps above in another region if you operate in multiple AWS regions.
 
-If you had previously enabled your AWS Integration using the [following CloudFormation template][102] from your AWS integration page in Datadog, your account should already be provisioned with a Datadog Lambda Forwarder function.  
+If you had previously enabled your AWS Integration using the [following CloudFormation template][102] from your AWS integration page in Datadog, your account may already be provisioned with a Datadog Lambda Forwarder function if you decided to include it. In that case, you will only need to install the Datadog Lambda in additional AWS regions in your account where you wish to export logs.  
 
 **Note:** The code block of the Datadog Lambda Forwarder function is empty, as the logic is implemented through a Lambda layer.
 
