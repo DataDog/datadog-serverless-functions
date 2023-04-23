@@ -1,27 +1,92 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: 2010-09-09
 Transform: AWS::Serverless-2016-10-31
 Description: Pushes RDS Enhanced metrics to Datadog.
 Parameters:
   KMSKeyId:
     Type: String
-    Description: The id (final part of the key's ARN) of a KMS key used to encrypt and decrypt your Datadog API and App keys. 
+    Default: ""
+    Description: The id (final part of the key's ARN) of a KMS key used to encrypt and decrypt your Datadog API and App keys.
+  DdApiKeySsmName:
+    Type: String
+    Default: ""
+    Description: The path to your Datadog API key in SSM
+  DdSite:
+    Type: String
+    Default: datadoghq.com
+    Description: Define your Datadog Site to send data to. Possible values are `datadoghq.com`, `datadoghq.eu`, `us3.datadoghq.com` and `ddog-gov.com`.
+    AllowedPattern: .+
+    ConstraintDescription: DdSite is required
+  DdTags:
+    Type: String
+    Default: ""
+    Description: Add custom tags to metrics, comma-delimited string, no trailing comma, e.g., env:prod,stack:classic
+  FunctionName:
+    Type: String
+    Default: DatadogRdsEnhancedMetrics
+    Description: The Datadog RDS Enhanced Metrics Lambda function name. DO NOT change when updating an existing CloudFormation stack, otherwise the current function will be replaced and all the triggers will be lost.
+Conditions:
+  IsKmsEnabled: !Not
+    - !Equals
+      - !Ref KMSKeyId
+      - ""
+  IsSsmEnabled: !Not
+    - !Equals
+      - !Ref DdApiKeySsmName
+      - ""
+  SetDdTags: !Not
+    - !Equals
+        - !Ref DdTags
+        - ""
 Resources:
-  rdslambdaddfunction:
-    Type: 'AWS::Serverless::Function'
+  RdsEnhancedMetricsFunction:
+    Type: AWS::Serverless::Function
     Properties:
       Description: Pushes RDS Enhanced metrics to Datadog.
+      FunctionName: !Ref FunctionName
       Environment:
         Variables:
-          kmsEncryptedKeys: 'YOUR_KEY'
+          kmsEncryptedKeys: !If
+            - IsKmsEnabled
+            - "YOUR_KEY"
+            - Ref: AWS::NoValue
+          DD_API_KEY_SSM_NAME: !If
+            - IsSsmEnabled
+            - !Ref DdApiKeySsmName
+            - !Ref AWS::NoValue
+          DD_SITE: !Ref DdSite
+          DD_TAGS: !If
+            - SetDdTags
+            - Ref: DdTags
+            - Ref: AWS::NoValue
       Handler: lambda_function.lambda_handler
       MemorySize: 128
       Policies:
-        KMSDecryptPolicy:
-          KeyId: !Ref KMSKeyId
+        - !If
+          - IsKmsEnabled
+          - KMSDecryptPolicy:
+              KeyId: !Ref KMSKeyId
+          - !Ref AWS::NoValue
+        - !If
+          - IsSsmEnabled
+          - SSMParameterReadPolicy:
+              ParameterName: !Ref DdApiKeySsmName
+          - !Ref AWS::NoValue
       Runtime: python3.7
       Timeout: 10
-      KmsKeyArn:
-        !Sub
-          - 'arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key/${keyId}'
-          - {keyId: !Ref KMSKeyId}
-    Type: AWS::Serverless::Function
+      KmsKeyArn: !If
+        - IsKmsEnabled
+        - !Sub
+          - "arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key/${keyId}"
+          - keyId: !Ref KMSKeyId
+        - !Ref AWS::NoValue
+Outputs:
+  RdsEnhancedMetricsFunctionArn:
+    Description: Datadog RDS Enhanced Metrics Function ARN
+    Value:
+      Fn::GetAtt:
+        - RdsEnhancedMetricsFunction
+        - Arn
+    Export:
+      Name:
+        Fn::Sub: ${AWS::StackName}-RdsEnhancedMetricsFunctionArn
+		
