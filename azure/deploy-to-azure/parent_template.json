@@ -73,7 +73,7 @@
     },
     "diagnosticSettingName": {
         "type": "string",
-        "defaultValue": "datadog-activity-logs-diagnostic-setting",
+        "defaultValue": "[concat('datadog-activity-logs-diagnostic-setting-', uniqueString(newGuid()))]",
         "metadata": {
             "description": "The name of the diagnostic setting if sending Activity Logs"
         }
@@ -155,7 +155,7 @@
     {
       "condition": "[parameters('sendActivityLogs')]",
       "type": "Microsoft.Resources/deployments",
-      "name": "activityLogDiagnosticSettingsTemplate",
+      "name": "[concat(parameters('diagnosticSettingName'), '-Template')]",
       "apiVersion": "2018-05-01",
       "properties": {
         "mode": "Incremental",
