@@ -330,6 +330,7 @@ def find_cloudwatch_source(log_group):
         "msk",
         "elasticsearch",
         "transitgateway",
+        "verified-access",
     ]:
         if source in log_group:
             return source
@@ -379,6 +380,7 @@ def find_s3_source(key):
         "amazon_msk",
         "network-firewall",
         "cloudfront",
+        "verified-access",
     ]:
         if source in key:
             return source.replace("amazon_", "")
@@ -520,6 +522,13 @@ def awslogs_handler(event, context, metadata):
 
     if metadata[DD_SOURCE] == "appsync":
         metadata[DD_HOST] = aws_attributes["aws"]["awslogs"]["logGroup"].split("/")[-1]
+
+    if metadata[DD_SOURCE] == "verified-access":
+        try:
+            message = json.loads(logs["logEvents"][0]["message"])
+            metadata[DD_HOST] = message["http_request"]["url"]["hostname"]
+        except Exception as e:
+            logger.debug("Unable to set verified-access log host: %s" % e)
 
     if metadata[DD_SOURCE] == "stepfunction" and logs["logStream"].startswith(
         "states/"
