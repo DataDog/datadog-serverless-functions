@@ -197,15 +197,7 @@
                 "type": "Microsoft.Common.TextBlock",
                 "visible": true,
                 "options": {
-                  "text": "Metrics will be collected for all Azure resources by default."
-                }
-              },
-              {
-                "name": "textBlock2",
-                "type": "Microsoft.Common.TextBlock",
-                "visible": true,
-                "options": {
-                  "text": "Optionally, you can limit metric collection for Virtual Machines, Virtual Machine Scale Sets and App Service Plans using tags in order to control your Datadog costs.",
+                  "text": "Metrics will be collected for all Azure resources by default. Optionally, you can limit metric collection for Virtual Machines, Virtual Machine Scale Sets and App Service Plans using tags in order to control your Datadog costs.",
                   "link": {
                     "label": "Learn more",
                     "uri": "https://docs.datadoghq.com/account_management/billing/azure/"
