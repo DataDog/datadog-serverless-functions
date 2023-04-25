@@ -94,9 +94,9 @@
                 "type": "Microsoft.Common.TextBlock",
                 "visible": true,
                 "options": {
-                  "text": "To fill out the fields below, copy the API and App Keys from your Datadog org. If you launched this template from the Azure tile, you can copy the keys you selected directly from there.",
+                  "text": "To fill out the fields below, copy the API and App Keys from your Datadog org. If you launched this template from the Azure tile, you can copy the keys you selected directly from there. Otherwise you can find your API and App Keys in the Access section of the Organization Settings.",
                   "link": {
-                    "label": "Otherwise you can find your API and App Keys in the Access section of the Organization Settings.",
+                    "label": "Learn more",
                     "uri": "https://docs.datadoghq.com/account_management/org_settings/#access"
                   }
                 }
