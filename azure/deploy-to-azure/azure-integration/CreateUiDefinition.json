@@ -82,12 +82,12 @@
       {
         "name": "datadogConfig",
         "type": "Microsoft.Common.Section",
-        "label": "Datadog Organization",
+        "label": "Datadog Configuration",
         "elements": [
           {
             "name": "datadogIntegration",
             "type": "Microsoft.Common.Section",
-            "label": "Datadog Integration Keys",
+            "label": "Datadog Organization",
             "elements": [
               {
                 "name": "textBlock1",
