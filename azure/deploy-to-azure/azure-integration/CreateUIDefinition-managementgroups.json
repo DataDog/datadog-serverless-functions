@@ -87,7 +87,7 @@
                 "visible": true,
                 "options": {
                   "icon": "Info",
-                  "text": "The following steps involve navigating away from this template. Please read them carefully before continuing.\n1. Select the option to create a new app registration.\n2. Give it a name and account type (the account type doesn’t matter)\n3. Hit Register. This will take you away from this template screen.\n4. Create a Client Secret. \n5. Copy the Value of the Client Secret.\n6. Hit the X in the corner to return to this template."
+                  "text": "The following steps involve navigating away from this template. Please read them carefully before continuing.\n\n1. Select the option to create a new app registration.\n2. Give it a name and account type (the account type doesn’t matter)\n3. Hit Register. This will take you away from this template screen.\n4. Create a Client Secret. \n5. Copy the Value of the Client Secret.\n6. Hit the X in the corner to return to this template."
                 }
               },
               {
