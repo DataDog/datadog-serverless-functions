@@ -86,7 +86,7 @@
                 "type": "Microsoft.Common.InfoBox",
                 "visible": true,
                 "options": {
-                  "icon": "Warning",
+                  "icon": "Info",
                   "text": "The following steps involve navigating away from this template. Please read them carefully before continuing.\n1. Select the option to create a new app registration.\n2. Give it a name and account type (the account type doesn’t matter)\n3. Hit Register. This will take you away from this template screen.\n4. Create a Client Secret. \n5. Copy the Value of the Client Secret.\n6. Hit the X in the corner to return to this template."
                 }
               },
@@ -127,7 +127,7 @@
           {
             "name": "datadogIntegration",
             "type": "Microsoft.Common.Section",
-            "label": "Datadog Integration Keys",
+            "label": "Datadog Organization",
             "elements": [
               {
                 "name": "textBlock1",
@@ -221,15 +221,11 @@
                 "type": "Microsoft.Common.TextBlock",
                 "visible": true,
                 "options": {
-                  "text": "Metrics will be collected for all resoures, except Virtual Machines, Virtual Machine Scale Sets and App Service Plans which can be filtered by tags."
-                }
-              },
-              {
-                "name": "textBlock2",
-                "type": "Microsoft.Common.TextBlock",
-                "visible": true,
-                "options": {
-                  "text": "Optionally limit metrics collection to Virtual Machines, Virtual Machine Scale Sets and App Service Plans to hosts using tags."
+                  "text": "Metrics will be collected for all Azure resources by default. Optionally, you can limit metric collection for Virtual Machines, Virtual Machine Scale Sets and App Service Plans using tags in order to control your Datadog costs.",
+                  "link": {
+                    "label": "Learn more",
+                    "uri": "https://docs.datadoghq.com/account_management/billing/azure/"
+                  }
                 }
               },
               {
@@ -254,8 +250,7 @@
                 "name": "cspm_enabled",
                 "type": "Microsoft.Common.CheckBox",
                 "label": "Cloud Security Posture Management",
-                "toolTip": "When enabled, Datadog performs configuration checks across your Azure environment by continuously scanning every resource. Use Datadog's executive reporting summaries to track conformance to industry benchmark criteria.",
-                "defaultValue": "true"
+                "toolTip": "When enabled, Datadog performs configuration checks across your Azure environment by continuously scanning every resource. Use Datadog's executive reporting summaries to track conformance to industry benchmark criteria."
               },
               {
                 "name": "custom_metrics_enabled",
