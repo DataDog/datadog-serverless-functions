@@ -1,59 +1,182 @@
 {
-    "$schema": "https://schema.management.azure.com/schemas/0.1.2-preview/CreateUIDefinition.MultiVm.json#",
-    "handler": "Microsoft.Azure.CreateUIDef",
-    "version": "0.1.2-preview",
-    "parameters": {
-        "basics": [
-            {
-                "name": "location",
-                "type": "Microsoft.Common.TextBox",
-                "label": "Location",
-                "defaultValue": "global",
-                "toolTip": "Resources location",
-                "visible": false
-            },
-            {
-                "name": "infoServicePrincipal",
+  "$schema": "https://schema.management.azure.com/schemas/0.1.2-preview/CreateUIDefinition.MultiVm.json#",
+  "handler": "Microsoft.Azure.CreateUIDef",
+  "version": "0.1.2-preview",
+  "parameters": {
+    "basics": [
+      {
+        "name": "location",
+        "type": "Microsoft.Common.TextBox",
+        "label": "Location",
+        "defaultValue": "global",
+        "toolTip": "Resources location",
+        "visible": false
+      },
+      {
+        "name": "infoBox1",
+        "type": "Microsoft.Common.InfoBox",
+        "visible": true,
+        "options": {
+          "icon": "Info",
+          "text": "The selection of subscription and resource group above defines where this template will be deployed. It has no impact on which subscriptions will be monitored by Datadog. You will define the subscription(s) you would like to monitor with Datadog in the 'Datadog Configuration' tab."
+        }
+      },
+      {
+        "name": "armio",
+        "type": "Microsoft.Solutions.ArmApiControl",
+        "request": {
+          "method": "POST",
+          "path": "/providers/Microsoft.Management/getEntities?api-version=2020-05-01"
+        }
+      }
+    ],
+    "steps": [
+      {
+        "name": "servicePrincipal",
+        "type": "Microsoft.Common.Section",
+        "label": "Service Principal",
+        "elements": [
+          {
+            "name": "createAppReg",
+            "type": "Microsoft.Common.Section",
+            "label": "Create Datadog App Registration",
+            "elements": [
+              {
+                "name": "infoBox1",
                 "type": "Microsoft.Common.InfoBox",
                 "visible": true,
                 "options": {
-                    "icon": "Warning",
-                    "text": "Create a new Service Principal, add a Client Secret to it and copy it, then Press the X on top right to return to this form and paste it in the Client Secret field below."
+                  "icon": "Info",
+                  "text": "The following steps involve navigating away from this template. Please read them carefully before continuing.\n\n1. Select the option to create a new app registration.\n2. Give it a name and account type (the account type doesn’t matter)\n3. Hit Register. This will take you away from this template screen.\n4. Create a Client Secret. \n5. Copy the Value of the Client Secret.\n6. Hit the X in the corner to return to this template."
                 }
-            },
-            {
+              },
+              {
                 "name": "ServicePrincipal",
                 "type": "Microsoft.Common.ServicePrincipalSelector",
                 "label": {
-                    "servicePrincipalId": "Service Principal Id",
-                    "password": "Client secret",
-                    "sectionHeader": "Service Principal"
+                  "servicePrincipalId": "Service Principal Id",
+                  "password": "Client secret",
+                  "sectionHeader": "Service Principal"
                 },
                 "toolTip": {
-                    "servicePrincipalId": "Service Principal Id"
+                  "servicePrincipalId": "Service Principal Id"
                 },
                 "defaultValue": {
-                    "principalId": "<default guid>",
-                    "name": "(New) default App Id"
+                  "principalId": "<default guid>",
+                  "name": "(New) default App Id"
                 },
                 "constraints": {
-                    "required": true,
-                    "validationMessage": "Must be a valid client secret"
+                  "required": true,
+                  "validationMessage": "Must be a valid client secret"
                 },
                 "options": {
-                    "hideCertificate": true
+                  "hideCertificate": true
                 },
                 "visible": true
-            },
-            {
-                "name": "armio",
-                "type": "Microsoft.Solutions.ArmApiControl",
-                "request": {
-                    "method": "POST",
-                    "path": "/providers/Microsoft.Management/getEntities?api-version=2020-05-01"
+              }
+            ],
+            "visible": true
+          }
+        ]
+      },
+      {
+        "name": "datadogConfig",
+        "type": "Microsoft.Common.Section",
+        "label": "Datadog Configuration",
+        "elements": [
+          {
+            "name": "datadogIntegration",
+            "type": "Microsoft.Common.Section",
+            "label": "Datadog Organization",
+            "elements": [
+              {
+                "name": "textBlock1",
+                "type": "Microsoft.Common.TextBlock",
+                "visible": true,
+                "options": {
+                  "text": "To fill out the fields below, copy the API and App Keys from your Datadog org. If you launched this template from the Azure tile, you can copy the keys you selected directly from there. Otherwise you can find your API and App Keys in the Access section of the Organization Settings.",
+                  "link": {
+                    "label": "Learn more",
+                    "uri": "https://docs.datadoghq.com/account_management/org_settings/#access"
+                  }
                 }
+              },
+              {
+                "name": "datadogApplicationKey",
+                "type": "Microsoft.Common.PasswordBox",
+                "label": {
+                  "password": "Datadog Application Key",
+                  "confirmPassword": "Re-enter Datadog Application Key"
+                },
+                "toolTip": "Your Datadog Application key",
+                "constraints": {
+                  "required": true,
+                  "validationMessage": "Must be a valid Application Key"
+                },
+                "options": {
+                  "hideConfirmation": true
+                },
+                "visible": true
+              },
+              {
+                "name": "datadogApiKey",
+                "type": "Microsoft.Common.PasswordBox",
+                "label": {
+                  "password": "Datadog API Key",
+                  "confirmPassword": "Re-enter Datadog Api Key"
+                },
+                "toolTip": "Your Datadog API key",
+                "constraints": {
+                  "required": true,
+                  "validationMessage": "Must be a valid API Key"
+                },
+                "options": {
+                  "hideConfirmation": true
+                },
+                "visible": true
+              }
+            ],
+            "visible": true
+          },
+          {
+            "name": "datadogSite",
+            "type": "Microsoft.Common.DropDown",
+            "label": "Datadog Site",
+            "defaultValue": "US1",
+            "toolTip": "The datadog site where you usually login. For US3, search for and install the Datadog Resource from the Azure Marketplace instead of using this form",
+            "constraints": {
+              "allowedValues": [
+                {
+                  "label": "US1",
+                  "value": "datadoghq.com"
+                },
+                {
+                  "label": "US5",
+                  "value": "us5.datadoghq.com"
+                },
+                {
+                  "label": "EU1",
+                  "value": "datadoghq.eu"
+                },
+                {
+                  "label": "US1-FED",
+                  "value": "ddog-gov.com"
+                },
+                {
+                  "label": "Staging",
+                  "value": "ddstaging.datadoghq.com"
+                }
+              ],
+              "required": false
             },
-            {
+            "visible": true
+          },
+          {
+            "name": "integrationConfig",
+            "type": "Microsoft.Common.Section",
+            "label": "Integration Configuration",
+            "elements": [
+              {
                 "name": "subscriptionsList",
                 "type": "Microsoft.Common.DropDown",
                 "label": "Subscriptions to monitor",
@@ -64,154 +187,72 @@
                 "selectAll": true,
                 "defaultValue": "[map(filter(steps('basics').armio.value,(i) => and(not(equals(i.type,'Microsoft.Management/managementGroups')),not(and(equals(i.properties.permissions,'noaccess'),equals(i.properties.inheritedPermissions,'noaccess'))))),(item) => item.properties.displayName)]",
                 "constraints": {
-                    "allowedValues": "[map(filter(steps('basics').armio.value, (i)=>and(   not(equals(i.type, 'Microsoft.Management/managementGroups')),   not(and(equals(i.properties.permissions, 'noaccess'),equals(i.properties.inheritedPermissions, 'noaccess')))  )), (item)=> parse(concat('{\"label\":\"', item.properties.displayName, '\",\"value\":\"', item.name, '\"}')))]",
-                    "required": false
+                  "allowedValues": "[map(filter(steps('basics').armio.value, (i)=>and(   not(equals(i.type, 'Microsoft.Management/managementGroups')),   not(and(equals(i.properties.permissions, 'noaccess'),equals(i.properties.inheritedPermissions, 'noaccess')))  )), (item)=> parse(concat('{\"label\":\"', item.properties.displayName, '\",\"value\":\"', item.name, '\"}')))]",
+                  "required": false
                 },
                 "visible": true
-            },
-            {
-                "name": "datadogApplicationKey",
-                "type": "Microsoft.Common.PasswordBox",
-                "label": {
-                    "password": "Datadog Application Key",
-                    "confirmPassword": "Re-enter Datadog Application Key"
-                },
-                "toolTip": "Your Datadog Application key",
-                "constraints": {
-                    "required": true,
-                    "validationMessage": "Must be a valid Application Key"
-                },
+              },
+              {
+                "name": "textBlock1",
+                "type": "Microsoft.Common.TextBlock",
+                "visible": true,
                 "options": {
-                    "hideConfirmation": true
-                },
-                "visible": true
-            },
-            {
-                "name": "datadogApiKey",
-                "type": "Microsoft.Common.PasswordBox",
-                "label": {
-                    "password": "Datadog API Key",
-                    "confirmPassword": "Re-enter Datadog Api Key"
-                },
-                "toolTip": "Your Datadog API key",
+                  "text": "Metrics will be collected for all Azure resources by default. Optionally, you can limit metric collection for Virtual Machines, Virtual Machine Scale Sets and App Service Plans using tags in order to control your Datadog costs.",
+                  "link": {
+                    "label": "Learn more",
+                    "uri": "https://docs.datadoghq.com/account_management/billing/azure/"
+                  }
+                }
+              },
+              {
+                "name": "hostFilters",
+                "type": "Microsoft.Common.TextBox",
+                "label": "Host Filters",
+                "defaultValue": "",
+                "toolTip": "This comma-separated list of Azure tags (in the form key:value) defines a filter that we will use when collecting metrics from Azure. Only hosts that match one of the defined labels will be imported into Datadog. The rest will be ignored.  Wildcards, such as ? (for single characters) and * (for multiple characters) can also be used. Hosts matching a given label can also be excluded by adding ! before the label.  Example: datadog:monitored,env:production,!env:staging,instance-type:c1.*",
                 "constraints": {
-                    "required": true,
-                    "validationMessage": "Must be a valid API Key"
-                },
-                "options": {
-                    "hideConfirmation": true
+                  "required": false
                 },
                 "visible": true
-            },
-            {
-                "name": "datadogSite",
-                "type": "Microsoft.Common.DropDown",
-                "label": "Datadog Site",
-                "defaultValue": "US1",
-                "toolTip": "The datadog site where you usually login. For US3, search for and install the Datadog Resource from the Azure Marketplace instead of using this form",
-                "constraints": {
-                    "allowedValues": [
-                        {
-                            "label": "US1",
-                            "value": "datadoghq.com"
-                        },
-                        {
-                            "label": "US5",
-                            "value": "us5.datadoghq.com"
-                        },
-                        {
-                            "label": "EU1",
-                            "value": "datadoghq.eu"
-                        },
-                        {
-                            "label": "US1-FED",
-                            "value": "ddog-gov.com"
-                        },
-                        {
-                            "label": "Staging",
-                            "value": "ddstaging.datadoghq.com"
-                        }
-                    ],
-                    "required": false
-                },
-                "visible": true
-            }
-        ],
-        "steps": [
-            {
-                "name": "metrics",
-                "label": "Metrics",
-                "elements": [
-                    {
-                        "name": "metrics",
-                        "type": "Microsoft.Common.Section",
-                        "label": "Metrics",
-                        "elements": [
-                            {
-                                "name": "textBlock1",
-                                "type": "Microsoft.Common.TextBlock",
-                                "visible": true,
-                                "options": {
-                                    "text": "Metrics will be collected for all resoures, except Virtual Machines, Virtual Machine Scale Sets and App Service Plans which can be filtered by tags."
-                                }
-                            },
-                            {
-                                "name": "textBlock2",
-                                "type": "Microsoft.Common.TextBlock",
-                                "visible": true,
-                                "options": {
-                                    "text": "Optionally limit metrics collection to Virtual Machines, Virtual Machine Scale Sets and App Service Plans to hosts using tags."
-                                }
-                            },
-                            {
-                                "name": "hostFilters",
-                                "type": "Microsoft.Common.TextBox",
-                                "label": "Host Filters",
-                                "defaultValue": "",
-                                "toolTip": "This comma-separated list of Azure tags (in the form key:value) defines a filter that we will use when collecting metrics from Azure. Only hosts that match one of the defined labels will be imported into Datadog. The rest will be ignored.  Wildcards, such as ? (for single characters) and * (for multiple characters) can also be used. Hosts matching a given label can also be excluded by adding ! before the label.  Example: datadog:monitored,env:production,!env:staging,instance-type:c1.*",
-                                "constraints": {
-                                    "required": false
-                                },
-                                "visible": true
-                            },
-                            {
-                                "name": "automute",
-                                "type": "Microsoft.Common.CheckBox",
-                                "label": "Automute",
-                                "toolTip": "Whether or not to use automute for hosts",
-                                "defaultValue": "true"
-                            },
-                            {
-                                "name": "cspm_enabled",
-                                "type": "Microsoft.Common.CheckBox",
-                                "label": "Cloud Security Posture Management",
-                                "toolTip": "When enabled, Datadog performs configuration checks across your Azure environment by continuously scanning every resource. Use Datadog's executive reporting summaries to track conformance to industry benchmark criteria."
-                            },
-                            {
-                                "name": "custom_metrics_enabled",
-                                "type": "Microsoft.Common.CheckBox",
-                                "label": "Custom Metrics",
-                                "toolTip": "Whether or not to use custom metrics"
-                            }
-                        ],
-                        "visible": true
-                    }
-                ]
-            }
-        ],
-        "outputs": {
-            "location": "[location()]",
-            "servicePrincipalClientId": "[basics('ServicePrincipal').appId]",
-            "servicePrincipalObjectId": "[first(basics('ServicePrincipal').objectId)]",
-            "servicePrincipalClientSecret": "[basics('ServicePrincipal').password]",
-            "subscriptionsList": "[basics('subscriptionsList')]",
-            "datadogApplicationKey": "[basics('datadogApplicationKey')]",
-            "datadogApiKey": "[basics('datadogApiKey')]",
-            "datadogSite": "[basics('datadogSite')]",
-            "hostFilters": "[steps('metrics').metrics.hostFilters]",
-            "automute": "[steps('metrics').metrics.automute]",
-            "cspm_enabled": "[steps('metrics').metrics.cspm_enabled]",
-            "custom_metrics_enabled": "[steps('metrics').metrics.custom_metrics_enabled]"
-        }
+              },
+              {
+                "name": "automute",
+                "type": "Microsoft.Common.CheckBox",
+                "label": "Automute",
+                "toolTip": "Whether or not to use automute for hosts",
+                "defaultValue": "true"
+              },
+              {
+                "name": "cspm_enabled",
+                "type": "Microsoft.Common.CheckBox",
+                "label": "Cloud Security Posture Management",
+                "toolTip": "When enabled, Datadog performs configuration checks across your Azure environment by continuously scanning every resource. Use Datadog's executive reporting summaries to track conformance to industry benchmark criteria."
+              },
+              {
+                "name": "custom_metrics_enabled",
+                "type": "Microsoft.Common.CheckBox",
+                "label": "Custom Metrics",
+                "toolTip": "Whether or not to use custom metrics"
+              }
+            ],
+            "visible": true
+          }
+        ]
+      }
+    ],
+    "outputs": {
+      "location": "[location()]",
+      "servicePrincipalClientId": "[steps('servicePrincipal').createAppReg.ServicePrincipal.appId]",
+      "servicePrincipalObjectId": "[first(steps('servicePrincipal').createAppReg.ServicePrincipal.objectId)]",
+      "servicePrincipalClientSecret": "[steps('servicePrincipal').createAppReg.ServicePrincipal.password]",
+      "subscriptionsList": "[steps('datadogConfig').integrationConfig.subscriptionsList]",
+      "datadogApplicationKey": "[steps('datadogConfig').datadogIntegration.datadogApplicationKey]",
+      "datadogApiKey": "[steps('datadogConfig').datadogIntegration.datadogApiKey]",
+      "datadogSite": "[steps('datadogConfig').datadogSite]",
+      "hostFilters": "[steps('datadogConfig').integrationConfig.hostFilters]",
+      "automute": "[steps('datadogConfig').integrationConfig.automute]",
+      "cspm_enabled": "[steps('datadogConfig').integrationConfig.cspm_enabled]",
+      "custom_metrics_enabled": "[steps('datadogConfig').integrationConfig.custom_metrics_enabled]"
     }
+  }
 }
