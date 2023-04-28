@@ -261,7 +261,7 @@
       "datadogApiKey": "[steps('datadogConfig').datadogIntegration.datadogApiKey]",
       "datadogSite": "[steps('datadogConfig').datadogSite]",
       "hostFilters": "[steps('datadogConfig').integrationConfig.hostFilters]",
-      "appFilters": "[steps('datadogConfig').metrics.appFilters]",
+      "appFilters": "[steps('datadogConfig').integrationConfig.appFilters]",
       "automute": "[steps('datadogConfig').integrationConfig.automute]",
       "cspm_enabled": "[steps('datadogConfig').integrationConfig.cspm_enabled]",
       "custom_metrics_enabled": "[steps('datadogConfig').integrationConfig.custom_metrics_enabled]"
