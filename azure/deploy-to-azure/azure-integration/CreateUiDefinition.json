@@ -216,7 +216,7 @@
                 "visible": true
               },
               {
-                "name": "appFilters",
+                "name": "appServicePlanFilters",
                 "type": "Microsoft.Common.TextBox",
                 "label": "App Service Plan Filters",
                 "defaultValue": "",
@@ -261,7 +261,7 @@
       "datadogApiKey": "[steps('datadogConfig').datadogIntegration.datadogApiKey]",
       "datadogSite": "[steps('datadogConfig').datadogSite]",
       "hostFilters": "[steps('datadogConfig').integrationConfig.hostFilters]",
-      "appFilters": "[steps('datadogConfig').integrationConfig.appFilters]",
+      "appServicePlanFilters": "[steps('datadogConfig').integrationConfig.appServicePlanFilters]",
       "automute": "[steps('datadogConfig').integrationConfig.automute]",
       "cspm_enabled": "[steps('datadogConfig').integrationConfig.cspm_enabled]",
       "custom_metrics_enabled": "[steps('datadogConfig').integrationConfig.custom_metrics_enabled]"
