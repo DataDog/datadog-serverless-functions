@@ -194,6 +194,10 @@
                     {
                         "name": "tenantName",
                         "value": "[subscription().tenantId]"
+                    },
+                    {
+                        "name":"source",
+                        "value": "datadog_arm_template_per_subscription"
                     }
                 ],
                 "retentionInterval": "PT1H",
@@ -201,7 +205,7 @@
                 "containerSettings": {},
                 "cleanupPreference": "Always",
                 "azPowerShellVersion": "8.1",
-                "scriptContent": "Invoke-WebRequest -SkipCertificateCheck -ContentType \"application/json\" -Method Post -Uri \"https://api.$Env:datadogSite/api/v1/integration/azure\" -Headers @{\"Accept\"=\"application/json\"; \"DD-APPLICATION-KEY\"=$Env:datadogApplicationKey; \"DD-API-KEY\"=$Env:datadogApiKey} -Body (@{\"automute\"=[bool]::Parse($Env:automute); \"cspm_enabled\"=[bool]::Parse($Env:cspm_enabled); \"custom_metrics_enabled\"=[bool]::Parse($Env:custom_metrics_enabled); \"client_id\"=$Env:clientId; \"client_secret\"=$Env:clientSecret; \"tenant_name\"=$Env:tenantName} | ConvertTo-Json )"
+                "scriptContent": "Invoke-WebRequest -SkipCertificateCheck -ContentType \"application/json\" -Method Post -Uri \"https://api.$Env:datadogSite/api/v1/integration/azure\" -Headers @{\"Accept\"=\"application/json\"; \"DD-APPLICATION-KEY\"=$Env:datadogApplicationKey; \"DD-API-KEY\"=$Env:datadogApiKey} -Body (@{\"automute\"=[bool]::Parse($Env:automute); \"cspm_enabled\"=[bool]::Parse($Env:cspm_enabled); \"custom_metrics_enabled\"=[bool]::Parse($Env:custom_metrics_enabled); \"client_id\"=$Env:clientId; \"client_secret\"=$Env:clientSecret; \"tenant_name\"=$Env:tenantName; \"source\"=$Env:source} | ConvertTo-Json )"
             }
         },
         {
