@@ -34,6 +34,10 @@
                 "description": "Subscriptions list to monitor"
             }
         },
+        "subscriptionCount": {
+            "type": "int",
+            "defaultValue": "[length(parameters('subscriptionsList'))]"
+        },
         "datadogApplicationKey": {
             "type": "secureString",
             "metadata": {
@@ -158,6 +162,10 @@
                     {
                         "name": "subscription_id",
                         "value": "[subscription().subscriptionId]"
+                    },
+                    {
+                        "name": "subscription_count",
+                        "value": "[parameters('subscriptionCount')]"
                     },
                     {
                         "name": "clientId",
@@ -308,5 +316,9 @@
         }
     ],
     "outputs": {
+        "subscriptionCount": {
+            "type": "int",
+            "value": "[parameters('subscriptionCount')]"
+        }
     }
 }
