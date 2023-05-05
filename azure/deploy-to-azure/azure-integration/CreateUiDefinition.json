@@ -163,8 +163,12 @@
                   "value": "ddog-gov.com"
                 },
                 {
-                  "label": "Staging",
-                  "value": "ddstaging.datadoghq.com"
+                  "label": "Staging1",
+                  "value": "datad0g.com"
+                },
+                {
+                  "label": "Staging2",
+                  "value": "dd.datad0g.com"
                 }
               ],
               "required": false
