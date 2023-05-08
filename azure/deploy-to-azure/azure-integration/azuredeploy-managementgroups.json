@@ -271,7 +271,7 @@
                                     },
                                     {
                                         "name":"source",
-                                        "value": "datadog_arm_template_management_group"
+                                        "value": "arm_template_mgmt_group"
                                     },
                                     {
                                         "name":"managementGroupId",

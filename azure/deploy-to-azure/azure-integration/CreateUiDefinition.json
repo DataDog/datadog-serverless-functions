@@ -165,10 +165,6 @@
                 {
                   "label": "Staging1",
                   "value": "datad0g.com"
-                },
-                {
-                  "label": "Staging2",
-                  "value": "dd.datad0g.com"
                 }
               ],
               "required": false

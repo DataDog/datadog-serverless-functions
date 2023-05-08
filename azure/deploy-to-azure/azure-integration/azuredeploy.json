@@ -205,7 +205,7 @@
                     },
                     {
                         "name":"source",
-                        "value": "datadog_arm_template_per_subscription"
+                        "value": "arm_template_subscription"
                     }
                 ],
                 "retentionInterval": "PT1H",
