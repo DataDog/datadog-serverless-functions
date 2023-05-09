@@ -47,7 +47,7 @@
                 "visible": true,
                 "options": {
                   "icon": "Info",
-                  "text": "The following steps involve navigating away from this template. Please read them carefully before continuing.\n\n1. Select the option to create a new app registration.\n2. Give it a name and select any account type.\n3. Click 'Register'. This will open a new page to create a client secret.\n4. Click ‘+ New Client Secret’ to add a Client Secret.\n5. Copy the Value of the Client Secret.\n6. Click the close (X) button in the top-right corner to return to this template screen.\n7 Paste the value of the Client Secret in the corresponding field on this template."
+                  "text": "The following steps involve navigating away from this template. Please read them carefully before continuing.\n\n1. Select the option to create a new app registration, and click 'Change Selection'.\n2. Give it a name and select any account type.\n3. Click 'Register'. This will open a new page to create a client secret.\n4. Click ‘+ New Client Secret’ to add a Client Secret.\n5. Copy the Value of the Client Secret.\n6. Click the close (X) button in the top-right corner to return to this template screen.\n7 Paste the value of the Client Secret in the corresponding field on this template."
                 }
               },
               {
@@ -94,7 +94,7 @@
                 "type": "Microsoft.Common.TextBlock",
                 "visible": true,
                 "options": {
-                  "text": "To fill out the fields below, copy the API and App Keys from your Datadog org. If you launched this template from the Azure tile, you can copy the keys you selected directly from there. Otherwise you can find your API and App Keys in the Access section of the Organization Settings.",
+                  "text": "To fill out the fields below, copy the API and App Keys from your Datadog org. If you launched this template from the Azure tile, refer back to the tile to select and copy the keys. Otherwise you can find your API and App Keys in the Access section of the Organization Settings.",
                   "link": {
                     "label": "Learn more",
                     "uri": "https://docs.datadoghq.com/account_management/org_settings/"
