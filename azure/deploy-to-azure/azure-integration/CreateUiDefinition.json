@@ -161,10 +161,6 @@
                 {
                   "label": "US1-FED",
                   "value": "ddog-gov.com"
-                },
-                {
-                  "label": "Staging1",
-                  "value": "datad0g.com"
                 }
               ],
               "required": false
