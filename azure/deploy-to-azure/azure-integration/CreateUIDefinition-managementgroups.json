@@ -134,29 +134,12 @@
                 "type": "Microsoft.Common.TextBlock",
                 "visible": true,
                 "options": {
-                  "text": "To fill out the fields below, copy the API and App Keys from your Datadog org. If you launched this template from the Azure tile, refer back to the tile to select and copy the keys. Otherwise you can find your API and App Keys in the Access section of the Organization Settings.",
+                  "text": "To fill out the fields below, copy the API and Application keys from your Datadog org. If you launched this template from the Azure integration config page, refer back there to select and copy the keys. Otherwise, you can find your API and App Keys in the Access section of the Organization Settings.",
                   "link": {
                     "label": "Learn more",
                     "uri": "https://docs.datadoghq.com/account_management/org_settings/"
                   }
                 }
-              },
-              {
-                "name": "datadogApplicationKey",
-                "type": "Microsoft.Common.PasswordBox",
-                "label": {
-                  "password": "Datadog Application Key",
-                  "confirmPassword": "Re-enter Datadog Application Key"
-                },
-                "toolTip": "Your Datadog Application key",
-                "constraints": {
-                  "required": true,
-                  "validationMessage": "Must be a valid Application Key"
-                },
-                "options": {
-                  "hideConfirmation": true
-                },
-                "visible": true
               },
               {
                 "name": "datadogApiKey",
@@ -169,6 +152,23 @@
                 "constraints": {
                   "required": true,
                   "validationMessage": "Must be a valid API Key"
+                },
+                "options": {
+                  "hideConfirmation": true
+                },
+                "visible": true
+              },
+              {
+                "name": "datadogApplicationKey",
+                "type": "Microsoft.Common.PasswordBox",
+                "label": {
+                  "password": "Datadog Application Key",
+                  "confirmPassword": "Re-enter Datadog Application Key"
+                },
+                "toolTip": "Your Datadog Application key",
+                "constraints": {
+                  "required": true,
+                  "validationMessage": "Must be a valid Application Key"
                 },
                 "options": {
                   "hideConfirmation": true
