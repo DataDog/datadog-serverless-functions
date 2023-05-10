@@ -199,6 +199,10 @@
                   "value": "datadoghq.eu"
                 },
                 {
+                  "label": "AP1",
+                  "value": "ap1.datadoghq.com"
+                },
+                {
                   "label": "US1-FED",
                   "value": "ddog-gov.com"
                 }
@@ -263,7 +267,8 @@
                 "name": "custom_metrics_enabled",
                 "type": "Microsoft.Common.CheckBox",
                 "label": "Collect Custom Metrics",
-                "toolTip": "This option will enable custom metric collection from all Application Insights instances. Note <a target='_blank' href='https://learn.microsoft.com/en-us/azure/azure-monitor/app/standard-metrics/'>Standard</a> App Insights metrics are collected automatically and are available under the 'azure.insights_components.*' namespace."
+                "toolTip": "This option will enable custom metric collection from all Application Insights instances. Note <a target='_blank' href='https://learn.microsoft.com/en-us/azure/azure-monitor/app/standard-metrics/'>Standard</a> App Insights metrics are collected automatically and are available under the 'azure.insights_components.*' namespace.",
+                "visible": false
               }
             ],
             "visible": true
