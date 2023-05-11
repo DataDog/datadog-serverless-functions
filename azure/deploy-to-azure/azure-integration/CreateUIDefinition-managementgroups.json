@@ -191,16 +191,16 @@
                   "value": "datadoghq.com"
                 },
                 {
-                  "label": "EU1",
-                  "value": "datadoghq.eu"
-                },
-                {
                   "label": "US3",
                   "value": "us3.datadoghq.com"
                 },
                 {
                   "label": "US5",
                   "value": "us5.datadoghq.com"
+                },
+                {
+                  "label": "EU1",
+                  "value": "datadoghq.eu"
                 },
                 {
                   "label": "AP1",
