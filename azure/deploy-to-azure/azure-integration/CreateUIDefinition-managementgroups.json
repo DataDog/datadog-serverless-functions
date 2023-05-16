@@ -271,7 +271,7 @@
                 "name": "custom_metrics_enabled",
                 "type": "Microsoft.Common.CheckBox",
                 "label": "Collect Custom Metrics",
-                "toolTip": "This option will enable custom metric collection from all Application Insights instances. Note <a target='_blank' href='https://learn.microsoft.com/en-us/azure/azure-monitor/app/standard-metrics/'>Standard</a> App Insights metrics are collected automatically and are available under the 'azure.insights_components.*' namespace."
+                "toolTip": "This option will enable custom metric collection from all Application Insights instances within the scope of this configuration. These custom metrics will appear in datadog under the namespace <b>application_insights.custom.&lt;METRIC_NAME&gt;</b>.<br> Note that <a target='_blank' href='https://learn.microsoft.com/en-us/azure/azure-monitor/app/standard-metrics/'>Standard</a> App Insights metrics are collected automatically and are available under the <b>azure.insights_components.*</b> namespace."
               }
             ],
             "visible": true
