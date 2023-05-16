@@ -18,7 +18,7 @@
         "visible": true,
         "options": {
           "icon": "Info",
-          "text": "The selection of management group above defines the subscription(s) Datadog will monitor. Any subscriptions within the selected scope, including any subscriptions created in the future, will be automatically discovered and monitored by Datadog.\n\nThe selection of region, subscription, and resource group defines where this template will be deployed. It has no impact on which subscriptions will be monitored by Datadog."
+          "text": "The selection of management group above defines the subscription(s) Datadog will monitor. Any subscriptions within the selected scope, including any subscriptions created in the future, will be automatically discovered and monitored by Datadog. You must have the <b>owner</b> role in the Management Group selected.\n\nThe selection of region, subscription, and resource group defines where this template will be deployed. It has no impact on which subscriptions will be monitored by Datadog."
         }
       },
       {
@@ -271,8 +271,7 @@
                 "name": "custom_metrics_enabled",
                 "type": "Microsoft.Common.CheckBox",
                 "label": "Collect Custom Metrics",
-                "toolTip": "This option will enable custom metric collection from all Application Insights instances. Note <a target='_blank' href='https://learn.microsoft.com/en-us/azure/azure-monitor/app/standard-metrics/'>Standard</a> App Insights metrics are collected automatically and are available under the 'azure.insights_components.*' namespace.",
-                "visible": false
+                "toolTip": "This option will enable custom metric collection from all Application Insights instances. Note <a target='_blank' href='https://learn.microsoft.com/en-us/azure/azure-monitor/app/standard-metrics/'>Standard</a> App Insights metrics are collected automatically and are available under the 'azure.insights_components.*' namespace."
               }
             ],
             "visible": true
