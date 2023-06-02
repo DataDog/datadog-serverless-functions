@@ -5,7 +5,7 @@
 
 var https = require('https');
 
-const VERSION = '0.5.7';
+const VERSION = '0.5.8';
 
 const STRING = 'string'; // example: 'some message'
 const STRING_ARRAY = 'string-array'; // example: ['one message', 'two message', ...]
@@ -292,6 +292,11 @@ class EventhubLogHandler {
     formatLog(messageType, record) {
         if (messageType == JSON_TYPE) {
             var originalRecord = this.addTagsToJsonLog(record);
+            // normalize the host field. Azure EventHub sends it as "Host".
+            if (originalRecord.Host) {
+                originalRecord.host = originalRecord.Host;
+                delete originalRecord.Host;
+            }
             var source = originalRecord['ddsource'];
             var config = this.logSplittingConfig[source];
             if (config !== undefined) {
@@ -314,7 +319,7 @@ class EventhubLogHandler {
                         if (typeof splitRecord === 'string') {
                             try {
                                 splitRecord = JSON.parse(splitRecord);
-                            } catch (err) {}
+                            } catch (err) { }
                         }
                         var formattedSplitRecord = {};
                         var temp = formattedSplitRecord;
@@ -564,7 +569,7 @@ class EventhubLogHandler {
     }
 }
 
-module.exports = async function(context, eventHubMessages) {
+module.exports = async function (context, eventHubMessages) {
     if (!DD_API_KEY || DD_API_KEY === '<DATADOG_API_KEY>') {
         context.log.error(
             'You must configure your API key before starting this function (see ## Parameters section)'
