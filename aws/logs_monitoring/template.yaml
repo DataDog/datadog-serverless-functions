@@ -772,7 +772,7 @@ Resources:
       Principal:
         Fn::If:
           - IsAWSChina
-          - !Sub "logs.${AWS::Region}.amazonaws.com.cn"
+          - !Sub "logs.amazonaws.com.cn"
           - !Sub "logs.amazonaws.com"
       SourceAccount: !Ref "AWS::AccountId"
   S3Permission:
