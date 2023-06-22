@@ -42,7 +42,7 @@ Datadog recommends using [CloudFormation](#cloudformation) to automatically inst
 
 If you had previously enabled your AWS Integration using the [following CloudFormation template][102] from your AWS integration page in Datadog, your account may already be provisioned with a Datadog Lambda Forwarder function if you decided to include it. In that case, you will only need to install the Datadog Lambda in additional AWS regions in your account where you wish to export logs.  
 
-**Note:** The code block of the Datadog Lambda Forwarder function is empty, as the logic is implemented through a Lambda layer.
+**Note:** It is expected behavior that the Datadog Lambda Forwarder function code block to be empty, as the logic is implemented through a Lambda layer.
 
 [101]: https://docs.datadoghq.com/logs/guide/send-aws-services-logs-with-the-datadog-lambda-function/#set-up-triggers
 [102]: https://github.com/DataDog/cloudformation-template/tree/master/aws
