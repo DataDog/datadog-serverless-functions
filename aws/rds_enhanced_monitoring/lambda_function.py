@@ -215,6 +215,17 @@ def _process_rds_enhanced_monitoring_message(ts, message, account, region):
             )
 
 
+def extract_json_objects(event):
+    """
+    Extract JSON objects if the log_event["message"] is not properly formatted like this:
+    {"a":2}{"b":{"c":3}}
+    Supports JSON with a depth of 6 at maximum (recursion requires regex package)
+    """
+    pattern = r'({(?:[^{}]|{(?:[^{}]|{(?:[^{}]|{(?:[^{}]|{(?:[^{}]|{[^{}]*})*})*})*})*})*})'
+    json_objects = re.findall(pattern, event)
+    return json_objects
+
+
 def lambda_handler(event, context):
     """Process a RDS enhanced monitoring DATA_MESSAGE,
     coming from CLOUDWATCH LOGS
@@ -233,9 +244,11 @@ def lambda_handler(event, context):
     log_events = event["logEvents"]
 
     for log_event in log_events:
-        message = json.loads(log_event["message"])
+        messages = extract_json_objects(log_event["message"])
         ts = log_event["timestamp"] / 1000
-        _process_rds_enhanced_monitoring_message(ts, message, account, region)
+        for json_object in messages:
+            message = json.loads(json_object)
+            _process_rds_enhanced_monitoring_message(ts, message, account, region)
 
     stats.flush()
     return {"Status": "OK"}
