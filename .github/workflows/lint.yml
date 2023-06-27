@@ -36,4 +36,4 @@ jobs:
         run: |
           cfn-lint --version
           cfn-lint -t aws/logs_monitoring/template.yaml
-          cfn-lint -t aws/rds_enhanced_monitoring/template.yaml
+          cfn-lint -t aws/rds_enhanced_monitoring/rds-enhanced-sam-template.yaml
