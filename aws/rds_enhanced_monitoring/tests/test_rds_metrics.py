@@ -223,7 +223,7 @@ full_message_example = """
             "rss": 441652
         }]
     }
-"""
+""".replace(" ", "").replace("\n", "")
 
 
 class TestRDSEnhancedMetrics(unittest.TestCase):
@@ -244,8 +244,13 @@ class TestRDSEnhancedMetrics(unittest.TestCase):
         self.assertEqual(extract_json_objects(input_string), output_list)
 
         # JSON with AWS example
-        input_string = full_message_example.replace(" ", "").replace("\n", "")
+        input_string = full_message_example
         output_list = [input_string]
+        self.assertEqual(extract_json_objects(input_string), output_list)
+
+        # JSON with AWS example concatenated
+        input_string = full_message_example + full_message_example
+        output_list = [full_message_example, full_message_example]
         self.assertEqual(extract_json_objects(input_string), output_list)
 
         # Empty JSON
