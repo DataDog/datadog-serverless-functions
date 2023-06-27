@@ -1,6 +1,7 @@
 import unittest
 import os
 from unittest.mock import patch
+
 env_patch = patch.dict(
     os.environ,
     {
@@ -224,8 +225,8 @@ full_message_example = """
     }
 """
 
-class TestRDSEnhancedMetrics(unittest.TestCase):
 
+class TestRDSEnhancedMetrics(unittest.TestCase):
     def test_extract_json_objects(self):
         # Basic JSON
         input_string = """{"a":2}{"b":3}"""
@@ -243,18 +244,18 @@ class TestRDSEnhancedMetrics(unittest.TestCase):
         self.assertEqual(extract_json_objects(input_string), output_list)
 
         # JSON with AWS example
-        input_string = full_message_example.replace(" ","").replace("\n","")
+        input_string = full_message_example.replace(" ", "").replace("\n", "")
         output_list = [input_string]
         self.assertEqual(extract_json_objects(input_string), output_list)
 
         # Empty JSON
         input_string = """{}{}"""
-        output_list = ['{}','{}']
+        output_list = ["{}", "{}"]
         self.assertEqual(extract_json_objects(input_string), output_list)
 
         # Empty JSON
         input_string = """{}"""
-        output_list = ['{}']
+        output_list = ["{}"]
         self.assertEqual(extract_json_objects(input_string), output_list)
 
         # Won't check for properly closed [] characters

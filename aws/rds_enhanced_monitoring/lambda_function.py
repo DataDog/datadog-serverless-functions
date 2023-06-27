@@ -224,15 +224,15 @@ def extract_json_objects(input_string):
     in_string, open_brackets, json_objects, start = False, 0, [], 0
     for idx, char in enumerate(input_string):
         # Ignore escaped quotes
-        if char == '"' and (idx == 0 or input_string[idx-1] != '\\'):
+        if char == '"' and (idx == 0 or input_string[idx - 1] != "\\"):
             in_string = not in_string
-        elif char == '{' and not in_string:
+        elif char == "{" and not in_string:
             open_brackets += 1
-        elif char == '}' and not in_string:
+        elif char == "}" and not in_string:
             open_brackets -= 1
             if open_brackets == 0:
-                json_objects += [input_string[start:idx+1]]
-                start = idx+1
+                json_objects += [input_string[start : idx + 1]]
+                start = idx + 1
     return json_objects
 
 
