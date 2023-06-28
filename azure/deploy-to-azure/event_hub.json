@@ -28,6 +28,20 @@
       "metadata": {
         "description": "Location for all resources."
       }
+    },
+    "isAutoInflateEnabled": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+          "description": "Whether or not to use Auto Inflate"
+      }
+    },
+    "maximumThroughputUnits": {
+      "type": "int",
+      "defaultValue": 0,
+      "metadata": {
+        "description": "The maximum number of throughput units"
+      }
     }
   },
   "resources": [
@@ -42,7 +56,10 @@
         "capacity": 1
       },
       "tags": {},
-      "properties": {},
+      "properties": {
+        "isAutoInflateEnabled":  "[parameters('isAutoInflateEnabled')]",
+        "maximumThroughputUnits": "[parameters('maximumThroughputUnits')]"
+      },
       "resources": [
         {
           "apiVersion": "2017-04-01",
