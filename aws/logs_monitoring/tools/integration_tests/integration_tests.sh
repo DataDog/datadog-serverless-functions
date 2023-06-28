@@ -162,7 +162,7 @@ if [ $PYTHON_VERSION == "python3.9" ]; then
 	echo "Building Docker Image for Forwarder"
 	docker buildx build --platform linux/amd64 --file "${INTEGRATION_TESTS_DIR}/forwarder/Dockerfile" -t "datadog-log-forwarder:$PYTHON_VERSION" ../../.forwarder --no-cache \
 			--build-arg forwarder='aws-dd-forwarder-0.0.0' \
-			--build-arg image="mlupin/docker-lambda:${PYTHON_VERSION}-build"
+			--build-arg image="public.ecr.aws/lambda/python:3.9"
 fi
 
 echo "Running integration tests for ${PYTHON_VERSION}"
