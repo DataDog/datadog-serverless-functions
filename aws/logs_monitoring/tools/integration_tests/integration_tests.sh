@@ -39,7 +39,7 @@ do
 
 		# -v or --python-version
 		# The version of the Python Lambda runtime to use
-		# Must be 3.7, 3.8 or 3.9
+		# Must be 3.8 or 3.9
 		-v=*|--python-version=*)
 		PYTHON_VERSION="python${arg#*=}"
 		shift
@@ -78,8 +78,8 @@ do
 	esac
 done
 
-if [ $PYTHON_VERSION != "python3.7" ] && [ $PYTHON_VERSION != "python3.8" ] && [ $PYTHON_VERSION != "python3.9" ]; then
-    echo "Must use either Python 3.7, 3.8 or 3.9"
+if [ $PYTHON_VERSION != "python3.8" ] && [ $PYTHON_VERSION != "python3.9" ]; then
+    echo "Must use either Python 3.8 or 3.9"
     exit 1
 fi
 
@@ -148,11 +148,22 @@ fi
 
 cd $INTEGRATION_TESTS_DIR
 
-# Build Docker image of Forwarder for tests
-echo "Building Docker Image for Forwarder"
-docker buildx build --platform linux/amd64 --file "${INTEGRATION_TESTS_DIR}/forwarder/Dockerfile" -t "datadog-log-forwarder:$PYTHON_VERSION" ../../.forwarder --no-cache \
-    --build-arg forwarder='aws-dd-forwarder-0.0.0' \
-    --build-arg image="mlupin/docker-lambda:${PYTHON_VERSION}-build"
+# Build Docker image of Forwarder for tests 3.8 compatibility
+if [ $PYTHON_VERSION == "python3.8" ]; then
+	echo "Building Docker Image for Forwarder"
+	docker buildx build --platform linux/amd64 --file "${INTEGRATION_TESTS_DIR}/forwarder/Dockerfile" -t "datadog-log-forwarder:$PYTHON_VERSION" ../../.forwarder --no-cache \
+			--build-arg forwarder='aws-dd-forwarder-0.0.0' \
+			--build-arg image="lambci/lambda:${PYTHON_VERSION}"
+fi
+
+# Build Docker image of Forwarder for tests 3.9 compatibility
+# See https://github.com/lambci/lambci/issues/138
+if [ $PYTHON_VERSION == "python3.9" ]; then
+	echo "Building Docker Image for Forwarder"
+	docker buildx build --platform linux/amd64 --file "${INTEGRATION_TESTS_DIR}/forwarder/Dockerfile" -t "datadog-log-forwarder:$PYTHON_VERSION" ../../.forwarder --no-cache \
+			--build-arg forwarder='aws-dd-forwarder-0.0.0' \
+			--build-arg image="mlupin/docker-lambda:${PYTHON_VERSION}-build"
+fi
 
 echo "Running integration tests for ${PYTHON_VERSION}"
 LOG_LEVEL=${LOG_LEVEL} \
