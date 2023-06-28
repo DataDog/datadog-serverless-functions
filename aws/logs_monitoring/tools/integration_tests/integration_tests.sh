@@ -152,7 +152,7 @@ cd $INTEGRATION_TESTS_DIR
 echo "Building Docker Image for Forwarder"
 docker buildx build --platform linux/amd64 --file "${INTEGRATION_TESTS_DIR}/forwarder/Dockerfile" -t "datadog-log-forwarder:$PYTHON_VERSION" ../../.forwarder --no-cache \
     --build-arg forwarder='aws-dd-forwarder-0.0.0' \
-    --build-arg image="lambci/lambda:${PYTHON_VERSION}"
+    --build-arg image="mlupin/docker-lambda:${PYTHON_VERSION}-build"
 
 echo "Running integration tests for ${PYTHON_VERSION}"
 LOG_LEVEL=${LOG_LEVEL} \
