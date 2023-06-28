@@ -7,7 +7,7 @@
 
 set -e
 
-PYTHON_VERSION="python3.8"
+PYTHON_VERSION="python3.9"
 SKIP_FORWARDER_BUILD=false
 UPDATE_SNAPSHOTS=false
 LOG_LEVEL=info
@@ -39,7 +39,7 @@ do
 
 		# -v or --python-version
 		# The version of the Python Lambda runtime to use
-		# Must be 3.7 or 3.8
+		# Must be 3.7, 3.8 or 3.9
 		-v=*|--python-version=*)
 		PYTHON_VERSION="python${arg#*=}"
 		shift
@@ -78,8 +78,8 @@ do
 	esac
 done
 
-if [ $PYTHON_VERSION != "python3.7" ] && [ $PYTHON_VERSION != "python3.8" ]; then
-    echo "Must use either Python 3.7 or 3.8"
+if [ $PYTHON_VERSION != "python3.7" ] && [ $PYTHON_VERSION != "python3.8" ] && [ $PYTHON_VERSION != "python3.9" ]; then
+    echo "Must use either Python 3.7, 3.8 or 3.9"
     exit 1
 fi
 

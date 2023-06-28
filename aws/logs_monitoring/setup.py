@@ -14,9 +14,10 @@ setup(
     classifiers=[
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
     ],
     keywords="datadog aws lambda layer",
-    python_requires=">=3.7, <3.9",
+    python_requires=">=3.7, <3.10",
     install_requires=["datadog-lambda==3.39.0", "requests-futures==1.0.0"],
     extras_require={
         "dev": ["nose2==0.9.1", "flake8==3.7.9", "requests==2.22.0", "boto3==1.10.33"]

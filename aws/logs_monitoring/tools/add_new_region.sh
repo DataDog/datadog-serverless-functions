@@ -12,7 +12,7 @@ set -e
 
 OLD_REGION='us-east-1'
 
-PYTHON_VERSIONS_FOR_AWS_CLI=("python3.8")
+PYTHON_VERSIONS_FOR_AWS_CLI=("python3.9")
 LAYER_NAMES=("Datadog-Forwarder")
 NEW_REGION=$1
 
