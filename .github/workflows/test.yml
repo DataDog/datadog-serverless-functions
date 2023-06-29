@@ -25,3 +25,4 @@ jobs:
         run: |
           pip install boto3 mock
           python -m unittest discover ./aws/logs_monitoring/
+          python -m unittest discover ./aws/rds_enhanced_monitoring/
