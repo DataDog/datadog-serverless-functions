@@ -22,7 +22,7 @@ else
     VERSION=$1
 fi
 
-PYTHON_VERSION="${PYTHON_VERSION:-3.8}"
+PYTHON_VERSION="${PYTHON_VERSION:-3.9}"
 FORWARDER_PREFIX="aws-dd-forwarder"
 FORWARDER_DIR="../.forwarder"
 
