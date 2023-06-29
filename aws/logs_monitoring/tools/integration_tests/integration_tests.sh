@@ -150,22 +150,15 @@ fi
 
 cd $INTEGRATION_TESTS_DIR
 
-# Build Docker image of Forwarder for tests 3.8 compatibility
-if [ $PYTHON_VERSION == "python3.8" ]; then
-	echo "Building Docker Image for Forwarder with tag datadog-log-forwarder:$PYTHON_VERSION"
-	docker buildx build --platform linux/amd64 --file "${INTEGRATION_TESTS_DIR}/forwarder/Dockerfile" -t "datadog-log-forwarder:$PYTHON_VERSION" ../../.forwarder --no-cache \
-			--build-arg forwarder='aws-dd-forwarder-0.0.0' \
-			--build-arg image="mlupin/docker-lambda:${PYTHON_VERSION}-build-x86_64"
-fi
-# --build-arg image="lambci/lambda:${PYTHON_VERSION}"
-# Build Docker image of Forwarder for tests 3.9 compatibility
+# Build Docker image of Forwarder
 # See https://github.com/lambci/lambci/issues/138
-if [ $PYTHON_VERSION == "python3.9" ]; then
-	echo "Building Docker Image for Forwarder with tag datadog-log-forwarder:$PYTHON_VERSION"
-	docker buildx build --platform linux/amd64 --file "${INTEGRATION_TESTS_DIR}/forwarder/Dockerfile" -t "datadog-log-forwarder:$PYTHON_VERSION" ../../.forwarder --no-cache \
-			--build-arg forwarder='aws-dd-forwarder-0.0.0' \
-			--build-arg image="public.ecr.aws/lambda/python:${PYTHON_SHORT_VERSION}-x86_64"
-fi
+echo "Building Docker Image for Forwarder with tag datadog-log-forwarder:$PYTHON_VERSION"
+docker buildx build --platform linux/amd64 --file "${INTEGRATION_TESTS_DIR}/forwarder/Dockerfile" -t "datadog-log-forwarder:$PYTHON_VERSION" ../../.forwarder --no-cache \
+		--build-arg forwarder='aws-dd-forwarder-0.0.0' \
+		--build-arg image="lambci/lambda:${PYTHON_VERSION}"
+
+# --build-arg image="lambci/lambda:${PYTHON_VERSION}"
+# --build-arg image="mlupin/docker-lambda:${PYTHON_VERSION}-build-x86_64"
 
 echo "Running integration tests for ${PYTHON_VERSION}"
 LOG_LEVEL=${LOG_LEVEL} \
