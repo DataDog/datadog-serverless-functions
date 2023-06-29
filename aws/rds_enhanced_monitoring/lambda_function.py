@@ -257,15 +257,14 @@ def lambda_handler(event, context):
         ts = log_event["timestamp"] / 1000
         # Try to parse all objects as JSON before going into processing
         # In case one of the json.loads operation fails, revert to previous behavior
+        json_objects = []
         try:
             messages = extract_json_objects(log_event["message"])
-            json_objects = []
             for json_object in messages:
                 json_objects += [json.loads(json_object)]
-            for message in json_objects:
-                _process_rds_enhanced_monitoring_message(ts, message, account, region)
         except:
-            message = json.loads(log_event["message"])
+            json_objects += [json.loads(log_event["message"])]
+        for message in json_objects:
             _process_rds_enhanced_monitoring_message(ts, message, account, region)
 
     stats.flush()
