@@ -36,7 +36,7 @@ class TestForwarderSnapshots(unittest.TestCase):
         return f'{{"awslogs": {{"data": "{encoded_data}"}}}}'
 
     def send_log_event(self, event):
-        print(forwarder_url)
+        print(forwarder_url, event)
         request = urllib.request.Request(forwarder_url, data=event.encode("utf-8"))
         urllib.request.urlopen(request)
 

@@ -8,6 +8,7 @@
 set -e
 
 PYTHON_VERSION="python3.9"
+PYTHON_SHORT_VERSION="3.9"
 SKIP_FORWARDER_BUILD=false
 UPDATE_SNAPSHOTS=false
 LOG_LEVEL=info
@@ -42,6 +43,7 @@ do
 		# Must be 3.8 or 3.9
 		-v=*|--python-version=*)
 		PYTHON_VERSION="python${arg#*=}"
+		PYTHON_SHORT_VERSION="${arg#*=}"
 		shift
 		;;
 
@@ -153,7 +155,7 @@ if [ $PYTHON_VERSION == "python3.8" ]; then
 	echo "Building Docker Image for Forwarder"
 	docker buildx build --platform linux/amd64 --file "${INTEGRATION_TESTS_DIR}/forwarder/Dockerfile" -t "datadog-log-forwarder:$PYTHON_VERSION" ../../.forwarder --no-cache \
 			--build-arg forwarder='aws-dd-forwarder-0.0.0' \
-			--build-arg image="lambci/lambda:${PYTHON_VERSION}"
+			--build-arg image="mlupin/docker-lambda:${PYTHON_VERSION}-build-x86_64"
 fi
 # --build-arg image="lambci/lambda:${PYTHON_VERSION}"
 # Build Docker image of Forwarder for tests 3.9 compatibility
@@ -162,7 +164,7 @@ if [ $PYTHON_VERSION == "python3.9" ]; then
 	echo "Building Docker Image for Forwarder"
 	docker buildx build --platform linux/amd64 --file "${INTEGRATION_TESTS_DIR}/forwarder/Dockerfile" -t "datadog-log-forwarder:$PYTHON_VERSION" ../../.forwarder --no-cache \
 			--build-arg forwarder='aws-dd-forwarder-0.0.0' \
-			--build-arg image="public.ecr.aws/lambda/python:3.9-x86_64"
+			--build-arg image="public.ecr.aws/lambda/python:${PYTHON_SHORT_VERSION}-x86_64"
 fi
 
 echo "Running integration tests for ${PYTHON_VERSION}"
