@@ -69,10 +69,11 @@ def _datadog_keys():
             # If the CiphertextBlob was encrypted with AWS CLI, we
             # need to re-encode this in base64
             try:
-                DD_API_KEY = base64.b64encode(DD_API_KEY)
+                DD_API_KEY = DD_API_KEY.decode("utf-8")
             except:
-                print("INFO DD_KMS_API_KEY: Could not encode key in base64")
-            DD_API_KEY = DD_API_KEY.decode("utf-8")
+                print("INFO DD_KMS_API_KEY: Could not decode key in utf-8, encoding in b64")
+                DD_API_KEY = base64.b64encode(DD_API_KEY)
+                DD_API_KEY = DD_API_KEY.decode("utf-8")
         return {"api_key": DD_API_KEY}
 
     if "DD_API_KEY" in os.environ:
