@@ -47,6 +47,7 @@ const (
 	originMetadataKey       = "_dd.origin"
 	parentSourceMetadataKey = "_dd.parent_source"
 	sourceXray              = "xray"
+	envMetadataKey          = "env"
 )
 
 // ProcessTrace parses, applies tags, and obfuscates a trace
@@ -75,6 +76,7 @@ func ParseTrace(content string) ([]*pb.TracePayload, error) {
 
 	for _, trace := range tl.Traces {
 		apiTraces := map[uint64]*pb.APITrace{}
+		env := "none"
 
 		for _, sp := range trace {
 			// Make sure the span is marked as comming from lambda,
@@ -83,6 +85,11 @@ func ParseTrace(content string) ([]*pb.TracePayload, error) {
 				sp.Meta = map[string]string{}
 			}
 			sp.Meta[originMetadataKey] = "lambda"
+
+			// Use the env tag if it's present in the span metadata
+			if envValue, ok := sp.Meta[envMetadataKey]; ok {
+				env = envValue
+			}
 
 			pbSpan := convertSpanToPB(sp)
 			// We skip root dd-trace spans that are parented to X-Ray,
@@ -114,7 +121,7 @@ func ParseTrace(content string) ([]*pb.TracePayload, error) {
 
 		payload := pb.TracePayload{
 			HostName: "",
-			Env:      "none",
+			Env:      env,
 			Traces:   []*pb.APITrace{},
 		}
 		for _, apiTrace := range apiTraces {
@@ -170,7 +177,7 @@ func AddTagsToTracePayloads(tracePayloads []*pb.TracePayload, tags string) {
 	}
 
 	for _, tracePayload := range tracePayloads {
-		if env != "" {
+		if env != "" && tracePayload.Env == "none" {
 			tracePayload.Env = env
 		}
 		for _, trace := range tracePayload.Traces {
@@ -276,11 +283,11 @@ func decodeAPMId(id string) uint64 {
 // GetAnalyzedSpans finds all the analyzed spans in a trace, including top level spans
 // and spans marked as anaylzed by the tracer.
 // A span is considered top-level if:
-// - it's a root span
-// - its parent is unknown (other part of the code, distributed trace)
-// - its parent belongs to another service (in that case it's a "local root"
-//   being the highest ancestor of other spans belonging to this service and
-//   attached to it).
+//   - it's a root span
+//   - its parent is unknown (other part of the code, distributed trace)
+//   - its parent belongs to another service (in that case it's a "local root"
+//     being the highest ancestor of other spans belonging to this service and
+//     attached to it).
 func GetAnalyzedSpans(sps []*pb.Span) []*pb.Span {
 	// build a lookup map
 	spanIDToIdx := make(map[uint64]int, len(sps))
