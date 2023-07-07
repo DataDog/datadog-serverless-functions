@@ -177,7 +177,7 @@ func AddTagsToTracePayloads(tracePayloads []*pb.TracePayload, tags string) {
 	}
 
 	for _, tracePayload := range tracePayloads {
-		if env != "" && tracePayload.Env == "none" {
+		if env != "" && env != "none" {
 			tracePayload.Env = env
 		}
 		for _, trace := range tracePayload.Traces {
