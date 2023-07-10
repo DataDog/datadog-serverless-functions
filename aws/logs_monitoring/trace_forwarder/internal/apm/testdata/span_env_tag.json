@@ -1,0 +1,74 @@
+{
+    "comment": "Tests an env span tag is applied to the trace",
+    "tags": "env:none",
+    "trace": {
+        "traces": [
+            [
+                {
+                    "trace_id": "D4823CE178FE9CF9",
+                    "parent_id": "0000000000000000",
+                    "span_id": "6673D011C71C0A03",
+                    "service": "aws.lambda",
+                    "resource": "span-env-tag",
+                    "name": "aws.lambda",
+                    "error": 0,
+                    "start": 1688673307300342740,
+                    "duration": 824010,
+                    "meta": {
+                        "runtime-id": "dc08a941c30e4d77bdfb38130b4c21d6",
+                        "_dd.origin": "lambda",
+                        "env": "testing",
+                        "cold_start": "false",
+                        "function_arn": "arn:aws:lambda:sa-east-1:601427279990:function:span-env-tag",
+                        "function_version": "$LATEST",
+                        "request_id": "ee57944a-e9dd-4fa2-ad06-6b3df3d343ee",
+                        "resource_names": "span-env-tag",
+                        "functionname": "span-env-tag",
+                        "datadog_lambda": "4.68.0",
+                        "dd_trace": "1.7.5",
+                        "span.name": "aws.lambda",
+                        "customer.id": "123456",
+                        "_dd.p.dm": "-0"
+                    },
+                    "metrics": {
+                        "_dd.agent_psr": 1.0,
+                        "process_id": 8,
+                        "_dd.top_level": 1,
+                        "_sampling_priority_v1": 1
+                    },
+                    "type": "serverless"
+                },
+                {
+                    "trace_id": "D4823CE178FE9CF9",
+                    "parent_id": "6673D011C71C0A03",
+                    "span_id": "DF5FABA84AAA07A3",
+                    "service": "aws.lambda",
+                    "resource": "hello.world",
+                    "name": "hello.world",
+                    "error": 0,
+                    "start": 1688673307300529845,
+                    "duration": 33430,
+                    "meta": {
+                        "_dd.origin": "lambda",
+                        "env": "testing"
+                    }
+                },
+                {
+                    "trace_id": "D4823CE178FE9CF9",
+                    "parent_id": "6673D011C71C0A03",
+                    "span_id": "5AC3DA05BA91424A",
+                    "service": "aws.lambda",
+                    "resource": "lambda_function.get_message",
+                    "name": "lambda_function.get_message",
+                    "error": 0,
+                    "start": 1688673307300920603,
+                    "duration": 22773,
+                    "meta": {
+                        "_dd.origin": "lambda",
+                        "env": "testing"
+                    }
+                }
+            ]
+        ]
+    }
+}
