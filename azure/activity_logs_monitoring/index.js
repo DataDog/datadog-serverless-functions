@@ -5,7 +5,7 @@
 
 var https = require('https');
 
-const VERSION = '0.5.7';
+const VERSION = '0.6.0';
 
 const STRING = 'string'; // example: 'some message'
 const STRING_ARRAY = 'string-array'; // example: ['one message', 'two message', ...]
@@ -493,16 +493,16 @@ class EventhubLogHandler {
         return this.addTagsToJsonLog(jsonLog);
     }
 
-    createResourceIdArray(record) {
-        // Convert the resource ID in the record to an array, handling beginning/ending slashes
-        var resourceId = record.resourceId.toLowerCase().split('/');
-        if (resourceId[0] === '') {
-            resourceId = resourceId.slice(1);
+    createResourceIdArray(resourceId) {
+        // Convert a valid resource ID to an array, handling beginning/ending slashes
+        var resourceIdArray = resourceId.toLowerCase().split('/');
+        if (resourceIdArray[0] === '') {
+            resourceIdArray = resourceIdArray.slice(1);
         }
-        if (resourceId[resourceId.length - 1] === '') {
-            resourceId.pop();
+        if (resourceIdArray[resourceIdArray.length - 1] === '') {
+            resourceIdArray.pop();
         }
-        return resourceId;
+        return resourceIdArray;
     }
 
     isSource(resourceIdPart) {
@@ -514,16 +514,22 @@ class EventhubLogHandler {
         return sourceType.replace('microsoft.', 'azure.');
     }
 
+    getResourceId(record) {
+        // Most logs have resourceId, but some logs have ResourceId instead
+        var id = record.resourceId || record.ResourceId;
+        if (typeof id !== 'string') {
+            return null;
+        }
+        return id;
+    }
+
     extractMetadataFromResource(record) {
         var metadata = { tags: [], source: '' };
-        if (
-            record.resourceId === undefined ||
-            typeof record.resourceId !== 'string'
-        ) {
+        var resourceId = this.getResourceId(record);
+        if (resourceId === null || id === '') {
             return metadata;
         }
-
-        var resourceId = this.createResourceIdArray(record);
+        resourceId = this.createResourceIdArray(resourceId);
 
         if (resourceId[0] === 'subscriptions') {
             if (resourceId.length > 1) {
