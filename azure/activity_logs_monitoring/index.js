@@ -473,18 +473,19 @@ class EventhubLogHandler {
         }
     }
 
+    createDDTags(tags) {
+        const forwarderNameTag =  'forwardername:' + this.context.executionContext.functionName;
+        const fowarderVersionTag = 'forwarderversion:' + VERSION;
+        var ddTags = tags.concat([DD_TAGS, forwarderNameTag, fowarderVersionTag]);
+        return ddTags.filter(Boolean).join(',');
+    }
+
     addTagsToJsonLog(record) {
         var metadata = this.extractMetadataFromResource(record);
         record['ddsource'] = metadata.source || DD_SOURCE;
         record['ddsourcecategory'] = DD_SOURCE_CATEGORY;
         record['service'] = DD_SERVICE;
-        record['ddtags'] = metadata.tags
-            .concat([
-                DD_TAGS,
-                'forwardername:' + this.context.executionContext.functionName
-            ])
-            .filter(Boolean)
-            .join(',');
+        record['ddtags'] = this.createDDTags(metadata.tags);
         return record;
     }
 
@@ -526,7 +527,7 @@ class EventhubLogHandler {
     extractMetadataFromResource(record) {
         var metadata = { tags: [], source: '' };
         var resourceId = this.getResourceId(record);
-        if (resourceId === null || id === '') {
+        if (resourceId === null || resourceId === '') {
             return metadata;
         }
         resourceId = this.createResourceIdArray(resourceId);
