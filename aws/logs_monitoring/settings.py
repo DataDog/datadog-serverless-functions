@@ -207,7 +207,19 @@ elif "DD_KMS_API_KEY" in os.environ:
         CiphertextBlob=base64.b64decode(ENCRYPTED)
     )["Plaintext"]
     if type(DD_API_KEY) is bytes:
-        DD_API_KEY = DD_API_KEY.decode("utf-8")
+        # If the CiphertextBlob was encrypted with AWS CLI, we
+        # need to re-encode this in base64
+        try:
+            DD_API_KEY = DD_API_KEY.decode("utf-8")
+        except UnicodeDecodeError as e:
+            print(
+                "INFO DD_KMS_API_KEY: Could not decode key in utf-8, encoding in b64. Exception:",
+                e,
+            )
+            DD_API_KEY = base64.b64encode(DD_API_KEY)
+            DD_API_KEY = DD_API_KEY.decode("utf-8")
+        except Exception as e:
+            print("ERROR DD_KMS_API_KEY Unknown exception decoding key:", e)
 elif "DD_API_KEY" in os.environ:
     logger.debug("Fetching the Datadog API key from environment variable DD_API_KEY")
     DD_API_KEY = os.environ["DD_API_KEY"]
