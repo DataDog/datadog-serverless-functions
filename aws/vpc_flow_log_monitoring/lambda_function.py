@@ -79,15 +79,12 @@ def _datadog_keys():
             except UnicodeDecodeError as e:
                 print(
                     "INFO DD_KMS_API_KEY: Could not decode key in utf-8, encoding in b64. Exception:",
-                    e
+                    e,
                 )
                 DD_API_KEY = base64.b64encode(DD_API_KEY)
                 DD_API_KEY = DD_API_KEY.decode("utf-8")
             except Exception as e:
-                print(
-                    "ERROR DD_KMS_API_KEY Unknown exception decoding key:",
-                    e
-                )
+                print("ERROR DD_KMS_API_KEY Unknown exception decoding key:", e)
         return {"api_key": DD_API_KEY}
 
     if "DD_API_KEY" in os.environ:
