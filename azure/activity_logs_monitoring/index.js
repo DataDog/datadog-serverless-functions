@@ -87,11 +87,11 @@ function getLogSplittingConfig() {
 }
 
 function shouldParseDefenderForCloudLogs() {
-    if (DD_PARSE_DEFENDER_LOGS) {
-        return DD_PARSE_DEFENDER_LOGS
-    } else {
+    // Default to true if the env variable is not set
+    if (DD_PARSE_DEFENDER_LOGS === undefined) {
         return true;
     }
+    return DD_PARSE_DEFENDER_LOGS;
 }
 
 class ScrubberRule {
