@@ -27,7 +27,7 @@ const DD_TAGS = process.env.DD_TAGS || ''; // Replace '' by your comma-separated
 const DD_SERVICE = process.env.DD_SERVICE || 'azure';
 const DD_SOURCE = process.env.DD_SOURCE || 'azure';
 const DD_SOURCE_CATEGORY = process.env.DD_SOURCE_CATEGORY || 'azure';
-const DD_PARSE_DEFENDER_LOGS = process.env.DD_SOURCE_CATEGORY; // boolean whether to special parse Defender for Cloud logs
+const DD_PARSE_DEFENDER_LOGS = process.env.DD_SOURCE_CATEGORY; // Boolean whether to enable special parsing of Defender for Cloud logs
 
 const MAX_RETRIES = 4; // max number of times to retry a single http request
 const RETRY_INTERVAL = 250; // amount of time (milliseconds) to wait before retrying request, doubles after every retry
@@ -87,7 +87,6 @@ function getLogSplittingConfig() {
 }
 
 function shouldParseDefenderForCloudLogs() {
-    // Whether to enable special parsing of defender for cloud logs
     if (DD_PARSE_DEFENDER_LOGS) {
         return DD_PARSE_DEFENDER_LOGS
     } else {
