@@ -27,7 +27,7 @@ const DD_TAGS = process.env.DD_TAGS || ''; // Replace '' by your comma-separated
 const DD_SERVICE = process.env.DD_SERVICE || 'azure';
 const DD_SOURCE = process.env.DD_SOURCE || 'azure';
 const DD_SOURCE_CATEGORY = process.env.DD_SOURCE_CATEGORY || 'azure';
-const DD_PARSE_DEFENDER_LOGS = process.env.DD_PARSE_DEFENDER_LOGS; // Boolean whether to enable special parsing of Defender for Cloud logs
+const DD_PARSE_DEFENDER_LOGS = process.env.DD_PARSE_DEFENDER_LOGS; // Boolean whether to enable special parsing of Defender for Cloud logs. Set to 'false' to disable 
 
 const MAX_RETRIES = 4; // max number of times to retry a single http request
 const RETRY_INTERVAL = 250; // amount of time (milliseconds) to wait before retrying request, doubles after every retry
@@ -87,11 +87,12 @@ function getLogSplittingConfig() {
 }
 
 function shouldParseDefenderForCloudLogs() {
-    // Default to true if the env variable is not set
-    if (DD_PARSE_DEFENDER_LOGS === undefined) {
+    // Default to true if the env variable is not set, is null, etc
+    if (typeof DD_PARSE_DEFENDER_LOGS !== 'string') {
         return true;
     }
-    return DD_PARSE_DEFENDER_LOGS;
+    const parse_defender_logs = DD_PARSE_DEFENDER_LOGS.toLowerCase();
+    return !(parse_defender_logs == 'false' || parse_defender_logs == 'f');
 }
 
 class ScrubberRule {
