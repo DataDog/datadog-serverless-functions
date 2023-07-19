@@ -92,7 +92,7 @@ function shouldParseDefenderForCloudLogs() {
         return true;
     }
     const parse_defender_logs = DD_PARSE_DEFENDER_LOGS.toLowerCase();
-    return !(parse_defender_logs == 'false' || parse_defender_logs == 'f');
+    return !(parse_defender_logs === 'false' || parse_defender_logs === 'f');
 }
 
 class ScrubberRule {
@@ -554,7 +554,7 @@ class EventhubLogHandler {
         var metadata = { tags: [], source: '', service: '' };
         var resourceId = this.getResourceId(record);
         if (resourceId === null || resourceId === '') {
-            return metadata;
+            return [metadata, record];
         }
         resourceId = this.createResourceIdArray(resourceId);
 
@@ -563,7 +563,7 @@ class EventhubLogHandler {
                 metadata.tags.push('subscription_id:' + resourceId[1]);
                 if (resourceId.length == 2) {
                     metadata.source = 'azure.subscription';
-                    return metadata;
+                    return [metadata, record];
                 }
             }
             if (resourceId.length > 3) {
@@ -577,7 +577,7 @@ class EventhubLogHandler {
                     metadata.tags.push('resource_group:' + resourceId[3]);
                     if (resourceId.length == 4) {
                         metadata.source = 'azure.resourcegroup';
-                        return metadata;
+                        return [metadata, record];
                     }
                 }
             }
