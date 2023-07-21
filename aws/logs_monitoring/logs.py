@@ -52,7 +52,7 @@ def forward_logs(logs):
     if logger.isEnabledFor(logging.DEBUG):
         logger.debug(f"Forwarding {len(logs)} logs")
     logs_to_forward = filter_logs(
-        list(map(json.dumps, logs)),
+        [json.dumps(log, ensure_ascii=False) for log in logs],
         include_pattern=INCLUDE_AT_MATCH,
         exclude_pattern=EXCLUDE_AT_MATCH,
     )
