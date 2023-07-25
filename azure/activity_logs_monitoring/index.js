@@ -547,14 +547,14 @@ class EventhubLogHandler {
         if (shouldParseDefenderForCloudLogs() && this.isDefenderForCloudLog(record)) {
             return this.extractMetadataFromDefenderLog(record);
         }
-        return this.extractMetadataFromStandardLog(record);
+        return [this.extractMetadataFromStandardLog(record), record];
     }
 
     extractMetadataFromStandardLog(record) {
         var metadata = { tags: [], source: '', service: '' };
         var resourceId = this.getResourceId(record);
         if (resourceId === null || resourceId === '') {
-            return [metadata, record];
+            return metadata;
         }
         resourceId = this.createResourceIdArray(resourceId);
 
@@ -563,7 +563,7 @@ class EventhubLogHandler {
                 metadata.tags.push('subscription_id:' + resourceId[1]);
                 if (resourceId.length == 2) {
                     metadata.source = 'azure.subscription';
-                    return [metadata, record];
+                    return metadata;
                 }
             }
             if (resourceId.length > 3) {
@@ -577,7 +577,7 @@ class EventhubLogHandler {
                     metadata.tags.push('resource_group:' + resourceId[3]);
                     if (resourceId.length == 4) {
                         metadata.source = 'azure.resourcegroup';
-                        return [metadata, record];
+                        return metadata;
                     }
                 }
             }
@@ -593,7 +593,7 @@ class EventhubLogHandler {
                 );
             }
         }
-        return [metadata, record];
+        return metadata;
     }
 
     getDefenderForCloudLogType(record) {
