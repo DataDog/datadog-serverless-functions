@@ -57,6 +57,12 @@ DD_API_KEY = "<YOUR_DATADOG_API_KEY>"
 #
 DD_FORWARD_LOG = get_env_var("DD_FORWARD_LOG", "true", boolean=True)
 
+## @param DD_ENHANCED_METRICS - boolean - optional -default: false
+## Change this value to `true` to send enhanced lambda metrics to Datadog
+## E.g. forwarded lambda logs will contribute to enhanced metrics for those lambdas
+#
+DD_ENHANCED_METRICS = get_env_var("DD_ENHANCED_METRICS", "false", boolean=True)
+
 ## @param DD_USE_TCP - boolean - optional -default: false
 ## Change this value to `true` to send your logs and metrics using the TCP network client
 ## By default, it uses the HTTP client.
