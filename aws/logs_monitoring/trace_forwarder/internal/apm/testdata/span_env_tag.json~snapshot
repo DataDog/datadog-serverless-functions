@@ -16,7 +16,8 @@
       Start: (int64) 1688673307300342800,
       Duration: (int64) 824010,
       Error: (int32) 0,
-      Meta: (map[string]string) (len=14) {
+      Meta: (map[string]string) (len=15) {
+       (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
        (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
        (string) (len=8) "_dd.p.dm": (string) (len=2) "-0",
        (string) (len=10) "cold_start": (string) (len=5) "false",
@@ -54,7 +55,8 @@
       Start: (int64) 1688673307300530000,
       Duration: (int64) 33430,
       Error: (int32) 0,
-      Meta: (map[string]string) (len=2) {
+      Meta: (map[string]string) (len=3) {
+       (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
        (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
        (string) (len=3) "env": (string) (len=7) "testing"
       },
@@ -71,7 +73,8 @@
       Start: (int64) 1688673307300920600,
       Duration: (int64) 22773,
       Error: (int32) 0,
-      Meta: (map[string]string) (len=2) {
+      Meta: (map[string]string) (len=3) {
+       (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
        (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
        (string) (len=3) "env": (string) (len=7) "testing"
       },

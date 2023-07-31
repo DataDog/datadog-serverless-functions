@@ -45,6 +45,7 @@ type (
 
 const (
 	originMetadataKey       = "_dd.origin"
+	computeStatsKey         = "_dd.compute_stats"
 	parentSourceMetadataKey = "_dd.parent_source"
 	sourceXray              = "xray"
 	envMetadataKey          = "env"
@@ -85,6 +86,10 @@ func ParseTrace(content string) ([]*pb.TracePayload, error) {
 				sp.Meta = map[string]string{}
 			}
 			sp.Meta[originMetadataKey] = "lambda"
+
+			// Instruct the span intake pipeline to compute stats
+			// in the APM backend.
+			sp.Meta[computeStatsKey] = "1"
 
 			// Use the env tag if it's present in the span metadata
 			if envValue, ok := sp.Meta[envMetadataKey]; ok {
