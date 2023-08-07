@@ -618,7 +618,7 @@ class EventhubLogHandler {
     }
 
     extractMetadataFromDefenderLog(record) {
-        var metadata = { tags: [], source: 'defender-for-cloud', service: '' };
+        var metadata = { tags: [], source: 'microsoft-defender-for-cloud', service: '' };
         const productName = record.ProductName;
         const type = this.getDefenderForCloudLogType(record);
 
@@ -633,7 +633,7 @@ class EventhubLogHandler {
         } else if ([SECURITY_SCORES, SECURITY_SCORE_CONTROLS].includes(type)) {
             metadata.service = 'SecureScore';
         } else {
-            metadata.service = 'defender-for-cloud'
+            metadata.service = 'microsoft-defender-for-cloud'
         }
         return [metadata, record];
     }
