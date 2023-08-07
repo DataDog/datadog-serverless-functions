@@ -5,7 +5,7 @@
 
 var https = require('https');
 
-const VERSION = '1.0.0';
+const VERSION = '1.0.1';
 
 const STRING = 'string'; // example: 'some message'
 const STRING_ARRAY = 'string-array'; // example: ['one message', 'two message', ...]
@@ -607,16 +607,18 @@ class EventhubLogHandler {
     }
 
     removeWhitespaceFromKeys(obj) {
-        // remove white space from the keys of an object
+        // remove whitespace from the keys of an object and capitalizes the letter that follows
         var newObj = {};
         for (const [key, value] of Object.entries(obj)) {
-            newObj[key.replaceAll(' ', '')] = value;
+            // regex looks for word boundaries and captures the alpha character that follows
+            const new_key = key.replace(/\b\w/g, c=> c.toUpperCase()).replaceAll(' ', '');
+            newObj[new_key] = value;
         }
         return newObj;
     }
 
     extractMetadataFromDefenderLog(record) {
-        var metadata = { tags: [], source: 'defender-for-cloud', service: '' };
+        var metadata = { tags: [], source: 'microsoft-defender-for-cloud', service: '' };
         const productName = record.ProductName;
         const type = this.getDefenderForCloudLogType(record);
 
@@ -631,7 +633,7 @@ class EventhubLogHandler {
         } else if ([SECURITY_SCORES, SECURITY_SCORE_CONTROLS].includes(type)) {
             metadata.service = 'SecureScore';
         } else {
-            metadata.service = 'defender-for-cloud'
+            metadata.service = 'microsoft-defender-for-cloud'
         }
         return [metadata, record];
     }
