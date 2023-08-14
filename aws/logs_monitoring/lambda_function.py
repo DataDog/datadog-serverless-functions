@@ -44,7 +44,6 @@ from settings import (
     DD_HOST,
     DD_FORWARDER_VERSION,
     DD_ADDITIONAL_TARGET_LAMBDAS,
-    DD_ENHANCED_METRICS,
 )
 
 
@@ -99,8 +98,8 @@ def datadog_forwarder(event, context):
 
     if len(trace_payloads) > 0:
         forward_traces(trace_payloads)
-    if DD_ENHANCED_METRICS:
-        parse_and_submit_enhanced_metrics(logs)
+
+    parse_and_submit_enhanced_metrics(logs)
 
 
 lambda_handler = datadog_lambda_wrapper(datadog_forwarder)
