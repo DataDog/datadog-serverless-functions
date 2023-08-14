@@ -486,7 +486,7 @@ Resources:
           Value: !FindInMap [Constants, DdForwarder, Version]
       Environment:
         Variables:
-          DD_ENHANCED_METRICS: "true"
+          DD_ENHANCED_METRICS: "false"
           DD_API_KEY_SECRET_ARN:
             Fn::If:
               - CreateDdApiKeySecret
