@@ -8,7 +8,9 @@ import os
 import re
 import time
 import base64
+import random
 from io import BufferedReader, BytesIO
+from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 from urllib.parse import urlencode
 
@@ -287,8 +289,15 @@ def lambda_handler(event, context):
 
 
 class Stats(object):
-    def __init__(self):
+    def __init__(self, base=2, cap=30, max_attempts=5):
         self.series = []
+        self.base = base
+        self.cap = cap
+        self.max_attempts = max_attempts
+
+    def _backoff(self, n):
+        v = min(self.cap, pow(2, n) * self.base)
+        return random.uniform(0, v)
 
     def gauge(self, metric, value, timestamp=None, tags=None, host=None):
         base_dict = {
@@ -314,8 +323,32 @@ class Stats(object):
             creds,
         )
         req = Request(url, data, {"Content-Type": "application/json"})
-        response = urlopen(req)
-        print("INFO Submitted data with status%s" % response.getcode())
+        for attempt in range(1, self.max_attempts + 1):
+            try:
+                with urlopen(req) as response:
+                    print(
+                        "INFO Submitted data with status: {}".format(response.getcode())
+                    )
+            except HTTPError as e:
+                if e.code in (500, 502, 503, 504):
+                    if attempt == self.max_attempts:
+                        print(
+                            "ERROR Exceeded max number of retries, dropping data: {}".format(
+                                e.read()
+                            )
+                        )
+                        break
+                    t = self._backoff(attempt)
+                    print("ERROR {}. Retrying in {} seconds...".format(e.read(), t))
+                    time.sleep(t)
+                else:
+                    print(
+                        "ERROR {}, not retrying with status {}".format(e.read(), e.code)
+                    )
+                    break
+            except Exception as e:
+                print("ERROR Dropping data: {}".format(e))
+                break
 
 
 stats = Stats()

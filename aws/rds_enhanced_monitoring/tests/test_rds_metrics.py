@@ -1,6 +1,9 @@
 import unittest
 import os
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
+from lambda_function import Stats
+from urllib.error import HTTPError
+from io import BytesIO
 
 env_patch = patch.dict(
     os.environ,
@@ -271,6 +274,97 @@ class TestRDSEnhancedMetrics(unittest.TestCase):
         input_string = """{"a":[]]}"""
         output_list = ['{"a":[]]}']
         self.assertEqual(extract_json_objects(input_string), output_list)
+
+
+class TestStats(unittest.TestCase):
+    @patch("lambda_function.urlopen")
+    def test_flush_retries_on_5xx_errors(self, mock_urlopen):
+        mock_response = MagicMock()
+        mock_response.__enter__.return_value = mock_response
+        mock_response.getcode.return_value = 200
+        mock_urlopen.side_effect = [
+            HTTPError(
+                url="mockurl",
+                code=500,
+                msg="Server Error",
+                hdrs={},
+                fp=BytesIO(b"Error"),
+            ),
+            HTTPError(
+                url="mockurl",
+                code=502,
+                msg="Bad Gateway",
+                hdrs={},
+                fp=BytesIO(b"Error"),
+            ),
+            HTTPError(
+                url="mockurl",
+                code=503,
+                msg="Service Unavailable",
+                hdrs={},
+                fp=BytesIO(b"Error"),
+            ),
+            HTTPError(
+                url="mockurl",
+                code=504,
+                msg="Gateway Timeout",
+                hdrs={},
+                fp=BytesIO(b"Error"),
+            ),
+            mock_response,
+        ]
+        stats = Stats(cap=0.01)
+        stats.gauge("test.metric", 42)
+        stats.flush()
+        self.assertEqual(mock_urlopen.call_count, 5)
+
+    @patch("lambda_function.urlopen")
+    def test_flush_no_retry_on_4xx_error(self, mock_urlopen):
+        mock_response = MagicMock()
+        mock_response.__enter__.return_value = mock_response
+        mock_response.getcode.return_value = 200
+        mock_urlopen.side_effect = [
+            HTTPError(
+                url="mockurl", code=403, msg="Forbidden", hdrs={}, fp=BytesIO(b"Error")
+            ),
+        ]
+        stats = Stats()
+        stats.gauge("test.metric", 42)
+        stats.flush()
+        self.assertEqual(mock_urlopen.call_count, 1)
+
+    @patch("lambda_function.urlopen")
+    def test_flush_retries_max_attempts(self, mock_urlopen):
+        mock_urlopen.side_effect = [
+            HTTPError(
+                url="mockurl",
+                code=500,
+                msg="Server Error",
+                hdrs={},
+                fp=BytesIO(b"Error"),
+            ),
+            HTTPError(
+                url="mockurl",
+                code=502,
+                msg="Bad Gateway",
+                hdrs={},
+                fp=BytesIO(b"Error"),
+            ),
+        ]
+        stats = Stats(max_attempts=1)
+        stats.gauge("test.metric", 42)
+        stats.flush()
+        self.assertEqual(mock_urlopen.call_count, 1)
+
+    @patch("lambda_function.urlopen")
+    def test_flush_drop(self, mock_urlopen):
+        mock_urlopen.side_effect = [
+            Exception("Error"),
+        ]
+        stats = Stats()
+        stats.gauge("test.metric", 42)
+        stats.flush()
+        self.assertEqual(mock_urlopen.call_count, 1)
 
 
 if __name__ == "__main__":
