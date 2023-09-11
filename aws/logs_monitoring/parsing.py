@@ -495,8 +495,6 @@ def awslogs_handler(event, context, metadata):
         source = "transitgateway"
     metadata[DD_SOURCE] = parse_event_source(event, source)
 
-    metadata[DD_SERVICE] = get_service_from_tags(metadata)
-
     # Build aws attributes
     aws_attributes = {
         "aws": {
@@ -515,6 +513,9 @@ def awslogs_handler(event, context, metadata):
             if not metadata[DD_CUSTOM_TAGS]
             else metadata[DD_CUSTOM_TAGS] + "," + ",".join(formatted_tags)
         )
+
+    # Set service from custom tags, which may include the tags set on the log group
+    metadata[DD_SERVICE] = get_service_from_tags(metadata)
 
     # Set host as log group where cloudwatch is source
     if metadata[DD_SOURCE] == "cloudwatch" or metadata.get(DD_HOST, None) == None:
