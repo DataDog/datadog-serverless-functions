@@ -63,7 +63,7 @@ do
 		# Run additionalLambda tests
 
 		# Requires AWS credentials
-		# Use aws-vault exec sandbox-account-admin -- ./integration_tests.sh
+		# Use aws-vault exec sso-sandbox-account-admin -- ./integration_tests.sh
 		-a|--additional-lambda)
 		ADDITIONAL_LAMBDA=true
 		shift

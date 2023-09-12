@@ -39,7 +39,7 @@ fi
 # Ensure AWS access before proceeding
 SAML2AWS_IDP_PROVIDER=Browser ddsaml2aws login -a govcloud-us1-fed-human-engineering
 AWS_PROFILE=govcloud-us1-fed-human-engineering aws sts get-caller-identity
-aws-vault exec prod-engineering -- aws sts get-caller-identity
+aws-vault exec sso-prod-engineering -- aws sts get-caller-identity
 
 echo "Publishing layers to GovCloud AWS regions"
 SAML2AWS_IDP_PROVIDER=Browser ddsaml2aws login -a govcloud-us1-fed-human-engineering
@@ -47,4 +47,4 @@ LAYER_VERSION=$LAYER_VERSION FORWARDER_VERSION=$FORWARDER_VERSION AWS_PROFILE=go
 
 echo
 echo "Publishing layers to commercial AWS regions"
-LAYER_VERSION=$LAYER_VERSION FORWARDER_VERSION=$FORWARDER_VERSION aws-vault exec prod-engineering -- ./tools/publish_layers.sh
+LAYER_VERSION=$LAYER_VERSION FORWARDER_VERSION=$FORWARDER_VERSION aws-vault exec sso-prod-engineering -- ./tools/publish_layers.sh
