@@ -865,6 +865,87 @@ class TestAWSLogsHandler(unittest.TestCase):
         )
 
     @patch("parsing.CloudwatchLogGroupTagsCache.get")
+    @patch("parsing.CloudwatchLogGroupTagsCache.release_s3_cache_lock")
+    @patch("parsing.CloudwatchLogGroupTagsCache.acquire_s3_cache_lock")
+    @patch("parsing.CloudwatchLogGroupTagsCache.write_cache_to_s3")
+    @patch("base_tags_cache.send_forwarder_internal_metrics")
+    @patch("parsing.CloudwatchLogGroupTagsCache.get_cache_from_s3")
+    def test_awslogs_handler_aws_batch(
+        self,
+        mock_get_s3_cache,
+        mock_forward_metrics,
+        mock_write_cache,
+        mock_acquire_lock,
+        mock_release_lock,
+        mock_cache_get,
+    ):
+        os.environ["DD_FETCH_LAMBDA_TAGS"] = "True"
+        os.environ["DD_FETCH_LOG_GROUP_TAGS"] = "True"
+        mock_acquire_lock.return_value = True
+        mock_cache_get.return_value = ["test_tag_key:test_tag_value"]
+        mock_get_s3_cache.return_value = (
+            {},
+            1000,
+        )
+
+        event = {
+            "awslogs": {
+                "data": base64.b64encode(
+                    gzip.compress(
+                        bytes(
+                            json.dumps(
+                                {
+                                    "messageType": "DATA_MESSAGE",
+                                    "owner": "425362996713",
+                                    "logGroup": "/aws/batch/job",
+                                    "logStream": "BatchJobName/default/abc123",
+                                    "subscriptionFilters": ["testFilter"],
+                                    "logEvents": [
+                                        {
+                                            "id": "37199773595581154154810589279545129148442535997644275712",
+                                            "timestamp": 1668095539607,
+                                            "message": '{"id":"1","type":"ExecutionStarted"}',
+                                        }
+                                    ],
+                                }
+                            ),
+                            "utf-8",
+                        )
+                    )
+                )
+            }
+        }
+        context = None
+        metadata = {"ddsource": "batch", "ddtags": "env:dev"}
+
+        self.assertEqual(
+            [
+                {
+                    "aws": {
+                        "awslogs": {
+                            "logGroup": "/aws/batch/job",
+                            "logStream": "BatchJobName/default/abc123",
+                            "owner": "425362996713",
+                        }
+                    },
+                    "id": "37199773595581154154810589279545129148442535997644275712",
+                    "message": '{"id":"1","type":"ExecutionStarted"}',
+                    "timestamp": 1668095539607,
+                }
+            ],
+            list(awslogs_handler(event, context, metadata)),
+        )
+        self.assertEqual(
+            {
+                "ddsource": "batch",
+                "ddtags": "env:dev,test_tag_key:test_tag_value",
+                "host": "abc123",
+                "service": "BatchJobName",
+            },
+            metadata,
+        )
+
+    @patch("parsing.CloudwatchLogGroupTagsCache.get")
     @patch("parsing.StepFunctionsTagsCache.get")
     @patch("parsing.StepFunctionsTagsCache.release_s3_cache_lock")
     @patch("parsing.StepFunctionsTagsCache.acquire_s3_cache_lock")
