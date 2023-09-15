@@ -133,8 +133,10 @@ If you can't install the Forwarder using the provided CloudFormation template, y
 ### Upgrade to a new version
 
 1. Find the [datadog-forwarder (if you didn't rename it)][5] CloudFormation stack. If you installed the Forwarder as part of the [Datadog AWS integration stack][6], make sure to update the nested Forwarder stack instead of the root stack.
-2. Find the actual Forwarder Lambda function from the CloudFormation stack's "Resources" tab, navigate to its configuration page. Note down the value of the tag `dd_forwarder_version`, such as `3.3.0`, in case you run into issues with the new version and need to rollback.
-3. Update the stack using template `https://datadog-cloudformation-template.s3.amazonaws.com/aws/forwarder/latest.yaml`. You can also replace `latest` with a specific version, such as `3.0.2.yaml`, if needed. Make sure to review the changesets before applying the update.
+2. Find the actual Forwarder Lambda function from the CloudFormation stack's "Resources" tab, navigate to its configuration page. Note down the value of the tag `dd_forwarder_version`, such as `3.73.0`, in case you run into issues with the new version and need to rollback.
+3. Update the stack using template `https://datadog-cloudformation-template.s3.amazonaws.com/aws/forwarder/latest.yaml`. You can also replace `latest` with a specific version, such as `3.73.0.yaml`, if needed. Make sure to review the changesets before applying the update.
+
+/!\ Manually updating the `.zip` code of the Forwarder may cause conflicts with Cloudformation updates for Forwarder installations where the code is packaged in a Lambda layer (default installation choice from version `3.33.0`) and cause invocation errors. In this case, updating the stack through Cloudformation to the latest available twice in a row (first with `InstallAsLayer` set to `false`, and then to `true`) should solve the issue as it will remove any `.zip` remnants and install the latest layer available. 
 
 ### Upgrade an older version to +3.74.0
 
