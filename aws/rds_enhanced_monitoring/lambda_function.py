@@ -228,6 +228,30 @@ def _process_rds_enhanced_monitoring_message(ts, message, account, region):
                 host=host_id,
             )
 
+    for disks_stats in message.get("disks", []):
+        disks_tag = []
+        if "name" in disks_stats:
+            disks_tag.append("%s:%s" % ("name", disks_stats.pop("name")))
+        for key, value in disks_stats.items():
+            stats.gauge(
+                "aws.rds.disks.%s" % key,
+                value,
+                timestamp=ts,
+                tags=tags + disks_tag,
+                host=host_id,
+            )
+
+    if "system" in message:
+        print(message["system"])
+        for key, value in message["system"].items():
+            stats.gauge(
+                "aws.rds.system.%s" % key,
+                value,
+                timestamp=ts,
+                tags=tags,
+                host=host_id,
+            )
+
 
 def extract_json_objects(input_string):
     """
