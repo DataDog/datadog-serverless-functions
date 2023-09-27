@@ -242,7 +242,6 @@ def _process_rds_enhanced_monitoring_message(ts, message, account, region):
             )
 
     if "system" in message:
-        print(message["system"])
         for key, value in message["system"].items():
             stats.gauge(
                 "aws.rds.system.%s" % key,
