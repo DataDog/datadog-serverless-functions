@@ -49,12 +49,12 @@ function aws-login() {
     cfg=( "$@" )
     shift
     if [ "$ACCOUNT" = "prod" ] ; then
-        aws-vault exec prod-engineering --  ${cfg[@]}
+        aws-vault exec sso-prod-engineering --  ${cfg[@]}
     else
         if [ "$DEPLOY_TO_SERVERLESS_SANDBOX" = "true" ] ; then
-            aws-vault exec serverless-sandbox-account-admin --  ${cfg[@]}
+            aws-vault exec sso-serverless-sandbox-account-admin --  ${cfg[@]}
         else
-            aws-vault exec sandbox-account-admin --  ${cfg[@]}
+            aws-vault exec sso-sandbox-account-admin --  ${cfg[@]}
         fi
     fi
 }

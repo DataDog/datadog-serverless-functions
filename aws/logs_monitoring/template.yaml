@@ -3,8 +3,8 @@ Description: Pushes logs, metrics and traces from AWS to Datadog.
 Mappings:
   Constants:
     DdForwarder:
-      Version: 3.73.0
-      LayerVersion: 30
+      Version: 3.91.0
+      LayerVersion: 37
 Parameters:
   DdApiKey:
     Type: String
@@ -478,7 +478,7 @@ Resources:
 
       MemorySize:
         Ref: MemorySize
-      Runtime: python3.8
+      Runtime: python3.9
       Timeout:
         Ref: Timeout
       Tags:
@@ -876,7 +876,7 @@ Resources:
     Properties:
       Description: Copies Datadog Forwarder zip to the destination S3 bucket
       Handler: index.handler
-      Runtime: python3.8
+      Runtime: python3.9
       Timeout: 300
       Code:
         ZipFile: |

@@ -1,9 +1,23 @@
-# rds_enhanced_monitoring
-Process a RDS enhanced monitoring DATA_MESSAGE, coming from CLOUDWATCH LOGS
+import unittest
+import os
+from unittest.mock import patch, MagicMock
+from lambda_function import Stats
+from urllib.error import HTTPError
+from io import BytesIO
 
-# RDS message example
-```json
+env_patch = patch.dict(
+    os.environ,
     {
+        "DD_API_KEY": "11111111111111111111111111111111",
+    },
+)
+env_patch.start()
+from lambda_function import extract_json_objects
+
+env_patch.stop()
+
+full_message_example = """
+{
         "engine": "Aurora",
         "instanceID": "instanceid",
         "instanceResourceID": "db-QPCTQVLJ4WIQPCTQVLJ4WIJ4WI",
@@ -212,83 +226,146 @@ Process a RDS enhanced monitoring DATA_MESSAGE, coming from CLOUDWATCH LOGS
             "rss": 441652
         }]
     }
-```
+""".replace(
+    " ", ""
+).replace(
+    "\n", ""
+)
 
-# Setup
 
-#### Encrypt Your Datadog API Key
+class TestRDSEnhancedMetrics(unittest.TestCase):
+    def test_extract_json_objects(self):
+        # Basic JSON
+        input_string = """{"a":2}{"b":3}"""
+        output_list = ['{"a":2}', '{"b":3}']
+        self.assertEqual(extract_json_objects(input_string), output_list)
 
-Before configuring your Lambda, first choose one of the following options to encrypt your Datadog API key.
+        # JSON including brackets
+        input_string = """{"a":2}{"b":"{}{}"}"""
+        output_list = ['{"a":2}', '{"b":"{}{}"}']
+        self.assertEqual(extract_json_objects(input_string), output_list)
 
-a. **Recommended**: AWS KMS
-   1. Refer to the [AWS KMS Creating Keys][1] documentation for step by step instructions on creating a key.
-   2. Encrypt your API key using the AWS CLI.
-   `aws kms encrypt --key-id alias/<KMS key name> --plaintext '<dd_api_key>'`
-   3. Store the `CiphertextBlob` as the `DD_KMS_API_KEY` environment variable in the next section.
+        # Highly nested JSON
+        input_string = """{"a":2}{"b":{"c":{"d":{"e":{"f":2}}}}}"""
+        output_list = ['{"a":2}', '{"b":{"c":{"d":{"e":{"f":2}}}}}']
+        self.assertEqual(extract_json_objects(input_string), output_list)
 
-b. AWS Secrets Manager
-   1. Create a plaintext secret in AWS Secrets Manager using your API key as the value
-   2. Store the ARN of the secret as the `DD_API_KEY_SECRET_ARN` environment variable
+        # JSON with AWS example
+        input_string = full_message_example
+        output_list = [input_string]
+        self.assertEqual(extract_json_objects(input_string), output_list)
 
-c. AWS SSM
-   1.  Create a parameter in AWS SSM using your API key as the value
-   2.  Store the Name of the parameter as the `DD_API_KEY_SSM_NAME` environment variable
+        # JSON with AWS example concatenated
+        input_string = full_message_example + full_message_example
+        output_list = [full_message_example, full_message_example]
+        self.assertEqual(extract_json_objects(input_string), output_list)
 
-d. **Not Recommended**: Plaintext
-   1. Set your API key in plaintext as the `DD_API_KEY` environment variable.
-   2. This flow is insecure and not recommended for production use cases.
+        # Empty JSON
+        input_string = """{}{}"""
+        output_list = ["{}", "{}"]
+        self.assertEqual(extract_json_objects(input_string), output_list)
 
-#### Create the Lambda Function
+        # Empty JSON
+        input_string = """{}"""
+        output_list = ["{}"]
+        self.assertEqual(extract_json_objects(input_string), output_list)
 
-1. Create and configure a lambda function
-   - In the AWS Console, create a `lambda_execution` policy, with the following policy. If
-     you chose an option other than KMS above, substitute the KMS statement with the
-     appropriate permission for the service you used.
+        # Won't check for properly closed [] characters
+        input_string = """{"a":[]]}"""
+        output_list = ['{"a":[]]}']
+        self.assertEqual(extract_json_objects(input_string), output_list)
 
-     ```
-     {
-        "Version": "2012-10-17",
-        "Statement": [
-            {
-                "Effect": "Allow",
-                "Action": [
-                    "logs:CreateLogGroup",
-                    "logs:CreateLogStream",
-                    "logs:PutLogEvents"
-                ],
-                "Resource": "arn:aws:logs:*:*:*"
-            },
-            {
-                 "Effect": "Allow",
-                 "Action": [
-                   "kms:Decrypt"
-                 ],
-                 "Resource": [
-                   "<KMS ARN>"
-                 ]
-               }
+
+class TestStats(unittest.TestCase):
+    @patch("lambda_function.urlopen")
+    def test_flush_retries_on_5xx_errors(self, mock_urlopen):
+        mock_response = MagicMock()
+        mock_response.__enter__.return_value = mock_response
+        mock_response.getcode.return_value = 200
+        mock_urlopen.side_effect = [
+            HTTPError(
+                url="mockurl",
+                code=500,
+                msg="Server Error",
+                hdrs={},
+                fp=BytesIO(b"Error"),
+            ),
+            HTTPError(
+                url="mockurl",
+                code=502,
+                msg="Bad Gateway",
+                hdrs={},
+                fp=BytesIO(b"Error"),
+            ),
+            HTTPError(
+                url="mockurl",
+                code=503,
+                msg="Service Unavailable",
+                hdrs={},
+                fp=BytesIO(b"Error"),
+            ),
+            HTTPError(
+                url="mockurl",
+                code=504,
+                msg="Gateway Timeout",
+                hdrs={},
+                fp=BytesIO(b"Error"),
+            ),
+            mock_response,
         ]
-     }
-     ```
+        stats = Stats(cap=0.01)
+        stats.gauge("test.metric", 42)
+        stats.flush()
+        self.assertEqual(mock_urlopen.call_count, 5)
 
-   - Create a `lambda_execution` role and attach this policy.
+    @patch("lambda_function.urlopen")
+    def test_flush_no_retry_on_4xx_error(self, mock_urlopen):
+        mock_response = MagicMock()
+        mock_response.__enter__.return_value = mock_response
+        mock_response.getcode.return_value = 200
+        mock_urlopen.side_effect = [
+            HTTPError(
+                url="mockurl", code=403, msg="Forbidden", hdrs={}, fp=BytesIO(b"Error")
+            ),
+        ]
+        stats = Stats()
+        stats.gauge("test.metric", 42)
+        stats.flush()
+        self.assertEqual(mock_urlopen.call_count, 1)
 
-   - Create a lambda function: skip the blueprint, name it `functionname`, set the runtime to `Python 3.9`, the handle to `lambda_function.lambda_handler`, and the role to `lambda_execution`.
+    @patch("lambda_function.urlopen")
+    def test_flush_retries_max_attempts(self, mock_urlopen):
+        mock_urlopen.side_effect = [
+            HTTPError(
+                url="mockurl",
+                code=500,
+                msg="Server Error",
+                hdrs={},
+                fp=BytesIO(b"Error"),
+            ),
+            HTTPError(
+                url="mockurl",
+                code=502,
+                msg="Bad Gateway",
+                hdrs={},
+                fp=BytesIO(b"Error"),
+            ),
+        ]
+        stats = Stats(max_attempts=1)
+        stats.gauge("test.metric", 42)
+        stats.flush()
+        self.assertEqual(mock_urlopen.call_count, 1)
 
-   - Copy the content of `functionname/lambda_function.py` in the code section
+    @patch("lambda_function.urlopen")
+    def test_flush_drop(self, mock_urlopen):
+        mock_urlopen.side_effect = [
+            Exception("Error"),
+        ]
+        stats = Stats()
+        stats.gauge("test.metric", 42)
+        stats.flush()
+        self.assertEqual(mock_urlopen.call_count, 1)
 
-   - Set the relevant environment variable with the API key payload you generated in step 1.
 
-   - If you use Datadog's EU platform, set the environment variable `DD_SITE` to `datadoghq.eu`
-
-2. Subscribe to the appropriate log stream.
-
-# How to update the zip file for the AWS Serverless Apps
-
-1. After modifying the files that you want inside the respective lambda app directory, run:
-
-```
-aws cloudformation package --template-file rds-enhanced-sam-template.yaml --output-template-file rds-enhanced-serverless-output.yaml --s3-bucket BUCKET_NAME
-```
-
-[1]: http://docs.aws.amazon.com/kms/latest/developerguide/create-keys.html
+if __name__ == "__main__":
+    unittest.main()

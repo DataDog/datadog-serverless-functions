@@ -16,7 +16,8 @@
       Start: (int64) 1636820292450000100,
       Duration: (int64) 149992638,
       Error: (int32) 0,
-      Meta: (map[string]string) (len=11) {
+      Meta: (map[string]string) (len=12) {
+       (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
        (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
        (string) (len=27) "_inferred_span.syncronicity": (string) (len=4) "sync",
        (string) (len=25) "_inferred_span.tag_source": (string) (len=4) "self",
@@ -58,7 +59,8 @@
       Start: (int64) 1636820292466458000,
       Duration: (int64) 133507715,
       Error: (int32) 0,
-      Meta: (map[string]string) (len=17) {
+      Meta: (map[string]string) (len=18) {
+       (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
        (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
        (string) (len=10) "cold_start": (string) (len=5) "false",
        (string) (len=14) "datadog_lambda": (string) (len=6) "3.49.0",
@@ -102,7 +104,8 @@
       Start: (int64) 1636820292466887200,
       Duration: (int64) 19825652,
       Error: (int32) 0,
-      Meta: (map[string]string) (len=10) {
+      Meta: (map[string]string) (len=11) {
+       (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
        (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
        (string) (len=9) "aws.agent": (string) (len=8) "botocore",
        (string) (len=13) "aws.operation": (string) (len=11) "SendMessage",
@@ -131,7 +134,8 @@
       Start: (int64) 1636820292487212000,
       Duration: (int64) 21565856,
       Error: (int32) 0,
-      Meta: (map[string]string) (len=11) {
+      Meta: (map[string]string) (len=12) {
+       (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
        (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
        (string) (len=9) "aws.agent": (string) (len=8) "botocore",
        (string) (len=13) "aws.operation": (string) (len=7) "Publish",
@@ -161,7 +165,8 @@
       Start: (int64) 1636820292508904400,
       Duration: (int64) 6481144,
       Error: (int32) 0,
-      Meta: (map[string]string) (len=9) {
+      Meta: (map[string]string) (len=10) {
+       (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
        (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
        (string) (len=9) "aws.agent": (string) (len=8) "botocore",
        (string) (len=13) "aws.operation": (string) (len=7) "PutItem",
@@ -189,7 +194,8 @@
       Start: (int64) 1636820292515487000,
       Duration: (int64) 7799031,
       Error: (int32) 0,
-      Meta: (map[string]string) (len=10) {
+      Meta: (map[string]string) (len=11) {
+       (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
        (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
        (string) (len=9) "aws.agent": (string) (len=8) "botocore",
        (string) (len=13) "aws.operation": (string) (len=9) "PutRecord",
@@ -218,7 +224,8 @@
       Start: (int64) 1636820292523388000,
       Duration: (int64) 13733007,
       Error: (int32) 0,
-      Meta: (map[string]string) (len=8) {
+      Meta: (map[string]string) (len=9) {
+       (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
        (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
        (string) (len=9) "aws.agent": (string) (len=8) "botocore",
        (string) (len=13) "aws.operation": (string) (len=9) "PutEvents",
@@ -245,7 +252,8 @@
       Start: (int64) 1636820292538263000,
       Duration: (int64) 38689743,
       Error: (int32) 0,
-      Meta: (map[string]string) (len=9) {
+      Meta: (map[string]string) (len=10) {
+       (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
        (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
        (string) (len=9) "aws.agent": (string) (len=8) "botocore",
        (string) (len=13) "aws.operation": (string) (len=9) "PutObject",
@@ -273,7 +281,8 @@
       Start: (int64) 1636820292579315000,
       Duration: (int64) 20111883,
       Error: (int32) 0,
-      Meta: (map[string]string) (len=9) {
+      Meta: (map[string]string) (len=10) {
+       (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
        (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
        (string) (len=9) "aws.agent": (string) (len=8) "botocore",
        (string) (len=13) "aws.operation": (string) (len=6) "Invoke",

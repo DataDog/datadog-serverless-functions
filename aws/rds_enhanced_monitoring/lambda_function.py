@@ -8,7 +8,9 @@ import os
 import re
 import time
 import base64
+import random
 from io import BufferedReader, BytesIO
+from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 from urllib.parse import urlencode
 
@@ -66,7 +68,19 @@ def _datadog_keys():
             )["Plaintext"]
 
         if type(DD_API_KEY) is bytes:
-            DD_API_KEY = DD_API_KEY.decode("utf-8")
+            # If the CiphertextBlob was encrypted with AWS CLI, we
+            # need to re-encode this in base64
+            try:
+                DD_API_KEY = DD_API_KEY.decode("utf-8")
+            except UnicodeDecodeError as e:
+                print(
+                    "INFO DD_KMS_API_KEY: Could not decode key in utf-8, encoding in b64. Exception:",
+                    e,
+                )
+                DD_API_KEY = base64.b64encode(DD_API_KEY)
+                DD_API_KEY = DD_API_KEY.decode("utf-8")
+            except Exception as e:
+                print("ERROR DD_KMS_API_KEY Unknown exception decoding key:", e)
         return {"api_key": DD_API_KEY}
 
     if "DD_API_KEY" in os.environ:
@@ -214,6 +228,50 @@ def _process_rds_enhanced_monitoring_message(ts, message, account, region):
                 host=host_id,
             )
 
+    for disks_stats in message.get("disks", []):
+        disks_tag = []
+        if "name" in disks_stats:
+            disks_tag.append("%s:%s" % ("name", disks_stats.pop("name")))
+        for key, value in disks_stats.items():
+            stats.gauge(
+                "aws.rds.disks.%s" % key,
+                value,
+                timestamp=ts,
+                tags=tags + disks_tag,
+                host=host_id,
+            )
+
+    if "system" in message:
+        for key, value in message["system"].items():
+            stats.gauge(
+                "aws.rds.system.%s" % key,
+                value,
+                timestamp=ts,
+                tags=tags,
+                host=host_id,
+            )
+
+
+def extract_json_objects(input_string):
+    """
+    Extract JSON objects if the log_event["message"] is not properly formatted like this:
+    {"a":2}{"b":{"c":3}}
+    Supports JSON with a depth of 6 at maximum (recursion requires regex package)
+    """
+    in_string, open_brackets, json_objects, start = False, 0, [], 0
+    for idx, char in enumerate(input_string):
+        # Ignore escaped quotes
+        if char == '"' and (idx == 0 or input_string[idx - 1] != "\\"):
+            in_string = not in_string
+        elif char == "{" and not in_string:
+            open_brackets += 1
+        elif char == "}" and not in_string:
+            open_brackets -= 1
+            if open_brackets == 0:
+                json_objects += [input_string[start : idx + 1]]
+                start = idx + 1
+    return json_objects
+
 
 def lambda_handler(event, context):
     """Process a RDS enhanced monitoring DATA_MESSAGE,
@@ -233,9 +291,18 @@ def lambda_handler(event, context):
     log_events = event["logEvents"]
 
     for log_event in log_events:
-        message = json.loads(log_event["message"])
         ts = log_event["timestamp"] / 1000
-        _process_rds_enhanced_monitoring_message(ts, message, account, region)
+        # Try to parse all objects as JSON before going into processing
+        # In case one of the json.loads operation fails, revert to previous behavior
+        json_objects = []
+        try:
+            messages = extract_json_objects(log_event["message"])
+            for json_object in messages:
+                json_objects += [json.loads(json_object)]
+        except:
+            json_objects += [json.loads(log_event["message"])]
+        for message in json_objects:
+            _process_rds_enhanced_monitoring_message(ts, message, account, region)
 
     stats.flush()
     return {"Status": "OK"}
@@ -245,8 +312,15 @@ def lambda_handler(event, context):
 
 
 class Stats(object):
-    def __init__(self):
+    def __init__(self, base=2, cap=30, max_attempts=5):
         self.series = []
+        self.base = base
+        self.cap = cap
+        self.max_attempts = max_attempts
+
+    def _backoff(self, n):
+        v = min(self.cap, pow(2, n) * self.base)
+        return random.uniform(0, v)
 
     def gauge(self, metric, value, timestamp=None, tags=None, host=None):
         base_dict = {
@@ -272,8 +346,32 @@ class Stats(object):
             creds,
         )
         req = Request(url, data, {"Content-Type": "application/json"})
-        response = urlopen(req)
-        print("INFO Submitted data with status%s" % response.getcode())
+        for attempt in range(1, self.max_attempts + 1):
+            try:
+                with urlopen(req) as response:
+                    print(
+                        "INFO Submitted data with status: {}".format(response.getcode())
+                    )
+            except HTTPError as e:
+                if e.code in (500, 502, 503, 504):
+                    if attempt == self.max_attempts:
+                        print(
+                            "ERROR Exceeded max number of retries, dropping data: {}".format(
+                                e.read()
+                            )
+                        )
+                        break
+                    t = self._backoff(attempt)
+                    print("ERROR {}. Retrying in {} seconds...".format(e.read(), t))
+                    time.sleep(t)
+                else:
+                    print(
+                        "ERROR {}, not retrying with status {}".format(e.read(), e.code)
+                    )
+                    break
+            except Exception as e:
+                print("ERROR Dropping data: {}".format(e))
+                break
 
 
 stats = Stats()

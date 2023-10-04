@@ -7,7 +7,7 @@
 
 set -e
 
-PYTHON_VERSION="python3.8"
+PYTHON_VERSION="python3.9"
 SKIP_FORWARDER_BUILD=false
 UPDATE_SNAPSHOTS=false
 LOG_LEVEL=info
@@ -39,7 +39,7 @@ do
 
 		# -v or --python-version
 		# The version of the Python Lambda runtime to use
-		# Must be 3.7 or 3.8
+		# Must be 3.8 or 3.9
 		-v=*|--python-version=*)
 		PYTHON_VERSION="python${arg#*=}"
 		shift
@@ -63,7 +63,7 @@ do
 		# Run additionalLambda tests
 
 		# Requires AWS credentials
-		# Use aws-vault exec sandbox-account-admin -- ./integration_tests.sh
+		# Use aws-vault exec sso-sandbox-account-admin -- ./integration_tests.sh
 		-a|--additional-lambda)
 		ADDITIONAL_LAMBDA=true
 		shift
@@ -78,8 +78,8 @@ do
 	esac
 done
 
-if [ $PYTHON_VERSION != "python3.7" ] && [ $PYTHON_VERSION != "python3.8" ]; then
-    echo "Must use either Python 3.7 or 3.8"
+if [ $PYTHON_VERSION != "python3.8" ] && [ $PYTHON_VERSION != "python3.9" ]; then
+    echo "Must use either Python 3.8 or 3.9"
     exit 1
 fi
 
@@ -148,11 +148,23 @@ fi
 
 cd $INTEGRATION_TESTS_DIR
 
-# Build Docker image of Forwarder for tests
-echo "Building Docker Image for Forwarder"
-docker buildx build --platform linux/amd64 --file "${INTEGRATION_TESTS_DIR}/forwarder/Dockerfile" -t "datadog-log-forwarder:$PYTHON_VERSION" ../../.forwarder --no-cache \
+if [ $PYTHON_VERSION == "python3.8" ]; then
+# Build Docker image of Forwarder for tests 3.8 compatibility
+	echo "Building Docker Image for Forwarder with tag datadog-log-forwarder:$PYTHON_VERSION"
+	docker buildx build --platform linux/amd64 --file "${INTEGRATION_TESTS_DIR}/forwarder/Dockerfile" -t "datadog-log-forwarder:$PYTHON_VERSION" ../../.forwarder --no-cache \
     --build-arg forwarder='aws-dd-forwarder-0.0.0' \
     --build-arg image="lambci/lambda:${PYTHON_VERSION}"
+fi
+
+# Build Docker image of Forwarder for tests >= 3.9 compatibility
+# See https://github.com/lambci/lambci/issues/138, previous image not supported anymore
+# and we need the DOCKER_LAMBDA_STAY_OPEN=1 option,so relying on a fork
+if [ $PYTHON_VERSION == "python3.9" ]; then
+	echo "Building Docker Image for Forwarder with tag datadog-log-forwarder:$PYTHON_VERSION"
+	docker buildx build --platform linux/amd64 --file "${INTEGRATION_TESTS_DIR}/forwarder/Dockerfile" -t "datadog-log-forwarder:$PYTHON_VERSION" ../../.forwarder --no-cache \
+    --build-arg forwarder='aws-dd-forwarder-0.0.0' \
+    --build-arg image="mlupin/docker-lambda:${PYTHON_VERSION}-x86_64"
+fi
 
 echo "Running integration tests for ${PYTHON_VERSION}"
 LOG_LEVEL=${LOG_LEVEL} \
