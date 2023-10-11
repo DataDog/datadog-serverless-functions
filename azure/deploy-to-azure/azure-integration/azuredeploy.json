@@ -61,7 +61,14 @@
             "defaultValue": "",
             "type": "String",
             "metadata": {
-                "description": "Filter to include/exclude app_service_plan"
+                "description": "Filter to include/exclude app service plans"
+            }
+        },
+        "containerAppFilters": {
+            "defaultValue": "",
+            "type": "String",
+            "metadata": {
+                "description": "Filter to include/exclude container apps"
             }
         },
         "automute": {
