@@ -276,7 +276,7 @@
             "condition": "[not(empty(parameters('appServicePlanFilters')))]",
             "type": "Microsoft.Resources/deploymentScripts",
             "apiVersion": "2020-10-01",
-            "name": "[concat('datadog-app-filter-script-', parameters('newguid'))]",
+            "name": "[concat('datadog-app-service-plan-filter-script-', parameters('newguid'))]",
             "location": "[parameters('location')]",
             "kind": "AzurePowerShell",
             "dependsOn": [
