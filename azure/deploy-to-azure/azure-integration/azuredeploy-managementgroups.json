@@ -427,7 +427,7 @@
                                     },
                                     {
                                         "name": "namespace",
-                                        "value": "app_service_plan"
+                                        "value": "container_app"
                                     },
                                     {
                                         "name": "clientId",
