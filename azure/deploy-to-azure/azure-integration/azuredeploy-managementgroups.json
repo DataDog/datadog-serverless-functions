@@ -161,6 +161,9 @@
                     "appServicePlanFilters": {
                         "value": "[parameters('appServicePlanFilters')]"
                     },
+                    "containerAppFilters": {
+                        "value": "[parameters('containerAppFilters')]"
+                    },
                     "automute": {
                         "value": "[parameters('automute')]"
                     },
@@ -206,6 +209,9 @@
                             "type": "string"
                         },
                         "appServicePlanFilters":{
+                            "type": "string"
+                        },
+                        "containerAppFilters":{
                             "type": "string"
                         },
                         "automute": {
@@ -437,7 +443,7 @@
                                 "containerSettings": {},
                                 "cleanupPreference": "Always",
                                 "azPowerShellVersion": "8.1",
-                                "scriptContent": "Invoke-WebRequest -SkipCertificateCheck -ContentType \"application/json\" -Method Post -Uri \"https://api.$Env:datadogSite/api/v1/integration/azure/filtering\" -Headers @{\"Accept\"=\"application/json\"; \"DD-APPLICATION-KEY\"=$Env:datadogApplicationKey; \"DD-API-KEY\"=$Env:datadogApiKey} -Body (@{\"client_id\"=$Env:clientId; \"tenant_id\"=$Env:tenantName; \"namespace\"=$Env:namespace; \"filters\"=$Env:appServicePlanFilters} | ConvertTo-Json )"
+                                "scriptContent": "Invoke-WebRequest -SkipCertificateCheck -ContentType \"application/json\" -Method Post -Uri \"https://api.$Env:datadogSite/api/v1/integration/azure/filtering\" -Headers @{\"Accept\"=\"application/json\"; \"DD-APPLICATION-KEY\"=$Env:datadogApplicationKey; \"DD-API-KEY\"=$Env:datadogApiKey} -Body (@{\"client_id\"=$Env:clientId; \"tenant_id\"=$Env:tenantName; \"namespace\"=$Env:namespace; \"filters\"=$Env:containerAppFilters} | ConvertTo-Json )"
                             }
                         }
                     ]
