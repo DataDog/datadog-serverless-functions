@@ -83,7 +83,7 @@
             "defaultValue": true,
             "type": "Bool",
             "metadata": {
-                "description": "Collect resources for Cloud Security Posture Management"
+                "description": "Collect resources for Cloud Security Management"
             }
         },
         "custom_metrics_enabled": {

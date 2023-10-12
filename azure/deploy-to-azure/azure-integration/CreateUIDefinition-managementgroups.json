@@ -275,7 +275,7 @@
               {
                 "name": "cspm_enabled",
                 "type": "Microsoft.Common.CheckBox",
-                "label": "Cloud Security Posture Management",
+                "label": "Cloud Security Management",
                 "toolTip": "When enabled, Datadog performs configuration checks across your Azure environment by continuously scanning every resource. Use Datadog's executive reporting summaries to track conformance to industry benchmark criteria."
               },
               {
