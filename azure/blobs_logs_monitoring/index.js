@@ -4,6 +4,7 @@
 // Copyright 2021 Datadog, Inc.
 
 var tls = require('tls');
+var zlib = require('zlib');
 
 const VERSION = '0.2.0';
 
@@ -45,6 +46,10 @@ module.exports = function(context, blobContent) {
     if (typeof blobContent === 'string') {
         logs = blobContent.trim().split('\n');
     } else if (Buffer.isBuffer(blobContent)) {
+        // Gunzip data that has magic header https://en.wikipedia.org/wiki/Gzip
+        if(blobContent[0]==0x1f && blobContent[1]==0x8b){
+            blobContent = zlib.gunzipSync(blobContent);
+        }
         logs = blobContent
             .toString('utf8')
             .trim()
