@@ -62,7 +62,14 @@
             "defaultValue": "",
             "type": "String",
             "metadata": {
-                "description": "Filter to include/exclude app_service_plan"
+                "description": "Filter to include/exclude app service plans"
+            }
+        },
+        "containerAppFilters": {
+            "defaultValue": "",
+            "type": "String",
+            "metadata": {
+                "description": "Filter to include/exclude container apps"
             }
         },
         "automute": {
@@ -76,7 +83,7 @@
             "defaultValue": true,
             "type": "Bool",
             "metadata": {
-                "description": "Collect resources for Cloud Security Posture Management"
+                "description": "Collect resources for Cloud Security Management"
             }
         },
         "custom_metrics_enabled": {
@@ -154,6 +161,9 @@
                     "appServicePlanFilters": {
                         "value": "[parameters('appServicePlanFilters')]"
                     },
+                    "containerAppFilters": {
+                        "value": "[parameters('containerAppFilters')]"
+                    },
                     "automute": {
                         "value": "[parameters('automute')]"
                     },
@@ -199,6 +209,9 @@
                             "type": "string"
                         },
                         "appServicePlanFilters":{
+                            "type": "string"
+                        },
+                        "containerAppFilters":{
                             "type": "string"
                         },
                         "automute": {
@@ -339,7 +352,7 @@
                             "condition": "[not(empty(parameters('appServicePlanFilters')))]",
                             "type": "Microsoft.Resources/deploymentScripts",
                             "apiVersion": "2020-10-01",
-                            "name": "[concat('datadog-app-filter-script-', parameters('newguid'))]",
+                            "name": "[concat('datadog-app-service-plan-filter-script-', parameters('newguid'))]",
                             "location": "[parameters('location')]",
                             "kind": "AzurePowerShell",
                             "dependsOn": [
@@ -382,6 +395,55 @@
                                 "cleanupPreference": "Always",
                                 "azPowerShellVersion": "8.1",
                                 "scriptContent": "Invoke-WebRequest -SkipCertificateCheck -ContentType \"application/json\" -Method Post -Uri \"https://api.$Env:datadogSite/api/v1/integration/azure/filtering\" -Headers @{\"Accept\"=\"application/json\"; \"DD-APPLICATION-KEY\"=$Env:datadogApplicationKey; \"DD-API-KEY\"=$Env:datadogApiKey} -Body (@{\"client_id\"=$Env:clientId; \"tenant_id\"=$Env:tenantName; \"namespace\"=$Env:namespace; \"filters\"=$Env:appServicePlanFilters} | ConvertTo-Json )"
+                            }
+                        },
+                        {
+                            "condition": "[not(empty(parameters('containerAppFilters')))]",
+                            "type": "Microsoft.Resources/deploymentScripts",
+                            "apiVersion": "2020-10-01",
+                            "name": "[concat('datadog-container-app-filter-script-', parameters('newguid'))]",
+                            "location": "[parameters('location')]",
+                            "kind": "AzurePowerShell",
+                            "dependsOn": [
+                                "[resourceId('Microsoft.Resources/deploymentScripts', concat('datadog-integration-script-', parameters('newguid')))]"
+                            ],
+                            "properties": {
+                                "environmentVariables": [
+                                    {
+                                        "name": "datadogApplicationKey",
+                                        "secureValue": "[parameters('datadogApplicationKey')]"
+                                    },
+                                    {
+                                        "name": "datadogApiKey",
+                                        "secureValue": "[parameters('datadogApiKey')]"
+                                    },
+                                    {
+                                        "name": "datadogSite",
+                                        "value": "[parameters('datadogSite')]"
+                                    },
+                                    {
+                                        "name": "containerAppFilters",
+                                        "value": "[parameters('containerAppFilters')]"
+                                    },
+                                    {
+                                        "name": "namespace",
+                                        "value": "container_app"
+                                    },
+                                    {
+                                        "name": "clientId",
+                                        "value": "[parameters('servicePrincipalClientId')]"
+                                    },
+                                    {
+                                        "name": "tenantName",
+                                        "value": "[subscription().tenantId]"
+                                    }
+                                ],
+                                "retentionInterval": "PT1H",
+                                "timeout": "PT2M",
+                                "containerSettings": {},
+                                "cleanupPreference": "Always",
+                                "azPowerShellVersion": "8.1",
+                                "scriptContent": "Invoke-WebRequest -SkipCertificateCheck -ContentType \"application/json\" -Method Post -Uri \"https://api.$Env:datadogSite/api/v1/integration/azure/filtering\" -Headers @{\"Accept\"=\"application/json\"; \"DD-APPLICATION-KEY\"=$Env:datadogApplicationKey; \"DD-API-KEY\"=$Env:datadogApiKey} -Body (@{\"client_id\"=$Env:clientId; \"tenant_id\"=$Env:tenantName; \"namespace\"=$Env:namespace; \"filters\"=$Env:containerAppFilters} | ConvertTo-Json )"
                             }
                         }
                     ]

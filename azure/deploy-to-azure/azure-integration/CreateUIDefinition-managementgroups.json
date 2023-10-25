@@ -255,6 +255,17 @@
                 "visible": true
               },
               {
+                "name": "containerAppFilters",
+                "type": "Microsoft.Common.TextBox",
+                "label": "Container App Filters",
+                "defaultValue": "",
+                "toolTip": "This comma-separated list of Azure tags (in the form key:value) defines a filter that we will use when collecting metrics from Azure. Only Container Apps that match one of the defined labels will be imported into Datadog. The rest will be ignored.  Wildcards, such as ? (for single characters) and * (for multiple characters) can also be used. Hosts matching a given label can also be excluded by adding ! before the label.  Example: datadog:monitored,env:production,!env:staging,instance-type:c1.*",
+                "constraints": {
+                  "required": false
+                },
+                "visible": true
+              },
+              {
                 "name": "automute",
                 "type": "Microsoft.Common.CheckBox",
                 "label": "Automute",
@@ -264,7 +275,7 @@
               {
                 "name": "cspm_enabled",
                 "type": "Microsoft.Common.CheckBox",
-                "label": "Cloud Security Posture Management",
+                "label": "Cloud Security Management",
                 "toolTip": "When enabled, Datadog performs configuration checks across your Azure environment by continuously scanning every resource. Use Datadog's executive reporting summaries to track conformance to industry benchmark criteria."
               },
               {
@@ -291,6 +302,7 @@
       "datadogSite": "[steps('datadogConfig').datadogSite]",
       "hostFilters": "[steps('datadogConfig').metrics.hostFilters]",
       "appServicePlanFilters": "[steps('datadogConfig').metrics.appServicePlanFilters]",
+      "containerAppFilters": "[steps('datadogConfig').metrics.containerAppFilters]",
       "automute": "[steps('datadogConfig').metrics.automute]",
       "cspm_enabled": "[steps('datadogConfig').metrics.cspm_enabled]",
       "custom_metrics_enabled": "[steps('datadogConfig').metrics.custom_metrics_enabled]"
