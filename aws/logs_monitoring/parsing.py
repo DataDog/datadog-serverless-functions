@@ -539,9 +539,9 @@ def awslogs_handler(event, context, metadata):
             message = json.loads(logs["logEvents"][0]["message"])
             if message.get("execution_arn") is not None:
                 execution_arn = message["execution_arn"]
-                arn_tokens = execution_arn.split(":")
+                arn_tokens = re.split(r"[:/\\]", execution_arn)
                 arn_tokens[5] = "stateMachine"
-                metadata[DD_HOST] = ":".join(arn_tokens[:-1])
+                metadata[DD_HOST] = ":".join(arn_tokens[:7])
                 state_machine_arn = ":".join(arn_tokens[:7])
         except Exception as e:
             logger.debug(
