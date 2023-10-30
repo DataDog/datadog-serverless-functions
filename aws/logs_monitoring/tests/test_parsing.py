@@ -969,58 +969,31 @@ class TestGetServiceFromTags(unittest.TestCase):
 
 class TestParsingStepFunctionLogs(unittest.TestCase):
     def test_get_state_machine_arn(self):
-        invalid_log_event = {
-            "logEvents": [
-                {
-                    "id": "31953106606966983378809025079804211143289615424298221568",
-                    "timestamp": 1609556645000,
-                    "message": {
+        invalid_sf_log_message =  {
                         "no_execution_arn": "xxxx/yyy"
-                    }
-                }
-            ]
+                    
         }
-        self.assertEqual(get_state_machine_arn(invalid_log_event), "")
-        normal_log_event = {
-            "logEvents": [
-                {
-                    "id": "31953106606966983378809025079804211143289615424298221568",
-                    "timestamp": 1609556645000,
-                    "message": {
+        self.assertEqual(get_state_machine_arn(invalid_sf_log_message), "")
+        
+        normal_sf_log_message = {
                         "execution_arn": "arn:aws:states:sa-east-1:425362996713:express:my-Various-States:7f653fda-c79a-430b-91e2-3f97eb87cabb:862e5d40-a457-4ca2-a3c1-78485bd94d3f"
-                    }
-                }
-            ]
+               
         }
-        self.assertEqual(get_state_machine_arn(normal_log_event),
-                         "arn:aws:states:sa-east-1:425362996713:express:my-Various-States")
-        forward_slash_log_event = {
-            "logEvents": [
-                {
-                    "id": "31953106606966983378809025079804211143289615424298221568",
-                    "timestamp": 1609556645000,
-                    "message": {
+        self.assertEqual(get_state_machine_arn(normal_sf_log_message),
+                         "arn:aws:states:sa-east-1:425362996713:stateMachine:my-Various-States")
+        
+        forward_slash_sf_log_message = {
                         "execution_arn": "arn:aws:states:sa-east-1:425362996713:express:my-Various-States/7f653fda-c79a-430b-91e2-3f97eb87cabb:862e5d40-a457-4ca2-a3c1-78485bd94d3f"
-                    }
-                }
-            ]
         }
-        self.assertEqual(get_state_machine_arn(forward_slash_log_event),
-                         "arn:aws:states:sa-east-1:425362996713:express:my-Various-States")
-        back_slash_log_event = {
-            "logEvents": [
-                {
-                    "id": "31953106606966983378809025079804211143289615424298221568",
-                    "timestamp": 1609556645000,
-                    "message": {
+        self.assertEqual(get_state_machine_arn(forward_slash_sf_log_message),
+                          "arn:aws:states:sa-east-1:425362996713:stateMachine:my-Various-States")
+        
+        back_slash_sf_log_message = {
                         "execution_arn": "arn:aws:states:sa-east-1:425362996713:express:my-Various-States\\7f653fda-c79a-430b-91e2-3f97eb87cabb:862e5d40-a457-4ca2-a3c1-78485bd94d3f"
                     }
-                }
-            ]
-        }
-        self.assertEqual(get_state_machine_arn(back_slash_log_event),
-                         "arn:aws:states:sa-east-1:425362996713:express:my-Various-States")
-
+        self.assertEqual(get_state_machine_arn(back_slash_sf_log_message),
+                          "arn:aws:states:sa-east-1:425362996713:stateMachine:my-Various-States")
+        
 
 if __name__ == "__main__":
     unittest.main()

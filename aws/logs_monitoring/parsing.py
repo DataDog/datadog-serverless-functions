@@ -538,7 +538,7 @@ def awslogs_handler(event, context, metadata):
     ):
         state_machine_arn = ""
         try:
-            state_machine_arn = get_state_machine_arn(logs)
+            state_machine_arn = get_state_machine_arn(json.loads(logs["logEvents"][0]["message"]))
             if state_machine_arn:  # not empty
                 metadata[DD_HOST] = state_machine_arn
         except Exception as e:
@@ -856,8 +856,7 @@ def normalize_events(events, metadata):
     return normalized
 
 
-def get_state_machine_arn(logs):
-    message = json.loads(logs["logEvents"][0]["message"])
+def get_state_machine_arn(message):
     if message.get("execution_arn") is not None:
         execution_arn = message["execution_arn"]
         arn_tokens = re.split(r"[:/\\]", execution_arn)
