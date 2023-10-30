@@ -279,14 +279,14 @@ def find_cloudwatch_source(log_group):
         return "rds"
 
     if log_group.startswith(
-            (
-                    # default location for rest api execution logs
-                    "api-gateway",  # e.g. Api-Gateway-Execution-Logs_xxxxxx/dev
-                    # default location set by serverless framework for rest api access logs
-                    "/aws/api-gateway",  # e.g. /aws/api-gateway/my-project
-                    # default location set by serverless framework for http api logs
-                    "/aws/http-api",  # e.g. /aws/http-api/my-project
-            )
+        (
+            # default location for rest api execution logs
+            "api-gateway",  # e.g. Api-Gateway-Execution-Logs_xxxxxx/dev
+            # default location set by serverless framework for rest api access logs
+            "/aws/api-gateway",  # e.g. /aws/api-gateway/my-project
+            # default location set by serverless framework for http api logs
+            "/aws/http-api",  # e.g. /aws/http-api/my-project
+        )
     ):
         return "apigateway"
 
@@ -410,7 +410,7 @@ def parse_service_arn(source, key, bucket, context):
         # If there is a prefix on the S3 bucket, remove the prefix before splitting the key
         if idsplit[0] != "AWSLogs":
             try:
-                idsplit = idsplit[idsplit.index("AWSLogs"):]
+                idsplit = idsplit[idsplit.index("AWSLogs") :]
                 keysplit = "/".join(idsplit).split("_")
             except ValueError:
                 logger.debug("Invalid S3 key, doesn't contain AWSLogs")
@@ -479,7 +479,7 @@ def get_step_machine_arn(message):
 def awslogs_handler(event, context, metadata):
     # Get logs
     with gzip.GzipFile(
-            fileobj=BytesIO(base64.b64decode(event["awslogs"]["data"]))
+        fileobj=BytesIO(base64.b64decode(event["awslogs"]["data"]))
     ) as decompress_stream:
         # Reading line by line avoid a bug where gzip would take a very long
         # time (>5min) for file around 60MB gzipped
@@ -534,11 +534,13 @@ def awslogs_handler(event, context, metadata):
             logger.debug("Unable to set verified-access log host: %s" % e)
 
     if metadata[DD_SOURCE] == "stepfunction" and logs["logStream"].startswith(
-            "states/"
+        "states/"
     ):
         state_machine_arn = ""
         try:
-            state_machine_arn = get_state_machine_arn(json.loads(logs["logEvents"][0]["message"]))
+            state_machine_arn = get_state_machine_arn(
+                json.loads(logs["logEvents"][0]["message"])
+            )
             if state_machine_arn:  # not empty
                 metadata[DD_HOST] = state_machine_arn
         except Exception as e:
@@ -554,8 +556,8 @@ def awslogs_handler(event, context, metadata):
                 ",".join(formatted_stepfunctions_tags)
                 if not metadata[DD_CUSTOM_TAGS]
                 else metadata[DD_CUSTOM_TAGS]
-                     + ","
-                     + ",".join(formatted_stepfunctions_tags)
+                + ","
+                + ",".join(formatted_stepfunctions_tags)
             )
 
     # When parsing rds logs, use the cloudwatch log group name to derive the
@@ -565,7 +567,7 @@ def awslogs_handler(event, context, metadata):
         if match is not None:
             metadata[DD_HOST] = match.group("host")
             metadata[DD_CUSTOM_TAGS] = (
-                    metadata[DD_CUSTOM_TAGS] + ",logname:" + match.group("name")
+                metadata[DD_CUSTOM_TAGS] + ",logname:" + match.group("name")
             )
 
     # For Lambda logs we want to extract the function name,
@@ -586,8 +588,8 @@ def awslogs_handler(event, context, metadata):
                 aws_attributes = merge_dicts(aws_attributes, arn_attributes)
 
                 env_tag_exists = (
-                        metadata[DD_CUSTOM_TAGS].startswith("env:")
-                        or ",env:" in metadata[DD_CUSTOM_TAGS]
+                    metadata[DD_CUSTOM_TAGS].startswith("env:")
+                    or ",env:" in metadata[DD_CUSTOM_TAGS]
                 )
                 # If there is no env specified, default to env:none
                 if not env_tag_exists:
@@ -707,14 +709,14 @@ def parse_aws_waf_logs(event):
 
             # Iterate through array of non-terminating rules and nest each under its own id
             if "nonTerminatingMatchingRules" in rule_group and isinstance(
-                    rule_group["nonTerminatingMatchingRules"], list
+                rule_group["nonTerminatingMatchingRules"], list
             ):
                 non_terminating_rules = rule_group.pop(
                     "nonTerminatingMatchingRules", None
                 )
                 if (
-                        "nonTerminatingMatchingRules"
-                        not in message["ruleGroupList"][group_id]
+                    "nonTerminatingMatchingRules"
+                    not in message["ruleGroupList"][group_id]
                 ):
                     message["ruleGroupList"][group_id][
                         "nonTerminatingMatchingRules"
@@ -725,7 +727,7 @@ def parse_aws_waf_logs(event):
 
             # Iterate through array of excluded rules and nest each under its own id
             if "excludedRules" in rule_group and isinstance(
-                    rule_group["excludedRules"], list
+                rule_group["excludedRules"], list
             ):
                 excluded_rules = rule_group.pop("excludedRules", None)
                 if "excludedRules" not in message["ruleGroupList"][group_id]:
@@ -775,7 +777,7 @@ def separate_security_hub_findings(event):
     This prevents having an unparsable array of objects in the final log.
     """
     if event.get(DD_SOURCE) != "securityhub" or not event.get("detail", {}).get(
-            "findings"
+        "findings"
     ):
         return None
     events = []

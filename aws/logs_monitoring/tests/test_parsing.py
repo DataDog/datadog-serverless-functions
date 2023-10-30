@@ -792,13 +792,13 @@ class TestAWSLogsHandler(unittest.TestCase):
     @patch("base_tags_cache.send_forwarder_internal_metrics")
     @patch("parsing.CloudwatchLogGroupTagsCache.get_cache_from_s3")
     def test_awslogs_handler_rds_postgresql(
-            self,
-            mock_get_s3_cache,
-            mock_forward_metrics,
-            mock_write_cache,
-            mock_acquire_lock,
-            mock_release_lock,
-            mock_cache_get,
+        self,
+        mock_get_s3_cache,
+        mock_forward_metrics,
+        mock_write_cache,
+        mock_acquire_lock,
+        mock_release_lock,
+        mock_cache_get,
     ):
         os.environ["DD_FETCH_LAMBDA_TAGS"] = "True"
         os.environ["DD_FETCH_LOG_GROUP_TAGS"] = "True"
@@ -849,7 +849,7 @@ class TestAWSLogsHandler(unittest.TestCase):
                     },
                     "id": "31953106606966983378809025079804211143289615424298221568",
                     "message": "2021-01-02 03:04:05 UTC::@:[5306]:LOG:  database system is ready "
-                               "to accept connections",
+                    "to accept connections",
                     "timestamp": 1609556645000,
                 }
             ],
@@ -873,14 +873,14 @@ class TestAWSLogsHandler(unittest.TestCase):
     @patch("base_tags_cache.send_forwarder_internal_metrics")
     @patch("parsing.StepFunctionsTagsCache.get_cache_from_s3")
     def test_awslogs_handler_step_functions_tags_added_properly(
-            self,
-            mock_get_s3_cache,
-            mock_forward_metrics,
-            mock_write_cache,
-            mock_acquire_lock,
-            mock_release_lock,
-            mock_step_functions_cache_get,
-            mock_cw_log_group_cache_get,
+        self,
+        mock_get_s3_cache,
+        mock_forward_metrics,
+        mock_write_cache,
+        mock_acquire_lock,
+        mock_release_lock,
+        mock_step_functions_cache_get,
+        mock_cw_log_group_cache_get,
     ):
         os.environ["DD_FETCH_LAMBDA_TAGS"] = "True"
         os.environ["DD_FETCH_LOG_GROUP_TAGS"] = "True"
@@ -969,31 +969,33 @@ class TestGetServiceFromTags(unittest.TestCase):
 
 class TestParsingStepFunctionLogs(unittest.TestCase):
     def test_get_state_machine_arn(self):
-        invalid_sf_log_message =  {
-                        "no_execution_arn": "xxxx/yyy"
-                    
-        }
+        invalid_sf_log_message = {"no_execution_arn": "xxxx/yyy"}
         self.assertEqual(get_state_machine_arn(invalid_sf_log_message), "")
-        
+
         normal_sf_log_message = {
-                        "execution_arn": "arn:aws:states:sa-east-1:425362996713:express:my-Various-States:7f653fda-c79a-430b-91e2-3f97eb87cabb:862e5d40-a457-4ca2-a3c1-78485bd94d3f"
-               
+            "execution_arn": "arn:aws:states:sa-east-1:425362996713:express:my-Various-States:7f653fda-c79a-430b-91e2-3f97eb87cabb:862e5d40-a457-4ca2-a3c1-78485bd94d3f"
         }
-        self.assertEqual(get_state_machine_arn(normal_sf_log_message),
-                         "arn:aws:states:sa-east-1:425362996713:stateMachine:my-Various-States")
-        
+        self.assertEqual(
+            get_state_machine_arn(normal_sf_log_message),
+            "arn:aws:states:sa-east-1:425362996713:stateMachine:my-Various-States",
+        )
+
         forward_slash_sf_log_message = {
-                        "execution_arn": "arn:aws:states:sa-east-1:425362996713:express:my-Various-States/7f653fda-c79a-430b-91e2-3f97eb87cabb:862e5d40-a457-4ca2-a3c1-78485bd94d3f"
+            "execution_arn": "arn:aws:states:sa-east-1:425362996713:express:my-Various-States/7f653fda-c79a-430b-91e2-3f97eb87cabb:862e5d40-a457-4ca2-a3c1-78485bd94d3f"
         }
-        self.assertEqual(get_state_machine_arn(forward_slash_sf_log_message),
-                          "arn:aws:states:sa-east-1:425362996713:stateMachine:my-Various-States")
-        
+        self.assertEqual(
+            get_state_machine_arn(forward_slash_sf_log_message),
+            "arn:aws:states:sa-east-1:425362996713:stateMachine:my-Various-States",
+        )
+
         back_slash_sf_log_message = {
-                        "execution_arn": "arn:aws:states:sa-east-1:425362996713:express:my-Various-States\\7f653fda-c79a-430b-91e2-3f97eb87cabb:862e5d40-a457-4ca2-a3c1-78485bd94d3f"
-                    }
-        self.assertEqual(get_state_machine_arn(back_slash_sf_log_message),
-                          "arn:aws:states:sa-east-1:425362996713:stateMachine:my-Various-States")
-        
+            "execution_arn": "arn:aws:states:sa-east-1:425362996713:express:my-Various-States\\7f653fda-c79a-430b-91e2-3f97eb87cabb:862e5d40-a457-4ca2-a3c1-78485bd94d3f"
+        }
+        self.assertEqual(
+            get_state_machine_arn(back_slash_sf_log_message),
+            "arn:aws:states:sa-east-1:425362996713:stateMachine:my-Various-States",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
