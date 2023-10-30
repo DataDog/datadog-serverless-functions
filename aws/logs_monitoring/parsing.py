@@ -4,28 +4,20 @@
 # Copyright 2021 Datadog, Inc.
 
 import base64
-import gzip
-import json
-import os
-import copy
-
 import boto3
 import botocore
+import copy
+import gzip
 import itertools
+import json
+import logging
+import os
 import re
 import urllib
-import logging
+from datadog_lambda.metric import lambda_stats
 from io import BytesIO, BufferedReader
 
-from datadog_lambda.metric import lambda_stats
-
-from step_functions_cache import StepFunctionsTagsCache
 from cloudwatch_log_group_cache import CloudwatchLogGroupTagsCache
-from telemetry import (
-    DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX,
-    get_forwarder_telemetry_tags,
-    set_forwarder_telemetry_tags,
-)
 from settings import (
     DD_TAGS,
     DD_MULTILINE_LOG_REGEX_PATTERN,
@@ -35,6 +27,12 @@ from settings import (
     DD_HOST,
     DD_FORWARDER_VERSION,
     DD_USE_VPC,
+)
+from step_functions_cache import StepFunctionsTagsCache
+from telemetry import (
+    DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX,
+    get_forwarder_telemetry_tags,
+    set_forwarder_telemetry_tags,
 )
 
 GOV, CN = "gov", "cn"
@@ -281,14 +279,14 @@ def find_cloudwatch_source(log_group):
         return "rds"
 
     if log_group.startswith(
-        (
-            # default location for rest api execution logs
-            "api-gateway",  # e.g. Api-Gateway-Execution-Logs_xxxxxx/dev
-            # default location set by serverless framework for rest api access logs
-            "/aws/api-gateway",  # e.g. /aws/api-gateway/my-project
-            # default location set by serverless framework for http api logs
-            "/aws/http-api",  # e.g. /aws/http-api/my-project
-        )
+            (
+                    # default location for rest api execution logs
+                    "api-gateway",  # e.g. Api-Gateway-Execution-Logs_xxxxxx/dev
+                    # default location set by serverless framework for rest api access logs
+                    "/aws/api-gateway",  # e.g. /aws/api-gateway/my-project
+                    # default location set by serverless framework for http api logs
+                    "/aws/http-api",  # e.g. /aws/http-api/my-project
+            )
     ):
         return "apigateway"
 
@@ -412,7 +410,7 @@ def parse_service_arn(source, key, bucket, context):
         # If there is a prefix on the S3 bucket, remove the prefix before splitting the key
         if idsplit[0] != "AWSLogs":
             try:
-                idsplit = idsplit[idsplit.index("AWSLogs") :]
+                idsplit = idsplit[idsplit.index("AWSLogs"):]
                 keysplit = "/".join(idsplit).split("_")
             except ValueError:
                 logger.debug("Invalid S3 key, doesn't contain AWSLogs")
@@ -473,11 +471,15 @@ def parse_service_arn(source, key, bucket, context):
     return
 
 
+def get_step_machine_arn(message):
+    return None
+
+
 # Handle CloudWatch logs
 def awslogs_handler(event, context, metadata):
     # Get logs
     with gzip.GzipFile(
-        fileobj=BytesIO(base64.b64decode(event["awslogs"]["data"]))
+            fileobj=BytesIO(base64.b64decode(event["awslogs"]["data"]))
     ) as decompress_stream:
         # Reading line by line avoid a bug where gzip would take a very long
         # time (>5min) for file around 60MB gzipped
@@ -532,17 +534,13 @@ def awslogs_handler(event, context, metadata):
             logger.debug("Unable to set verified-access log host: %s" % e)
 
     if metadata[DD_SOURCE] == "stepfunction" and logs["logStream"].startswith(
-        "states/"
+            "states/"
     ):
         state_machine_arn = ""
         try:
-            message = json.loads(logs["logEvents"][0]["message"])
-            if message.get("execution_arn") is not None:
-                execution_arn = message["execution_arn"]
-                arn_tokens = re.split(r"[:/\\]", execution_arn)
-                arn_tokens[5] = "stateMachine"
-                metadata[DD_HOST] = ":".join(arn_tokens[:7])
-                state_machine_arn = ":".join(arn_tokens[:7])
+            state_machine_arn = get_state_machine_arn(logs)
+            if state_machine_arn:  # not empty
+                metadata[DD_HOST] = state_machine_arn
         except Exception as e:
             logger.debug(
                 "Unable to set stepfunction host or get state_machine_arn: %s" % e
@@ -556,8 +554,8 @@ def awslogs_handler(event, context, metadata):
                 ",".join(formatted_stepfunctions_tags)
                 if not metadata[DD_CUSTOM_TAGS]
                 else metadata[DD_CUSTOM_TAGS]
-                + ","
-                + ",".join(formatted_stepfunctions_tags)
+                     + ","
+                     + ",".join(formatted_stepfunctions_tags)
             )
 
     # When parsing rds logs, use the cloudwatch log group name to derive the
@@ -567,7 +565,7 @@ def awslogs_handler(event, context, metadata):
         if match is not None:
             metadata[DD_HOST] = match.group("host")
             metadata[DD_CUSTOM_TAGS] = (
-                metadata[DD_CUSTOM_TAGS] + ",logname:" + match.group("name")
+                    metadata[DD_CUSTOM_TAGS] + ",logname:" + match.group("name")
             )
 
     # For Lambda logs we want to extract the function name,
@@ -588,8 +586,8 @@ def awslogs_handler(event, context, metadata):
                 aws_attributes = merge_dicts(aws_attributes, arn_attributes)
 
                 env_tag_exists = (
-                    metadata[DD_CUSTOM_TAGS].startswith("env:")
-                    or ",env:" in metadata[DD_CUSTOM_TAGS]
+                        metadata[DD_CUSTOM_TAGS].startswith("env:")
+                        or ",env:" in metadata[DD_CUSTOM_TAGS]
                 )
                 # If there is no env specified, default to env:none
                 if not env_tag_exists:
@@ -709,14 +707,14 @@ def parse_aws_waf_logs(event):
 
             # Iterate through array of non-terminating rules and nest each under its own id
             if "nonTerminatingMatchingRules" in rule_group and isinstance(
-                rule_group["nonTerminatingMatchingRules"], list
+                    rule_group["nonTerminatingMatchingRules"], list
             ):
                 non_terminating_rules = rule_group.pop(
                     "nonTerminatingMatchingRules", None
                 )
                 if (
-                    "nonTerminatingMatchingRules"
-                    not in message["ruleGroupList"][group_id]
+                        "nonTerminatingMatchingRules"
+                        not in message["ruleGroupList"][group_id]
                 ):
                     message["ruleGroupList"][group_id][
                         "nonTerminatingMatchingRules"
@@ -727,7 +725,7 @@ def parse_aws_waf_logs(event):
 
             # Iterate through array of excluded rules and nest each under its own id
             if "excludedRules" in rule_group and isinstance(
-                rule_group["excludedRules"], list
+                    rule_group["excludedRules"], list
             ):
                 excluded_rules = rule_group.pop("excludedRules", None)
                 if "excludedRules" not in message["ruleGroupList"][group_id]:
@@ -777,7 +775,7 @@ def separate_security_hub_findings(event):
     This prevents having an unparsable array of objects in the final log.
     """
     if event.get(DD_SOURCE) != "securityhub" or not event.get("detail", {}).get(
-        "findings"
+            "findings"
     ):
         return None
     events = []
@@ -856,3 +854,13 @@ def normalize_events(events, metadata):
     )
 
     return normalized
+
+
+def get_state_machine_arn(logs):
+    message = json.loads(logs["logEvents"][0]["message"])
+    if message.get("execution_arn") is not None:
+        execution_arn = message["execution_arn"]
+        arn_tokens = re.split(r"[:/\\]", execution_arn)
+        arn_tokens[5] = "stateMachine"
+        return ":".join(arn_tokens[:7])
+    return ""
