@@ -7,6 +7,7 @@ from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf import message as _message
 from google.protobuf import reflection as _reflection
 from google.protobuf import symbol_database as _symbol_database
+
 # @@protoc_insertion_point(imports)
 
 _sym_db = _symbol_database.Default()
@@ -32,7 +33,6 @@ TracePayload = _reflection.GeneratedProtocolMessageType(
 _sym_db.RegisterMessage(TracePayload)
 
 if _descriptor._USE_C_DESCRIPTORS == False:
-
     DESCRIPTOR._options = None
     _TRACEPAYLOAD._serialized_start = 52
     _TRACEPAYLOAD._serialized_end = 127

@@ -6,10 +6,16 @@
 # Copyright 2021 Datadog, Inc.
 
 # Tests installation and deployment process of forwarder, and that CloudFormation template works.
+# Run in aws/logs_monitoring/tools directory with `./installation_test.sh`
+# To test in serverless sandbox account, run `DEPLOY_TO_SERVERLESS_SANDBOX=true ./installation_test.sh`
 set -e
 
 # Deploy the stack to a less commonly used region to avoid any problems with limits
-AWS_REGION="us-west-2"
+if [ "$DEPLOY_TO_SERVERLESS_SANDBOX" = "true" ] ; then
+    AWS_REGION="sa-east-1"
+else
+    AWS_REGION="us-west-2"
+fi
 
 # Limits any layer publishing to the test region
 export REGIONS=$AWS_REGION
@@ -31,9 +37,13 @@ function aws-login() {
     cfg=( "$@" )
     shift
     if [ "$ACCOUNT" = "prod" ] ; then
-        aws-vault exec prod-engineering --  ${cfg[@]}
+        aws-vault exec sso-prod-engineering --  ${cfg[@]}
     else
-        aws-vault exec sandbox-account-admin --  ${cfg[@]}
+        if [ "$DEPLOY_TO_SERVERLESS_SANDBOX" = "true" ] ; then
+            aws-vault exec sso-serverless-sandbox-account-admin --  ${cfg[@]}
+        else
+            aws-vault exec sso-sandbox-account-admin --  ${cfg[@]}
+        fi
     fi
 }
 

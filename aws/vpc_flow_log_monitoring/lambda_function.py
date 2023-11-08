@@ -24,53 +24,76 @@ logger.info("Loading function")
 
 DD_SITE = os.getenv("DD_SITE", default="datadoghq.com")
 
+
 def _datadog_keys():
-    if 'kmsEncryptedKeys' in os.environ:
-        KMS_ENCRYPTED_KEYS = os.environ['kmsEncryptedKeys']
-        kms = boto3.client('kms')
+    if "kmsEncryptedKeys" in os.environ:
+        KMS_ENCRYPTED_KEYS = os.environ["kmsEncryptedKeys"]
+        kms = boto3.client("kms")
         # kmsEncryptedKeys should be created through the Lambda's encryption
         # helpers and as such will have the EncryptionContext
-        return json.loads(kms.decrypt(
-            CiphertextBlob=base64.b64decode(KMS_ENCRYPTED_KEYS),
-            EncryptionContext={'LambdaFunctionName': os.environ['AWS_LAMBDA_FUNCTION_NAME']},
-        )['Plaintext'])
+        return json.loads(
+            kms.decrypt(
+                CiphertextBlob=base64.b64decode(KMS_ENCRYPTED_KEYS),
+                EncryptionContext={
+                    "LambdaFunctionName": os.environ["AWS_LAMBDA_FUNCTION_NAME"]
+                },
+            )["Plaintext"]
+        )
 
-    if 'DD_API_KEY_SECRET_ARN' in os.environ:
-        SECRET_ARN = os.environ['DD_API_KEY_SECRET_ARN']
-        DD_API_KEY = boto3.client('secretsmanager').get_secret_value(SecretId=SECRET_ARN)['SecretString']
-        return {'api_key': DD_API_KEY}
+    if "DD_API_KEY_SECRET_ARN" in os.environ:
+        SECRET_ARN = os.environ["DD_API_KEY_SECRET_ARN"]
+        DD_API_KEY = boto3.client("secretsmanager").get_secret_value(
+            SecretId=SECRET_ARN
+        )["SecretString"]
+        return {"api_key": DD_API_KEY}
 
-    if 'DD_API_KEY_SSM_NAME' in os.environ:
-        SECRET_NAME = os.environ['DD_API_KEY_SSM_NAME']
-        DD_API_KEY = boto3.client('ssm').get_parameter(
+    if "DD_API_KEY_SSM_NAME" in os.environ:
+        SECRET_NAME = os.environ["DD_API_KEY_SSM_NAME"]
+        DD_API_KEY = boto3.client("ssm").get_parameter(
             Name=SECRET_NAME, WithDecryption=True
-        )['Parameter']['Value']
-        return {'api_key': DD_API_KEY}
+        )["Parameter"]["Value"]
+        return {"api_key": DD_API_KEY}
 
-    if 'DD_KMS_API_KEY' in os.environ:
-        ENCRYPTED = os.environ['DD_KMS_API_KEY']
+    if "DD_KMS_API_KEY" in os.environ:
+        ENCRYPTED = os.environ["DD_KMS_API_KEY"]
 
         # For interop with other DD Lambdas taking in DD_KMS_API_KEY, we'll
         # optionally try the EncryptionContext associated with this Lambda.
         try:
-            DD_API_KEY = boto3.client('kms').decrypt(
+            DD_API_KEY = boto3.client("kms").decrypt(
                 CiphertextBlob=base64.b64decode(ENCRYPTED),
-                EncryptionContext={'LambdaFunctionName': os.environ['AWS_LAMBDA_FUNCTION_NAME']},
-            )['Plaintext']
+                EncryptionContext={
+                    "LambdaFunctionName": os.environ["AWS_LAMBDA_FUNCTION_NAME"]
+                },
+            )["Plaintext"]
         except botocore.exceptions.ClientError:
-            DD_API_KEY = boto3.client('kms').decrypt(
+            DD_API_KEY = boto3.client("kms").decrypt(
                 CiphertextBlob=base64.b64decode(ENCRYPTED),
-            )['Plaintext']
+            )["Plaintext"]
 
         if type(DD_API_KEY) is bytes:
-            DD_API_KEY = DD_API_KEY.decode('utf-8')
-        return {'api_key': DD_API_KEY}
+            # If the CiphertextBlob was encrypted with AWS CLI, we
+            # need to re-encode this in base64
+            try:
+                DD_API_KEY = DD_API_KEY.decode("utf-8")
+            except UnicodeDecodeError as e:
+                print(
+                    "INFO DD_KMS_API_KEY: Could not decode key in utf-8, encoding in b64. Exception:",
+                    e,
+                )
+                DD_API_KEY = base64.b64encode(DD_API_KEY)
+                DD_API_KEY = DD_API_KEY.decode("utf-8")
+            except Exception as e:
+                print("ERROR DD_KMS_API_KEY Unknown exception decoding key:", e)
+        return {"api_key": DD_API_KEY}
 
-    if 'DD_API_KEY' in os.environ:
-        DD_API_KEY = os.environ['DD_API_KEY']
-        return {'api_key': DD_API_KEY}
+    if "DD_API_KEY" in os.environ:
+        DD_API_KEY = os.environ["DD_API_KEY"]
+        return {"api_key": DD_API_KEY}
 
-    raise ValueError("Datadog API key is not defined, see documentation for environment variable options")
+    raise ValueError(
+        "Datadog API key is not defined, see documentation for environment variable options"
+    )
 
 
 # Preload the keys so we can bail out early if they're misconfigured
@@ -84,7 +107,22 @@ logger.info("Lambda function initialized, ready to send metrics")
 
 
 def process_message(message, tags, timestamp, node_ip):
-    version, account_id, interface_id, srcaddr, dstaddr, srcport, dstport, protocol, packets, _bytes, start, end, action, log_status = message.split(" ")
+    (
+        version,
+        account_id,
+        interface_id,
+        srcaddr,
+        dstaddr,
+        srcport,
+        dstport,
+        protocol,
+        packets,
+        _bytes,
+        start,
+        end,
+        action,
+        log_status,
+    ) = message.split(" ")
 
     detailed_tags = [
         "interface_id:%s" % interface_id,
@@ -97,7 +135,7 @@ def process_message(message, tags, timestamp, node_ip):
         detailed_tags.append("direction:inbound")
 
     process_log_status(log_status, detailed_tags, timestamp)
-    if log_status == 'NODATA':
+    if log_status == "NODATA":
         return
 
     process_action(action, detailed_tags, timestamp)
@@ -109,7 +147,7 @@ def process_message(message, tags, timestamp, node_ip):
 def compute_node_ip(events):
     ip_count = Counter()
     for event in events:
-        src_ip, dest_ip = event['message'].split(" ", 5)[3:5]
+        src_ip, dest_ip = event["message"].split(" ", 5)[3:5]
         if len(src_ip) > 1 and len(dest_ip) > 1:  # account for '-'
             ip_count[src_ip] += 1
             ip_count[dest_ip] += 1
@@ -117,11 +155,11 @@ def compute_node_ip(events):
     if most_comm:
         if most_comm[0][1] > 1:  # we have several events
             return ip_count.most_common()[0][0]
-    return 'unknown'
+    return "unknown"
 
 
 def protocol_id_to_name(protocol):
-    if protocol == '-':
+    if protocol == "-":
         return protocol
     protocol_map = {
         0: "HOPOPT",
@@ -268,7 +306,9 @@ def protocol_id_to_name(protocol):
 
 
 def process_log_status(log_status, tags, timestamp):
-    stats.increment("log_status", tags=["status:%s" % log_status] + tags, timestamp=timestamp)
+    stats.increment(
+        "log_status", tags=["status:%s" % log_status] + tags, timestamp=timestamp
+    )
 
 
 def process_action(action, tags, timestamp):
@@ -276,12 +316,19 @@ def process_action(action, tags, timestamp):
 
 
 def process_duration(start, end, tags, timestamp):
-    stats.histogram("duration.per_request", int(int(end) - int(start)), tags=tags, timestamp=timestamp)
+    stats.histogram(
+        "duration.per_request",
+        int(int(end) - int(start)),
+        tags=tags,
+        timestamp=timestamp,
+    )
 
 
 def process_packets(packets, tags, timestamp):
     try:
-        stats.histogram("packets.per_request", int(packets), tags=tags, timestamp=timestamp)
+        stats.histogram(
+            "packets.per_request", int(packets), tags=tags, timestamp=timestamp
+        )
         stats.increment("packets.total", int(packets), tags=tags, timestamp=timestamp)
     except ValueError:
         pass
@@ -289,14 +336,15 @@ def process_packets(packets, tags, timestamp):
 
 def process_bytes(_bytes, tags, timestamp):
     try:
-        stats.histogram("bytes.per_request", int(_bytes), tags=tags, timestamp=timestamp)
+        stats.histogram(
+            "bytes.per_request", int(_bytes), tags=tags, timestamp=timestamp
+        )
         stats.increment("bytes.total", int(_bytes), tags=tags, timestamp=timestamp)
     except ValueError:
         pass
 
 
 class Stats(object):
-
     def _initialize(self):
         self.counts = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
         self.histograms = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
@@ -306,15 +354,15 @@ class Stats(object):
         self.metric_prefix = "aws.vpc.flowlogs"
 
     def increment(self, metric, value=1, timestamp=None, tags=None):
-        metric_name = '%s.%s' % (self.metric_prefix, metric)
+        metric_name = "%s.%s" % (self.metric_prefix, metric)
         timestamp = timestamp or int(time.time())
-        _tags = ','.join(sorted(tags))
+        _tags = ",".join(sorted(tags))
         self.counts[metric_name][_tags][timestamp] += value
 
     def histogram(self, metric, value=1, timestamp=None, tags=None):
-        metric_name = '%s.%s' % (self.metric_prefix, metric)
+        metric_name = "%s.%s" % (self.metric_prefix, metric)
         timestamp = timestamp or int(time.time())
-        _tags = ','.join(sorted(tags))
+        _tags = ",".join(sorted(tags))
         self.histograms[metric_name][_tags][timestamp].append(value)
 
     def flush(self):
@@ -325,10 +373,10 @@ class Stats(object):
                 points = [(ts, val) for ts, val in datapoints.items()]
                 series.append(
                     {
-                        'metric': metric_name,
-                        'points': points,
-                        'type': 'count',
-                        'tags': tag_set.split(','),
+                        "metric": metric_name,
+                        "points": points,
+                        "type": "count",
+                        "tags": tag_set.split(","),
                     }
                 )
 
@@ -339,37 +387,43 @@ class Stats(object):
                     values.sort()
                     total_points = len(values)
                     for pct in percentiles_to_submit:
-                        percentiles[pct].append((ts, values[max(0, int((pct - 1) * total_points / 100))]))
+                        percentiles[pct].append(
+                            (ts, values[max(0, int((pct - 1) * total_points / 100))])
+                        )
 
                 for pct, points in percentiles.items():
-                    metric_suffix = 'p%s' % pct
+                    metric_suffix = "p%s" % pct
                     if pct == 0:
-                        metric_suffix = 'min'
+                        metric_suffix = "min"
                     if pct == 50:
-                        metric_suffix = 'median'
+                        metric_suffix = "median"
                     if pct == 100:
-                        metric_suffix = 'max'
+                        metric_suffix = "max"
                     series.append(
                         {
-                            'metric': '%s.%s' % (metric_name, metric_suffix),
-                            'points': points,
-                            'type': 'gauge',
-                            'tags': tag_set.split(','),
+                            "metric": "%s.%s" % (metric_name, metric_suffix),
+                            "points": points,
+                            "type": "gauge",
+                            "tags": tag_set.split(","),
                         }
                     )
 
         self._initialize()
 
         metrics_dict = {
-            'series': series,
+            "series": series,
         }
 
         creds = urlencode(datadog_keys)
-        data = json.dumps(metrics_dict).encode('utf-8')
-        url = '%s?%s' % (datadog_keys.get('api_host', 'https://app.%s/api/v1/series' % DD_SITE), creds)
-        req = Request(url, data, {'Content-Type': 'application/json'})
+        data = json.dumps(metrics_dict).encode("utf-8")
+        url = "%s?%s" % (
+            datadog_keys.get("api_host", "https://app.%s/api/v1/series" % DD_SITE),
+            creds,
+        )
+        req = Request(url, data, {"Content-Type": "application/json"})
         response = urlopen(req)
         logger.info(f"INFO Submitted data with status {response.getcode()}")
+
 
 stats = Stats()
 
@@ -384,19 +438,19 @@ def lambda_handler(event, context):
     event = json.loads(data)
     function_arn = context.invoked_function_arn
     # 'arn:aws:lambda:us-east-1:1234123412:function:VPCFlowLogs'
-    region, account = function_arn.split(':', 5)[3:5]
+    region, account = function_arn.split(":", 5)[3:5]
 
     tags = ["region:%s" % region, "aws_account:%s" % account]
     unsupported_messages = 0
 
-    node_ip = compute_node_ip(event['logEvents'])
+    node_ip = compute_node_ip(event["logEvents"])
 
-    for event in event['logEvents']:
-        message = event['message']
+    for event in event["logEvents"]:
+        message = event["message"]
         if message[0] != "2":
             unsupported_messages += 1
             continue
-        timestamp = event['timestamp'] / 1000
+        timestamp = event["timestamp"] / 1000
         process_message(message, tags, timestamp, node_ip)
 
     if unsupported_messages:

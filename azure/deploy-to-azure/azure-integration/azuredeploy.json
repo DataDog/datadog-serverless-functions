@@ -1,0 +1,380 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "type": "string",
+            "defaultValue": "westus2",
+            "metadata": {
+                "description": "Resources location"
+            }
+        },
+        "servicePrincipalObjectId": {
+            "type": "String",
+            "metadata": {
+                "description": "Service principal object Id, needed for Role Assignment"
+            }
+        },
+        "servicePrincipalClientId": {
+            "type": "String",
+            "metadata": {
+                "description": "Service principal Client Id"
+            }
+        },
+        "servicePrincipalClientSecret": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Service principal client secret"
+            }
+        },
+        "subscriptionsList": {
+            "type": "array",
+            "defaultValue": "[subscription().id]",
+            "metadata": {
+                "description": "Subscriptions list to monitor"
+            }
+        },
+        "subscriptionCount": {
+            "type": "int",
+            "defaultValue": "[length(parameters('subscriptionsList'))]"
+        },
+        "datadogApplicationKey": {
+            "type": "secureString",
+            "metadata": {
+                "description": "Your Datadog Application key"
+            }
+        },
+        "datadogApiKey": {
+            "type": "secureString",
+            "metadata": {
+                "description": "Your Datadog API key"
+            }
+        },
+        "hostFilters": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Filter to include/exclude hosts"
+            }
+        },
+        "appServicePlanFilters": {
+            "defaultValue": "",
+            "type": "String",
+            "metadata": {
+                "description": "Filter to include/exclude app service plans"
+            }
+        },
+        "containerAppFilters": {
+            "defaultValue": "",
+            "type": "String",
+            "metadata": {
+                "description": "Filter to include/exclude container apps"
+            }
+        },
+        "automute": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Whether or not to use automute for hosts"
+            }
+        },
+        "cspm_enabled": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Collect resources for Cloud Security Management"
+            }
+        },
+        "custom_metrics_enabled": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Whether or not to use custom metrics"
+            }
+        },
+        "datadogSite": {
+            "type": "String",
+            "defaultValue": "datadoghq.com",
+            "metadata": {
+                "description": "The datadog site, e.g. eu1.datadoghq.com"
+            }
+        },
+        "newguid": {
+            "type": "string",
+            "defaultValue": "[newGuid()]",
+            "metadata": {
+                "description": "Just a Guid to append to deployment script name"
+            }
+        }
+    },
+    "variables": {},
+    "resources": [
+        {
+            "copy": {
+                "name": "subscriptionsTemplateCopy",
+                "count": "[length(parameters('subscriptionsList'))]",
+                "mode": "Parallel"
+            },
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2021-04-01",
+            "name": "[concat('roleAssignSubsTpl-', parameters('newguid'), copyIndex())]",
+            "properties": {
+                "mode": "Incremental",
+                "expressionEvaluationOptions": {
+                    "scope": "inner"
+                },
+                "parameters": {
+                    "servicePrincipalObjectId": {
+                        "value": "[parameters('servicePrincipalObjectId')]"
+                    }
+                },
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "servicePrincipalObjectId": {
+                            "type": "String",
+                            "metadata": {
+                                "description": "Service principal object Id, needed for Role Assignment"
+                            }
+                        }
+                    },
+                    "variables": {},
+                    "resources": [
+                        {
+                            "type": "Microsoft.Authorization/roleAssignments",
+                            "apiVersion": "2020-10-01-preview",
+                            "name": "[guid(subscription().id, 'monitoring reader', parameters('servicePrincipalObjectId'))]",
+                            "properties": {
+                                "roleDefinitionId": "[concat(subscription().id, '/providers/Microsoft.Authorization/roleDefinitions/', '43d0d8ad-25c7-4714-9337-8ba259a9fe05')]",
+                                "principalId": "[parameters('servicePrincipalObjectId')]",
+                                "principalType": "ServicePrincipal"
+                            }
+                        }
+                    ],
+                    "outputs": {}
+                }
+            },
+            "subscriptionId": "[parameters('subscriptionsList')[copyIndex()]]",
+            "location": "[parameters('location')]"
+        },
+        {
+            "type": "Microsoft.Resources/deploymentScripts",
+            "apiVersion": "2020-10-01",
+            "name": "[concat('datadog-integration-script-', parameters('newguid'))]",
+            "location": "[parameters('location')]",
+            "kind": "AzurePowerShell",
+            "properties": {
+                "environmentVariables": [
+                    {
+                        "name": "subscription_id",
+                        "value": "[subscription().subscriptionId]"
+                    },
+                    {
+                        "name": "subscription_count",
+                        "value": "[parameters('subscriptionCount')]"
+                    },
+                    {
+                        "name": "clientId",
+                        "value": "[parameters('servicePrincipalClientId')]"
+                    },
+                    {
+                        "name": "clientSecret",
+                        "secureValue": "[parameters('servicePrincipalClientSecret')]"
+                    },
+                    {
+                        "name": "datadogApplicationKey",
+                        "secureValue": "[parameters('datadogApplicationKey')]"
+                    },
+                    {
+                        "name": "datadogApiKey",
+                        "secureValue": "[parameters('datadogApiKey')]"
+                    },
+                    {
+                        "name": "automute",
+                        "value": "[parameters('automute')]"
+                    },
+                    {
+                        "name": "cspm_enabled",
+                        "value": "[parameters('cspm_enabled')]"
+                    },
+                    {
+                        "name": "custom_metrics_enabled",
+                        "value": "[parameters('custom_metrics_enabled')]"
+                    },
+                    {
+                        "name": "datadogSite",
+                        "value": "[parameters('datadogSite')]"
+                    },
+                    {
+                        "name": "tenantName",
+                        "value": "[subscription().tenantId]"
+                    },
+                    {
+                        "name":"source",
+                        "value": "arm_template_subscription"
+                    }
+                ],
+                "retentionInterval": "PT1H",
+                "timeout": "PT2M",
+                "containerSettings": {},
+                "cleanupPreference": "Always",
+                "azPowerShellVersion": "8.1",
+                "scriptContent": "Invoke-WebRequest -SkipCertificateCheck -ContentType \"application/json\" -Method Post -Uri \"https://api.$Env:datadogSite/api/v1/integration/azure\" -Headers @{\"Accept\"=\"application/json\"; \"DD-APPLICATION-KEY\"=$Env:datadogApplicationKey; \"DD-API-KEY\"=$Env:datadogApiKey} -Body (@{\"automute\"=[bool]::Parse($Env:automute); \"cspm_enabled\"=[bool]::Parse($Env:cspm_enabled); \"custom_metrics_enabled\"=[bool]::Parse($Env:custom_metrics_enabled); \"client_id\"=$Env:clientId; \"client_secret\"=$Env:clientSecret; \"tenant_name\"=$Env:tenantName; \"source\"=$Env:source; \"subscription_count\"=[int]::Parse($Env:subscription_count)} | ConvertTo-Json )"
+            }
+        },
+        {
+            "condition": "[not(empty(parameters('hostFilters')))]",
+            "type": "Microsoft.Resources/deploymentScripts",
+            "apiVersion": "2020-10-01",
+            "name": "[concat('datadog-host-filter-script-', parameters('newguid'))]",
+            "location": "[parameters('location')]",
+            "kind": "AzurePowerShell",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deploymentScripts', concat('datadog-integration-script-', parameters('newguid')))]"
+            ],
+            "properties": {
+                "environmentVariables": [
+                    {
+                        "name": "datadogApplicationKey",
+                        "secureValue": "[parameters('datadogApplicationKey')]"
+                    },
+                    {
+                        "name": "datadogApiKey",
+                        "secureValue": "[parameters('datadogApiKey')]"
+                    },
+                    {
+                        "name": "datadogSite",
+                        "value": "[parameters('datadogSite')]"
+                    },
+                    {
+                        "name": "hostFilters",
+                        "value": "[parameters('hostFilters')]"
+                    },
+                    {
+                        "name": "namespace",
+                        "value": "host"
+                    },
+                    {
+                        "name": "clientId",
+                        "value": "[parameters('servicePrincipalClientId')]"
+                    },
+                    {
+                        "name": "tenantName",
+                        "value": "[subscription().tenantId]"
+                    }
+                ],
+                "retentionInterval": "PT1H",
+                "timeout": "PT2M",
+                "containerSettings": {},
+                "cleanupPreference": "Always",
+                "azPowerShellVersion": "8.1",
+                "scriptContent": "Invoke-WebRequest -SkipCertificateCheck -ContentType \"application/json\" -Method Post -Uri \"https://api.$Env:datadogSite/api/v1/integration/azure/filtering\" -Headers @{\"Accept\"=\"application/json\"; \"DD-APPLICATION-KEY\"=$Env:datadogApplicationKey; \"DD-API-KEY\"=$Env:datadogApiKey} -Body (@{\"client_id\"=$Env:clientId; \"tenant_id\"=$Env:tenantName; \"namespace\"=$Env:namespace; \"filters\"=$Env:hostFilters} | ConvertTo-Json )"
+            }
+        },
+        {
+            "condition": "[not(empty(parameters('appServicePlanFilters')))]",
+            "type": "Microsoft.Resources/deploymentScripts",
+            "apiVersion": "2020-10-01",
+            "name": "[concat('datadog-app-service-plan-filter-script-', parameters('newguid'))]",
+            "location": "[parameters('location')]",
+            "kind": "AzurePowerShell",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deploymentScripts', concat('datadog-integration-script-', parameters('newguid')))]"
+            ],
+            "properties": {
+                "environmentVariables": [
+                    {
+                        "name": "datadogApplicationKey",
+                        "secureValue": "[parameters('datadogApplicationKey')]"
+                    },
+                    {
+                        "name": "datadogApiKey",
+                        "secureValue": "[parameters('datadogApiKey')]"
+                    },
+                    {
+                        "name": "datadogSite",
+                        "value": "[parameters('datadogSite')]"
+                    },
+                    {
+                        "name": "appServicePlanFilters",
+                        "value": "[parameters('appServicePlanFilters')]"
+                    },
+                    {
+                        "name": "namespace",
+                        "value": "app_service_plan"
+                    },
+                    {
+                        "name": "clientId",
+                        "value": "[parameters('servicePrincipalClientId')]"
+                    },
+                    {
+                        "name": "tenantName",
+                        "value": "[subscription().tenantId]"
+                    }
+                ],
+                "retentionInterval": "PT1H",
+                "timeout": "PT2M",
+                "containerSettings": {},
+                "cleanupPreference": "Always",
+                "azPowerShellVersion": "8.1",
+                "scriptContent": "Invoke-WebRequest -SkipCertificateCheck -ContentType \"application/json\" -Method Post -Uri \"https://api.$Env:datadogSite/api/v1/integration/azure/filtering\" -Headers @{\"Accept\"=\"application/json\"; \"DD-APPLICATION-KEY\"=$Env:datadogApplicationKey; \"DD-API-KEY\"=$Env:datadogApiKey} -Body (@{\"client_id\"=$Env:clientId; \"tenant_id\"=$Env:tenantName; \"namespace\"=$Env:namespace; \"filters\"=$Env:appServicePlanFilters} | ConvertTo-Json )"
+            }
+        },
+        {
+            "condition": "[not(empty(parameters('containerAppFilters')))]",
+            "type": "Microsoft.Resources/deploymentScripts",
+            "apiVersion": "2020-10-01",
+            "name": "[concat('datadog-container-app-filter-script-', parameters('newguid'))]",
+            "location": "[parameters('location')]",
+            "kind": "AzurePowerShell",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deploymentScripts', concat('datadog-integration-script-', parameters('newguid')))]"
+            ],
+            "properties": {
+                "environmentVariables": [
+                    {
+                        "name": "datadogApplicationKey",
+                        "secureValue": "[parameters('datadogApplicationKey')]"
+                    },
+                    {
+                        "name": "datadogApiKey",
+                        "secureValue": "[parameters('datadogApiKey')]"
+                    },
+                    {
+                        "name": "datadogSite",
+                        "value": "[parameters('datadogSite')]"
+                    },
+                    {
+                        "name": "containerAppFilters",
+                        "value": "[parameters('containerAppFilters')]"
+                    },
+                    {
+                        "name": "namespace",
+                        "value": "container_app"
+                    },
+                    {
+                        "name": "clientId",
+                        "value": "[parameters('servicePrincipalClientId')]"
+                    },
+                    {
+                        "name": "tenantName",
+                        "value": "[subscription().tenantId]"
+                    }
+                ],
+                "retentionInterval": "PT1H",
+                "timeout": "PT2M",
+                "containerSettings": {},
+                "cleanupPreference": "Always",
+                "azPowerShellVersion": "8.1",
+                "scriptContent": "Invoke-WebRequest -SkipCertificateCheck -ContentType \"application/json\" -Method Post -Uri \"https://api.$Env:datadogSite/api/v1/integration/azure/filtering\" -Headers @{\"Accept\"=\"application/json\"; \"DD-APPLICATION-KEY\"=$Env:datadogApplicationKey; \"DD-API-KEY\"=$Env:datadogApiKey} -Body (@{\"client_id\"=$Env:clientId; \"tenant_id\"=$Env:tenantName; \"namespace\"=$Env:namespace; \"filters\"=$Env:containerAppFilters} | ConvertTo-Json )"
+            }
+        }
+    ],
+    "outputs": {
+        "subscriptionCount": {
+            "type": "int",
+            "value": "[parameters('subscriptionCount')]"
+        }
+    }
+}

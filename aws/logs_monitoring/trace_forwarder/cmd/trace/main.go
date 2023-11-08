@@ -33,6 +33,7 @@ type (
 )
 
 // Configure will set up the bindings
+//
 //export Configure
 func Configure(rootURL, apiKey string, InsecureSkipVerify bool) {
 	// Need to make a copy of these values, otherwise the underlying memory
@@ -57,6 +58,7 @@ func Configure(rootURL, apiKey string, InsecureSkipVerify bool) {
 }
 
 // returns 0 on success, 1 on error
+//
 //export ForwardTraces
 func ForwardTraces(serializedTraces string) int {
 	rawTracePayloads, err := unmarshalSerializedTraces(serializedTraces)
@@ -145,16 +147,10 @@ func sendTracesToIntake(tracePayloads []*pb.TracePayload) error {
 			fmt.Printf("Failed to send traces with error %v\n", err)
 			hadErr = true
 		}
-		stats := apm.ComputeAPMStats(tracePayload)
-		err = edgeConnection.SendStats(context.Background(), stats, 3)
-		if err != nil {
-			fmt.Printf("Failed to send trace stats with error %v\n", err)
-			hadErr = true
-		}
 	}
 
 	if hadErr {
-		return errors.New("Failed to send traces or stats to intake")
+		return errors.New("Failed to send traces to intake")
 	}
 	return nil
 }

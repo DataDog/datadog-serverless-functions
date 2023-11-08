@@ -19,7 +19,8 @@ from io import BytesIO, BufferedReader
 
 from datadog_lambda.metric import lambda_stats
 
-from cache import CloudwatchLogGroupTagsCache
+from step_functions_cache import StepFunctionsTagsCache
+from cloudwatch_log_group_cache import CloudwatchLogGroupTagsCache
 from telemetry import (
     DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX,
     get_forwarder_telemetry_tags,
@@ -37,7 +38,6 @@ from settings import (
 )
 
 GOV, CN = "gov", "cn"
-
 
 logger = logging.getLogger()
 
@@ -66,6 +66,7 @@ cloudtrail_regex = re.compile(
 # Store the cache in the global scope so that it will be reused as long as
 # the log forwarder Lambda container is running
 account_cw_logs_tags_cache = CloudwatchLogGroupTagsCache()
+account_step_functions_tags_cache = StepFunctionsTagsCache()
 
 
 def parse(event, context):
@@ -220,6 +221,11 @@ def s3_handler(event, context, metadata):
         if DD_MULTILINE_LOG_REGEX_PATTERN and multiline_regex_start_pattern.match(data):
             split_data = multiline_regex.split(data)
         else:
+            if DD_MULTILINE_LOG_REGEX_PATTERN:
+                logger.debug(
+                    "DD_MULTILINE_LOG_REGEX_PATTERN %s did not match start of file, splitting by line",
+                    DD_MULTILINE_LOG_REGEX_PATTERN,
+                )
             split_data = data.splitlines()
 
         # Send lines to Datadog
@@ -330,6 +336,7 @@ def find_cloudwatch_source(log_group):
         "msk",
         "elasticsearch",
         "transitgateway",
+        "verified-access",
     ]:
         if source in log_group:
             return source
@@ -355,8 +362,8 @@ def find_s3_source(key):
     if "vpcdnsquerylogs" in key:
         return "route53"
 
-    # e.g. 2020/10/02/21/aws-waf-logs-testing-1-2020-10-02-21-25-30-x123x-x456x
-    if "aws-waf-logs" in key:
+    # e.g. 2020/10/02/21/aws-waf-logs-testing-1-2020-10-02-21-25-30-x123x-x456x or AWSLogs/123456779121/WAFLogs/us-east-1/xxxxxx-waf/2022/10/11/14/10/123456779121_waflogs_us-east-1_xxxxx-waf_20221011T1410Z_12756524.log.gz
+    if "aws-waf-logs" in key or "waflogs" in key:
         return "waf"
 
     # e.g. AWSLogs/123456779121/redshift/us-east-1/2020/10/21/123456779121_redshift_us-east-1_mycluster_userlog_2020-10-21T18:01.gz
@@ -379,6 +386,7 @@ def find_s3_source(key):
         "amazon_msk",
         "network-firewall",
         "cloudfront",
+        "verified-access",
     ]:
         if source in key:
             return source.replace("amazon_", "")
@@ -493,8 +501,6 @@ def awslogs_handler(event, context, metadata):
         source = "transitgateway"
     metadata[DD_SOURCE] = parse_event_source(event, source)
 
-    metadata[DD_SERVICE] = get_service_from_tags(metadata)
-
     # Build aws attributes
     aws_attributes = {
         "aws": {
@@ -514,6 +520,9 @@ def awslogs_handler(event, context, metadata):
             else metadata[DD_CUSTOM_TAGS] + "," + ",".join(formatted_tags)
         )
 
+    # Set service from custom tags, which may include the tags set on the log group
+    metadata[DD_SERVICE] = get_service_from_tags(metadata)
+
     # Set host as log group where cloudwatch is source
     if metadata[DD_SOURCE] == "cloudwatch" or metadata.get(DD_HOST, None) == None:
         metadata[DD_HOST] = aws_attributes["aws"]["awslogs"]["logGroup"]
@@ -521,9 +530,17 @@ def awslogs_handler(event, context, metadata):
     if metadata[DD_SOURCE] == "appsync":
         metadata[DD_HOST] = aws_attributes["aws"]["awslogs"]["logGroup"].split("/")[-1]
 
+    if metadata[DD_SOURCE] == "verified-access":
+        try:
+            message = json.loads(logs["logEvents"][0]["message"])
+            metadata[DD_HOST] = message["http_request"]["url"]["hostname"]
+        except Exception as e:
+            logger.debug("Unable to set verified-access log host: %s" % e)
+
     if metadata[DD_SOURCE] == "stepfunction" and logs["logStream"].startswith(
         "states/"
     ):
+        state_machine_arn = ""
         try:
             message = json.loads(logs["logEvents"][0]["message"])
             if message.get("execution_arn") is not None:
@@ -531,8 +548,23 @@ def awslogs_handler(event, context, metadata):
                 arn_tokens = execution_arn.split(":")
                 arn_tokens[5] = "stateMachine"
                 metadata[DD_HOST] = ":".join(arn_tokens[:-1])
+                state_machine_arn = ":".join(arn_tokens[:7])
         except Exception as e:
-            logger.debug("Unable to set stepfunction host: %s" % e)
+            logger.debug(
+                "Unable to set stepfunction host or get state_machine_arn: %s" % e
+            )
+
+        formatted_stepfunctions_tags = account_step_functions_tags_cache.get(
+            state_machine_arn
+        )
+        if len(formatted_stepfunctions_tags) > 0:
+            metadata[DD_CUSTOM_TAGS] = (
+                ",".join(formatted_stepfunctions_tags)
+                if not metadata[DD_CUSTOM_TAGS]
+                else metadata[DD_CUSTOM_TAGS]
+                + ","
+                + ",".join(formatted_stepfunctions_tags)
+            )
 
     # When parsing rds logs, use the cloudwatch log group name to derive the
     # rds instance name, and add the log name of the stream ingested
@@ -577,6 +609,12 @@ def awslogs_handler(event, context, metadata):
             metadata[DD_SOURCE] = "kubernetes.audit"
         elif logs["logStream"].startswith("kube-scheduler-"):
             metadata[DD_SOURCE] = "kube_scheduler"
+        elif logs["logStream"].startswith("kube-apiserver-"):
+            metadata[DD_SOURCE] = "kube-apiserver"
+        elif logs["logStream"].startswith("kube-controller-manager-"):
+            metadata[DD_SOURCE] = "kube-controller-manager"
+        elif logs["logStream"].startswith("authenticator-"):
+            metadata[DD_SOURCE] = "aws-iam-authenticator"
         # In case the conditions above don't match we maintain eks as the source
 
     # Create and send structured logs to Datadog

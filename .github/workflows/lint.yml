@@ -11,7 +11,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v3
         with:
-          python-version: 3.7
+          python-version: 3.9
 
       - name: Install pip
         run: |
@@ -21,11 +21,13 @@ jobs:
         run: |
           pip install flake8
           flake8 ./aws/logs_monitoring/ --count --select=E9,F --show-source --statistics --exclude=*_pb2.py
+          flake8 ./aws/rds_enhanced_monitoring/ --count --select=E9,F --show-source --statistics
 
       - name: Check formatting with Black
         run: |
           pip install black
           black --check --diff --exclude pb2.py ./aws/logs_monitoring
+          black --check --diff ./aws/rds_enhanced_monitoring
 
       - name: Setup CloudFormation Linter with Latest Version
         uses: scottbrenner/cfn-lint-action@v2
@@ -34,3 +36,4 @@ jobs:
         run: |
           cfn-lint --version
           cfn-lint -t aws/logs_monitoring/template.yaml
+          cfn-lint -t aws/rds_enhanced_monitoring/rds-enhanced-sam-template.yaml

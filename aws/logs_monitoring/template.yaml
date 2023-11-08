@@ -3,8 +3,8 @@ Description: Pushes logs, metrics and traces from AWS to Datadog.
 Mappings:
   Constants:
     DdForwarder:
-      Version: 3.60.0
-      LayerVersion: 25
+      Version: 3.92.0
+      LayerVersion: 38
 Parameters:
   DdApiKey:
     Type: String
@@ -44,8 +44,11 @@ Parameters:
     Type: String
     AllowedPattern: "[0-9]*"
     ConstraintDescription: ReservedConcurrency must be an integer number
-    Default: 100
-    Description: Reserved concurrency for the Datadog Forwarder Lambda function. If empty, use unreserved account concurrency.
+    Default: ""
+    Description: >-
+      Reserved concurrency for the Datadog Forwarder Lambda function. If empty, use unreserved account concurrency. 
+      We recommend using at least 10 reserved concurrency, but default to 0 as you may need to increase your limits for this.
+      If using unreserved account concurrency you may limit other lambda functions in your environment.
   LogRetentionInDays:
     Type: Number
     Default: 90
@@ -75,14 +78,21 @@ Parameters:
     AllowedValues:
       - true
       - false
-    Description: Let the forwarder fetch Lambda tags using GetResources API calls and apply them to logs, metrics and traces. If set to true, permission tag:GetResources will be automatically added to the Lambda execution IAM role. The tags are cached in memory so that they'll only be fetched when the function cold starts or when the TTL (1 hour) expires. The forwarder increments the aws.lambda.enhanced.get_resources_api_calls metric for each API call made.
+    Description: Let the forwarder fetch Lambda tags using GetResources API calls and apply them to logs, metrics and traces. If set to true, permission tag:GetResources will be automatically added to the Lambda execution IAM role. The tags are cached in memory and S3 so that they'll only be fetched when the function cold starts or when the TTL (1 hour) expires. The forwarder increments the aws.lambda.enhanced.get_resources_api_calls metric for each API call made.
   DdFetchLogGroupTags:
     Type: String
     Default: true
     AllowedValues:
       - true
       - false
-    Description: Let the forwarder fetch Log Group tags using ListTagsLogGroup and apply them to logs, metrics and traces. If set to true, permission logs:ListTagsLogGroup will be automatically added to the Lambda execution IAM role. The tags are cached in memory so that they'll only be fetched when the function cold starts or when the TTL (1 hour) expires. The forwarder increments the aws.lambda.enhanced.list_tags_log_group_api_call metric for each API call made.
+    Description: Let the forwarder fetch Log Group tags using ListTagsLogGroup and apply them to logs, metrics and traces. If set to true, permission logs:ListTagsLogGroup will be automatically added to the Lambda execution IAM role. The tags are cached in memory and S3 so that they'll only be fetched when the function cold starts or when the TTL (1 hour) expires. The forwarder increments the aws.lambda.enhanced.list_tags_log_group_api_call metric for each API call made.
+  DdFetchStepFunctionsTags:
+    Type: String
+    Default: true
+    AllowedValues:
+      - true
+      - false
+    Description: Let the forwarder fetch Step Functions tags using GetResources API calls and apply them to logs, metrics and traces. If set to true, permission tag:GetResources will be automatically added to the Lambda execution IAM role. The tags are cached in memory and S3 so that they'll only be fetched when the function cold starts or when the TTL (1 hour) expires. The forwarder increments the aws.lambda.enhanced.get_resources_api_calls metric for each API call made.
   DdUseTcp:
     Type: String
     Default: false
@@ -321,6 +331,10 @@ Conditions:
     Fn::Equals:
       - Ref: DdFetchLogGroupTags
       - true
+  SetDdFetchStepFunctionsTags:
+    Fn::Equals:
+      - Ref: DdFetchStepFunctionsTags
+      - true
   CreateS3BucketForTags:
     Fn::Or:
       - Fn::Equals:
@@ -464,7 +478,7 @@ Resources:
 
       MemorySize:
         Ref: MemorySize
-      Runtime: python3.8
+      Runtime: python3.9
       Timeout:
         Ref: Timeout
       Tags:
@@ -501,6 +515,11 @@ Resources:
             Fn::If:
               - SetDdFetchLogGroupTags
               - Ref: DdFetchLogGroupTags
+              - Ref: AWS::NoValue
+          DD_FETCH_STEP_FUNCTIONS_TAGS:
+            Fn::If:
+              - SetDdFetchStepFunctionsTags
+              - Ref: DdFetchStepFunctionsTags
               - Ref: AWS::NoValue
           DD_USE_TCP:
             Fn::If:
@@ -710,6 +729,14 @@ Resources:
                     Resource: "*"
                     Effect: Allow
                   - Ref: AWS::NoValue
+              # Fetch Step Functions resource tags for data enrichment
+              - Fn::If:
+                  - SetDdFetchStepFunctionsTags
+                  - Action:
+                      - tag:GetResources
+                    Resource: "*"
+                    Effect: Allow
+                  - Ref: AWS::NoValue
               # Required for Lambda deployed in VPC
               - Fn::If:
                   - UseVPC
@@ -849,7 +876,7 @@ Resources:
     Properties:
       Description: Copies Datadog Forwarder zip to the destination S3 bucket
       Handler: index.handler
-      Runtime: python3.8
+      Runtime: python3.9
       Timeout: 300
       Code:
         ZipFile: |
@@ -1047,6 +1074,7 @@ Metadata:
         Parameters:
           - DdFetchLambdaTags
           - DdFetchLogGroupTags
+          - DdFetchStepFunctionsTags
           - TagsCacheTTLSeconds
           - SourceZipUrl
           - InstallAsLayer
