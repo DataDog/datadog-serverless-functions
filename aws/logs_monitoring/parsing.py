@@ -536,13 +536,11 @@ def awslogs_handler(event, context, metadata):
     ):
         state_machine_arn = ""
         try:
-            message = json.loads(logs["logEvents"][0]["message"])
-            if message.get("execution_arn") is not None:
-                execution_arn = message["execution_arn"]
-                arn_tokens = execution_arn.split(":")
-                arn_tokens[5] = "stateMachine"
-                metadata[DD_HOST] = ":".join(arn_tokens[:-1])
-                state_machine_arn = ":".join(arn_tokens[:7])
+            state_machine_arn = get_state_machine_arn(
+                json.loads(logs["logEvents"][0]["message"])
+            )
+            if state_machine_arn:  # not empty
+                metadata[DD_HOST] = state_machine_arn
         except Exception as e:
             logger.debug(
                 "Unable to set stepfunction host or get state_machine_arn: %s" % e
@@ -856,3 +854,12 @@ def normalize_events(events, metadata):
     )
 
     return normalized
+
+
+def get_state_machine_arn(message):
+    if message.get("execution_arn") is not None:
+        execution_arn = message["execution_arn"]
+        arn_tokens = re.split(r"[:/\\]", execution_arn)
+        arn_tokens[5] = "stateMachine"
+        return ":".join(arn_tokens[:7])
+    return ""
