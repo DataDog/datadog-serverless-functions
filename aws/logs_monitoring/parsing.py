@@ -381,6 +381,7 @@ def find_s3_source(key):
         "network-firewall",
         "cloudfront",
         "verified-access",
+        "bedrock",
     ]:
         if source in key:
             return source.replace("amazon_", "")
@@ -608,6 +609,10 @@ def awslogs_handler(event, context, metadata):
         elif logs["logStream"].startswith("authenticator-"):
             metadata[DD_SOURCE] = "aws-iam-authenticator"
         # In case the conditions above don't match we maintain eks as the source
+
+    # Bedrock allows using any custom logGroup, but creates the logStream with this name
+    if logs["logStream"] == "aws/bedrock/modelinvocations":
+        metadata[DD_SOURCE] = "amazon_bedrock"
 
     # Create and send structured logs to Datadog
     for log in logs["logEvents"]:
