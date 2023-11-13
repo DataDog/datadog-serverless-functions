@@ -612,7 +612,7 @@ def awslogs_handler(event, context, metadata):
 
     # Bedrock allows using any custom logGroup, but creates the logStream with this name
     if logs["logStream"] == "aws/bedrock/modelinvocations":
-        metadata[DD_SOURCE] = "amazon_bedrock"
+        metadata[DD_SOURCE] = "bedrock"
 
     # Create and send structured logs to Datadog
     for log in logs["logEvents"]:
