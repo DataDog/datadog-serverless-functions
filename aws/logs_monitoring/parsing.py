@@ -331,7 +331,7 @@ def find_cloudwatch_source(log_group):
         "elasticsearch",
         "transitgateway",
         "verified-access",
-        "bedrock"
+        "bedrock",
     ]:
         if source in log_group:
             return source
