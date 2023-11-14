@@ -19,6 +19,10 @@ from io import BytesIO, BufferedReader
 
 from datadog_lambda.metric import lambda_stats
 
+from customized_log_group import (
+    get_lambda_function_name_from_logstream,
+    is_customized_log_group_for_lambda,
+)
 from step_functions_cache import StepFunctionsTagsCache
 from cloudwatch_log_group_cache import CloudwatchLogGroupTagsCache
 from telemetry import (
@@ -495,6 +499,12 @@ def awslogs_handler(event, context, metadata):
         source = "transitgateway"
     metadata[DD_SOURCE] = parse_event_source(event, source)
 
+    # Special handling for customized log group of Lambda functions
+    # Multiple Lambda functions can share one single customized log group
+    # Need to parse logStream to determine whether it is a Lambda function
+    if is_customized_log_group_for_lambda(logs["logStream"]):
+        metadata[DD_SOURCE] = "lambda"
+
     # Build aws attributes
     aws_attributes = {
         "aws": {
@@ -572,26 +582,7 @@ def awslogs_handler(event, context, metadata):
     # then rebuild the arn of the monitored lambda using that name.
     # Start by splitting the log group to get the function name
     if metadata[DD_SOURCE] == "lambda":
-        log_group_parts = logs["logGroup"].split("/lambda/")
-        if len(log_group_parts) > 1:
-            lowercase_function_name = log_group_parts[1].lower()
-            # Split the arn of the forwarder to extract the prefix
-            arn_parts = context.invoked_function_arn.split("function:")
-            if len(arn_parts) > 0:
-                arn_prefix = arn_parts[0]
-                # Rebuild the arn with the lowercased function name
-                lowercase_arn = arn_prefix + "function:" + lowercase_function_name
-                # Add the lowercased arn as a log attribute
-                arn_attributes = {"lambda": {"arn": lowercase_arn}}
-                aws_attributes = merge_dicts(aws_attributes, arn_attributes)
-
-                env_tag_exists = (
-                    metadata[DD_CUSTOM_TAGS].startswith("env:")
-                    or ",env:" in metadata[DD_CUSTOM_TAGS]
-                )
-                # If there is no env specified, default to env:none
-                if not env_tag_exists:
-                    metadata[DD_CUSTOM_TAGS] += ",env:none"
+        process_lambda_logs(logs, aws_attributes, context, metadata)
 
     # The EKS log group contains various sources from the K8S control plane.
     # In order to have these automatically trigger the correct pipelines they
@@ -863,3 +854,41 @@ def get_state_machine_arn(message):
         arn_tokens[5] = "stateMachine"
         return ":".join(arn_tokens[:7])
     return ""
+
+
+# Lambda logs can be from either default or customized log group
+def process_lambda_logs(logs, aws_attributes, context, metadata):
+    lower_cased_lambda_function_name = get_lower_cased_lambda_function_name(logs)
+    if lower_cased_lambda_function_name is None:
+        return
+    # Split the arn of the forwarder to extract the prefix
+    arn_parts = context.invoked_function_arn.split("function:")
+    if len(arn_parts) > 0:
+        arn_prefix = arn_parts[0]
+        # Rebuild the arn with the lowercased function name
+        lower_cased_lambda__arn = (
+            arn_prefix + "function:" + lower_cased_lambda_function_name
+        )
+        # Add the lowe_rcased arn as a log attribute
+        arn_attributes = {"lambda": {"arn": lower_cased_lambda__arn}}
+        aws_attributes = merge_dicts(aws_attributes, arn_attributes)
+        env_tag_exists = (
+            metadata[DD_CUSTOM_TAGS].startswith("env:")
+            or ",env:" in metadata[DD_CUSTOM_TAGS]
+        )
+        # If there is no env specified, default to env:none
+        if not env_tag_exists:
+            metadata[DD_CUSTOM_TAGS] += ",env:none"
+
+
+def get_lower_cased_lambda_function_name(logs):
+    logstream = logs["logStream"]
+    function_name = get_lambda_function_name_from_logstream(logstream)
+    # function name parsed from logstream is preferred for handling some edge cases
+    if function_name is None:
+        log_group_parts = logs["logGroup"].split("/lambda/")
+        if len(log_group_parts) > 1:
+            function_name = log_group_parts[1]
+        else:
+            return None
+    return function_name.lower()
