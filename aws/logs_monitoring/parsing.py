@@ -331,6 +331,7 @@ def find_cloudwatch_source(log_group):
         "elasticsearch",
         "transitgateway",
         "verified-access",
+        "bedrock"
     ]:
         if source in log_group:
             return source
@@ -488,12 +489,14 @@ def awslogs_handler(event, context, metadata):
     # Set the source on the logs
     source = logs.get("logGroup", "cloudwatch")
 
-    # Use the logStream to identify if this is a CloudTrail event
+    # Use the logStream to identify if this is a CloudTrail, TransitGateway, or Bedrock event
     # i.e. 123456779121_CloudTrail_us-east-1
     if "_CloudTrail_" in logs["logStream"]:
         source = "cloudtrail"
     if "tgw-attach" in logs["logStream"]:
         source = "transitgateway"
+    if logs["logStream"] == "aws/bedrock/modelinvocations":
+        source = "bedrock"
     metadata[DD_SOURCE] = parse_event_source(event, source)
 
     # Build aws attributes
@@ -516,6 +519,7 @@ def awslogs_handler(event, context, metadata):
         )
 
     # Set service from custom tags, which may include the tags set on the log group
+    # Returns DD_SOURCE by default
     metadata[DD_SERVICE] = get_service_from_tags(metadata)
 
     # Set host as log group where cloudwatch is source
