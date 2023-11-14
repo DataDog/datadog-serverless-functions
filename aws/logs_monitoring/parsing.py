@@ -20,8 +20,8 @@ from io import BytesIO, BufferedReader
 from datadog_lambda.metric import lambda_stats
 
 from customized_log_group import (
-    get_lambda_function_name_from_logstream,
-    is_customized_log_group_for_lambda,
+    get_lambda_function_name_from_logstream_name,
+    is_lambda_customized_log_group,
 )
 from step_functions_cache import StepFunctionsTagsCache
 from cloudwatch_log_group_cache import CloudwatchLogGroupTagsCache
@@ -501,8 +501,8 @@ def awslogs_handler(event, context, metadata):
 
     # Special handling for customized log group of Lambda functions
     # Multiple Lambda functions can share one single customized log group
-    # Need to parse logStream to determine whether it is a Lambda function
-    if is_customized_log_group_for_lambda(logs["logStream"]):
+    # Need to parse logStream name to determine whether it is a Lambda function
+    if is_lambda_customized_log_group(logs["logStream"]):
         metadata[DD_SOURCE] = "lambda"
 
     # Build aws attributes
@@ -580,7 +580,6 @@ def awslogs_handler(event, context, metadata):
 
     # For Lambda logs we want to extract the function name,
     # then rebuild the arn of the monitored lambda using that name.
-    # Start by splitting the log group to get the function name
     if metadata[DD_SOURCE] == "lambda":
         process_lambda_logs(logs, aws_attributes, context, metadata)
 
@@ -881,10 +880,11 @@ def process_lambda_logs(logs, aws_attributes, context, metadata):
             metadata[DD_CUSTOM_TAGS] += ",env:none"
 
 
+# The lambda function name can be inferred from either a customized logstream name, or loggroup name
 def get_lower_cased_lambda_function_name(logs):
-    logstream = logs["logStream"]
-    function_name = get_lambda_function_name_from_logstream(logstream)
+    logstream_name = logs["logStream"]
     # function name parsed from logstream is preferred for handling some edge cases
+    function_name = get_lambda_function_name_from_logstream_name(logstream_name)
     if function_name is None:
         log_group_parts = logs["logGroup"].split("/lambda/")
         if len(log_group_parts) > 1:

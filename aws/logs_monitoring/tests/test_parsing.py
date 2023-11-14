@@ -28,6 +28,7 @@ from parsing import (
     parse_aws_waf_logs,
     get_service_from_tags,
     get_state_machine_arn,
+    get_lower_cased_lambda_function_name,
 )
 from settings import (
     DD_CUSTOM_TAGS,
@@ -994,6 +995,41 @@ class TestParsingStepFunctionLogs(unittest.TestCase):
         self.assertEqual(
             get_state_machine_arn(back_slash_sf_log_message),
             "arn:aws:states:sa-east-1:425362996713:stateMachine:my-Various-States",
+        )
+
+
+class TestLambdaCustomizedLogGroup(unittest.TestCase):
+    def test_get_lower_cased_lambda_function_name(self):
+        self.assertEqual(True, True)
+        # Non Lambda log
+        stepfunction_loggroup = {
+            "messageType": "DATA_MESSAGE",
+            "logGroup": "/aws/vendedlogs/states/logs-to-traces-sequential-Logs",
+            "logStream": "states/logs-to-traces-sequential/2022-11-10-15-50/7851b2d9",
+            "logEvents": [],
+        }
+        self.assertEqual(
+            get_lower_cased_lambda_function_name(stepfunction_loggroup), None
+        )
+        lambda_default_loggroup = {
+            "messageType": "DATA_MESSAGE",
+            "logGroup": "/aws/lambda/test-lambda-default-log-group",
+            "logStream": "2023/11/06/[$LATEST]b25b1f977b3e416faa45a00f427e7acb",
+            "logEvents": [],
+        }
+        self.assertEqual(
+            get_lower_cased_lambda_function_name(lambda_default_loggroup),
+            "test-lambda-default-log-group",
+        )
+        lambda_customized_loggroup = {
+            "messageType": "DATA_MESSAGE",
+            "logGroup": "customizeLambdaGrop",
+            "logStream": "2023/11/06/test-customized-log-group1[$LATEST]13e304cba4b9446eb7ef082a00038990",
+            "logEvents": [],
+        }
+        self.assertEqual(
+            get_lower_cased_lambda_function_name(lambda_customized_loggroup),
+            "test-customized-log-group1",
         )
 
 
