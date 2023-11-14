@@ -614,10 +614,6 @@ def awslogs_handler(event, context, metadata):
             metadata[DD_SOURCE] = "aws-iam-authenticator"
         # In case the conditions above don't match we maintain eks as the source
 
-    # Bedrock allows using any custom logGroup, but creates the logStream with this name
-    if logs["logStream"] == "aws/bedrock/modelinvocations":
-        metadata[DD_SOURCE] = "bedrock"
-
     # Create and send structured logs to Datadog
     for log in logs["logEvents"]:
         yield merge_dicts(log, aws_attributes)
