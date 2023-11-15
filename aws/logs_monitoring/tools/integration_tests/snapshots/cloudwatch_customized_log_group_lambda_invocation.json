@@ -1,0 +1,94 @@
+{
+	"messageType": "DATA_MESSAGE",
+	"owner": "601427279990",
+	"logGroup": "/aws/lambda/hello-dog-node-dev-hello12x",
+	"logStream": "2020/03/05/[$LATEST]20bddfd5a2dc4c6b97ac02800eae90d0",
+	"subscriptionFilters": ["hello-dog-node-dev-hello12x"],
+	"logEvents": [
+		{
+			"id": "35311576111948622874033876462979853992919938886093242368",
+			"timestamp": 1583425836114,
+			"message": "2020-03-05T16:30:36.113Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tDEBUG\t[dd.trace_id=3172564172058669914 dd.span_id=14292093692483532556] {\"status\":\"debug\",\"message\":\"datadog:Patched console output with trace context\"}\n"
+		},
+		{
+			"id": "35311576111948622874033876462979853992919938886093242369",
+			"timestamp": 1583425836114,
+			"message":"2020-03-05T16:30:36.114Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tDEBUG\t[dd.trace_id=3172564172058669914 dd.span_id=14292093692483532556] {\"autoPatchHTTP\":true,\"tracerInitialized\":true,\"status\":\"debug\",\"message\":\"datadog:Not patching HTTP libraries\"}\n"
+		},
+		{
+			"id": "35311576111948622874033876462979853992919938886093242370",
+			"timestamp": 1583425836114,
+			"message": "2020-03-05T16:30:36.114Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tDEBUG\t[dd.trace_id=3172564172058669914 dd.span_id=14292093692483532556] {\"status\":\"debug\",\"message\":\"datadog:Reading trace context from env var Root=1-5e61292c-cc1229a4dfbeae1043928548;Parent=c657b77d9514f70c;Sampled=1\"}\n"
+		},
+		{
+			"id": "35311576111948622874033876462979853992919938886093242371",
+			"timestamp": 1583425836114,
+			"message":"2020-03-05T16:30:36.114Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tDEBUG\t[dd.trace_id=3172564172058669914 dd.span_id=14292093692483532556] {\"parentID\":\"14292093692483532556\",\"sampleMode\":2,\"source\":\"xray\",\"traceID\":\"6899143064054564168\",\"status\":\"debug\",\"message\":\"datadog:read trace context from environment\"}\n"
+		},
+		{
+			"id": "35311576111948622874033876462979853992919938886093242372",
+			"timestamp": 1583425836114,
+			"message":"{\"e\":1583425836.114,\"m\":\"aws.lambda.enhanced.invocations\",\"t\":[\"region:us-east-1\",\"account_id:601427279990\",\"functionname:hello-dog-node-dev-hello12x\",\"cold_start:false\",\"memorysize:128\",\"runtime:nodejs12.x\"],\"v\":1}\n"
+		},
+		{
+			"id": "35311576112305434797210366433244425485282312670188929029",
+			"timestamp": 1583425836130,
+			"message":"2020-03-05T16:30:36.130Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tDEBUG\t[dd.trace_id=6899143064054564168 dd.span_id=14292093692483532556] {\"status\":\"debug\",\"message\":\"datadog:set trace context from xray with parent 14292093692483532556 from segment\"}\n"
+		},
+		{
+			"id": "35311576113197464605151591358905854216188247130428145670",
+			"timestamp": 1583425836170,
+			"message": "2020-03-05T16:30:36.131Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tDEBUG\t[dd.trace_id=6899143064054564168 dd.span_id=14292093692483532556] {\"status\":\"debug\",\"message\":\"datadog:set trace context from xray with parent 14292093692483532556 from segment\"}\n"
+		},
+		{
+			"id": "35311576113197464605151591358905854216188247130428145671",
+			"timestamp": 1583425836170,
+			"message":"2020-03-05T16:30:36.131Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tDEBUG\t[dd.trace_id=6899143064054564168 dd.span_id=14292093692483532556] {\"status\":\"debug\",\"message\":\"datadog:set trace context from xray with parent 14292093692483532556 from segment\"}\n"
+		},
+		{
+			"id":"35311576113197464605151591358905854216188247130428145672",
+			"timestamp": 1583425836170,
+			"message": "2020-03-05T16:30:36.131Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tDEBUG\t[dd.trace_id=6899143064054564168 dd.span_id=14292093692483532556] {\"status\":\"debug\",\"message\":\"datadog:set trace context from xray with parent 14292093692483532556 from segment\"}\n"
+		},
+		{
+			"id":"35311576113197464605151591358905854216188247130428145673",
+			"timestamp": 1583425836170,
+			"message":"2020-03-05T16:30:36.131Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tDEBUG\t[dd.trace_id=6899143064054564168 dd.span_id=14292093692483532556] {\"status\":\"debug\",\"message\":\"datadog:Attempting to find parent for datadog trace trace\"}\n"
+		},
+		{
+			"id": "35311576113197464605151591358905854216188247130428145674",
+			"timestamp": 1583425836170,
+			"message": "2020-03-05T16:30:36.131Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tDEBUG\t[dd.trace_id=6899143064054564168 dd.span_id=14292093692483532556] {\"status\":\"debug\",\"message\":\"datadog:Applying lambda context to datadog traces\"}\n"
+		},
+		{
+			"id": "35311576113643479509122203821736568581641214360547753995",
+			"timestamp": 1583425836190,
+			"message":"2020-03-05T16:30:36.172Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tINFO\t[dd.trace_id=6899143064054564168 dd.span_id=2927617725217152879] Request Headers undefined\n"},{"id":"35311576113643479509122203821736568581641214360547753996","timestamp":1583425836190,"message":"2020-03-05T16:30:36.172Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tINFO\t[dd.trace_id=6899143064054564168 dd.span_id=2927617725217152879] Root=1-5e61292c-cc1229a4dfbeae1043928548;Parent=c657b77d9514f70c;Sampled=1\n"
+		},
+		{
+			"id": "35311576113643479509122203821736568581641214360547753997",
+			"timestamp": 1583425836190,
+			"message": "{\"e\":1583425836.172,\"m\":\"hello.js10x.dog-2\",\"t\":[\"dd_lambda_layer:datadog-nodev12.14.1\"],\"v\":10}\n"
+		},
+		{
+			"id": "35311576123455807396475678004012284621606493423179137038",
+			"timestamp": 1583425836630,
+			"message":"2020-03-05T16:30:36.592Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tINFO\t[dd.trace_id=6899143064054564168 dd.span_id=3694123456155101779] 8103.047457805628\n"
+		},
+		{
+			"id":"35311576123478108141674208627153820339879141784685117455",
+			"timestamp": 1583425836631,
+			"message":"2020-03-05T16:30:36.631Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tINFO\t[dd.trace_id=6899143064054564168 dd.span_id=2927617725217152879] Finishing Span\n"
+		},
+		{
+			"id":"35311576125685881916328740318165856448871329573777178640",
+			"timestamp": 1583425836730,
+			"message": "{\"traces\":[[{\"trace_id\":\"5fbeae1043928548\",\"span_id\":\"334429b608902a53\",\"parent_id\":\"28a0fccf55b49f6f\",\"name\":\"calculation-long-number\",\"resource\":\"calculation-long-number\",\"error\":0,\"meta\":{\"language\":\"javascript\"},\"metrics\":{\"_sample_rate\":1,\"_sampling_priority_v1\":2},\"start\":1583425836164691700,\"duration\":458278320,\"service\":\"hello-dog-node-dev-hello12x\"},{\"trace_id\":\"5fbeae1043928548\",\"span_id\":\"181f42c1d3d93cbb\",\"parent_id\":\"483385e6470b5e23\",\"name\":\"recursive-func\",\"resource\":\"recursive-func\",\"error\":0,\"meta\":{\"language\":\"javascript\"},\"metrics\":{\"_sample_rate\":1,\"_sampling_priority_v1\":2},\"start\":1583425836623188200,\"duration\":13428,\"service\":\"hello-dog-node-dev-hello12x\"},{\"trace_id\":\"5fbeae1043928548\",\"span_id\":\"483385e6470b5e23\",\"parent_id\":\"533f613e4feb701d\",\"name\":\"recursive-func\",\"resource\":\"recursive-func\",\"error\":0,\"meta\":{\"language\":\"javascript\"},\"metrics\":{\"_sample_rate\":1,\"_sampling_priority_v1\":2},\"start\":1583425836623169000,\"duration\":35645,\"service\":\"hello-dog-node-dev-hello12x\"},{\"trace_id\":\"5fbeae1043928548\",\"span_id\":\"1fae9bd5a709ca8b\",\"parent_id\":\"2eeae625ac1cc300\",\"name\":\"recursive-func\",\"resource\":\"recursive-func\",\"error\":0,\"meta\":{\"language\":\"javascript\"},\"metrics\":{\"_sample_rate\":1,\"_sampling_priority_v1\":2},\"start\":1583425836623226000,\"duration\":9277,\"service\":\"hello-dog-node-dev-hello12x\"},{\"trace_id\":\"5fbeae1043928548\",\"span_id\":\"2eeae625ac1cc300\",\"parent_id\":\"533f613e4feb701d\",\"name\":\"recursive-func\",\"resource\":\"recursive-func\",\"error\":0,\"meta\":{\"language\":\"javascript\"},\"metrics\":{\"_sample_rate\":1,\"_sampling_priority_v1\":2},\"start\":1583425836623211000,\"duration\":26367,\"service\":\"hello-dog-node-dev-hello12x\"},{\"trace_id\":\"5fbeae1043928548\",\"span_id\":\"533f613e4feb701d\",\"parent_id\":\"28a0fccf55b49f6f\",\"name\":\"recursive-func\",\"resource\":\"recursive-func\",\"error\":0,\"meta\":{\"language\":\"javascript\"},\"metrics\":{\"_sample_rate\":1,\"_sampling_priority_v1\":2},\"start\":1583425836623111700,\"duration\":127197,\"service\":\"hello-dog-node-dev-hello12x\"},{\"trace_id\":\"5fbeae1043928548\",\"span_id\":\"5e88d3a8bef94ac9\",\"parent_id\":\"28a0fccf55b49f6f\",\"name\":\"dns.lookup\",\"resource\":\"0.0.0.0\",\"error\":0,\"meta\":{\"span.kind\":\"client\",\"dns.hostname\":\"0.0.0.0\",\"dns.address\":\"0.0.0.0\"},\"metrics\":{\"_sample_rate\":1,\"_sampling_priority_v1\":2},\"start\":1583425836123944000,\"duration\":499751709,\"service\":\"hello-dog-node-dev-hello12x-dns\"},{\"trace_id\":\"5fbeae1043928548\",\"span_id\":\"65aaa955aa6a5773\",\"parent_id\":\"28a0fccf55b49f6f\",\"name\":\"dns.lookup\",\"resource\":\"169.254.79.2\",\"error\":0,\"meta\":{\"span.kind\":\"client\",\"dns.hostname\":\"169.254.79.2\",\"dns.address\":\"169.254.79.2\"},\"metrics\":{\"_sample_rate\":1,\"_sampling_priority_v1\":2},\"start\":1583425836623786500,\"duration\":218750,\"service\":\"hello-dog-node-dev-hello12x-dns\"},{\"trace_id\":\"5fbeae1043928548\",\"span_id\":\"5ceec4bec34feffa\",\"parent_id\":\"47e81ba4338c9b28\",\"name\":\"dns.lookup\",\"resource\":\"www.google.com\",\"error\":0,\"meta\":{\"span.kind\":\"client\",\"dns.hostname\":\"www.google.com\",\"dns.address\":\"172.217.15.68\"},\"metrics\":{\"_dd1.sr.eausr\":1,\"_sample_rate\":1,\"_sampling_priority_v1\":2},\"start\":1583425836164049000,\"duration\":460493896,\"service\":\"hello-dog-node-dev-hello12x-dns\"},{\"trace_id\":\"5fbeae1043928548\",\"span_id\":\"47e81ba4338c9b28\",\"parent_id\":\"536370893130141b\",\"name\":\"tcp.connect\",\"resource\":\"www.google.com:443\",\"error\":0,\"meta\":{\"span.kind\":\"client\",\"tcp.remote.host\":\"www.google.com\",\"tcp.remote.port\":\"443\",\"tcp.family\":\"IPv4\",\"out.host\":\"www.google.com\",\"out.port\":\"443\",\"tcp.local.address\":\"169.254.76.1\",\"tcp.local.port\":\"37484\"},\"metrics\":{\"_sample_rate\":1,\"_sampling_priority_v1\":2},\"start\":1583425836163914000,\"duration\":479066650,\"service\":\"hello-dog-node-dev-hello12x-tcp\"},{\"trace_id\":\"5fbeae1043928548\",\"span_id\":\"536370893130141b\",\"parent_id\":\"28a0fccf55b49f6f\",\"name\":\"http.request\",\"resource\":\"GET\",\"error\":0,\"meta\":{\"span.kind\":\"client\",\"http.method\":\"GET\",\"http.url\":\"https://www.google.com/\",\"http.status_code\":\"200\"},\"metrics\":{\"_sample_rate\":1,\"_sampling_priority_v1\":2},\"start\":1583425836124274200,\"duration\":577401367,\"service\":\"hello-dog-node-dev-hello12x-http-client\",\"type\":\"http\"},{\"trace_id\":\"5fbeae1043928548\",\"span_id\":\"28a0fccf55b49f6f\",\"parent_id\":\"c657b77d9514f70c\",\"name\":\"aws.lambda\",\"resource\":\"handler.hello\",\"error\":0,\"meta\":{\"cold_start\":\"false\",\"function_arn\":\"arn:aws:lambda:us-east-1:601427279990:function:hello-dog-node-dev-hello12x\",\"request_id\":\"f08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\",\"resource_names\":\"hello-dog-node-dev-hello12x\",\"language\":\"javascript\"},\"metrics\":{\"_sample_rate\":1,\"_sampling_priority_v1\":2},\"start\":1583425836123549200,\"duration\":578297119,\"service\":\"hello-dog-node-dev-hello12x\"}]]}\n"},{"id":"35311576126131896820299352780996570814324296803896786961","timestamp":1583425836750,"message":"END RequestId: f08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\n"
+		},
+		{
+			"id": "35311576126131896820299352780996570814324296803896786962",
+			"timestamp": 1583425836750,
+			"message": "REPORT RequestId: f08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tDuration: 619.31 ms\tBilled Duration: 700 ms\tMemory Size: 128 MB\tMax Memory Used: 118 MB\t\nXRAY TraceId: 1-5e61292c-cc1229a4dfbeae1043928548\tSegmentId: 07a85e713f6302b2\tSampled: true\t\n"
+		}
+	]
+}
