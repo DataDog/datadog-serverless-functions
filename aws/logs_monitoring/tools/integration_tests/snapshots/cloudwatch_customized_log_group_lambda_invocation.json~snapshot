@@ -5,7 +5,7 @@
         {
           "aws": {
             "awslogs": {
-              "logGroup": "someGroupName",
+              "logGroup": "/aws/vendedlogs/states/anyLogGroupName",
               "logStream": "2020/03/05/test-customized-loggroup[$LATEST]20bddfd5a2dc4c6b97ac02800eae90d0",
               "owner": "601427279990"
             },
@@ -27,7 +27,7 @@
         {
           "aws": {
             "awslogs": {
-              "logGroup": "someGroupName",
+              "logGroup": "/aws/vendedlogs/states/anyLogGroupName",
               "logStream": "2020/03/05/test-customized-loggroup[$LATEST]20bddfd5a2dc4c6b97ac02800eae90d0",
               "owner": "601427279990"
             },
@@ -49,7 +49,7 @@
         {
           "aws": {
             "awslogs": {
-              "logGroup": "someGroupName",
+              "logGroup": "/aws/vendedlogs/states/anyLogGroupName",
               "logStream": "2020/03/05/test-customized-loggroup[$LATEST]20bddfd5a2dc4c6b97ac02800eae90d0",
               "owner": "601427279990"
             },
