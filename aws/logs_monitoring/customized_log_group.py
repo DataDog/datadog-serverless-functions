@@ -9,7 +9,7 @@ The workaround is to parse the logstream_name to get the source of logs.
 
 # Example: "2023/11/06/test-customized-log-group1[$LATEST]13e304cba4b9446eb7ef082a00038990"
 REX_LAMBDA_CUSTOMIZE_LOGSTREAM_NAME_PATTERN = re.compile(
-    "^20[0-9]{2}\\/[01][0-9]\\/[0-3][0-9]\\/[0-9a-zA-Z_.-]{1,75}\\[(?:\\$LATEST|[0-9A-Za-z_-]{1,129})\\][0-9a-f]{32}$"
+    "^[0-9]{4}\\/[01][0-9]\\/[0-3][0-9]\\/[0-9a-zA-Z_.-]{1,75}\\[(?:\\$LATEST|[0-9A-Za-z_-]{1,129})\\][0-9a-f]{32}$"
 )
 
 
