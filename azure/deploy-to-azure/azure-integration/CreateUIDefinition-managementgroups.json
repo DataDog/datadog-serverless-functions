@@ -273,10 +273,25 @@
                 "defaultValue": "true"
               },
               {
+                "name": "resource_collection_enabled",
+                "type": "Microsoft.Common.CheckBox",
+                "label": "Resource Collection",
+                "toolTip": "When enabled, Datadog collects metadata and configuration info from cloud resources (compute instances, databases, load balancers, etc.) in your Azure environment."
+              },
+              {
                 "name": "cspm_enabled",
                 "type": "Microsoft.Common.CheckBox",
                 "label": "Cloud Security Management",
+                "visible": "[steps('datadogConfig').metrics.resource_collection_enabled]",
                 "toolTip": "When enabled, Datadog performs configuration checks across your Azure environment by continuously scanning every resource. Use Datadog's executive reporting summaries to track conformance to industry benchmark criteria."
+              },
+              {
+                "name": "cspm_placeholder",
+                "type": "Microsoft.Common.TextBlock",
+                "visible": "[not(steps('datadogConfig').metrics.resource_collection_enabled)]",
+                "options": {
+                  "text": "Cloud Security Management: Resource Collection is required to enable this"
+                }
               },
               {
                 "name": "custom_metrics_enabled",
@@ -305,6 +320,7 @@
       "containerAppFilters": "[steps('datadogConfig').metrics.containerAppFilters]",
       "automute": "[steps('datadogConfig').metrics.automute]",
       "cspm_enabled": "[steps('datadogConfig').metrics.cspm_enabled]",
+      "resource_collection_enabled": "[steps('datadogConfig').metrics.resource_collection_enabled]",
       "custom_metrics_enabled": "[steps('datadogConfig').metrics.custom_metrics_enabled]"
     }
   }
