@@ -259,7 +259,32 @@
                 "type": "Microsoft.Common.CheckBox",
                 "label": "Cloud Security Management",
                 "toolTip": "When enabled, Datadog performs configuration checks across your Azure environment by continuously scanning every resource. Use Datadog's executive reporting summaries to track conformance to industry benchmark criteria.",
-                "disabled": "[not(steps('datadogConfig').integrationConfig.resource_collection_enabled)]"
+                "visible": "[not(steps('datadogConfig').integrationConfig.resource_collection_enabled)]"
+              },
+              {
+                "name": "cspm_placeholder",
+                "type": "Microsoft.Common.TextBlock",
+                "visible": "[steps('datadogConfig').integrationConfig.resource_collection_enabled]",
+                "options": {
+                  "text": "Resource Collection is required to enabled Cloud Security Management"
+                },
+                "toolTip": "Resource Collection is required to enabled Cloud Security Management"
+              },
+              {
+                "name": "resource_collection",
+                "type": "Microsoft.Common.Section",
+                "label": "Example section",
+                "elements": [
+                  {
+                    "name": "hi",
+                    "type": "Microsoft.Common.TextBlock",
+                    "visible": true,
+                    "options": {
+                      "text": "hi mom!"
+                    }
+                  }
+                ],
+                "visible": true
               },
               {
                 "name": "custom_metrics_enabled",
