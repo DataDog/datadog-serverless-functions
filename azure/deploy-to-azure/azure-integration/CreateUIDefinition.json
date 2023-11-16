@@ -266,7 +266,7 @@
                 "type": "Microsoft.Common.TextBlock",
                 "visible": "[not(steps('datadogConfig').integrationConfig.resource_collection_enabled)]",
                 "options": {
-                  "text": "Cloud Security Management:       Resource Collection is required to enable this"
+                  "text": "Cloud Security Management: Resource Collection is required to enable this"
                 }
               },
               {
