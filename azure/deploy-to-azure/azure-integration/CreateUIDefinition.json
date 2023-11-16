@@ -258,7 +258,7 @@
                 "name": "cspm_enabled",
                 "type": "Microsoft.Common.CheckBox",
                 "label": "Cloud Security Management",
-                "toolTip": "When enabled, Datadog's Cloud Security Management product will scan resource configurations for this cloud account. Note: This requires Resource Collection to be enabled.",
+                "toolTip": "When enabled, Datadog's Cloud Security Management product will scan resource configurations for resources monitored by this app registration. Note: This requires Resource Collection to be enabled.",
                 "visible": "[steps('datadogConfig').integrationConfig.resource_collection_enabled]"
               },
               {
