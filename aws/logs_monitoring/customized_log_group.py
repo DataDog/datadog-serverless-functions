@@ -2,7 +2,7 @@ import re
 
 """
 Customized log group is a log group shared by multiple applications of the same type. Based on the feedback from AWS, 
-customers may name the log group arbitrually. E.g they can name a lambda log group as "/aws/vendedlogs/states/**", which is typically used for Stepfunctions
+customers may name the log group arbitrarily. E.g they can name a lambda log group as "/aws/vendedlogs/states/**", which is typically used for Stepfunctions
 In addition, potentially, not just Lambda, any other AWS services can use a customized log group.
 The workaround is to parse the logstream_name to get the source of logs.
 """
