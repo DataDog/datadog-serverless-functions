@@ -73,7 +73,6 @@
     "steps": [
       {
         "name": "servicePrincipal",
-        "type": "Microsoft.Common.Section",
         "label": "Service Principal",
         "elements": [
           {
@@ -121,7 +120,6 @@
       },
       {
         "name": "datadogConfig",
-        "type": "Microsoft.Common.Section",
         "label": "Datadog Configuration",
         "elements": [
           {
@@ -273,31 +271,53 @@
                 "defaultValue": "true"
               },
               {
-                "name": "resource_collection_enabled",
-                "type": "Microsoft.Common.CheckBox",
-                "label": "Resource Collection",
-                "toolTip": "When enabled, Datadog collects metadata and configuration info from cloud resources (compute instances, databases, load balancers, etc.) in your Azure environment."
-              },
-              {
-                "name": "cspm_enabled",
-                "type": "Microsoft.Common.CheckBox",
-                "label": "Cloud Security Management",
-                "visible": "[steps('datadogConfig').metrics.resource_collection_enabled]",
-                "toolTip": "When enabled, Datadog performs configuration checks across your Azure environment by continuously scanning every resource. Use Datadog's executive reporting summaries to track conformance to industry benchmark criteria."
-              },
-              {
-                "name": "cspm_placeholder",
-                "type": "Microsoft.Common.TextBlock",
-                "visible": "[not(steps('datadogConfig').metrics.resource_collection_enabled)]",
-                "options": {
-                  "text": "Cloud Security Management: Resource Collection is required to enable this"
-                }
-              },
-              {
                 "name": "custom_metrics_enabled",
                 "type": "Microsoft.Common.CheckBox",
                 "label": "Collect Custom Metrics",
                 "toolTip": "This option will enable custom metric collection from all Application Insights instances within the scope of this configuration. These custom metrics will appear in datadog under the namespace <b>application_insights.custom.&lt;METRIC_NAME&gt;</b>.<br> Note that <a target='_blank' href='https://learn.microsoft.com/en-us/azure/azure-monitor/app/standard-metrics/'>Standard</a> App Insights metrics are collected automatically and are available under the <b>azure.insights_components.*</b> namespace."
+              }
+            ],
+            "visible": true
+          },
+          {
+            "name": "resourceCollection",
+            "type": "Microsoft.Common.Section",
+            "label": "Resource Collection",
+            "elements": [
+              {
+                "name": "resource_collection_info",
+                "type": "Microsoft.Common.TextBlock",
+                "options": {
+                  "text": "Collect configuration information about the resources monitored with this App Registration."
+                }
+              },
+              {
+                "name": "resource_collection_enabled",
+                "type": "Microsoft.Common.CheckBox",
+                "label": "Enable Resource Collection",
+                "toolTip": "When enabled, Datadog collects metadata and configuration info from cloud resources (compute instances, databases, load balancers, etc.) in your Azure environment."
+              },
+              {
+                "name": "insights_info",
+                "type": "Microsoft.Common.TextBlock",
+                "options": {
+                  "text": "Where to view insights:"
+                }
+              },
+              {
+                "name": "cspm_enabled",
+                "type": "Microsoft.Common.CheckBox",
+                "label": "• Cloud Security Management:",
+                "toolTip": "When enabled, Datadog's Cloud Security Management product will scan resource configurations for resources monitored by this app registration. Note: This requires Resource Collection to be enabled.",
+                "visible": "[steps('datadogConfig').resourceCollection.resource_collection_enabled]"
+              },
+              {
+                "name": "cspm_placeholder",
+                "type": "Microsoft.Common.TextBlock",
+                "visible": "[not(steps('datadogConfig').resourceCollection.resource_collection_enabled)]",
+                "options": {
+                  "text": "• Cloud Security Management: To enable this, Resource Collection must be enabled"
+                }
               }
             ],
             "visible": true
@@ -319,9 +339,9 @@
       "appServicePlanFilters": "[steps('datadogConfig').metrics.appServicePlanFilters]",
       "containerAppFilters": "[steps('datadogConfig').metrics.containerAppFilters]",
       "automute": "[steps('datadogConfig').metrics.automute]",
-      "cspm_enabled": "[steps('datadogConfig').metrics.cspm_enabled]",
-      "resource_collection_enabled": "[steps('datadogConfig').metrics.resource_collection_enabled]",
-      "custom_metrics_enabled": "[steps('datadogConfig').metrics.custom_metrics_enabled]"
+      "custom_metrics_enabled": "[steps('datadogConfig').metrics.custom_metrics_enabled]",
+      "resource_collection_enabled": "[steps('datadogConfig').resourceCollection.resource_collection_enabled]",
+      "cspm_enabled": "[steps('datadogConfig').resourceCollection.cspm_enabled]"
     }
   }
 }
