@@ -67,6 +67,8 @@ cloudtrail_regex = re.compile(
     re.I,
 )
 
+account_id_regex = re.compile("^\d{12}$")
+
 # Store the cache in the global scope so that it will be reused as long as
 # the log forwarder Lambda container is running
 account_cw_logs_tags_cache = CloudwatchLogGroupTagsCache()
@@ -347,6 +349,9 @@ def is_cloudtrail(key):
     match = cloudtrail_regex.search(key)
     return bool(match)
 
+def is_account_id(key):
+    match = account_id_regex.search(key)
+    return bool(match)
 
 def find_s3_source(key):
     # e.g. AWSLogs/123456779121/elasticloadbalancing/us-east-1/2020/10/02/123456779121_elasticloadbalancing_us-east-1_app.alb.xxxxx.xx.xxx.xxx_x.log.gz
@@ -443,7 +448,7 @@ def parse_service_arn(source, key, bucket, context):
     if source == "cloudfront":
         # For Cloudfront logs we need to get the account and distribution id from the lambda arn and the filename
         # 1. We extract the cloudfront id  from the filename
-        # 2. We extract the AWS account id from the lambda arn
+        # 2. We extract the AWS account id from the s3 key prefix or from the lambda arn
         # 3. We build the arn
         namesplit = key.split("/")
         if len(namesplit) > 0:
@@ -452,6 +457,12 @@ def parse_service_arn(source, key, bucket, context):
             filenamesplit = filename.split(".")
             if len(filenamesplit) > 3:
                 distributionID = filenamesplit[len(filenamesplit) - 4].lower()
+                prefixsplit = namesplit[0:-1]
+                for prefixpart in prefixsplit:
+                    if is_account_id(prefixpart):
+                        return "arn:aws:cloudfront::{}:distribution/{}".format(
+                            prefixpart, distributionID
+                        )
                 arn = context.invoked_function_arn
                 arnsplit = arn.split(":")
                 if len(arnsplit) == 7:
