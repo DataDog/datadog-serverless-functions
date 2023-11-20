@@ -334,7 +334,7 @@
       "automute": "[steps('datadogConfig').metrics.automute]",
       "custom_metrics_enabled": "[steps('datadogConfig').metrics.custom_metrics_enabled]",
       "resource_collection_enabled": "[steps('datadogConfig').resourceCollection.resource_collection_enabled]",
-      "cspm_enabled": "[steps('datadogConfig').resourceCollection.cspm_enabled]"
+      "cspm_enabled": "[and(steps('datadogConfig').resourceCollection.cspm_enabled, steps('datadogConfig').resourceCollection.resource_collection_enabled)]"
     }
   }
 }

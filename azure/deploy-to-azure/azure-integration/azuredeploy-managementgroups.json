@@ -178,7 +178,7 @@
                         "value": "[parameters('resource_collection_enabled')]"
                     },
                     "cspm_enabled": {
-                        "value": "[and(parameters('cspm_enabled'), parameters('resource_collection_enabled'))]"
+                        "value": "[parameters('cspm_enabled')]"
                     },
                     "custom_metrics_enabled": {
                         "value": "[parameters('custom_metrics_enabled')]"
