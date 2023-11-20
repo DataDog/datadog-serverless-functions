@@ -4,86 +4,93 @@
     "parameters": {
         "location": {
             "defaultValue": "westus2",
-            "type": "String",
+            "type": "string",
             "metadata": {
                 "description": "Resources location"
             }
         },
         "servicePrincipalClientId": {
-            "type": "String",
+            "type": "string",
             "metadata": {
                 "description": "Service principal Client Id"
             }
         },
         "servicePrincipalObjectId": {
-            "type": "String",
+            "type": "string",
             "metadata": {
                 "description": "Service principal object Id, needed for Role Assignment"
             }
         },
         "servicePrincipalClientSecret": {
-            "type": "SecureString",
+            "type": "securestring",
             "metadata": {
                 "description": "Service principal client secret"
             }
         },
         "subscriptionID": {
-            "type": "String",
+            "type": "string",
             "metadata": {
                 "description": "Subscription Id"
             }
         },
         "resourcegroup": {
-            "type": "String",
+            "type": "string",
             "metadata": {
                 "description": "resource group"
             }
         },
         "datadogApplicationKey": {
-            "type": "SecureString",
+            "type": "securestring",
             "metadata": {
                 "description": "Your Datadog Application key"
             }
         },
         "datadogApiKey": {
-            "type": "SecureString",
+            "type": "securestring",
             "metadata": {
                 "description": "Your Datadog API key"
             }
         },
         "hostFilters": {
             "defaultValue": "",
-            "type": "String",
+            "type": "string",
             "metadata": {
                 "description": "Filter to include/exclude hosts"
             }
         },
         "appServicePlanFilters": {
             "defaultValue": "",
-            "type": "String",
+            "type": "string",
             "metadata": {
                 "description": "Filter to include/exclude app service plans"
             }
         },
         "containerAppFilters": {
             "defaultValue": "",
-            "type": "String",
+            "type": "string",
             "metadata": {
                 "description": "Filter to include/exclude container apps"
             }
         },
         "automute": {
             "defaultValue": true,
-            "type": "Bool",
+            "type": "bool",
             "metadata": {
                 "description": "Whether or not to use automute for hosts"
             }
         },
+        "resource_collection_enabled": {
+            "defaultValue": true,
+            "type": "bool",
+            "metadata": {
+                "description": "Collect resources for various Datadog products"
+            }
+        },
         "cspm_enabled": {
             "defaultValue": true,
-            "type": "Bool",
+            "type": "bool",
             "metadata": {
-                "description": "Collect resources for Cloud Security Management"
+                "description": "Enable the Cloud Security Management product"
             }
         },
         "custom_metrics_enabled": {
@@ -95,21 +102,21 @@
         },
         "datadogSite": {
             "defaultValue": "datadoghq.com",
-            "type": "String",
+            "type": "string",
             "metadata": {
                 "description": "The datadog site, e.g. eu1.datadoghq.com"
             }
         },
         "newguid": {
             "defaultValue": "[newGuid()]",
-            "type": "String",
+            "type": "string",
             "metadata": {
                 "description": "Just a Guid to append to deployment script name"
             }
         },
         "managementGroupName": {
             "defaultValue": "[managementGroup().name]",
-            "type": "String",
+            "type": "string",
             "metadata": {
                 "description": "Management group Id, to assign a role assignment to"
             }
@@ -167,6 +174,9 @@
                     "automute": {
                         "value": "[parameters('automute')]"
                     },
+                    "resource_collection_enabled": {
+                        "value": "[parameters('resource_collection_enabled')]"
+                    },
                     "cspm_enabled": {
                         "value": "[parameters('cspm_enabled')]"
                     },
@@ -208,13 +218,16 @@
                         "hostFilters": {
                             "type": "string"
                         },
-                        "appServicePlanFilters":{
+                        "appServicePlanFilters": {
                             "type": "string"
                         },
-                        "containerAppFilters":{
+                        "containerAppFilters": {
                             "type": "string"
                         },
                         "automute": {
+                            "type": "bool"
+                        },
+                        "resource_collection_enabled": {
                             "type": "bool"
                         },
                         "cspm_enabled": {
@@ -267,6 +280,10 @@
                                         "value": "[parameters('automute')]"
                                     },
                                     {
+                                        "name": "resource_collection_enabled",
+                                        "value": "[parameters('resource_collection_enabled')]"
+                                    },
+                                    {
                                         "name": "cspm_enabled",
                                         "value": "[parameters('cspm_enabled')]"
                                     },
@@ -283,12 +300,12 @@
                                         "value": "[subscription().tenantId]"
                                     },
                                     {
-                                        "name":"source",
+                                        "name": "source",
                                         "value": "arm_template_mgmt_group"
                                     },
                                     {
-                                        "name":"managementGroupId",
-                                        "value":"[parameters('managementGroupName')]"
+                                        "name": "managementGroupId",
+                                        "value": "[parameters('managementGroupName')]"
                                     }
                                 ],
                                 "retentionInterval": "PT1H",
@@ -296,7 +313,7 @@
                                 "containerSettings": {},
                                 "cleanupPreference": "Always",
                                 "azPowerShellVersion": "8.1",
-                                "scriptContent": "Invoke-WebRequest -SkipCertificateCheck -ContentType \"application/json\" -Method Post -Uri \"https://api.$Env:datadogSite/api/v1/integration/azure\" -Headers @{\"Accept\"=\"application/json\"; \"DD-APPLICATION-KEY\"=$Env:datadogApplicationKey; \"DD-API-KEY\"=$Env:datadogApiKey} -Body (@{\"automute\"=[bool]::Parse($Env:automute); \"cspm_enabled\"=[bool]::Parse($Env:cspm_enabled); \"custom_metrics_enabled\"=[bool]::Parse($Env:custom_metrics_enabled); \"client_id\"=$Env:clientId; \"client_secret\"=$Env:clientSecret; \"tenant_name\"=$Env:tenantName; \"source\"=$Env:source; \"management_group_id\"=$Env:managementGroupId} | ConvertTo-Json )"
+                                "scriptContent": "Invoke-WebRequest -SkipCertificateCheck -ContentType \"application/json\" -Method Post -Uri \"https://api.$Env:datadogSite/api/v1/integration/azure\" -Headers @{\"Accept\"=\"application/json\"; \"DD-APPLICATION-KEY\"=$Env:datadogApplicationKey; \"DD-API-KEY\"=$Env:datadogApiKey} -Body (@{\"automute\"=[bool]::Parse($Env:automute); \"resource_collection_enabled\"=[bool]::Parse($Env:resource_collection_enabled); \"cspm_enabled\"=[bool]::Parse($Env:cspm_enabled); \"custom_metrics_enabled\"=[bool]::Parse($Env:custom_metrics_enabled); \"client_id\"=$Env:clientId; \"client_secret\"=$Env:clientSecret; \"tenant_name\"=$Env:tenantName; \"source\"=$Env:source; \"management_group_id\"=$Env:managementGroupId} | ConvertTo-Json )"
                             }
                         },
                         {
