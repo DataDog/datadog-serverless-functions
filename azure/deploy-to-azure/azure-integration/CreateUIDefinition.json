@@ -274,16 +274,9 @@
                 "toolTip": "When enabled, Datadog collects metadata and configuration info from cloud resources (compute instances, databases, load balancers, etc.) in your Azure environment."
               },
               {
-                "name": "insights_info",
-                "type": "Microsoft.Common.TextBlock",
-                "options": {
-                  "text": "Where to view insights:"
-                }
-              },
-              {
                 "name": "cspm_enabled",
                 "type": "Microsoft.Common.CheckBox",
-                "label": "• Cloud Security Management:",
+                "label": "Enable Cloud Security Management:",
                 "toolTip": "When enabled, Datadog's Cloud Security Management product will scan resource configurations for resources monitored by this app registration. Note: This requires Resource Collection to be enabled.",
                 "visible": "[steps('datadogConfig').resourceCollection.resource_collection_enabled]"
               },
@@ -292,7 +285,7 @@
                 "type": "Microsoft.Common.TextBlock",
                 "visible": "[not(steps('datadogConfig').resourceCollection.resource_collection_enabled)]",
                 "options": {
-                  "text": "• Cloud Security Management: To enable this, Resource Collection must be enabled"
+                  "text": "Enable Cloud Security Management: To enable this, Resource Collection must be enabled"
                 }
               }
             ],
