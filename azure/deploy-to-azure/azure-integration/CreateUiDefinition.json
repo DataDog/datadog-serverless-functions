@@ -52,7 +52,7 @@
               },
               {
                 "name": "ServicePrincipal",
-                "type": "Microsoft.Common.ServicePrincipalSelector",
+                "type": "Microsoft.Common.ServicePrincipalV2Selector",
                 "label": {
                   "servicePrincipalId": "Service Principal Id",
                   "password": "Client secret",
@@ -61,16 +61,19 @@
                 "toolTip": {
                   "servicePrincipalId": "Service Principal Id"
                 },
-                "defaultValue": {
-                  "principalId": "<default guid>",
-                  "name": "(New) default App Id"
-                },
                 "constraints": {
                   "required": true,
                   "validationMessage": "Must be a valid client secret"
                 },
                 "options": {
-                  "hideCertificate": true
+                  "hideCertificate": true,
+                  "selectExisting": {
+                    "appId": "Default App Id"
+                  },
+                  "createNew":{
+                    "defaultName": "Default app name",
+                    "secretType": "Password"
+                  }
                 },
                 "visible": true
               }
