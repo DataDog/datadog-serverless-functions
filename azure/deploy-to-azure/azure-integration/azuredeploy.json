@@ -61,7 +61,14 @@
             "defaultValue": "",
             "type": "String",
             "metadata": {
-                "description": "Filter to include/exclude app_service_plan"
+                "description": "Filter to include/exclude app service plans"
+            }
+        },
+        "containerAppFilters": {
+            "defaultValue": "",
+            "type": "String",
+            "metadata": {
+                "description": "Filter to include/exclude container apps"
             }
         },
         "automute": {
@@ -71,11 +78,18 @@
                 "description": "Whether or not to use automute for hosts"
             }
         },
+        "resource_collection_enabled": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Collect resources for various Datadog products"
+            }
+        },
         "cspm_enabled": {
             "type": "bool",
             "defaultValue": true,
             "metadata": {
-                "description": "Collect resources for Cloud Security Posture Management"
+                "description": "Enable the Cloud Security Management product"
             }
         },
         "custom_metrics_enabled": {
@@ -188,6 +202,10 @@
                         "value": "[parameters('automute')]"
                     },
                     {
+                        "name": "resource_collection_enabled",
+                        "value": "[parameters('resource_collection_enabled')]"
+                    },
+                    {
                         "name": "cspm_enabled",
                         "value": "[parameters('cspm_enabled')]"
                     },
@@ -213,7 +231,7 @@
                 "containerSettings": {},
                 "cleanupPreference": "Always",
                 "azPowerShellVersion": "8.1",
-                "scriptContent": "Invoke-WebRequest -SkipCertificateCheck -ContentType \"application/json\" -Method Post -Uri \"https://api.$Env:datadogSite/api/v1/integration/azure\" -Headers @{\"Accept\"=\"application/json\"; \"DD-APPLICATION-KEY\"=$Env:datadogApplicationKey; \"DD-API-KEY\"=$Env:datadogApiKey} -Body (@{\"automute\"=[bool]::Parse($Env:automute); \"cspm_enabled\"=[bool]::Parse($Env:cspm_enabled); \"custom_metrics_enabled\"=[bool]::Parse($Env:custom_metrics_enabled); \"client_id\"=$Env:clientId; \"client_secret\"=$Env:clientSecret; \"tenant_name\"=$Env:tenantName; \"source\"=$Env:source; \"subscription_count\"=[int]::Parse($Env:subscription_count)} | ConvertTo-Json )"
+                "scriptContent": "Invoke-WebRequest -SkipCertificateCheck -ContentType \"application/json\" -Method Post -Uri \"https://api.$Env:datadogSite/api/v1/integration/azure\" -Headers @{\"Accept\"=\"application/json\"; \"DD-APPLICATION-KEY\"=$Env:datadogApplicationKey; \"DD-API-KEY\"=$Env:datadogApiKey} -Body (@{\"automute\"=[bool]::Parse($Env:automute); \"resource_collection_enabled\"=[bool]::Parse($Env:resource_collection_enabled); \"cspm_enabled\"=[bool]::Parse($Env:cspm_enabled); \"custom_metrics_enabled\"=[bool]::Parse($Env:custom_metrics_enabled); \"client_id\"=$Env:clientId; \"client_secret\"=$Env:clientSecret; \"tenant_name\"=$Env:tenantName; \"source\"=$Env:source; \"subscription_count\"=[int]::Parse($Env:subscription_count)} | ConvertTo-Json )"
             }
         },
         {
@@ -269,7 +287,7 @@
             "condition": "[not(empty(parameters('appServicePlanFilters')))]",
             "type": "Microsoft.Resources/deploymentScripts",
             "apiVersion": "2020-10-01",
-            "name": "[concat('datadog-app-filter-script-', parameters('newguid'))]",
+            "name": "[concat('datadog-app-service-plan-filter-script-', parameters('newguid'))]",
             "location": "[parameters('location')]",
             "kind": "AzurePowerShell",
             "dependsOn": [
@@ -312,6 +330,55 @@
                 "cleanupPreference": "Always",
                 "azPowerShellVersion": "8.1",
                 "scriptContent": "Invoke-WebRequest -SkipCertificateCheck -ContentType \"application/json\" -Method Post -Uri \"https://api.$Env:datadogSite/api/v1/integration/azure/filtering\" -Headers @{\"Accept\"=\"application/json\"; \"DD-APPLICATION-KEY\"=$Env:datadogApplicationKey; \"DD-API-KEY\"=$Env:datadogApiKey} -Body (@{\"client_id\"=$Env:clientId; \"tenant_id\"=$Env:tenantName; \"namespace\"=$Env:namespace; \"filters\"=$Env:appServicePlanFilters} | ConvertTo-Json )"
+            }
+        },
+        {
+            "condition": "[not(empty(parameters('containerAppFilters')))]",
+            "type": "Microsoft.Resources/deploymentScripts",
+            "apiVersion": "2020-10-01",
+            "name": "[concat('datadog-container-app-filter-script-', parameters('newguid'))]",
+            "location": "[parameters('location')]",
+            "kind": "AzurePowerShell",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deploymentScripts', concat('datadog-integration-script-', parameters('newguid')))]"
+            ],
+            "properties": {
+                "environmentVariables": [
+                    {
+                        "name": "datadogApplicationKey",
+                        "secureValue": "[parameters('datadogApplicationKey')]"
+                    },
+                    {
+                        "name": "datadogApiKey",
+                        "secureValue": "[parameters('datadogApiKey')]"
+                    },
+                    {
+                        "name": "datadogSite",
+                        "value": "[parameters('datadogSite')]"
+                    },
+                    {
+                        "name": "containerAppFilters",
+                        "value": "[parameters('containerAppFilters')]"
+                    },
+                    {
+                        "name": "namespace",
+                        "value": "container_app"
+                    },
+                    {
+                        "name": "clientId",
+                        "value": "[parameters('servicePrincipalClientId')]"
+                    },
+                    {
+                        "name": "tenantName",
+                        "value": "[subscription().tenantId]"
+                    }
+                ],
+                "retentionInterval": "PT1H",
+                "timeout": "PT2M",
+                "containerSettings": {},
+                "cleanupPreference": "Always",
+                "azPowerShellVersion": "8.1",
+                "scriptContent": "Invoke-WebRequest -SkipCertificateCheck -ContentType \"application/json\" -Method Post -Uri \"https://api.$Env:datadogSite/api/v1/integration/azure/filtering\" -Headers @{\"Accept\"=\"application/json\"; \"DD-APPLICATION-KEY\"=$Env:datadogApplicationKey; \"DD-API-KEY\"=$Env:datadogApiKey} -Body (@{\"client_id\"=$Env:clientId; \"tenant_id\"=$Env:tenantName; \"namespace\"=$Env:namespace; \"filters\"=$Env:containerAppFilters} | ConvertTo-Json )"
             }
         }
     ],

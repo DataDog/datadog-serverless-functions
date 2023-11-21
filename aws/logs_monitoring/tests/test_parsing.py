@@ -27,6 +27,8 @@ from parsing import (
     separate_security_hub_findings,
     parse_aws_waf_logs,
     get_service_from_tags,
+    get_state_machine_arn,
+    get_lower_cased_lambda_function_name,
 )
 from settings import (
     DD_CUSTOM_TAGS,
@@ -964,6 +966,71 @@ class TestGetServiceFromTags(unittest.TestCase):
             DD_CUSTOM_TAGS: "env:dev,tag,stack:aws:ecs,version:v1",
         }
         self.assertEqual(get_service_from_tags(metadata), "ecs")
+
+
+class TestParsingStepFunctionLogs(unittest.TestCase):
+    def test_get_state_machine_arn(self):
+        invalid_sf_log_message = {"no_execution_arn": "xxxx/yyy"}
+        self.assertEqual(get_state_machine_arn(invalid_sf_log_message), "")
+
+        normal_sf_log_message = {
+            "execution_arn": "arn:aws:states:sa-east-1:425362996713:express:my-Various-States:7f653fda-c79a-430b-91e2-3f97eb87cabb:862e5d40-a457-4ca2-a3c1-78485bd94d3f"
+        }
+        self.assertEqual(
+            get_state_machine_arn(normal_sf_log_message),
+            "arn:aws:states:sa-east-1:425362996713:stateMachine:my-Various-States",
+        )
+
+        forward_slash_sf_log_message = {
+            "execution_arn": "arn:aws:states:sa-east-1:425362996713:express:my-Various-States/7f653fda-c79a-430b-91e2-3f97eb87cabb:862e5d40-a457-4ca2-a3c1-78485bd94d3f"
+        }
+        self.assertEqual(
+            get_state_machine_arn(forward_slash_sf_log_message),
+            "arn:aws:states:sa-east-1:425362996713:stateMachine:my-Various-States",
+        )
+
+        back_slash_sf_log_message = {
+            "execution_arn": "arn:aws:states:sa-east-1:425362996713:express:my-Various-States\\7f653fda-c79a-430b-91e2-3f97eb87cabb:862e5d40-a457-4ca2-a3c1-78485bd94d3f"
+        }
+        self.assertEqual(
+            get_state_machine_arn(back_slash_sf_log_message),
+            "arn:aws:states:sa-east-1:425362996713:stateMachine:my-Various-States",
+        )
+
+
+class TestLambdaCustomizedLogGroup(unittest.TestCase):
+    def test_get_lower_cased_lambda_function_name(self):
+        self.assertEqual(True, True)
+        # Non Lambda log
+        stepfunction_loggroup = {
+            "messageType": "DATA_MESSAGE",
+            "logGroup": "/aws/vendedlogs/states/logs-to-traces-sequential-Logs",
+            "logStream": "states/logs-to-traces-sequential/2022-11-10-15-50/7851b2d9",
+            "logEvents": [],
+        }
+        self.assertEqual(
+            get_lower_cased_lambda_function_name(stepfunction_loggroup), None
+        )
+        lambda_default_loggroup = {
+            "messageType": "DATA_MESSAGE",
+            "logGroup": "/aws/lambda/test-lambda-default-log-group",
+            "logStream": "2023/11/06/[$LATEST]b25b1f977b3e416faa45a00f427e7acb",
+            "logEvents": [],
+        }
+        self.assertEqual(
+            get_lower_cased_lambda_function_name(lambda_default_loggroup),
+            "test-lambda-default-log-group",
+        )
+        lambda_customized_loggroup = {
+            "messageType": "DATA_MESSAGE",
+            "logGroup": "customizeLambdaGrop",
+            "logStream": "2023/11/06/test-customized-log-group1[$LATEST]13e304cba4b9446eb7ef082a00038990",
+            "logEvents": [],
+        }
+        self.assertEqual(
+            get_lower_cased_lambda_function_name(lambda_customized_loggroup),
+            "test-customized-log-group1",
+        )
 
 
 if __name__ == "__main__":

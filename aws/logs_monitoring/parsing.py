@@ -19,6 +19,10 @@ from io import BytesIO, BufferedReader
 
 from datadog_lambda.metric import lambda_stats
 
+from customized_log_group import (
+    get_lambda_function_name_from_logstream_name,
+    is_lambda_customized_log_group,
+)
 from step_functions_cache import StepFunctionsTagsCache
 from cloudwatch_log_group_cache import CloudwatchLogGroupTagsCache
 from telemetry import (
@@ -331,6 +335,7 @@ def find_cloudwatch_source(log_group):
         "elasticsearch",
         "transitgateway",
         "verified-access",
+        "bedrock",
     ]:
         if source in log_group:
             return source
@@ -381,6 +386,7 @@ def find_s3_source(key):
         "network-firewall",
         "cloudfront",
         "verified-access",
+        "bedrock",
     ]:
         if source in key:
             return source.replace("amazon_", "")
@@ -487,13 +493,21 @@ def awslogs_handler(event, context, metadata):
     # Set the source on the logs
     source = logs.get("logGroup", "cloudwatch")
 
-    # Use the logStream to identify if this is a CloudTrail event
+    # Use the logStream to identify if this is a CloudTrail, TransitGateway, or Bedrock event
     # i.e. 123456779121_CloudTrail_us-east-1
     if "_CloudTrail_" in logs["logStream"]:
         source = "cloudtrail"
     if "tgw-attach" in logs["logStream"]:
         source = "transitgateway"
+    if logs["logStream"] == "aws/bedrock/modelinvocations":
+        source = "bedrock"
     metadata[DD_SOURCE] = parse_event_source(event, source)
+
+    # Special handling for customized log group of Lambda functions
+    # Multiple Lambda functions can share one single customized log group
+    # Need to parse logStream name to determine whether it is a Lambda function
+    if is_lambda_customized_log_group(logs["logStream"]):
+        metadata[DD_SOURCE] = "lambda"
 
     # Build aws attributes
     aws_attributes = {
@@ -515,6 +529,7 @@ def awslogs_handler(event, context, metadata):
         )
 
     # Set service from custom tags, which may include the tags set on the log group
+    # Returns DD_SOURCE by default
     metadata[DD_SERVICE] = get_service_from_tags(metadata)
 
     # Set host as log group where cloudwatch is source
@@ -536,13 +551,11 @@ def awslogs_handler(event, context, metadata):
     ):
         state_machine_arn = ""
         try:
-            message = json.loads(logs["logEvents"][0]["message"])
-            if message.get("execution_arn") is not None:
-                execution_arn = message["execution_arn"]
-                arn_tokens = execution_arn.split(":")
-                arn_tokens[5] = "stateMachine"
-                metadata[DD_HOST] = ":".join(arn_tokens[:-1])
-                state_machine_arn = ":".join(arn_tokens[:7])
+            state_machine_arn = get_state_machine_arn(
+                json.loads(logs["logEvents"][0]["message"])
+            )
+            if state_machine_arn:  # not empty
+                metadata[DD_HOST] = state_machine_arn
         except Exception as e:
             logger.debug(
                 "Unable to set stepfunction host or get state_machine_arn: %s" % e
@@ -572,28 +585,8 @@ def awslogs_handler(event, context, metadata):
 
     # For Lambda logs we want to extract the function name,
     # then rebuild the arn of the monitored lambda using that name.
-    # Start by splitting the log group to get the function name
     if metadata[DD_SOURCE] == "lambda":
-        log_group_parts = logs["logGroup"].split("/lambda/")
-        if len(log_group_parts) > 1:
-            lowercase_function_name = log_group_parts[1].lower()
-            # Split the arn of the forwarder to extract the prefix
-            arn_parts = context.invoked_function_arn.split("function:")
-            if len(arn_parts) > 0:
-                arn_prefix = arn_parts[0]
-                # Rebuild the arn with the lowercased function name
-                lowercase_arn = arn_prefix + "function:" + lowercase_function_name
-                # Add the lowercased arn as a log attribute
-                arn_attributes = {"lambda": {"arn": lowercase_arn}}
-                aws_attributes = merge_dicts(aws_attributes, arn_attributes)
-
-                env_tag_exists = (
-                    metadata[DD_CUSTOM_TAGS].startswith("env:")
-                    or ",env:" in metadata[DD_CUSTOM_TAGS]
-                )
-                # If there is no env specified, default to env:none
-                if not env_tag_exists:
-                    metadata[DD_CUSTOM_TAGS] += ",env:none"
+        process_lambda_logs(logs, aws_attributes, context, metadata)
 
     # The EKS log group contains various sources from the K8S control plane.
     # In order to have these automatically trigger the correct pipelines they
@@ -856,3 +849,51 @@ def normalize_events(events, metadata):
     )
 
     return normalized
+
+
+def get_state_machine_arn(message):
+    if message.get("execution_arn") is not None:
+        execution_arn = message["execution_arn"]
+        arn_tokens = re.split(r"[:/\\]", execution_arn)
+        arn_tokens[5] = "stateMachine"
+        return ":".join(arn_tokens[:7])
+    return ""
+
+
+# Lambda logs can be from either default or customized log group
+def process_lambda_logs(logs, aws_attributes, context, metadata):
+    lower_cased_lambda_function_name = get_lower_cased_lambda_function_name(logs)
+    if lower_cased_lambda_function_name is None:
+        return
+    # Split the arn of the forwarder to extract the prefix
+    arn_parts = context.invoked_function_arn.split("function:")
+    if len(arn_parts) > 0:
+        arn_prefix = arn_parts[0]
+        # Rebuild the arn with the lowercased function name
+        lower_cased_lambda__arn = (
+            arn_prefix + "function:" + lower_cased_lambda_function_name
+        )
+        # Add the lowe_rcased arn as a log attribute
+        arn_attributes = {"lambda": {"arn": lower_cased_lambda__arn}}
+        aws_attributes = merge_dicts(aws_attributes, arn_attributes)
+        env_tag_exists = (
+            metadata[DD_CUSTOM_TAGS].startswith("env:")
+            or ",env:" in metadata[DD_CUSTOM_TAGS]
+        )
+        # If there is no env specified, default to env:none
+        if not env_tag_exists:
+            metadata[DD_CUSTOM_TAGS] += ",env:none"
+
+
+# The lambda function name can be inferred from either a customized logstream name, or a loggroup name
+def get_lower_cased_lambda_function_name(logs):
+    logstream_name = logs["logStream"]
+    # function name parsed from logstream is preferred for handling some edge cases
+    function_name = get_lambda_function_name_from_logstream_name(logstream_name)
+    if function_name is None:
+        log_group_parts = logs["logGroup"].split("/lambda/")
+        if len(log_group_parts) > 1:
+            function_name = log_group_parts[1]
+        else:
+            return None
+    return function_name.lower()
