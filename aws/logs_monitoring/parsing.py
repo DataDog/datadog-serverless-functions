@@ -186,7 +186,7 @@ def s3_handler(event, context, metadata):
         source = "transitgateway"
     metadata[DD_SOURCE] = source
 
-    metadata[DD_SERVICE] = get_service_from_tags(metadata)
+    metadata[DD_SERVICE] = get_service_from_tags_and_remove_duplicates(metadata)
 
     ##Get the ARN of the service and set it as the hostname
     hostname = parse_service_arn(source, key, bucket, context)
@@ -242,15 +242,21 @@ def s3_handler(event, context, metadata):
             yield structured_line
 
 
-def get_service_from_tags(metadata):
-    # Get service from dd_custom_tags if it exists
+def get_service_from_tags_and_remove_duplicates(metadata):
+    service = ""
     tagsplit = metadata[DD_CUSTOM_TAGS].split(",")
-    for tag in tagsplit:
+    for i, tag in enumerate(tagsplit):
         if tag.startswith("service:"):
-            return tag[8:]
+            if service:
+                # remove duplicate entry from the tags
+                del tagsplit[i]
+            else:
+                service = tag[8:]
+
+    metadata[DD_CUSTOM_TAGS] = ",".join(tagsplit)
 
     # Default service to source value
-    return metadata[DD_SOURCE]
+    return service if service else metadata[DD_SOURCE]
 
 
 def parse_event_source(event, key):
@@ -530,7 +536,8 @@ def awslogs_handler(event, context, metadata):
 
     # Set service from custom tags, which may include the tags set on the log group
     # Returns DD_SOURCE by default
-    metadata[DD_SERVICE] = get_service_from_tags(metadata)
+    metadata[DD_SERVICE] = get_service_from_tags_and_remove_duplicates(metadata)
+
 
     # Set host as log group where cloudwatch is source
     if metadata[DD_SOURCE] == "cloudwatch" or metadata.get(DD_HOST, None) == None:
@@ -640,7 +647,7 @@ def cwevent_handler(event, metadata):
     else:
         metadata[DD_SOURCE] = "cloudwatch"
 
-    metadata[DD_SERVICE] = get_service_from_tags(metadata)
+    metadata[DD_SERVICE] = get_service_from_tags_and_remove_duplicates(metadata)
 
     yield data
 
