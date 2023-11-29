@@ -7,6 +7,7 @@ import gzip
 import base64
 from time import time
 from botocore.exceptions import ClientError
+from approvaltests.approvals import *
 
 sys.modules["trace_forwarder.connection"] = MagicMock()
 sys.modules["datadog_lambda.wrapper"] = MagicMock()
@@ -166,6 +167,8 @@ class TestLambdaFunctionEndToEnd(unittest.TestCase):
         normalized_events = parse(event, context)
         enriched_events = enrich(normalized_events)
         transformed_events = transform(enriched_events)
+
+        verify_as_json(transformed_events)
 
         metrics, logs, trace_payloads = split(transformed_events)
         self.assertEqual(len(trace_payloads), 1)
