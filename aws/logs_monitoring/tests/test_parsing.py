@@ -749,7 +749,9 @@ class TestGetServiceFromTags(unittest.TestCase):
             DD_CUSTOM_TAGS: "env:dev,tag,stack:aws:ecs,service:web,version:v1,service:other",
         }
         self.assertEqual(get_service_from_tags_and_remove_duplicates(metadata), "web")
-        self.assertEqual(metadata[DD_CUSTOM_TAGS], "env:dev,tag,stack:aws:ecs,service:web,version:v1")
+        self.assertEqual(
+            metadata[DD_CUSTOM_TAGS], "env:dev,tag,stack:aws:ecs,service:web,version:v1"
+        )
 
 
 class TestParsingStepFunctionLogs(unittest.TestCase):
