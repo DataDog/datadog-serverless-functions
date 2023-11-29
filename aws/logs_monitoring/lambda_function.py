@@ -258,7 +258,7 @@ def add_metadata_to_lambda_log(event):
     custom_lambda_tags = get_enriched_lambda_log_tags(event)
 
     # If not set during parsing or set with a default value
-    # Set the `service` tag and metadata field. If the Lambda function is
+    # Try to set the `service` tag and metadata field. If the Lambda function is
     # tagged with a `service` tag, use it, otherwise use the function name.
     # Otherwise, remove the `service` tag from the Lambda function if it exists
     if not event[DD_SERVICE] or event[DD_SERVICE] == event[DD_SOURCE]:
@@ -266,8 +266,9 @@ def add_metadata_to_lambda_log(event):
             (tag for tag in custom_lambda_tags if tag.startswith("service:")),
             f"service:{function_name}",
         )
-        tags.append(service_tag)
-        event[DD_SERVICE] = service_tag.split(":")[1]
+        if service_tag:
+            tags.append(service_tag)
+            event[DD_SERVICE] = service_tag.split(":")[1]
     else:
         # remove the service tag from the cusotm lambda tags if it exists
         # as we don't want to add it again
@@ -329,11 +330,17 @@ def extract_ddtags_from_message(event):
                     logger.debug(f"Failed to extract ddtags from: {event}")
                 return
 
-        event[DD_CUSTOM_TAGS] = _merge_custom_and_application_tags(event[DD_CUSTOM_TAGS], extracted_ddtags)
+        event[DD_CUSTOM_TAGS] = _merge_custom_and_application_tags(
+            event[DD_CUSTOM_TAGS], extracted_ddtags
+        )
 
-        # Extract service tag from message.ddtags if exists
+        ## Extract service tag from message.ddtags if exists
         if extracted_ddtags.contains("service:"):
-            event[DD_SERVICE] = next(tag[8:] for tag in extracted_ddtags.split(",") if tag.startswith("service:"))
+            event[DD_SERVICE] = next(
+                tag[8:]
+                for tag in extracted_ddtags.split(",")
+                if tag.startswith("service:")
+            )
 
 
 def _merge_custom_and_application_tags(custom_tags, application_tags):
@@ -362,7 +369,11 @@ def _merge_custom_and_application_tags(custom_tags, application_tags):
 
     for application_tag_key in application_tags_keys:
         custom_tags_set = set(
-            [tag for tag in custom_tags_set if not tag.startswith(f"{application_tag_key}:")]
+            [
+                tag
+                for tag in custom_tags_set
+                if not tag.startswith(f"{application_tag_key}:")
+            ]
         )
 
     return ",".join(list(custom_tags_set.union(application_tags_set)))

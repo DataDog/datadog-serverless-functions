@@ -28,7 +28,7 @@ from parsing import (
     parse_service_arn,
     separate_security_hub_findings,
     parse_aws_waf_logs,
-    get_service_from_tags,
+    get_service_from_tags_and_remove_duplicates,
     get_state_machine_arn,
     get_lower_cased_lambda_function_name,
 )
@@ -734,14 +734,22 @@ class TestGetServiceFromTags(unittest.TestCase):
             DD_SOURCE: "ecs",
             DD_CUSTOM_TAGS: "env:dev,tag,stack:aws:ecs,service:web,version:v1",
         }
-        self.assertEqual(get_service_from_tags(metadata), "web")
+        self.assertEqual(get_service_from_tags_and_remove_duplicates(metadata), "web")
 
     def test_get_service_from_tags_default_to_source(self):
         metadata = {
             DD_SOURCE: "ecs",
             DD_CUSTOM_TAGS: "env:dev,tag,stack:aws:ecs,version:v1",
         }
-        self.assertEqual(get_service_from_tags(metadata), "ecs")
+        self.assertEqual(get_service_from_tags_and_remove_duplicates(metadata), "ecs")
+
+    def test_get_service_from_tags_removing_duplicates(self):
+        metadata = {
+            DD_SOURCE: "ecs",
+            DD_CUSTOM_TAGS: "env:dev,tag,stack:aws:ecs,service:web,version:v1,service:other",
+        }
+        self.assertEqual(get_service_from_tags_and_remove_duplicates(metadata), "web")
+        self.assertEqual(metadata[DD_CUSTOM_TAGS], "env:dev,tag,stack:aws:ecs,service:web,version:v1")
 
 
 class TestParsingStepFunctionLogs(unittest.TestCase):
