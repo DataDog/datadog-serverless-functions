@@ -315,6 +315,7 @@ class TestLambdaFunctionExtractTracePayload(unittest.TestCase):
             extract_trace_payload({"message": message_json, "ddtags": tags_json}), item
         )
 
+
 class TestMergeMessageTags(unittest.TestCase):
     def test_merge_custom_and_application_tags(self):
         message_tags = "key0:value0,key1:value1"
@@ -323,6 +324,7 @@ class TestMergeMessageTags(unittest.TestCase):
             merge_custom_and_application_tags(custom_tags, message_tags),
             "key0:value0,key1:value1,key2:value2",
         )
+
 
 if __name__ == "__main__":
     unittest.main()
