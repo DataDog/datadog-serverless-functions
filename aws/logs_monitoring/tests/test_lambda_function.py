@@ -35,6 +35,7 @@ from lambda_function import (
     enrich,
     transform,
     split,
+    merge_custom_and_application_tags,
 )
 from parsing import parse, parse_event_type
 
@@ -211,13 +212,30 @@ class TestLambdaFunctionEndToEnd(unittest.TestCase):
         for log in logs:
             self.assertEqual(log["service"], "log_group_service")
 
+    @patch.dict(os.environ, {"DD_TAGS": "service:dd_tag_service"}, clear=True)
+    @patch("cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.get")
+    def test_service_override_from_dd_tags(self, cw_logs_tags_get):
+        reload(sys.modules["settings"])
+        reload(sys.modules["parsing"])
+        cw_logs_tags_get.return_value = ["service:log_group_service"]
+        context = Context()
+        input_data = self._get_input_data()
+        event = {"awslogs": {"data": create_cloudwatch_log_event_from_data(input_data)}}
+
+        normalized_events = parse(event, context)
+        enriched_events = enrich(normalized_events)
+        transformed_events = transform(enriched_events)
+
+        _, logs, _ = split(transformed_events)
+        self.assertEqual(len(logs), 16)
+        for log in logs:
+            self.assertEqual(log["service"], "dd_tag_service")
+
     @patch("lambda_cache.LambdaTagsCache.get")
     @patch("cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.get")
     def test_overrding_service_tag_from_lambda_cache(
         self, lambda_tags_get, cw_logs_tags_get
     ):
-        reload(sys.modules["settings"])
-        reload(sys.modules["parsing"])
         lambda_tags_get.return_value = ["service:lambda_service"]
         cw_logs_tags_get.return_value = ["service:log_group_service"]
 
@@ -255,25 +273,6 @@ class TestLambdaFunctionEndToEnd(unittest.TestCase):
         self.assertEqual(len(logs), 16)
         for log in logs:
             self.assertEqual(log["service"], "lambda_service")
-
-    @patch.dict(os.environ, {"DD_TAGS": "service:dd_tag_service"}, clear=True)
-    @patch("cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.get")
-    def test_service_override_from_dd_tags(self, cw_logs_tags_get):
-        reload(sys.modules["settings"])
-        reload(sys.modules["parsing"])
-        cw_logs_tags_get.return_value = ["service:log_group_service"]
-        context = Context()
-        input_data = self._get_input_data()
-        event = {"awslogs": {"data": create_cloudwatch_log_event_from_data(input_data)}}
-
-        normalized_events = parse(event, context)
-        enriched_events = enrich(normalized_events)
-        transformed_events = transform(enriched_events)
-
-        _, logs, _ = split(transformed_events)
-        self.assertEqual(len(logs), 16)
-        for log in logs:
-            self.assertEqual(log["service"], "dd_tag_service")
 
     def _get_input_data(self):
         my_path = os.path.abspath(os.path.dirname(__file__))
@@ -316,6 +315,14 @@ class TestLambdaFunctionExtractTracePayload(unittest.TestCase):
             extract_trace_payload({"message": message_json, "ddtags": tags_json}), item
         )
 
+class TestMergeMessageTags(unittest.TestCase):
+    def test_merge_custom_and_application_tags(self):
+        message_tags = "key0:value0,key1:value1"
+        custom_tags = "key2:value2,key0:value3"
+        self.assertEqual(
+            merge_custom_and_application_tags(custom_tags, message_tags),
+            "key0:value0,key1:value1,key2:value2",
+        )
 
 if __name__ == "__main__":
     unittest.main()

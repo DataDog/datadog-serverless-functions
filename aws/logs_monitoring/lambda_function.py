@@ -330,7 +330,7 @@ def extract_ddtags_from_message(event):
                     logger.debug(f"Failed to extract ddtags from: {event}")
                 return
 
-        event[DD_CUSTOM_TAGS] = _merge_custom_and_application_tags(
+        event[DD_CUSTOM_TAGS] = merge_custom_and_application_tags(
             event[DD_CUSTOM_TAGS], extracted_ddtags
         )
 
@@ -343,7 +343,7 @@ def extract_ddtags_from_message(event):
             )
 
 
-def _merge_custom_and_application_tags(custom_tags, application_tags):
+def merge_custom_and_application_tags(custom_tags, application_tags):
     """Merge the custom tags added by the forwarder and the application.
 
     The custom tags added by the forwarder are added to the top-level `ddtags`
@@ -376,7 +376,7 @@ def _merge_custom_and_application_tags(custom_tags, application_tags):
             ]
         )
 
-    return ",".join(list(custom_tags_set.union(application_tags_set)))
+    return ",".join(sorted(list(custom_tags_set.union(application_tags_set))))
 
 
 def extract_host_from_cloudtrails(event):
