@@ -14,7 +14,7 @@
           },
           "ddsource": "cloudwatch",
           "ddsourcecategory": "aws",
-          "ddtags": "forwarder_version:<redacted from snapshot>,service:myservice,forwarder_memorysize:1536,forwardername:test",
+          "ddtags": "forwardername:test,service:myservice,forwarder_version:<redacted from snapshot>,forwarder_memorysize:1536",
           "host": "testLogGroup",
           "id": "eventId1",
           "message": "{\"message\": \"hello world\"}",
