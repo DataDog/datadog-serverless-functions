@@ -257,10 +257,9 @@ def add_metadata_to_lambda_log(event):
     # Get custom tags of the Lambda function
     custom_lambda_tags = get_enriched_lambda_log_tags(event)
 
-    # If not set during parsing or set with a default value
-    # Try to set the `service` tag and metadata field. If the Lambda function is
-    # tagged with a `service` tag, use it, otherwise use the function name.
-    # Otherwise, remove the `service` tag from the Lambda function if it exists
+    # If not set during parsing or has a default value
+    # then set the service tag from lambda tags cache or using the function name
+    # otherwise, remove the service tag from the custom lambda tags if exists to avoid duplication
     if not event[DD_SERVICE] or event[DD_SERVICE] == event[DD_SOURCE]:
         service_tag = next(
             (tag for tag in custom_lambda_tags if tag.startswith("service:")),
@@ -270,7 +269,7 @@ def add_metadata_to_lambda_log(event):
             tags.append(service_tag)
             event[DD_SERVICE] = service_tag.split(":")[1]
     else:
-        # remove the service tag from the cusotm lambda tags if it exists
+        # remove the service tag from the custom lambda tags if it exists
         # as we don't want to add it again
         custom_lambda_tags = [
             tag for tag in custom_lambda_tags if not tag.startswith("service:")
@@ -330,11 +329,9 @@ def extract_ddtags_from_message(event):
                     logger.debug(f"Failed to extract ddtags from: {event}")
                 return
 
-        event[DD_CUSTOM_TAGS] = merge_custom_and_application_tags(
-            event[DD_CUSTOM_TAGS], extracted_ddtags
-        )
+        event[DD_CUSTOM_TAGS] = merge_tags(event[DD_CUSTOM_TAGS], extracted_ddtags)
 
-        ## Extract service tag from message.ddtags if exists
+        # Extract service tag from message.ddtags if exists
         if "service:" in extracted_ddtags:
             event[DD_SERVICE] = next(
                 tag[8:]
@@ -343,7 +340,7 @@ def extract_ddtags_from_message(event):
             )
 
 
-def merge_custom_and_application_tags(custom_tags, application_tags):
+def merge_tags(custom_tags, application_tags):
     """Merge the custom tags added by the forwarder and the application.
 
     The custom tags added by the forwarder are added to the top-level `ddtags`

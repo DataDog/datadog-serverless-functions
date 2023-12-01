@@ -73,17 +73,16 @@ class LambdaTagsCache(BaseTagsCache):
         Returns:
             lambda_tags (str[]): the list of "key:value" Datadog tag strings
         """
-        if self._is_expired():
-            send_forwarder_internal_metrics("local_cache_expired")
-            logger.debug("Local cache expired, fetching cache from S3")
-            self._refresh()
-
         if not self.should_fetch_tags():
             logger.debug(
                 "Not fetching lambda function tags because the env variable DD_FETCH_LAMBDA_TAGS is "
                 "not set to true"
             )
             return []
-        function_tags = self.tags_by_id.get(key, [])
 
-        return function_tags
+        if self._is_expired():
+            send_forwarder_internal_metrics("local_cache_expired")
+            logger.debug("Local cache expired, fetching cache from S3")
+            self._refresh()
+
+        return self.tags_by_id.get(key, [])
