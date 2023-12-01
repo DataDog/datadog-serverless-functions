@@ -7,7 +7,7 @@ import gzip
 import base64
 from time import time
 from botocore.exceptions import ClientError
-from approvaltests.approvals import *
+from approvaltests.approvals import verify_as_json
 
 sys.modules["trace_forwarder.connection"] = MagicMock()
 sys.modules["datadog_lambda.wrapper"] = MagicMock()

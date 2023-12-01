@@ -1,0 +1,50 @@
+[
+    {
+        "ddsource": "securityhub",
+        "detail": {
+            "finding": {
+                "myattribute": "somevalue",
+                "resources": {
+                    "AwsEc2SecurityGroup": {
+                        "Region": "us-east-1"
+                    }
+                }
+            }
+        }
+    },
+    {
+        "ddsource": "securityhub",
+        "detail": {
+            "finding": {
+                "myattribute": "somevalue",
+                "resources": {
+                    "AwsEc2SecurityGroup": {
+                        "Region": "us-east-1"
+                    },
+                    "AwsOtherSecurityGroup": {
+                        "Region": "us-east-1"
+                    }
+                }
+            }
+        }
+    },
+    {
+        "ddsource": "securityhub",
+        "detail": {
+            "finding": {
+                "myattribute": "somevalue",
+                "resources": {
+                    "AwsAnotherSecurityGroup": {
+                        "Region": "us-east-1"
+                    },
+                    "AwsEc2SecurityGroup": {
+                        "Region": "us-east-1"
+                    },
+                    "AwsOtherSecurityGroup": {
+                        "Region": "us-east-1"
+                    }
+                }
+            }
+        }
+    }
+]

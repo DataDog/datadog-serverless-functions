@@ -5,6 +5,8 @@ from unittest.mock import MagicMock, patch
 import os
 import sys
 import unittest
+from approvaltests.approvals import verify_as_json
+from approvaltests.namer import NamerFactory
 
 sys.modules["trace_forwarder.connection"] = MagicMock()
 sys.modules["datadog_lambda.wrapper"] = MagicMock()
@@ -417,17 +419,7 @@ class TestParseAwsWafLogs(unittest.TestCase):
                 }
             },
         }
-        self.assertEqual(
-            parse_aws_waf_logs(event),
-            {
-                "ddsource": "waf",
-                "message": {
-                    "httpRequest": {
-                        "headers": {"header1": "value1", "header2": "value2"}
-                    }
-                },
-            },
-        )
+        verify_as_json(parse_aws_waf_logs(event))
 
     def test_waf_non_terminating_matching_rules(self):
         event = {
@@ -439,18 +431,7 @@ class TestParseAwsWafLogs(unittest.TestCase):
                 ]
             },
         }
-        self.assertEqual(
-            parse_aws_waf_logs(event),
-            {
-                "ddsource": "waf",
-                "message": {
-                    "nonTerminatingMatchingRules": {
-                        "nonterminating2": {"action": "COUNT"},
-                        "nonterminating1": {"action": "COUNT"},
-                    }
-                },
-            },
-        )
+        verify_as_json(parse_aws_waf_logs(event))
 
     def test_waf_rate_based_rules(self):
         event = {
@@ -474,28 +455,7 @@ class TestParseAwsWafLogs(unittest.TestCase):
                 ]
             },
         }
-        self.assertEqual(
-            parse_aws_waf_logs(event),
-            {
-                "ddsource": "waf",
-                "message": {
-                    "rateBasedRuleList": {
-                        "tf-rate-limit-5-min": {
-                            "rateBasedRuleId": "arn:aws:wafv2:ap-southeast-2:068133125972_MANAGED:regional/ipset/0f94bd8b-0fa5-4865-81ce-d11a60051fb4_fef50279-8b9a-4062-b733-88ecd1cfd889_IPV4/fef50279-8b9a-4062-b733-88ecd1cfd889",
-                            "limitValue": "195.154.122.189",
-                            "maxRateAllowed": 300,
-                            "limitKey": "IP",
-                        },
-                        "no-rate-limit": {
-                            "rateBasedRuleId": "arn:aws:wafv2:ap-southeast-2:068133125972_MANAGED:regional/ipset/0f94bd8b-0fa5-4865-81ce-d11a60051fb4_fef50279-8b9a-4062-b733-88ecd1cfd889_IPV4/fef50279-8b9a-4062-b733-88ecd1cfd889",
-                            "limitValue": "195.154.122.189",
-                            "maxRateAllowed": 300,
-                            "limitKey": "IP",
-                        },
-                    }
-                },
-            },
-        )
+        verify_as_json(parse_aws_waf_logs(event))
 
     def test_waf_rule_group_with_excluded_and_nonterminating_rules(self):
         event = {
@@ -532,33 +492,7 @@ class TestParseAwsWafLogs(unittest.TestCase):
                 ]
             },
         }
-        self.assertEqual(
-            parse_aws_waf_logs(event),
-            {
-                "ddsource": "waf",
-                "message": {
-                    "ruleGroupList": {
-                        "AWS#AWSManagedRulesSQLiRuleSet": {
-                            "nonTerminatingMatchingRules": {
-                                "second_nonterminating": {"exclusionType": "REGULAR"},
-                                "first_nonterminating": {"exclusionType": "REGULAR"},
-                            },
-                            "excludedRules": {
-                                "GenericRFI_BODY": {
-                                    "exclusionType": "EXCLUDED_AS_COUNT"
-                                },
-                                "second_exclude": {
-                                    "exclusionType": "EXCLUDED_AS_COUNT"
-                                },
-                            },
-                            "terminatingRule": {
-                                "SQLi_QUERYARGUMENTS": {"action": "BLOCK"}
-                            },
-                        }
-                    }
-                },
-            },
-        )
+        verify_as_json(parse_aws_waf_logs(event))
 
     def test_waf_rule_group_two_rules_same_group_id(self):
         event = {
@@ -579,22 +513,7 @@ class TestParseAwsWafLogs(unittest.TestCase):
                 ]
             },
         }
-        self.assertEqual(
-            parse_aws_waf_logs(event),
-            {
-                "ddsource": "waf",
-                "message": {
-                    "ruleGroupList": {
-                        "AWS#AWSManagedRulesSQLiRuleSet": {
-                            "terminatingRule": {
-                                "SQLi_QUERYARGUMENTS": {"action": "BLOCK"},
-                                "secondRULE": {"action": "BLOCK"},
-                            }
-                        }
-                    }
-                },
-            },
-        )
+        verify_as_json(parse_aws_waf_logs(event))
 
     def test_waf_rule_group_three_rules_two_group_ids(self):
         event = {
@@ -619,26 +538,7 @@ class TestParseAwsWafLogs(unittest.TestCase):
                 ]
             },
         }
-        self.assertEqual(
-            parse_aws_waf_logs(event),
-            {
-                "ddsource": "waf",
-                "message": {
-                    "ruleGroupList": {
-                        "AWS#AWSManagedRulesSQLiRuleSet": {
-                            "terminatingRule": {
-                                "SQLi_QUERYARGUMENTS": {"action": "BLOCK"},
-                                "secondRULE": {"action": "BLOCK"},
-                            }
-                        },
-                        "A_DIFFERENT_ID": {
-                            "terminatingRule": {"thirdRULE": {"action": "BLOCK"}}
-                        },
-                    }
-                },
-            },
-        )
-
+        verify_as_json(parse_aws_waf_logs(event))
 
 class TestParseSecurityHubEvents(unittest.TestCase):
     def test_security_hub_no_findings(self):
@@ -653,17 +553,7 @@ class TestParseSecurityHubEvents(unittest.TestCase):
             "ddsource": "securityhub",
             "detail": {"findings": [{"myattribute": "somevalue"}]},
         }
-        self.assertEqual(
-            separate_security_hub_findings(event),
-            [
-                {
-                    "ddsource": "securityhub",
-                    "detail": {
-                        "finding": {"myattribute": "somevalue", "resources": {}}
-                    },
-                }
-            ],
-        )
+        verify_as_json(separate_security_hub_findings(event))
 
     def test_security_hub_two_findings_one_resource_each(self):
         event = {
@@ -685,33 +575,7 @@ class TestParseSecurityHubEvents(unittest.TestCase):
                 ]
             },
         }
-        self.assertEqual(
-            separate_security_hub_findings(event),
-            [
-                {
-                    "ddsource": "securityhub",
-                    "detail": {
-                        "finding": {
-                            "myattribute": "somevalue",
-                            "resources": {
-                                "AwsEc2SecurityGroup": {"Region": "us-east-1"}
-                            },
-                        }
-                    },
-                },
-                {
-                    "ddsource": "securityhub",
-                    "detail": {
-                        "finding": {
-                            "myattribute": "somevalue",
-                            "resources": {
-                                "AwsEc2SecurityGroup": {"Region": "us-east-1"}
-                            },
-                        }
-                    },
-                },
-            ],
-        )
+        verify_as_json(separate_security_hub_findings(event))
 
     def test_security_hub_multiple_findings_multiple_resources(self):
         event = {
@@ -742,47 +606,7 @@ class TestParseSecurityHubEvents(unittest.TestCase):
                 ]
             },
         }
-        self.assertEqual(
-            separate_security_hub_findings(event),
-            [
-                {
-                    "ddsource": "securityhub",
-                    "detail": {
-                        "finding": {
-                            "myattribute": "somevalue",
-                            "resources": {
-                                "AwsEc2SecurityGroup": {"Region": "us-east-1"}
-                            },
-                        }
-                    },
-                },
-                {
-                    "ddsource": "securityhub",
-                    "detail": {
-                        "finding": {
-                            "myattribute": "somevalue",
-                            "resources": {
-                                "AwsEc2SecurityGroup": {"Region": "us-east-1"},
-                                "AwsOtherSecurityGroup": {"Region": "us-east-1"},
-                            },
-                        }
-                    },
-                },
-                {
-                    "ddsource": "securityhub",
-                    "detail": {
-                        "finding": {
-                            "myattribute": "somevalue",
-                            "resources": {
-                                "AwsEc2SecurityGroup": {"Region": "us-east-1"},
-                                "AwsOtherSecurityGroup": {"Region": "us-east-1"},
-                                "AwsAnotherSecurityGroup": {"Region": "us-east-1"},
-                            },
-                        }
-                    },
-                },
-            ],
-        )
+        verify_as_json(separate_security_hub_findings(event))
 
 
 class TestAWSLogsHandler(unittest.TestCase):
@@ -838,33 +662,9 @@ class TestAWSLogsHandler(unittest.TestCase):
         context = None
         metadata = {"ddsource": "postgresql", "ddtags": "env:dev"}
 
-        self.assertEqual(
-            [
-                {
-                    "aws": {
-                        "awslogs": {
-                            "logGroup": "/aws/rds/instance/datadog/postgresql",
-                            "logStream": "datadog.0",
-                            "owner": "123456789012",
-                        }
-                    },
-                    "id": "31953106606966983378809025079804211143289615424298221568",
-                    "message": "2021-01-02 03:04:05 UTC::@:[5306]:LOG:  database system is ready "
-                    "to accept connections",
-                    "timestamp": 1609556645000,
-                }
-            ],
-            list(awslogs_handler(event, context, metadata)),
-        )
-        self.assertEqual(
-            {
-                "ddsource": "postgresql",
-                "ddtags": "env:dev,test_tag_key:test_tag_value,logname:postgresql",
-                "host": "datadog",
-                "service": "postgresql",
-            },
-            metadata,
-        )
+        verify_as_json(list(awslogs_handler(event, context, metadata)))
+        verify_as_json(metadata, options=NamerFactory.with_parameters("metadata"))
+
 
     @patch("parsing.CloudwatchLogGroupTagsCache.get")
     @patch("parsing.StepFunctionsTagsCache.get")
@@ -924,32 +724,8 @@ class TestAWSLogsHandler(unittest.TestCase):
         context = None
         metadata = {"ddsource": "postgresql", "ddtags": "env:dev"}
 
-        self.assertEqual(
-            [
-                {
-                    "aws": {
-                        "awslogs": {
-                            "logGroup": "/aws/vendedlogs/states/logs-to-traces-sequential-Logs",
-                            "logStream": "states/logs-to-traces-sequential/2022-11-10-15-50/7851b2d9",
-                            "owner": "425362996713",
-                        }
-                    },
-                    "id": "37199773595581154154810589279545129148442535997644275712",
-                    "message": '{"id":"1","type":"ExecutionStarted","details":{"input":"{"Comment": "Insert your JSON here"}","inputDetails":{"truncated":false},"roleArn":"arn:aws:iam::425362996713:role/service-role/StepFunctions-logs-to-traces-sequential-role-ccd69c03"},",previous_event_id":"0","event_timestamp":"1668095539607","execution_arn":"arn:aws:states:sa-east-1:425362996713:express:logs-to-traces-sequential:d0dbefd8-a0f6-b402-da4c-f4863def7456:7fa0cfbe-be28-4a20-9875-73c37f5dc39e"}',
-                    "timestamp": 1668095539607,
-                }
-            ],
-            list(awslogs_handler(event, context, metadata)),
-        )
-        self.assertEqual(
-            {
-                "ddsource": "stepfunction",
-                "ddtags": "env:dev,test_tag_key:test_tag_value",
-                "host": "/aws/vendedlogs/states/logs-to-traces-sequential-Logs",
-                "service": "stepfunction",
-            },
-            metadata,
-        )
+        verify_as_json(list(awslogs_handler(event, context, metadata)))
+        verify_as_json(metadata, options=NamerFactory.with_parameters("metadata"))
 
 
 class TestGetServiceFromTags(unittest.TestCase):

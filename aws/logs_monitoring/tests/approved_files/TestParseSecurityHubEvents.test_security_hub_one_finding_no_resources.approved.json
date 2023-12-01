@@ -1,0 +1,11 @@
+[
+    {
+        "ddsource": "securityhub",
+        "detail": {
+            "finding": {
+                "myattribute": "somevalue",
+                "resources": {}
+            }
+        }
+    }
+]
