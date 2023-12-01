@@ -35,7 +35,7 @@ from lambda_function import (
     enrich,
     transform,
     split,
-    merge_custom_and_application_tags,
+    merge_tags,
 )
 from parsing import parse, parse_event_type
 
@@ -321,7 +321,7 @@ class TestMergeMessageTags(unittest.TestCase):
         message_tags = "key0:value0,key1:value1"
         custom_tags = "key2:value2,key0:value3"
         self.assertEqual(
-            merge_custom_and_application_tags(custom_tags, message_tags),
+            merge_tags(custom_tags, message_tags),
             "key0:value0,key1:value1,key2:value2",
         )
 
