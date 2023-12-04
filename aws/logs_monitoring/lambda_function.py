@@ -269,8 +269,6 @@ def add_metadata_to_lambda_log(event):
             tags.append(service_tag)
             event[DD_SERVICE] = service_tag.split(":")[1]
     else:
-        # remove the service tag from the custom lambda tags if it exists
-        # as we don't want to add it again
         custom_lambda_tags = [
             tag for tag in custom_lambda_tags if not tag.startswith("service:")
         ]
@@ -329,51 +327,18 @@ def extract_ddtags_from_message(event):
                     logger.debug(f"Failed to extract ddtags from: {event}")
                 return
 
-        event[DD_CUSTOM_TAGS] = merge_tags(event[DD_CUSTOM_TAGS], extracted_ddtags)
-
         # Extract service tag from message.ddtags if exists
-        if "service:" in extracted_ddtags:
-            event[DD_SERVICE] = next(
-                tag[8:]
-                for tag in extracted_ddtags.split(",")
-                if tag.startswith("service:")
+        if "service" in extracted_ddtags:
+            event[DD_SERVICE] = next(tag[8:] for tag in extracted_ddtags.split(",") if tag.startswith("service:"))
+            event[DD_CUSTOM_TAGS] = ",".join(
+                [
+                    tag
+                    for tag in event[DD_CUSTOM_TAGS].split(",")
+                    if not tag.startswith("service")
+                ]
             )
 
-
-def merge_tags(custom_tags, application_tags):
-    """Merge the custom tags added by the forwarder and the application.
-
-    The custom tags added by the forwarder are added to the top-level `ddtags`
-    field, while the custom tags added by the application are added to the
-    `message.ddtags` field.
-
-    Args:
-        custom_tags (str): the custom tags added by the forwarder
-        application_tags (str): the custom tags added by the application
-
-    Returns:
-        str: the merged custom tags
-    """
-    if not custom_tags:
-        return application_tags
-
-    if not application_tags:
-        return custom_tags
-
-    custom_tags_set = set(custom_tags.split(","))
-    application_tags_set = set(application_tags.split(","))
-    application_tags_keys = [tag.split(":")[0] for tag in application_tags_set]
-
-    for application_tag_key in application_tags_keys:
-        custom_tags_set = set(
-            [
-                tag
-                for tag in custom_tags_set
-                if not tag.startswith(f"{application_tag_key}:")
-            ]
-        )
-
-    return ",".join(sorted(list(custom_tags_set.union(application_tags_set))))
+        event[DD_CUSTOM_TAGS] = f"{event[DD_CUSTOM_TAGS]},{extracted_ddtags}"
 
 
 def extract_host_from_cloudtrails(event):

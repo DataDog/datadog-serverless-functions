@@ -35,7 +35,7 @@ from lambda_function import (
     enrich,
     transform,
     split,
-    merge_tags,
+    extract_ddtags_from_message,
 )
 from parsing import parse, parse_event_type
 
@@ -317,12 +317,98 @@ class TestLambdaFunctionExtractTracePayload(unittest.TestCase):
 
 
 class TestMergeMessageTags(unittest.TestCase):
-    def test_merge_custom_and_application_tags(self):
-        message_tags = "key0:value0,key1:value1"
-        custom_tags = "key2:value2,key0:value3"
+    message_tags = (
+        '{"ddtags":"service:my_application_service,custom_tag_1:value1"}'
+    )
+    custom_tags = "custom_tag_2:value2,service:my_custom_service"
+
+    def test_extract_ddtags_from_message_str(self):
+        event = {
+            "message": self.message_tags,
+            "ddtags": self.custom_tags,
+            "service": "my_service",
+        }
+
+        extract_ddtags_from_message(event)
+
         self.assertEqual(
-            merge_tags(custom_tags, message_tags),
-            "key0:value0,key1:value1,key2:value2",
+            event["ddtags"],
+            "custom_tag_2:value2,service:my_application_service,custom_tag_1:value1",
+        )
+        self.assertEqual(
+            event["service"],
+            "my_application_service",
+        )
+
+    def test_extract_ddtags_from_message_dict(self):
+        loaded_message_tags = json.loads(self.message_tags)
+        event = {
+            "message": loaded_message_tags,
+            "ddtags": self.custom_tags,
+            "service": "my_service",
+        }
+
+        extract_ddtags_from_message(event)
+
+        self.assertEqual(
+            event["ddtags"],
+            "custom_tag_2:value2,service:my_application_service,custom_tag_1:value1",
+        )
+        self.assertEqual(
+            event["service"],
+            "my_application_service",
+        )
+
+    def test_extract_ddtags_from_message_service_tag_setting(self):
+        loaded_message_tags = json.loads(self.message_tags)
+        loaded_message_tags["ddtags"] = ",".join([tag for tag in loaded_message_tags["ddtags"].split(",") if not tag.startswith("service:")])
+        event = {
+            "message": loaded_message_tags,
+            "ddtags": self.custom_tags,
+            "service": "my_custom_service",
+        }
+
+        extract_ddtags_from_message(event)
+
+        self.assertEqual(
+            event["ddtags"],
+            "custom_tag_2:value2,service:my_custom_service,custom_tag_1:value1",
+        )
+        self.assertEqual(
+            event["service"],
+            "my_custom_service",
+        )
+
+    def test_extract_ddtags_from_message_multiple_service_tag_values(self):
+        custom_tags = self.custom_tags + ",service:my_custom_service_2"
+        event = {"message": self.message_tags, "ddtags": custom_tags}
+
+        extract_ddtags_from_message(event)
+
+        self.assertEqual(
+            event["ddtags"],
+            "custom_tag_2:value2,service:my_application_service,custom_tag_1:value1",
+        )
+        self.assertEqual(
+            event["service"],
+            "my_application_service",
+        )
+
+    def test_extract_ddtags_from_message_multiple_values_tag(self):
+        loaded_message_tags = json.loads(self.message_tags)
+        loaded_message_tags["ddtags"] += ",custom_tag_3:value4"
+        custom_tags = self.custom_tags + ",custom_tag_3:value3"
+        event = {"message": loaded_message_tags, "ddtags": custom_tags}
+
+        extract_ddtags_from_message(event)
+
+        self.assertEqual(
+            event["ddtags"],
+            "custom_tag_2:value2,custom_tag_3:value3,service:my_application_service,custom_tag_1:value1,custom_tag_3:value4",
+        )
+        self.assertEqual(
+            event["service"],
+            "my_application_service",
         )
 
 
