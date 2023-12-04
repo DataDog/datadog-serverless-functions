@@ -23,6 +23,6 @@ jobs:
           DD_API_KEY: "11111111111111111111111111111111"
           DD_ADDITIONAL_TARGET_LAMBDAS: "ironmaiden,megadeth"
         run: |
-          pip install boto3 mock
+          pip install boto3 mock approvaltests
           python -m unittest discover ./aws/logs_monitoring/
           python -m unittest discover ./aws/rds_enhanced_monitoring/

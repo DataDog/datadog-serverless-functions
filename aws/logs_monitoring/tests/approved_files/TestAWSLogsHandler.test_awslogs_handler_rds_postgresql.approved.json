@@ -1,0 +1,14 @@
+[
+    {
+        "aws": {
+            "awslogs": {
+                "logGroup": "/aws/rds/instance/datadog/postgresql",
+                "logStream": "datadog.0",
+                "owner": "123456789012"
+            }
+        },
+        "id": "31953106606966983378809025079804211143289615424298221568",
+        "message": "2021-01-02 03:04:05 UTC::@:[5306]:LOG:  database system is ready to accept connections",
+        "timestamp": 1609556645000
+    }
+]

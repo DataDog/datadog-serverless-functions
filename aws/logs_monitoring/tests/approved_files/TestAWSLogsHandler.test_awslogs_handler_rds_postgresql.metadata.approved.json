@@ -1,0 +1,6 @@
+{
+    "ddsource": "postgresql",
+    "ddtags": "env:dev,test_tag_key:test_tag_value,logname:postgresql",
+    "host": "datadog",
+    "service": "postgresql"
+}
