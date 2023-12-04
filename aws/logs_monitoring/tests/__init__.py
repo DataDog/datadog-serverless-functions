@@ -1,5 +1,5 @@
-from approvaltests.approvals import *
-from approvaltests.reporters import *
+from approvaltests.approvals import set_default_reporter
+from approvaltests.reporters import GenericDiffReporter, GenericDiffReporterConfig
 
 
 set_default_reporter(
