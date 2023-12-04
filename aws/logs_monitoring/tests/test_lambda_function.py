@@ -317,9 +317,7 @@ class TestLambdaFunctionExtractTracePayload(unittest.TestCase):
 
 
 class TestMergeMessageTags(unittest.TestCase):
-    message_tags = (
-        '{"ddtags":"service:my_application_service,custom_tag_1:value1"}'
-    )
+    message_tags = '{"ddtags":"service:my_application_service,custom_tag_1:value1"}'
     custom_tags = "custom_tag_2:value2,service:my_custom_service"
 
     def test_extract_ddtags_from_message_str(self):
@@ -361,7 +359,13 @@ class TestMergeMessageTags(unittest.TestCase):
 
     def test_extract_ddtags_from_message_service_tag_setting(self):
         loaded_message_tags = json.loads(self.message_tags)
-        loaded_message_tags["ddtags"] = ",".join([tag for tag in loaded_message_tags["ddtags"].split(",") if not tag.startswith("service:")])
+        loaded_message_tags["ddtags"] = ",".join(
+            [
+                tag
+                for tag in loaded_message_tags["ddtags"].split(",")
+                if not tag.startswith("service:")
+            ]
+        )
         event = {
             "message": loaded_message_tags,
             "ddtags": self.custom_tags,
