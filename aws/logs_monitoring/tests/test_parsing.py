@@ -540,6 +540,7 @@ class TestParseAwsWafLogs(unittest.TestCase):
         }
         verify_as_json(parse_aws_waf_logs(event))
 
+
 class TestParseSecurityHubEvents(unittest.TestCase):
     def test_security_hub_no_findings(self):
         event = {"ddsource": "securityhub"}
@@ -664,7 +665,6 @@ class TestAWSLogsHandler(unittest.TestCase):
 
         verify_as_json(list(awslogs_handler(event, context, metadata)))
         verify_as_json(metadata, options=NamerFactory.with_parameters("metadata"))
-
 
     @patch("parsing.CloudwatchLogGroupTagsCache.get")
     @patch("parsing.StepFunctionsTagsCache.get")
