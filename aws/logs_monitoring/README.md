@@ -93,14 +93,14 @@ resource "aws_cloudformation_stack" "datadog_forwarder" {
   capabilities = ["CAPABILITY_IAM", "CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND"]
   parameters   = {
     DdApiKeySecretArn  = "REPLACE ME WITH THE SECRETS ARN",
-    DdSite             = "{{< region-param key="dd_site" code="true" >}}",
+    DdSite             = "<SITE>",
     FunctionName       = "datadog-forwarder"
   }
   template_url = "https://datadog-cloudformation-template.s3.amazonaws.com/aws/forwarder/latest.yaml"
 }
 ```
 
-**Note**: Ensure that the `DdSite` parameter matches your [Datadog site][104]. Your Datadog site is {{< region-param key="dd_site" code="true" >}}.
+**Note**: Ensure that the `DdSite` parameter matches your [Datadog site][104]. Select your site on the right side of this page. Replace `<SITE>` in the above sample configuration with {{< region-param key="dd_site" code="true" >}}.
 
 [101]: https://www.terraform.io/docs/providers/aws/r/cloudformation_stack
 [102]: https://app.datadoghq.com/organization-settings/api-keys
