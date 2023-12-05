@@ -8,6 +8,7 @@ import base64
 from time import time
 from botocore.exceptions import ClientError
 from approvaltests.approvals import verify_as_json
+from importlib import reload
 
 sys.modules["trace_forwarder.connection"] = MagicMock()
 sys.modules["datadog_lambda.wrapper"] = MagicMock()
@@ -34,6 +35,7 @@ from lambda_function import (
     enrich,
     transform,
     split,
+    extract_ddtags_from_message,
 )
 from parsing import parse, parse_event_type
 
@@ -130,12 +132,8 @@ def create_cloudwatch_log_event_from_data(data):
 
 
 class TestLambdaFunctionEndToEnd(unittest.TestCase):
-    @patch("cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.get")
-    @patch("base_tags_cache.send_forwarder_internal_metrics")
     @patch("enhanced_lambda_metrics.LambdaTagsCache.get_cache_from_s3")
-    def test_datadog_forwarder(
-        self, mock_get_s3_cache, mock_forward_metrics, cw_logs_tags_get
-    ):
+    def test_datadog_forwarder(self, mock_get_s3_cache):
         mock_get_s3_cache.return_value = (
             {
                 "arn:aws:lambda:sa-east-1:601427279990:function:inferred-spans-python-dev-initsender": [
@@ -149,15 +147,7 @@ class TestLambdaFunctionEndToEnd(unittest.TestCase):
             time(),
         )
         context = Context()
-        my_path = os.path.abspath(os.path.dirname(__file__))
-        path = os.path.join(my_path, "events/cloudwatch_logs.json")
-
-        with open(
-            path,
-            "r",
-        ) as input_file:
-            input_data = input_file.read()
-
+        input_data = self._get_input_data()
         event = {"awslogs": {"data": create_cloudwatch_log_event_from_data(input_data)}}
         os.environ["DD_FETCH_LAMBDA_TAGS"] = "True"
 
@@ -170,7 +160,7 @@ class TestLambdaFunctionEndToEnd(unittest.TestCase):
 
         verify_as_json(transformed_events)
 
-        metrics, logs, trace_payloads = split(transformed_events)
+        _, _, trace_payloads = split(transformed_events)
         self.assertEqual(len(trace_payloads), 1)
 
         trace_payload = json.loads(trace_payloads[0]["message"])
@@ -204,6 +194,98 @@ class TestLambdaFunctionEndToEnd(unittest.TestCase):
 
         del os.environ["DD_FETCH_LAMBDA_TAGS"]
 
+    @patch("cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.get")
+    def test_setting_service_tag_from_log_group_cache(self, cw_logs_tags_get):
+        reload(sys.modules["settings"])
+        reload(sys.modules["parsing"])
+        cw_logs_tags_get.return_value = ["service:log_group_service"]
+        context = Context()
+        input_data = self._get_input_data()
+        event = {"awslogs": {"data": create_cloudwatch_log_event_from_data(input_data)}}
+
+        normalized_events = parse(event, context)
+        enriched_events = enrich(normalized_events)
+        transformed_events = transform(enriched_events)
+
+        _, logs, _ = split(transformed_events)
+        self.assertEqual(len(logs), 16)
+        for log in logs:
+            self.assertEqual(log["service"], "log_group_service")
+
+    @patch.dict(os.environ, {"DD_TAGS": "service:dd_tag_service"}, clear=True)
+    @patch("cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.get")
+    def test_service_override_from_dd_tags(self, cw_logs_tags_get):
+        reload(sys.modules["settings"])
+        reload(sys.modules["parsing"])
+        cw_logs_tags_get.return_value = ["service:log_group_service"]
+        context = Context()
+        input_data = self._get_input_data()
+        event = {"awslogs": {"data": create_cloudwatch_log_event_from_data(input_data)}}
+
+        normalized_events = parse(event, context)
+        enriched_events = enrich(normalized_events)
+        transformed_events = transform(enriched_events)
+
+        _, logs, _ = split(transformed_events)
+        self.assertEqual(len(logs), 16)
+        for log in logs:
+            self.assertEqual(log["service"], "dd_tag_service")
+
+    @patch("lambda_cache.LambdaTagsCache.get")
+    @patch("cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.get")
+    def test_overrding_service_tag_from_lambda_cache(
+        self, lambda_tags_get, cw_logs_tags_get
+    ):
+        lambda_tags_get.return_value = ["service:lambda_service"]
+        cw_logs_tags_get.return_value = ["service:log_group_service"]
+
+        context = Context()
+        input_data = self._get_input_data()
+        event = {"awslogs": {"data": create_cloudwatch_log_event_from_data(input_data)}}
+
+        normalized_events = parse(event, context)
+        enriched_events = enrich(normalized_events)
+        transformed_events = transform(enriched_events)
+
+        _, logs, _ = split(transformed_events)
+        self.assertEqual(len(logs), 16)
+        for log in logs:
+            self.assertEqual(log["service"], "lambda_service")
+
+    @patch.dict(os.environ, {"DD_TAGS": "service:dd_tag_service"}, clear=True)
+    @patch("lambda_cache.LambdaTagsCache.get")
+    @patch("cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.get")
+    def test_overrding_service_tag_from_lambda_cache_when_dd_tags_is_set(
+        self, lambda_tags_get, cw_logs_tags_get
+    ):
+        lambda_tags_get.return_value = ["service:lambda_service"]
+        cw_logs_tags_get.return_value = ["service:log_group_service"]
+
+        context = Context()
+        input_data = self._get_input_data()
+        event = {"awslogs": {"data": create_cloudwatch_log_event_from_data(input_data)}}
+
+        normalized_events = parse(event, context)
+        enriched_events = enrich(normalized_events)
+        transformed_events = transform(enriched_events)
+
+        _, logs, _ = split(transformed_events)
+        self.assertEqual(len(logs), 16)
+        for log in logs:
+            self.assertEqual(log["service"], "lambda_service")
+
+    def _get_input_data(self):
+        my_path = os.path.abspath(os.path.dirname(__file__))
+        path = os.path.join(my_path, "events/cloudwatch_logs.json")
+
+        with open(
+            path,
+            "r",
+        ) as input_file:
+            input_data = input_file.read()
+
+        return input_data
+
 
 class TestLambdaFunctionExtractTracePayload(unittest.TestCase):
     def test_extract_trace_payload_none_no_trace(self):
@@ -231,6 +313,106 @@ class TestLambdaFunctionExtractTracePayload(unittest.TestCase):
         }
         self.assertEqual(
             extract_trace_payload({"message": message_json, "ddtags": tags_json}), item
+        )
+
+
+class TestMergeMessageTags(unittest.TestCase):
+    message_tags = '{"ddtags":"service:my_application_service,custom_tag_1:value1"}'
+    custom_tags = "custom_tag_2:value2,service:my_custom_service"
+
+    def test_extract_ddtags_from_message_str(self):
+        event = {
+            "message": self.message_tags,
+            "ddtags": self.custom_tags,
+            "service": "my_service",
+        }
+
+        extract_ddtags_from_message(event)
+
+        self.assertEqual(
+            event["ddtags"],
+            "custom_tag_2:value2,service:my_application_service,custom_tag_1:value1",
+        )
+        self.assertEqual(
+            event["service"],
+            "my_application_service",
+        )
+
+    def test_extract_ddtags_from_message_dict(self):
+        loaded_message_tags = json.loads(self.message_tags)
+        event = {
+            "message": loaded_message_tags,
+            "ddtags": self.custom_tags,
+            "service": "my_service",
+        }
+
+        extract_ddtags_from_message(event)
+
+        self.assertEqual(
+            event["ddtags"],
+            "custom_tag_2:value2,service:my_application_service,custom_tag_1:value1",
+        )
+        self.assertEqual(
+            event["service"],
+            "my_application_service",
+        )
+
+    def test_extract_ddtags_from_message_service_tag_setting(self):
+        loaded_message_tags = json.loads(self.message_tags)
+        loaded_message_tags["ddtags"] = ",".join(
+            [
+                tag
+                for tag in loaded_message_tags["ddtags"].split(",")
+                if not tag.startswith("service:")
+            ]
+        )
+        event = {
+            "message": loaded_message_tags,
+            "ddtags": self.custom_tags,
+            "service": "my_custom_service",
+        }
+
+        extract_ddtags_from_message(event)
+
+        self.assertEqual(
+            event["ddtags"],
+            "custom_tag_2:value2,service:my_custom_service,custom_tag_1:value1",
+        )
+        self.assertEqual(
+            event["service"],
+            "my_custom_service",
+        )
+
+    def test_extract_ddtags_from_message_multiple_service_tag_values(self):
+        custom_tags = self.custom_tags + ",service:my_custom_service_2"
+        event = {"message": self.message_tags, "ddtags": custom_tags}
+
+        extract_ddtags_from_message(event)
+
+        self.assertEqual(
+            event["ddtags"],
+            "custom_tag_2:value2,service:my_application_service,custom_tag_1:value1",
+        )
+        self.assertEqual(
+            event["service"],
+            "my_application_service",
+        )
+
+    def test_extract_ddtags_from_message_multiple_values_tag(self):
+        loaded_message_tags = json.loads(self.message_tags)
+        loaded_message_tags["ddtags"] += ",custom_tag_3:value4"
+        custom_tags = self.custom_tags + ",custom_tag_3:value3"
+        event = {"message": loaded_message_tags, "ddtags": custom_tags}
+
+        extract_ddtags_from_message(event)
+
+        self.assertEqual(
+            event["ddtags"],
+            "custom_tag_2:value2,custom_tag_3:value3,service:my_application_service,custom_tag_1:value1,custom_tag_3:value4",
+        )
+        self.assertEqual(
+            event["service"],
+            "my_application_service",
         )
 
 

@@ -257,14 +257,21 @@ def add_metadata_to_lambda_log(event):
     # Get custom tags of the Lambda function
     custom_lambda_tags = get_enriched_lambda_log_tags(event)
 
-    # Set the `service` tag and metadata field. If the Lambda function is
-    # tagged with a `service` tag, use it, otherwise use the function name.
-    service_tag = next(
-        (tag for tag in custom_lambda_tags if tag.startswith("service:")),
-        f"service:{function_name}",
-    )
-    tags.append(service_tag)
-    event[DD_SERVICE] = service_tag.split(":")[1]
+    # If not set during parsing or has a default value
+    # then set the service tag from lambda tags cache or using the function name
+    # otherwise, remove the service tag from the custom lambda tags if exists to avoid duplication
+    if not event[DD_SERVICE] or event[DD_SERVICE] == event[DD_SOURCE]:
+        service_tag = next(
+            (tag for tag in custom_lambda_tags if tag.startswith("service:")),
+            f"service:{function_name}",
+        )
+        if service_tag:
+            tags.append(service_tag)
+            event[DD_SERVICE] = service_tag.split(":")[1]
+    else:
+        custom_lambda_tags = [
+            tag for tag in custom_lambda_tags if not tag.startswith("service:")
+        ]
 
     # Check if one of the Lambda's custom tags is env
     # If an env tag exists, remove the env:none placeholder
@@ -319,6 +326,22 @@ def extract_ddtags_from_message(event):
                 if logger.isEnabledFor(logging.DEBUG):
                     logger.debug(f"Failed to extract ddtags from: {event}")
                 return
+
+        # Extract service tag from message.ddtags if exists
+        if "service" in extracted_ddtags:
+            event[DD_SERVICE] = next(
+                tag[8:]
+                for tag in extracted_ddtags.split(",")
+                if tag.startswith("service:")
+            )
+            event[DD_CUSTOM_TAGS] = ",".join(
+                [
+                    tag
+                    for tag in event[DD_CUSTOM_TAGS].split(",")
+                    if not tag.startswith("service")
+                ]
+            )
+
         event[DD_CUSTOM_TAGS] = f"{event[DD_CUSTOM_TAGS]},{extracted_ddtags}"
 
 
