@@ -835,6 +835,7 @@ class TestS3EventsHandler(unittest.TestCase):
         lines = yield from get_structured_lines_for_s3_handler(
             data, bucket, key, source
         )
+        lines = list(lines)
 
         self.assertEqual(len(lines), 3)
         self.assertEqual(lines, expected_lines)
@@ -852,6 +853,7 @@ class TestS3EventsHandler(unittest.TestCase):
         lines = yield from get_structured_lines_for_s3_handler(
             data, bucket, key, source
         )
+        lines = list(lines)
 
         self.assertEqual(len(lines), 1)
         self.assertEqual(lines, expected_lines)
@@ -865,6 +867,7 @@ class TestS3EventsHandler(unittest.TestCase):
         lines = yield from get_structured_lines_for_s3_handler(
             data, bucket, key, source
         )
+        lines = list(lines)
 
         self.assertEqual(len(lines), 0)
 
@@ -880,9 +883,9 @@ class TestS3EventsHandler(unittest.TestCase):
         lines = yield from get_structured_lines_for_s3_handler(
             data, bucket, key, source
         )
+        lines = list(lines)
 
         self.assertEqual(len(lines), 1)
-        print(lines[0])
         self.assertEqual(lines[0], expected_line)
 
     def test_get_structured_lines_empty_cloudtrail(self):
@@ -894,6 +897,7 @@ class TestS3EventsHandler(unittest.TestCase):
         lines = yield from get_structured_lines_for_s3_handler(
             data, bucket, key, source
         )
+        lines = list(lines)
 
         self.assertEqual(len(lines), 0)
 
