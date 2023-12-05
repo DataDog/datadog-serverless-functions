@@ -5,7 +5,8 @@ from unittest.mock import MagicMock, patch
 import os
 import sys
 import unittest
-from approvaltests.approvals import verify_as_json
+from approvaltests.approvals import verify_as_json, verify
+from approvaltests.combination_approvals import verify_all_combinations
 from approvaltests.namer import NamerFactory
 
 sys.modules["trace_forwarder.connection"] = MagicMock()
@@ -821,55 +822,31 @@ class TestLambdaCustomizedLogGroup(unittest.TestCase):
 
 
 class TestS3EventsHandler(unittest.TestCase):
+    def parse_lines(self, data):
+        key = "mykey"
+        source = "waf"
+        bucket = "my-bucket"
+
+        return [
+            l
+            for l in get_structured_lines_for_s3_handler(
+                gzip.compress(bytes(data, "utf-8")), bucket, key, source
+            )
+        ]
+
     def test_get_structured_lines_waf(self):
-        key = "mykey"
-        source = "waf"
-        bucket = "my-bucket"
-        data = gzip.compress(bytes("123\n456\n789\n", "utf-8"))
-        expected_lines = [
-            {"aws": {"s3": {"bucket": bucket, "key": key}}, "message": "123"},
-            {"aws": {"s3": {"bucket": bucket, "key": key}}, "message": "456"},
-            {"aws": {"s3": {"bucket": bucket, "key": key}}, "message": "789"},
-        ]
-
-        lines = yield from get_structured_lines_for_s3_handler(
-            data, bucket, key, source
+        verify_all_combinations(
+            lambda d: self.parse_lines(d),
+            [
+                [
+                    "123\n456\n789\n",
+                    "123\n456\n789",
+                    "Hello\rWorld!\f",
+                    "Hello\n\rWorld!\f",
+                    "",
+                ]
+            ],
         )
-        lines = list(lines)
-
-        self.assertEqual(len(lines), 3)
-        self.assertEqual(lines, expected_lines)
-
-    def test_get_structured_lines_waf_single_line(self):
-        key = "mykey"
-        source = "waf"
-        bucket = "my-bucket"
-        message = "Hello\rWorld!\f"
-        data = gzip.compress(bytes(message, "utf-8"))
-        expected_lines = [
-            {"aws": {"s3": {"bucket": bucket, "key": key}}, "message": message},
-        ]
-
-        lines = yield from get_structured_lines_for_s3_handler(
-            data, bucket, key, source
-        )
-        lines = list(lines)
-
-        self.assertEqual(len(lines), 1)
-        self.assertEqual(lines, expected_lines)
-
-    def test_get_structured_lines_empty_waf(self):
-        key = "mykey"
-        source = "waf"
-        bucket = "my-bucket"
-        data = gzip.compress(bytes("", "utf-8"))
-
-        lines = yield from get_structured_lines_for_s3_handler(
-            data, bucket, key, source
-        )
-        lines = list(lines)
-
-        self.assertEqual(len(lines), 0)
 
     def test_get_structured_lines_cloudtrail(self):
         key = "23456789123_CloudTrail_us-east-1"

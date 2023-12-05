@@ -236,8 +236,7 @@ def get_structured_lines_for_s3_handler(data, bucket, key, source):
                 )
             if source == "waf":
                 # WAF logs are \n separated
-                split_data = data.split("\n")
-                split_data.remove("")
+                split_data = [d for d in data.split("\n") if d != ""]
             else:
                 split_data = data.splitlines()
 

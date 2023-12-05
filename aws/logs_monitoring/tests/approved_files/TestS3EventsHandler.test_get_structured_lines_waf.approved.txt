@@ -1,0 +1,5 @@
+args: ('123\n456\n789\n',) => [{'aws': {'s3': {'bucket': 'my-bucket', 'key': 'mykey'}}, 'message': '123'}, {'aws': {'s3': {'bucket': 'my-bucket', 'key': 'mykey'}}, 'message': '456'}, {'aws': {'s3': {'bucket': 'my-bucket', 'key': 'mykey'}}, 'message': '789'}]
+args: ('123\n456\n789',) => [{'aws': {'s3': {'bucket': 'my-bucket', 'key': 'mykey'}}, 'message': '123'}, {'aws': {'s3': {'bucket': 'my-bucket', 'key': 'mykey'}}, 'message': '456'}, {'aws': {'s3': {'bucket': 'my-bucket', 'key': 'mykey'}}, 'message': '789'}]
+args: ('Hello\rWorld!\x0c',) => [{'aws': {'s3': {'bucket': 'my-bucket', 'key': 'mykey'}}, 'message': 'Hello\rWorld!\x0c'}]
+args: ('Hello\n\rWorld!\x0c',) => [{'aws': {'s3': {'bucket': 'my-bucket', 'key': 'mykey'}}, 'message': 'Hello'}, {'aws': {'s3': {'bucket': 'my-bucket', 'key': 'mykey'}}, 'message': '\rWorld!\x0c'}]
+args: ('',) => []
