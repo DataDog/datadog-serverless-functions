@@ -198,6 +198,10 @@ def s3_handler(event, context, metadata):
     body = response["Body"]
     data = body.read()
 
+    yield from get_structured_lines_for_s3_handler(data, bucket, key, source)
+
+
+def get_structured_lines_for_s3_handler(data, bucket, key, source):
     # Decompress data that has a .gz extension or magic header http://www.onicos.com/staff/iz/formats/gzip.html
     if key[-3:] == ".gz" or data[:2] == b"\x1f\x8b":
         with gzip.GzipFile(fileobj=BytesIO(data)) as decompress_stream:
@@ -230,7 +234,12 @@ def s3_handler(event, context, metadata):
                     "DD_MULTILINE_LOG_REGEX_PATTERN %s did not match start of file, splitting by line",
                     DD_MULTILINE_LOG_REGEX_PATTERN,
                 )
-            split_data = data.splitlines()
+            if source == "waf":
+                # WAF logs are \n separated
+                split_data = data.split("\n")
+                split_data.remove("")
+            else:
+                split_data = data.splitlines()
 
         # Send lines to Datadog
         for line in split_data:

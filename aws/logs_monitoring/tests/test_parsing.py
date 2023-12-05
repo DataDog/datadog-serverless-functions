@@ -31,6 +31,7 @@ from parsing import (
     get_service_from_tags_and_remove_duplicates,
     get_state_machine_arn,
     get_lower_cased_lambda_function_name,
+    get_structured_lines_for_s3_handler,
 )
 from settings import (
     DD_CUSTOM_TAGS,
@@ -817,6 +818,84 @@ class TestLambdaCustomizedLogGroup(unittest.TestCase):
             get_lower_cased_lambda_function_name(lambda_customized_loggroup),
             "test-customized-log-group1",
         )
+
+
+class TestS3EventsHandler(unittest.TestCase):
+    def test_get_structured_lines_waf(self):
+        key = "mykey"
+        source = "waf"
+        bucket = "my-bucket"
+        data = gzip.compress(bytes("123\n456\n789\n", "utf-8"))
+        expected_lines = [
+            {"aws": {"s3": {"bucket": bucket, "key": key}}, "message": "123"},
+            {"aws": {"s3": {"bucket": bucket, "key": key}}, "message": "456"},
+            {"aws": {"s3": {"bucket": bucket, "key": key}}, "message": "789"},
+        ]
+
+        lines = yield from get_structured_lines_for_s3_handler(
+            data, bucket, key, source
+        )
+
+        self.assertEqual(len(lines), 3)
+        self.assertEqual(lines, expected_lines)
+
+    def test_get_structured_lines_waf_single_line(self):
+        key = "mykey"
+        source = "waf"
+        bucket = "my-bucket"
+        message = "Hello\rWorld!\f"
+        data = gzip.compress(bytes(message, "utf-8"))
+        expected_lines = [
+            {"aws": {"s3": {"bucket": bucket, "key": key}}, "message": message},
+        ]
+
+        lines = yield from get_structured_lines_for_s3_handler(
+            data, bucket, key, source
+        )
+
+        self.assertEqual(len(lines), 1)
+        self.assertEqual(lines, expected_lines)
+
+    def test_get_structured_lines_empty_waf(self):
+        key = "mykey"
+        source = "waf"
+        bucket = "my-bucket"
+        data = gzip.compress(bytes("", "utf-8"))
+
+        lines = yield from get_structured_lines_for_s3_handler(
+            data, bucket, key, source
+        )
+
+        self.assertEqual(len(lines), 0)
+
+    def test_get_structured_lines_cloudtrail(self):
+        key = "23456789123_CloudTrail_us-east-1"
+        source = "cloudtrail"
+        bucket = "my-bucket"
+        data = '{"Records": {"event_key" : ["logs-from-s3"]}}'
+        expected_line = {
+            "aws": {"s3": {"bucket": bucket, "key": key}},
+            "event_key": ["logs-from-s3"],
+        }
+        lines = yield from get_structured_lines_for_s3_handler(
+            data, bucket, key, source
+        )
+
+        self.assertEqual(len(lines), 1)
+        print(lines[0])
+        self.assertEqual(lines[0], expected_line)
+
+    def test_get_structured_lines_empty_cloudtrail(self):
+        key = "23456789123_CloudTrail_us-east-1"
+        source = "cloudtrail"
+        bucket = "my-bucket"
+        data = '{"Not": {"event_key" : ["logs-from-s3"]}}'
+
+        lines = yield from get_structured_lines_for_s3_handler(
+            data, bucket, key, source
+        )
+
+        self.assertEqual(len(lines), 0)
 
 
 if __name__ == "__main__":
