@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 import os
 import sys
 import unittest
-from approvaltests.approvals import verify_as_json, verify
+from approvaltests.approvals import verify_as_json
 from approvaltests.combination_approvals import verify_all_combinations
 from approvaltests.namer import NamerFactory
 
