@@ -7,7 +7,8 @@ import gzip
 import base64
 from time import time
 from botocore.exceptions import ClientError
-from approvaltests.approvals import verify_as_json
+from approvaltests.approvals import verify_as_json, Options
+from approvaltests.scrubbers import create_regex_scrubber
 from importlib import reload
 
 sys.modules["trace_forwarder.connection"] = MagicMock()
@@ -158,7 +159,11 @@ class TestLambdaFunctionEndToEnd(unittest.TestCase):
         enriched_events = enrich(normalized_events)
         transformed_events = transform(enriched_events)
 
-        verify_as_json(transformed_events)
+        scrubber = create_regex_scrubber(
+            "forwarder_version:\d+\.\d+\.\d+",
+            "forwarder_version:<redacted from snapshot>",
+        )
+        verify_as_json(transformed_events, options=Options().with_scrubber(scrubber))
 
         _, _, trace_payloads = split(transformed_events)
         self.assertEqual(len(trace_payloads), 1)
