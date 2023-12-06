@@ -822,21 +822,20 @@ class TestLambdaCustomizedLogGroup(unittest.TestCase):
 
 
 class TestS3EventsHandler(unittest.TestCase):
-    def parse_lines(self, data):
-        key = "mykey"
-        source = "waf"
+    def parse_lines(self, data, key, source):
         bucket = "my-bucket"
+        gzip_data = gzip.compress(bytes(data, "utf-8"))
 
         return [
             l
-            for l in get_structured_lines_for_s3_handler(
-                gzip.compress(bytes(data, "utf-8")), bucket, key, source
-            )
+            for l in get_structured_lines_for_s3_handler(gzip_data, bucket, key, source)
         ]
 
     def test_get_structured_lines_waf(self):
+        key = "mykey"
+        source = "waf"
         verify_all_combinations(
-            lambda d: self.parse_lines(d),
+            lambda d: self.parse_lines(d, key, source),
             [
                 [
                     "123\n456\n789\n",
@@ -849,34 +848,21 @@ class TestS3EventsHandler(unittest.TestCase):
         )
 
     def test_get_structured_lines_cloudtrail(self):
-        key = "23456789123_CloudTrail_us-east-1"
-        source = "cloudtrail"
-        bucket = "my-bucket"
-        data = '{"Records": {"event_key" : ["logs-from-s3"]}}'
-        expected_line = {
-            "aws": {"s3": {"bucket": bucket, "key": key}},
-            "event_key": ["logs-from-s3"],
-        }
-        lines = yield from get_structured_lines_for_s3_handler(
-            data, bucket, key, source
+        key = (
+            "123456779121_CloudTrail_eu-west-3_20180707T1735Z_abcdefghi0MCRL2O.json.gz"
         )
-        lines = list(lines)
-
-        self.assertEqual(len(lines), 1)
-        self.assertEqual(lines[0], expected_line)
-
-    def test_get_structured_lines_empty_cloudtrail(self):
-        key = "23456789123_CloudTrail_us-east-1"
         source = "cloudtrail"
-        bucket = "my-bucket"
-        data = '{"Not": {"event_key" : ["logs-from-s3"]}}'
-
-        lines = yield from get_structured_lines_for_s3_handler(
-            data, bucket, key, source
+        verify_all_combinations(
+            lambda d: self.parse_lines(d, key, source),
+            [
+                [
+                    '{"Records": [{"event_key" : "logs-from-s3"}]}',
+                    '{"Records": [{"event_key" : "logs-from-s3"}, {"key1" : "data1", "key2" : "data2"}]}',
+                    '{"Records": {}}',
+                    "",
+                ]
+            ],
         )
-        lines = list(lines)
-
-        self.assertEqual(len(lines), 0)
 
 
 if __name__ == "__main__":

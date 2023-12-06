@@ -211,16 +211,19 @@ def get_structured_lines_for_s3_handler(data, bucket, key, source):
 
     is_cloudtrail_bucket = False
     if is_cloudtrail(str(key)):
-        cloud_trail = json.loads(data)
-        if cloud_trail.get("Records") is not None:
-            # only parse as a cloudtrail bucket if we have a Records field to parse
-            is_cloudtrail_bucket = True
-            for event in cloud_trail["Records"]:
-                # Create structured object and send it
-                structured_line = merge_dicts(
-                    event, {"aws": {"s3": {"bucket": bucket, "key": key}}}
-                )
-                yield structured_line
+        try:
+            cloud_trail = json.loads(data)
+            if cloud_trail.get("Records") is not None:
+                # only parse as a cloudtrail bucket if we have a Records field to parse
+                is_cloudtrail_bucket = True
+                for event in cloud_trail["Records"]:
+                    # Create structured object and send it
+                    structured_line = merge_dicts(
+                        event, {"aws": {"s3": {"bucket": bucket, "key": key}}}
+                    )
+                    yield structured_line
+        except Exception as e:
+            logger.debug("Unable to parse cloudtrail log: %s" % e)
 
     if not is_cloudtrail_bucket:
         # Check if using multiline log regex pattern
