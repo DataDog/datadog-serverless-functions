@@ -100,7 +100,7 @@ resource "aws_cloudformation_stack" "datadog_forwarder" {
 }
 ```
 
-**Note**: Ensure that the `DdSite` parameter matches your [Datadog site][104]. Select your site on the right side of this page. Replace `<SITE>` in the above sample configuration with {{< region-param key="dd_site" code="true" >}}.
+**Note**: Ensure that the `DdSite` parameter matches your [Datadog site][104]. Select your site on the right side of this page. Replace `<Site>` in the above sample configuration with {{< region-param key="dd_site" code="true" >}}.
 
 [101]: https://www.terraform.io/docs/providers/aws/r/cloudformation_stack
 [102]: https://app.datadoghq.com/organization-settings/api-keys
@@ -114,7 +114,7 @@ resource "aws_cloudformation_stack" "datadog_forwarder" {
 
 If you can't install the Forwarder using the provided CloudFormation template, you can install the Forwarder manually following the steps below. Feel free to open an issue or pull request to let us know if there is anything we can improve to make the template work for you.
 
-1. Create a Python 3.9 Lambda function using `aws-dd-forwarder-<VERSION>.zip` from the latest [releases][101].
+1. Create a Python 3.11 Lambda function using `aws-dd-forwarder-<VERSION>.zip` from the latest [releases][101].
 2. Save your [Datadog API key][102] in AWS Secrets Manager, set environment variable `DD_API_KEY_SECRET_ARN` with the secret ARN on the Lambda function, and add the `secretsmanager:GetSecretValue` permission to the Lambda execution role.
 3. If you need to forward logs from S3 buckets, add the `s3:GetObject` permission to the Lambda execution role.
 4. Set the environment variable `DD_ENHANCED_METRICS` to `false` on the Forwarder. This stops the Forwarder from generating enhanced metrics itself, but it will still forward custom metrics from other lambdas.
@@ -137,6 +137,10 @@ If you can't install the Forwarder using the provided CloudFormation template, y
 3. Update the stack using template `https://datadog-cloudformation-template.s3.amazonaws.com/aws/forwarder/latest.yaml`. You can also replace `latest` with a specific version, such as `3.73.0.yaml`, if needed. Make sure to review the changesets before applying the update.
 
 If you encounter issues upgrading to the latest version, check the Troubleshooting section.
+
+### Upgrade an older version to +3.96.0
+
+Since version 3.96.0 the Lambda function has been updated to require **Python 3.11**. If upgrading an older forwarder installation to 3.96.0 or above, ensure the AWS Lambda function is configured to use Python 3.11
 
 ### Upgrade an older version to +3.74.0
 
