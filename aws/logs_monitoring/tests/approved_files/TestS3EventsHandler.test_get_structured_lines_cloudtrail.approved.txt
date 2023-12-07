@@ -1,0 +1,4 @@
+args: ('{"Records": [{"event_key" : "logs-from-s3"}]}',) => [{'event_key': 'logs-from-s3', 'aws': {'s3': {'bucket': 'my-bucket', 'key': '123456779121_CloudTrail_eu-west-3_20180707T1735Z_abcdefghi0MCRL2O.json.gz'}}}]
+args: ('{"Records": [{"event_key" : "logs-from-s3"}, {"key1" : "data1", "key2" : "data2"}]}',) => [{'event_key': 'logs-from-s3', 'aws': {'s3': {'bucket': 'my-bucket', 'key': '123456779121_CloudTrail_eu-west-3_20180707T1735Z_abcdefghi0MCRL2O.json.gz'}}}, {'key1': 'data1', 'key2': 'data2', 'aws': {'s3': {'bucket': 'my-bucket', 'key': '123456779121_CloudTrail_eu-west-3_20180707T1735Z_abcdefghi0MCRL2O.json.gz'}}}]
+args: ('{"Records": {}}',) => []
+args: ('',) => []

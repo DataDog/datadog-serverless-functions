@@ -6,6 +6,7 @@ import os
 import sys
 import unittest
 from approvaltests.approvals import verify_as_json
+from approvaltests.combination_approvals import verify_all_combinations
 from approvaltests.namer import NamerFactory
 
 sys.modules["trace_forwarder.connection"] = MagicMock()
@@ -31,6 +32,7 @@ from parsing import (
     get_service_from_tags_and_remove_duplicates,
     get_state_machine_arn,
     get_lower_cased_lambda_function_name,
+    get_structured_lines_for_s3_handler,
 )
 from settings import (
     DD_CUSTOM_TAGS,
@@ -816,6 +818,52 @@ class TestLambdaCustomizedLogGroup(unittest.TestCase):
         self.assertEqual(
             get_lower_cased_lambda_function_name(lambda_customized_loggroup),
             "test-customized-log-group1",
+        )
+
+
+class TestS3EventsHandler(unittest.TestCase):
+    def parse_lines(self, data, key, source):
+        bucket = "my-bucket"
+        gzip_data = gzip.compress(bytes(data, "utf-8"))
+
+        return [
+            l
+            for l in get_structured_lines_for_s3_handler(gzip_data, bucket, key, source)
+        ]
+
+    def test_get_structured_lines_waf(self):
+        key = "mykey"
+        source = "waf"
+        verify_all_combinations(
+            lambda d: self.parse_lines(d, key, source),
+            [
+                [
+                    '{"timestamp": 12345, "key1": "value1", "key2":"value2"}\n',
+                    '{"timestamp": 12345, "key1": "value1", "key2":"value2"}\n{"timestamp": 789760, "key1": "value1", "key3":"value4"}\n',
+                    '{"timestamp": 12345, "key1": "value1", "key2":"value2" "key3": {"key5" : "value5"}}\r{"timestamp": 12345, "key1": "value1"}\n',
+                    '{"timestamp": 12345, "key1": "value1", "key2":"value2" "key3": {"key5" : "value5"}}\f{"timestamp": 12345, "key1": "value1"}\n',
+                    '{"timestamp": 12345, "key1": "value1", "key2":"value2" "key3": {"key5" : "value5"}}\u00A0{"timestamp": 12345, "key1": "value1"}\n',
+                    "",
+                    "\n",
+                ]
+            ],
+        )
+
+    def test_get_structured_lines_cloudtrail(self):
+        key = (
+            "123456779121_CloudTrail_eu-west-3_20180707T1735Z_abcdefghi0MCRL2O.json.gz"
+        )
+        source = "cloudtrail"
+        verify_all_combinations(
+            lambda d: self.parse_lines(d, key, source),
+            [
+                [
+                    '{"Records": [{"event_key" : "logs-from-s3"}]}',
+                    '{"Records": [{"event_key" : "logs-from-s3"}, {"key1" : "data1", "key2" : "data2"}]}',
+                    '{"Records": {}}',
+                    "",
+                ]
+            ],
         )
 
 

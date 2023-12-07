@@ -198,6 +198,10 @@ def s3_handler(event, context, metadata):
     body = response["Body"]
     data = body.read()
 
+    yield from get_structured_lines_for_s3_handler(data, bucket, key, source)
+
+
+def get_structured_lines_for_s3_handler(data, bucket, key, source):
     # Decompress data that has a .gz extension or magic header http://www.onicos.com/staff/iz/formats/gzip.html
     if key[-3:] == ".gz" or data[:2] == b"\x1f\x8b":
         with gzip.GzipFile(fileobj=BytesIO(data)) as decompress_stream:
@@ -207,16 +211,19 @@ def s3_handler(event, context, metadata):
 
     is_cloudtrail_bucket = False
     if is_cloudtrail(str(key)):
-        cloud_trail = json.loads(data)
-        if cloud_trail.get("Records") is not None:
-            # only parse as a cloudtrail bucket if we have a Records field to parse
-            is_cloudtrail_bucket = True
-            for event in cloud_trail["Records"]:
-                # Create structured object and send it
-                structured_line = merge_dicts(
-                    event, {"aws": {"s3": {"bucket": bucket, "key": key}}}
-                )
-                yield structured_line
+        try:
+            cloud_trail = json.loads(data)
+            if cloud_trail.get("Records") is not None:
+                # only parse as a cloudtrail bucket if we have a Records field to parse
+                is_cloudtrail_bucket = True
+                for event in cloud_trail["Records"]:
+                    # Create structured object and send it
+                    structured_line = merge_dicts(
+                        event, {"aws": {"s3": {"bucket": bucket, "key": key}}}
+                    )
+                    yield structured_line
+        except Exception as e:
+            logger.debug("Unable to parse cloudtrail log: %s" % e)
 
     if not is_cloudtrail_bucket:
         # Check if using multiline log regex pattern
@@ -230,7 +237,11 @@ def s3_handler(event, context, metadata):
                     "DD_MULTILINE_LOG_REGEX_PATTERN %s did not match start of file, splitting by line",
                     DD_MULTILINE_LOG_REGEX_PATTERN,
                 )
-            split_data = data.splitlines()
+            if source == "waf":
+                # WAF logs are \n separated
+                split_data = [d for d in data.split("\n") if d != ""]
+            else:
+                split_data = data.splitlines()
 
         # Send lines to Datadog
         for line in split_data:
