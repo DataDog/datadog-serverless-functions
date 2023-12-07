@@ -838,10 +838,11 @@ class TestS3EventsHandler(unittest.TestCase):
             lambda d: self.parse_lines(d, key, source),
             [
                 [
-                    '{"timstamp": 12345, "key1": "value1", "key2":"value2"}\n',
-                    '{"timstamp": 12345, "key1": "value1", "key2":"value2"}\n{"timstamp": 789760, "key1": "value1", "key3":"value4"}\n',
-                    '{"timstamp": 12345, "key1": "value1", "key2":"value2" "key3": {"key5" : "value5"}}\r{"timstamp": 12345, "key1": "value1"}\n',
-                    '{"timstamp": 12345, "key1": "value1", "key2":"value2" "key3": {"key5" : "value5"}}\f{"timstamp": 12345, "key1": "value1"}\n',
+                    '{"timestamp": 12345, "key1": "value1", "key2":"value2"}\n',
+                    '{"timestamp": 12345, "key1": "value1", "key2":"value2"}\n{"timestamp": 789760, "key1": "value1", "key3":"value4"}\n',
+                    '{"timestamp": 12345, "key1": "value1", "key2":"value2" "key3": {"key5" : "value5"}}\r{"timestamp": 12345, "key1": "value1"}\n',
+                    '{"timestamp": 12345, "key1": "value1", "key2":"value2" "key3": {"key5" : "value5"}}\f{"timestamp": 12345, "key1": "value1"}\n',
+                    '{"timestamp": 12345, "key1": "value1", "key2":"value2" "key3": {"key5" : "value5"}}\u00A0{"timestamp": 12345, "key1": "value1"}\n',
                     "",
                     "\n",
                 ]
