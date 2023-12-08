@@ -7,7 +7,7 @@
 
 set -e
 
-PYTHON_VERSION="python3.11"
+PYTHON_VERSION="python3.10"
 SKIP_FORWARDER_BUILD=false
 UPDATE_SNAPSHOTS=false
 LOG_LEVEL=info
@@ -39,7 +39,7 @@ do
 
 		# -v or --python-version
 		# The version of the Python Lambda runtime to use
-		# Must be 3.10 or 3.11
+		# Must be 3.9 or 3.10
 		-v=*|--python-version=*)
 		PYTHON_VERSION="python${arg#*=}"
 		shift
@@ -78,8 +78,8 @@ do
 	esac
 done
 
-if [ $PYTHON_VERSION != "python3.10" ] && [ $PYTHON_VERSION != "python3.11" ]; then
-    echo "Must use either Python 3.10 or 3.11"
+if [ $PYTHON_VERSION != "python3.9" ] && [ $PYTHON_VERSION != "python3.10" ]; then
+    echo "Must use either Python 3.9 or 3.10"
     exit 1
 fi
 

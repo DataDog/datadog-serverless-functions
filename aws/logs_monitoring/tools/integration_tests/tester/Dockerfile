@@ -1,4 +1,4 @@
-FROM python:3.11
+FROM python:3.10
 
 COPY . .
 RUN pip install "deepdiff<6"
