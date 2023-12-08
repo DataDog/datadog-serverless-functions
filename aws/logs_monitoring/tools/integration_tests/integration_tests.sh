@@ -149,7 +149,7 @@ fi
 cd $INTEGRATION_TESTS_DIR
 
 
-# Build Docker image of Forwarder for tests compatibility
+# Build Docker image of Forwarder for tests
 echo "Building Docker Image for Forwarder with tag datadog-log-forwarder:$PYTHON_VERSION"
 docker buildx build --platform linux/amd64 --file "${INTEGRATION_TESTS_DIR}/forwarder/Dockerfile" -t "datadog-log-forwarder:$PYTHON_VERSION" ../../.forwarder --no-cache \
 --build-arg forwarder='aws-dd-forwarder-0.0.0' \
