@@ -8,6 +8,7 @@
 set -e
 
 PYTHON_VERSION="python3.10"
+PYTHON_IMAGE="python:3.10"
 SKIP_FORWARDER_BUILD=false
 UPDATE_SNAPSHOTS=false
 LOG_LEVEL=info
@@ -42,6 +43,7 @@ do
 		# Must be 3.9 or 3.10
 		-v=*|--python-version=*)
 		PYTHON_VERSION="python${arg#*=}"
+		PYTHON_IMAGE="python:${arg#*=}"
 		shift
 		;;
 
@@ -159,6 +161,7 @@ echo "Running integration tests for ${PYTHON_VERSION}"
 LOG_LEVEL=${LOG_LEVEL} \
 UPDATE_SNAPSHOTS=${UPDATE_SNAPSHOTS} \
 PYTHON_RUNTIME=${PYTHON_VERSION} \
+PYTHON_BASE=${PYTHON_IMAGE} \
 EXTERNAL_LAMBDAS=${EXTERNAL_LAMBDAS} \
 DD_S3_BUCKET_NAME=${DD_S3_BUCKET_NAME} \
 AWS_ACCOUNT_ID=${AWS_ACCOUNT_ID} \
