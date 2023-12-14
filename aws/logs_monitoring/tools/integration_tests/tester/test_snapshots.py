@@ -14,7 +14,7 @@ if not update_snapshot:
     update_snapshot = "false"
 update_snapshot = update_snapshot.lower() == "true"
 
-snapshot_dir = "snapshots"
+snapshot_dir = "/snapshots"
 
 
 class TestForwarderSnapshots(unittest.TestCase):

@@ -127,13 +127,14 @@
         "Content-Encoding": "deflate",
         "Content-Length": "<redacted from snapshot>",
         "Content-Type": "application/json",
+        "DD-API-KEY": "abcdefghijklmnopqrstuvwxyz012345",
         "Host": "recorder:8080",
         "User-Agent": "<redacted from snapshot>",
         "x-datadog-parent-id": "<redacted from snapshot>",
         "x-datadog-sampling-priority": "2",
         "x-datadog-trace-id": "4842834437835386637"
       },
-      "path": "/api/v1/distribution_points?api_key=abcdefghijklmnopqrstuvwxyz012345",
+      "path": "/api/v1/distribution_points",
       "verb": "POST"
     }
   ]

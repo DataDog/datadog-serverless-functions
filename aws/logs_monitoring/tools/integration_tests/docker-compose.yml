@@ -1,6 +1,22 @@
-version: "3.9"
+version: "3.8"
 
 services:
+  recorder:
+    image: ${PYTHON_BASE}
+    command: /bin/sh -c 'pip install protobuf && ./recorder.py'
+    volumes:
+      - ./recorder:/recorder
+    working_dir: /recorder
+    environment:
+      SERVER_PORT: 8080
+    expose:
+      - 8080
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
   forwarder:
     image: datadog-log-forwarder:${PYTHON_RUNTIME}
     command: lambda_function.lambda_handler
@@ -30,26 +46,21 @@ services:
       DD_FETCH_STEP_FUNCTIONS_TAGS: "false"  # intentionally set false to allow integration test for step function logs to run without hitting aws
     expose:
       - 9001
-
-  recorder:
-    build: recorder
-    command: ./recorder.py
-    environment:
-      SERVER_PORT: 8080
-    expose:
-      - 8080
+    depends_on:
+      recorder:
+        condition: service_healthy
 
   tester:
-    build: tester
-    command: python -m unittest discover
+    image: ${PYTHON_BASE}
+    command: /bin/sh -c 'pip install "deepdiff<6" && python -m unittest discover'
     volumes:
+      - ./tester:/tester
       - ${SNAPSHOTS_DIR_NAME}:/snapshots
+    working_dir: /tester
     environment:
       RECORDER_URL: http://recorder:8080/recording
       FORWARDER_URL: http://forwarder:9001/2015-03-31/functions/myfunction/invocations
       UPDATE_SNAPSHOTS: ${UPDATE_SNAPSHOTS:-false}
       SNAPSHOTS_DIR_NAME: ${SNAPSHOTS_DIR_NAME}
-
     depends_on:
       - forwarder
-      - recorder
