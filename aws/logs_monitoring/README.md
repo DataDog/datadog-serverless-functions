@@ -138,6 +138,10 @@ If you can't install the Forwarder using the provided CloudFormation template, y
 
 If you encounter issues upgrading to the latest version, check the Troubleshooting section.
 
+### Upgrade an older version to +3.99.0
+
+Since version 3.99.0 the Lambda function has been updated to require **Python 3.11**. If upgrading an older forwarder installation to +3.99.0 or above, ensure the AWS Lambda function is configured to use Python 3.11
+
 ### Upgrade an older version to +3.98.0
 
 Since version 3.98.0 the Lambda function has been updated to require **Python 3.10**. If upgrading an older forwarder installation to 3.98.0 or above, ensure the AWS Lambda function is configured to use Python 3.10
