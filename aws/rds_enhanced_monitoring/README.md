@@ -273,7 +273,7 @@ d. **Not Recommended**: Plaintext
 
    - Create a `lambda_execution` role and attach this policy.
 
-   - Create a lambda function: skip the blueprint, name it `functionname`, set the runtime to `Python 3.9`, the handle to `lambda_function.lambda_handler`, and the role to `lambda_execution`.
+   - Create a lambda function: skip the blueprint, name it `functionname`, set the runtime to `Python 3.10`, the handle to `lambda_function.lambda_handler`, and the role to `lambda_execution`.
 
    - Copy the content of `functionname/lambda_function.py` in the code section
 
