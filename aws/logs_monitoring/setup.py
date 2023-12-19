@@ -12,11 +12,11 @@ setup(
     author="Datadog, Inc.",
     author_email="dev@datadoghq.com",
     classifiers=[
-        "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
     ],
     keywords="datadog aws lambda layer",
-    python_requires=">=3.9, <3.11",
+    python_requires=">=3.10, <3.12",
     install_requires=[
         "datadog-lambda==4.77.0",
         "requests-futures==1.0.0",

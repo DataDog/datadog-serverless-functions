@@ -7,8 +7,8 @@
 
 set -e
 
-PYTHON_VERSION="python3.10"
-PYTHON_IMAGE="python:3.10"
+PYTHON_VERSION="python3.11"
+PYTHON_IMAGE="python:3.11"
 SKIP_FORWARDER_BUILD=false
 UPDATE_SNAPSHOTS=false
 LOG_LEVEL=info
@@ -80,8 +80,8 @@ do
 	esac
 done
 
-if [ $PYTHON_VERSION != "python3.9" ] && [ $PYTHON_VERSION != "python3.10" ]; then
-    echo "Must use either Python 3.9 or 3.10"
+if [ $PYTHON_VERSION != "python3.10" ] && [ $PYTHON_VERSION != "python3.11" ]; then
+    echo "Must use either Python 3.10 or 3.11"
     exit 1
 fi
 
