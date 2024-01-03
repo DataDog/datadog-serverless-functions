@@ -543,17 +543,6 @@ class BlobStorageLogHandler {
         }
         return metadata;
     }
-
-    removeWhitespaceFromKeys(obj) {
-        // remove whitespace from the keys of an object and capitalizes the letter that follows
-        var newObj = {};
-        for (const [key, value] of Object.entries(obj)) {
-            // regex looks for word boundaries and captures the alpha character that follows
-            const new_key = key.replace(/\b\w/g, c=> c.toUpperCase()).replaceAll(' ', '');
-            newObj[new_key] = value;
-        }
-        return newObj;
-    }
 }
 
 module.exports = async function(context, blobContent) {
