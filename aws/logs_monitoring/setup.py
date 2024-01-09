@@ -18,7 +18,7 @@ setup(
     keywords="datadog aws lambda layer",
     python_requires=">=3.10, <3.12",
     install_requires=[
-        "datadog-lambda==4.77.0",
+        "datadog-lambda==5.87.0",
         "requests-futures==1.0.0",
     ],
     extras_require={
