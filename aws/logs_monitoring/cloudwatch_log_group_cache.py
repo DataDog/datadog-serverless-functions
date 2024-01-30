@@ -82,12 +82,14 @@ def get_log_group_tags(log_group):
     formatted_tags = None
     if response is not None:
         formatted_tags = [
-            "{key}:{value}".format(
-                key=sanitize_aws_tag_string(k, remove_colons=True),
-                value=sanitize_aws_tag_string(v, remove_leading_digits=False),
+            (
+                "{key}:{value}".format(
+                    key=sanitize_aws_tag_string(k, remove_colons=True),
+                    value=sanitize_aws_tag_string(v, remove_leading_digits=False),
+                )
+                if v
+                else sanitize_aws_tag_string(k, remove_colons=True)
             )
-            if v
-            else sanitize_aws_tag_string(k, remove_colons=True)
             for k, v in response["tags"].items()
         ]
     return formatted_tags
