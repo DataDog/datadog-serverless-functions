@@ -26,6 +26,8 @@ const DD_SERVICE = process.env.DD_SERVICE || 'azure';
 const DD_SOURCE = process.env.DD_SOURCE || 'azure';
 const DD_SOURCE_CATEGORY = process.env.DD_SOURCE_CATEGORY || 'azure';
 
+var logsSent = 0;
+
 /*
 To scrub PII from your logs, uncomment the applicable configs below. If you'd like to scrub more than just
 emails and IP addresses, add your own config to this map in the format
@@ -83,6 +85,7 @@ class Batcher {
         this.maxItemSizeBytes = maxItemSizeBytes;
         this.maxBatchSizeBytes = maxBatchSizeBytes;
         this.maxItemsCount = maxItemsCount;
+        this.context = context
     }
 
     batch(items) {
@@ -90,6 +93,7 @@ class Batcher {
         var batch = [];
         var sizeBytes = 0;
         var sizeCount = 0;
+        var droppedLogs = 0;
         for (var i = 0; i < items.length; i++) {
             var item = items[i];
             var itemSizeBytes = this.getSizeInBytes(item);
@@ -108,7 +112,13 @@ class Batcher {
                 batch.push(item);
                 sizeBytes += itemSizeBytes;
                 sizeCount += 1;
+            } else {
+                droppedLogs += 1;
             }
+        }
+
+        if (droppedLogs > 0) {
+            this.context.log.warn(`NUMBER OF DROPPED LOGS: ${droppedLogs}`);
         }
 
         if (sizeCount > 0) {
@@ -141,18 +151,20 @@ class HTTPClient {
         this.scrubber = new Scrubber(this.context, SCRUBBER_RULE_CONFIGS);
         this.batcher = new Batcher(
             this.context,
-            256 * 1000,
+            400 * 1000,
             4 * 1000 * 1000,
             400
         );
     }
 
-    async sendAll(records) {
+    async sendAll(records, fileName) {
         var batches = this.batcher.batch(records);
         var promises = [];
         for (var i = 0; i < batches.length; i++) {
+            logsSent += batches[i].length;
             promises.push(this.sendWithRetry(batches[i]));
         }
+        this.context.log(logsSent + " of logs have been sent for file " + fileName)
         return await Promise.all(
             promises.map(p => p.catch(e => context.log.error(e)))
         );
@@ -554,6 +566,8 @@ module.exports = async function(context, blobContent) {
     }
 
     var logs;
+    var blobName = context.bindingData.blobTrigger
+    context.log(blobName + " triggered this function");
     if (typeof blobContent === 'string') {
         logs = blobContent.trim().split('\n');
     } else if (Buffer.isBuffer(blobContent)) {
@@ -566,7 +580,7 @@ module.exports = async function(context, blobContent) {
             .trim()
             .split('\n');
     }
-
+    context.log("Received " + logs.length + " logs for file " +  blobName);
     try {
         var handler = new BlobStorageLogHandler(context);
         var parsedLogs = handler.handleLogs(logs);
@@ -574,8 +588,9 @@ module.exports = async function(context, blobContent) {
         context.log.error('Error raised when parsing logs: ', err);
         throw err;
     }
-    var results = await new HTTPClient(context).sendAll(parsedLogs);
-
+    context.log("Parsed " + parsedLogs.length + " logs for file " +  blobName);
+    var results = await new HTTPClient(context).sendAll(parsedLogs, blobName);
+    context.log(results.length + " batches of logs were sent for file " +  blobName);
     if (results.every(v => v === true) !== true) {
         context.log.error(
             'Some messages were unable to be sent. See other logs for details.'
