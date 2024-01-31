@@ -26,8 +26,6 @@ const DD_SERVICE = process.env.DD_SERVICE || 'azure';
 const DD_SOURCE = process.env.DD_SOURCE || 'azure';
 const DD_SOURCE_CATEGORY = process.env.DD_SOURCE_CATEGORY || 'azure';
 
-var logsSent = 0;
-
 /*
 To scrub PII from your logs, uncomment the applicable configs below. If you'd like to scrub more than just
 emails and IP addresses, add your own config to this map in the format
@@ -118,7 +116,7 @@ class Batcher {
         }
 
         if (droppedLogs > 0) {
-            this.context.log.warn(`NUMBER OF DROPPED LOGS: ${droppedLogs}`);
+            this.context.log.warn( droppedLogs + " Logs DROPPED in a batch of log file " + this.context.bindingData.blobTrigger);
         }
 
         if (sizeCount > 0) {
@@ -157,14 +155,16 @@ class HTTPClient {
         );
     }
 
-    async sendAll(records, fileName) {
+    async sendAll(records) {
+        var logsSent = 0;
         var batches = this.batcher.batch(records);
         var promises = [];
         for (var i = 0; i < batches.length; i++) {
+            this.context.log("Batch #" + i + " for file" + this.context.bindingData.blobTrigger + ": Number of logs in this batch is " + batches[i].length);
             logsSent += batches[i].length;
             promises.push(this.sendWithRetry(batches[i]));
         }
-        this.context.log(logsSent + " of logs have been sent for file " + fileName)
+        this.context.log(logsSent + " of logs have been sent for file " + this.context.bindingData.blobTrigger)
         return await Promise.all(
             promises.map(p => p.catch(e => context.log.error(e)))
         );
@@ -589,7 +589,7 @@ module.exports = async function(context, blobContent) {
         throw err;
     }
     context.log("Parsed " + parsedLogs.length + " logs for file " +  blobName);
-    var results = await new HTTPClient(context).sendAll(parsedLogs, blobName);
+    var results = await new HTTPClient(context).sendAll(parsedLogs);
     context.log(results.length + " batches of logs were sent for file " +  blobName);
     if (results.every(v => v === true) !== true) {
         context.log.error(
