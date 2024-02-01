@@ -116,7 +116,7 @@ class Batcher {
         }
 
         if (droppedLogs > 0) {
-            this.context.log.warn( droppedLogs + " Logs DROPPED in a batch of log file " + this.context.bindingData.blobTrigger);
+            this.context.log.warn( droppedLogs + " Logs DROPPED for log file " + this.context.bindingData.blobTrigger);
         }
 
         if (sizeCount > 0) {
@@ -164,7 +164,7 @@ class HTTPClient {
             logsSent += batches[i].length;
             promises.push(this.sendWithRetry(batches[i]));
         }
-        this.context.log(logsSent + " of logs have been sent for file " + this.context.bindingData.blobTrigger)
+        this.context.log(logsSent + " of logs have been pushed to aync submission queue for file " + this.context.bindingData.blobTrigger)
         return await Promise.all(
             promises.map(p => p.catch(e => context.log.error(e)))
         );
