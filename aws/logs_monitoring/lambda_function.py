@@ -13,6 +13,8 @@ logger = logging.getLogger()
 logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
 
 import requests
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
 from datadog_lambda.wrapper import datadog_lambda_wrapper
 from datadog_lambda.metric import lambda_stats
 from datadog import api
@@ -58,13 +60,22 @@ if len(DD_API_KEY) != 32:
     )
 # Validate the API key
 logger.debug("Validating the Datadog API key")
-validation_res = requests.get(
-    "{}/api/v1/validate?api_key={}".format(DD_API_URL, DD_API_KEY),
-    verify=(not DD_SKIP_SSL_VALIDATION),
-    timeout=10,
-)
-if not validation_res.ok:
-    raise Exception("The API key is not valid.")
+with requests.Session() as s:
+    retries = Retry(
+        total=5,
+        backoff_factor=1,
+        status_forcelist=[500, 502, 503, 504])
+
+    s.mount('http://', HTTPAdapter(max_retries=retries))
+    s.mount('https://', HTTPAdapter(max_retries=retries))
+
+    validation_res = s.get(
+        "{}/api/v1/validate?api_key={}".format(DD_API_URL, DD_API_KEY),
+        verify=(not DD_SKIP_SSL_VALIDATION),
+        timeout=10,
+    )
+    if not validation_res.ok:
+        raise Exception("The API key is not valid.")
 
 # Force the layer to use the exact same API key and host as the forwarder
 api._api_key = DD_API_KEY
