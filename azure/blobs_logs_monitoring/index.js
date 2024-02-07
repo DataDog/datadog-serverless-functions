@@ -60,6 +60,9 @@ const DD_LOG_SPLITTING_CONFIG = {
     //     preserve_fields: true
     // }
 };
+let finishCount = 0;
+let totalRetriedCount = 0;
+
 
 function getLogSplittingConfig() {
     try {
@@ -83,6 +86,7 @@ class Batcher {
         this.maxItemSizeBytes = maxItemSizeBytes;
         this.maxBatchSizeBytes = maxBatchSizeBytes;
         this.maxItemsCount = maxItemsCount;
+        this.context = context
     }
 
     batch(items) {
@@ -90,6 +94,8 @@ class Batcher {
         var batch = [];
         var sizeBytes = 0;
         var sizeCount = 0;
+        var droppedLogs = 0;
+        this.context.log.warn("Batcher batch() called with num items " + items.length);
         for (var i = 0; i < items.length; i++) {
             var item = items[i];
             var itemSizeBytes = this.getSizeInBytes(item);
@@ -108,7 +114,13 @@ class Batcher {
                 batch.push(item);
                 sizeBytes += itemSizeBytes;
                 sizeCount += 1;
+            } else {
+                droppedLogs += 1;
             }
+        }
+
+        if (droppedLogs > 0) {
+            this.context.log.warn(droppedLogs + "Batcher batch() Logs DROPPED for log file " + this.context.bindingData.blobTrigger);
         }
 
         if (sizeCount > 0) {
@@ -128,6 +140,7 @@ class Batcher {
 class HTTPClient {
     constructor(context) {
         this.context = context;
+        this.context.log("Creating httpclient");
         this.httpOptions = {
             hostname: DD_HTTP_URL,
             port: DD_HTTP_PORT,
@@ -141,31 +154,39 @@ class HTTPClient {
         this.scrubber = new Scrubber(this.context, SCRUBBER_RULE_CONFIGS);
         this.batcher = new Batcher(
             this.context,
-            256 * 1000,
+            400 * 1000,
             4 * 1000 * 1000,
             400
         );
     }
 
     async sendAll(records) {
+        var totalNumLogsAddedToPromise = 0;
         var batches = this.batcher.batch(records);
         var promises = [];
+        this.context.log("SendAll : Number of batches created in this batch is " + batches.length);
         for (var i = 0; i < batches.length; i++) {
-            promises.push(this.sendWithRetry(batches[i]));
+            this.context.log("Batch #" + (i + 1) + " for file" + this.context.bindingData.blobTrigger + ": Number of logs in this batch is " + batches[i].length);
+            totalNumLogsAddedToPromise += batches[i].length;
+            promises.push(this.sendWithRetry(batches[i], (i + 1)));
         }
-        return await Promise.all(
-            promises.map(p => p.catch(e => context.log.error(e)))
+        this.context.log(totalNumLogsAddedToPromise + " of logs have been pushed to aync submission queue for file " + this.context.bindingData.blobTrigger)
+        var resolvedPromises = await Promise.all(
+            promises.map(p => p.catch(e => this.context.log.error(e)))
         );
+        this.context.log(`Num batches sent: ${finishCount}. Num batches retried: ${totalRetriedCount}`); // Log the counter after all promises have resolved
+        return resolvedPromises;
     }
 
-    sendWithRetry(record) {
+    sendWithRetry(record, batchnum) {
         return new Promise((resolve, reject) => {
-            return this.send(record)
+            return this.send(record, batchnum)
                 .then(res => {
                     resolve(true);
                 })
                 .catch(err => {
-                    this.send(record)
+                    this.context.log.warn(`Retry for batch#: ${batchnum}, file: ${this.context.bindingData.blobTrigger}`);
+                    this.send(record, batchnum)
                         .then(res => {
                             resolve(true);
                         })
@@ -174,11 +195,15 @@ class HTTPClient {
                                 `unable to send request after 2 tries, err: ${err}`
                             );
                         });
+                    totalRetriedCount++;
                 });
-        });
+        })
+            .catch(err => {
+                this.context.log.error(`Error: ${err} in sending batch#: ${batchnum}, file: ${this.context.bindingData.blobTrigger}`);
+            });
     }
 
-    send(record) {
+    send(record, batchnum) {
         return new Promise((resolve, reject) => {
             const req = https
                 .request(this.httpOptions, resp => {
@@ -190,6 +215,10 @@ class HTTPClient {
                 })
                 .on('error', error => {
                     reject(error);
+                })
+                .on('finish', () => {
+                    finishCount++; // Increment the counter each time the 'finish' event is emitted
+                    this.context.log.warn(`Sent batch#: ${batchnum}, file: ${this.context.bindingData.blobTrigger}`);
                 });
             req.write(this.scrubber.scrub(JSON.stringify(record)));
             req.end();
@@ -199,6 +228,7 @@ class HTTPClient {
 
 class Scrubber {
     constructor(context, configs) {
+        this.context = context;
         var rules = [];
         for (const [name, settings] of Object.entries(configs)) {
             try {
@@ -210,7 +240,7 @@ class Scrubber {
                     )
                 );
             } catch {
-                context.log.error(
+                this.context.log.error(
                     `Regexp for rule ${name} pattern ${settings['pattern']} is malformed, skipping. Please update the pattern for this rule to be applied.`
                 );
             }
@@ -284,7 +314,7 @@ class BlobStorageLogHandler {
                         if (typeof splitRecord === 'string') {
                             try {
                                 splitRecord = JSON.parse(splitRecord);
-                            } catch (err) {}
+                            } catch (err) { }
                         }
                         var formattedSplitRecord = {};
                         var temp = formattedSplitRecord;
@@ -444,7 +474,7 @@ class BlobStorageLogHandler {
     }
 
     createDDTags(tags) {
-        const forwarderNameTag =  'forwardername:' + this.context.executionContext.functionName;
+        const forwarderNameTag = 'forwardername:' + this.context.executionContext.functionName;
         const fowarderVersionTag = 'forwarderversion:' + VERSION;
         var ddTags = tags.concat([DD_TAGS, forwarderNameTag, fowarderVersionTag]);
         return ddTags.filter(Boolean).join(',');
@@ -545,7 +575,7 @@ class BlobStorageLogHandler {
     }
 }
 
-module.exports = async function(context, blobContent) {
+module.exports = async function (context, blobContent) {
     if (!DD_API_KEY || DD_API_KEY === '<DATADOG_API_KEY>') {
         context.log.error(
             'You must configure your API key before starting this function (see ## Parameters section)'
@@ -554,6 +584,8 @@ module.exports = async function(context, blobContent) {
     }
 
     var logs;
+    var blobName = context.bindingData.blobTrigger
+    context.log(blobName + " triggered this function");
     if (typeof blobContent === 'string') {
         logs = blobContent.trim().split('\n');
     } else if (Buffer.isBuffer(blobContent)) {
@@ -566,7 +598,7 @@ module.exports = async function(context, blobContent) {
             .trim()
             .split('\n');
     }
-
+    context.log("Received " + logs.length + " logs for file " + blobName);
     try {
         var handler = new BlobStorageLogHandler(context);
         var parsedLogs = handler.handleLogs(logs);
@@ -574,12 +606,31 @@ module.exports = async function(context, blobContent) {
         context.log.error('Error raised when parsing logs: ', err);
         throw err;
     }
-    var results = await new HTTPClient(context).sendAll(parsedLogs);
+    // Initialize the flag to true, assuming all logs will be sent successfully
+    var allLogsSentSuccessfully = true;
 
-    if (results.every(v => v === true) !== true) {
-        context.log.error(
-            'Some messages were unable to be sent. See other logs for details.'
-        );
+    context.log("Parsed " + parsedLogs.length + " logs for file " + blobName);
+
+    try {
+        var results = await new HTTPClient(context).sendAll(parsedLogs);
+        context.log(results.length + " batches of logs were sent for file " + blobName);
+
+        // Check if there are any failures in log sending
+        if (results.every(v => v === true) !== true) {
+            allLogsSentSuccessfully = false;
+            context.log.error(
+                'Some messages were unable to be sent. See other logs for details.'
+            );
+        }
+    } catch (err) {
+        context.log.error('Error raised when sending logs: ', err);
+        allLogsSentSuccessfully = false;
+    }
+
+    if (allLogsSentSuccessfully) {
+        context.log('All log lines have been sent successfully.');
+    } else {
+        context.log.error('Some log lines were skipped or not sent successfully.');
     }
 
     context.done();
