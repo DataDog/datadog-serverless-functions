@@ -164,6 +164,8 @@ class HTTPClient {
         var totalNumLogsAddedToPromise = 0;
         var batches = this.batcher.batch(records);
         var promises = [];
+        finishCount = 0;
+        totalRetriedCount = 0;
         this.context.log("SendAll : Number of batches created in this batch is " + batches.length);
         for (var i = 0; i < batches.length; i++) {
             this.context.log("Batch #" + (i + 1) + " for file" + this.context.bindingData.blobTrigger + ": Number of logs in this batch is " + batches[i].length);
@@ -218,7 +220,7 @@ class HTTPClient {
                 })
                 .on('finish', () => {
                     finishCount++; // Increment the counter each time the 'finish' event is emitted
-                    this.context.log.warn(`Sent batch#: ${batchnum}, file: ${this.context.bindingData.blobTrigger}`);
+                    this.context.log(`Sent batch#: ${batchnum}, file: ${this.context.bindingData.blobTrigger}`);
                 });
             req.write(this.scrubber.scrub(JSON.stringify(record)));
             req.end();
