@@ -352,6 +352,7 @@ class Stats(object):
                     print(
                         "INFO Submitted data with status: {}".format(response.getcode())
                     )
+                    break
             except HTTPError as e:
                 if e.code in (500, 502, 503, 504):
                     if attempt == self.max_attempts:
