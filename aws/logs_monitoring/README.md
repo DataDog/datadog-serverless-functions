@@ -199,7 +199,7 @@ You can also add additional logging or code for deeper investigation. Find instr
 
 Manually updating the `.zip` code of the Forwarder may cause conflicts with Cloudformation updates for Forwarder installations where the code is packaged in a Lambda layer (default installation choice from version `3.33.0`) and cause invocation errors. In this case, updating the stack through Cloudformation to the latest available twice in a row (first with `InstallAsLayer` set to `false`, and then to `true`) should solve the issue as it will remove any `.zip` remnants and install the latest layer available.
 
-If you still couldn't figure out, please create a ticket for [Datadog Support][10] with a copy of debugging logs.
+If you still can't resolve your issue, please create a ticket for [Datadog Support][10] with a copy of debugging logs.
 
 ### JSON-formatted logs are not appearing in Datadog
 If your logs contain an attribute that Datadog parses as a timestamp, you need to make sure that the timestamp is both current and in the correct format. See [Log Date Remapper][24] to learn about which attributes are parsed as timestamps and how to make sure that the timestamp is valid.
