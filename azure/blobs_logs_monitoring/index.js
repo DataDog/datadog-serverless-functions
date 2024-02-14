@@ -174,7 +174,7 @@ class HTTPClient {
         var resolvedPromises = await Promise.all(
             promises.map(p => p.catch(e => this.context.log.error(e)))
         );
-        this.context.log(`Num batches sent (including retries): ${this.numBatchesSent}. Num batches retried: ${this.numBatchesRetried}`); // Log the counter after all promises have resolved
+        this.context.log(`Num batches sent: ${this.numBatchesSent}. Num batches retried: ${this.numBatchesRetried}`); // Log the counter after all promises have resolved
         return resolvedPromises;
     }
 
