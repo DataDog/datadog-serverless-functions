@@ -4,7 +4,7 @@
 // Copyright 2021 Datadog, Inc.
 var https = require('https');
 
-const VERSION = '1.0.0';
+const VERSION = '1.1.0';
 
 const STRING = 'string'; // example: 'some message'
 const STRING_ARRAY = 'string-array'; // example: ['one message', 'two message', ...]
@@ -25,6 +25,20 @@ const DD_TAGS = process.env.DD_TAGS || ''; // Replace '' by your comma-separated
 const DD_SERVICE = process.env.DD_SERVICE || 'azure';
 const DD_SOURCE = process.env.DD_SOURCE || 'azure';
 const DD_SOURCE_CATEGORY = process.env.DD_SOURCE_CATEGORY || 'azure';
+
+// Whether to fail the function execution on any error batching and sending logs
+const DD_SHOULD_FAIL_EXECUTION_ON_ERROR = process.env.DD_SHOULD_FAIL_EXECUTION_ON_ERROR;
+
+
+function shouldFailExecutionOnError() {
+    // Default to false if the env variable is not set, is null, etc
+    if (typeof DD_SHOULD_FAIL_EXECUTION_ON_ERROR !== 'string') {
+        return false;
+    }
+    const should_fail_exeution_on_error = DD_SHOULD_FAIL_EXECUTION_ON_ERROR.toLowerCase();
+    return (should_fail_exeution_on_error === 'true' || should_fail_exeution_on_error === 't');
+}
+
 
 /*
 To scrub PII from your logs, uncomment the applicable configs below. If you'd like to scrub more than just
@@ -625,6 +639,10 @@ module.exports = async function (context, blobContent) {
     } catch (err) {
         context.log.error('Error raised when sending logs: ', err);
         allLogsSentSuccessfully = false;
+        if (shouldFailExecutionOnError()) {
+            context.log.error('Failing execution of the function.')
+            throw err;
+        }
     }
 
     if (allLogsSentSuccessfully) {
