@@ -9,6 +9,9 @@ function fakeContext() {
     contextSpy.log = sinon.spy();
     contextSpy.log.error = function(x) {}; // do nothing
     contextSpy.log.warn = function(x) {}; // do nothing
+    
+    contextSpy.bindingData = sinon.spy();
+    contextSpy.bindingData.blobTrigger = "test/file.log"
 
     return contextSpy;
 }
@@ -576,21 +579,21 @@ describe('Azure Activity Log Monitoring', function() {
 describe('Batching', function() {
     describe('#batch', function() {
         it('should return two batches because of size', function() {
-            batcher = new client.Batcher(15, 15, 1);
+            batcher = new client.Batcher(fakeContext(), 15, 15, 1);
             logs = [{ hi: 'bye' }, 'bleh'];
             actual = batcher.batch(logs);
             expected = [[{ hi: 'bye' }], ['bleh']];
             assert.deepEqual(actual, expected);
         });
         it('should return two batches because of batch size bytes', function() {
-            batcher = new client.Batcher(5, 12, 10);
+            batcher = new client.Batcher(fakeContext(), 15, 12, 10);
             logs = [{ hi: 'bye' }, 'bleh'];
             actual = batcher.batch(logs);
             expected = [[{ hi: 'bye' }], ['bleh']];
             assert.deepEqual(actual, expected);
         });
         it('should drop message based on message bytes size', function() {
-            batcher = new client.Batcher(5, 5, 1);
+            batcher = new client.Batcher(fakeContext(), 5, 5, 1);
             logs = [{ hi: 'bye' }, 'bleh'];
             actual = batcher.batch(logs);
             expected = [['bleh']];
@@ -599,7 +602,7 @@ describe('Batching', function() {
     });
     describe('#getSizeInBytes', function() {
         it('should return 5 for string', function() {
-            batcher = new client.Batcher(15, 15, 1);
+            batcher = new client.Batcher(fakeContext(), 15, 15, 1);
             log = 'aaaaa';
             actual = batcher.getSizeInBytes(log);
             expected = 5;
@@ -607,7 +610,7 @@ describe('Batching', function() {
         });
 
         it('should return 7 for object', function() {
-            batcher = new client.Batcher(15, 15, 1);
+            batcher = new client.Batcher(fakeContext(), 15, 15, 1);
             log = { a: 2 };
             actual = batcher.getSizeInBytes(log);
             expected = 7;
