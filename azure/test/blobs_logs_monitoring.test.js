@@ -586,7 +586,7 @@ describe('Batching', function() {
             assert.deepEqual(actual, expected);
         });
         it('should return two batches because of batch size bytes', function() {
-            batcher = new client.Batcher(fakeContext(), 5, 12, 10);
+            batcher = new client.Batcher(fakeContext(), 15, 12, 10);
             logs = [{ hi: 'bye' }, 'bleh'];
             actual = batcher.batch(logs);
             expected = [[{ hi: 'bye' }], ['bleh']];
