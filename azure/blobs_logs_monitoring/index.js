@@ -60,8 +60,6 @@ const DD_LOG_SPLITTING_CONFIG = {
     //     preserve_fields: true
     // }
 };
-let finishCount = 0;
-let totalRetriedCount = 0;
 
 
 function getLogSplittingConfig() {
@@ -120,7 +118,7 @@ class Batcher {
         }
 
         if (droppedLogs > 0) {
-            this.context.log.warn(droppedLogs + "Batcher batch() Logs DROPPED for log file " + this.context.bindingData.blobTrigger);
+            this.context.log.warn(droppedLogs + " Batcher batch() Logs DROPPED for log file " + this.context.bindingData.blobTrigger);
         }
 
         if (sizeCount > 0) {
@@ -158,14 +156,14 @@ class HTTPClient {
             4 * 1000 * 1000,
             400
         );
+        this.numBatchesSent = 0;
+        this.numBatchesRetried = 0;
     }
 
     async sendAll(records) {
         var totalNumLogsAddedToPromise = 0;
         var batches = this.batcher.batch(records);
         var promises = [];
-        finishCount = 0;
-        totalRetriedCount = 0;
         this.context.log("SendAll : Number of batches created in this batch is " + batches.length);
         for (var i = 0; i < batches.length; i++) {
             this.context.log("Batch #" + (i + 1) + " for file" + this.context.bindingData.blobTrigger + ": Number of logs in this batch is " + batches[i].length);
@@ -176,7 +174,7 @@ class HTTPClient {
         var resolvedPromises = await Promise.all(
             promises.map(p => p.catch(e => this.context.log.error(e)))
         );
-        this.context.log(`Num batches sent: ${finishCount}. Num batches retried: ${totalRetriedCount}`); // Log the counter after all promises have resolved
+        this.context.log(`Num batches sent (including retries): ${this.numBatchesSent}. Num batches retried: ${this.numBatchesRetried}`); // Log the counter after all promises have resolved
         return resolvedPromises;
     }
 
@@ -197,7 +195,7 @@ class HTTPClient {
                                 `unable to send request after 2 tries, err: ${err}`
                             );
                         });
-                    totalRetriedCount++;
+                    this.numBatchesRetried++;
                 });
         })
             .catch(err => {
@@ -219,7 +217,7 @@ class HTTPClient {
                     reject(error);
                 })
                 .on('finish', () => {
-                    finishCount++; // Increment the counter each time the 'finish' event is emitted
+                    this.numBatchesSent++; // Increment the counter each time the 'finish' event is emitted
                     this.context.log(`Sent batch#: ${batchnum}, file: ${this.context.bindingData.blobTrigger}`);
                 });
             req.write(this.scrubber.scrub(JSON.stringify(record)));
