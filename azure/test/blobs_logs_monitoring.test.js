@@ -9,6 +9,8 @@ function fakeContext() {
     contextSpy.log = sinon.spy();
     contextSpy.log.error = function(x) {}; // do nothing
     contextSpy.log.warn = function(x) {}; // do nothing
+    
+    contextSpy.bindingData = sinon.spy();
     contextSpy.bindingData.blobTrigger = "test/file.log"
 
     return contextSpy;
