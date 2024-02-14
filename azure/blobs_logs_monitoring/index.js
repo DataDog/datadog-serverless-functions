@@ -93,7 +93,7 @@ class Batcher {
         var sizeBytes = 0;
         var sizeCount = 0;
         var droppedLogs = 0;
-        this.context.log.warn("Batcher batch() called with num items " + items.length);
+        this.context.log("Batcher batch() called with num items " + items.length);
         for (var i = 0; i < items.length; i++) {
             var item = items[i];
             var itemSizeBytes = this.getSizeInBytes(item);
