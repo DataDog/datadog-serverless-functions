@@ -640,7 +640,7 @@ module.exports = async function (context, blobContent) {
         context.log.error('Error raised when sending logs: ', err);
         allLogsSentSuccessfully = false;
         if (shouldFailExecutionOnError()) {
-            context.log.error('Failing execution of the function.')
+            context.log.error('Failing execution of the function because shouldFailExecutionOnError is enabled.');
             throw err;
         }
     }
