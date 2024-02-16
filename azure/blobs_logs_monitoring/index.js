@@ -635,6 +635,7 @@ module.exports = async function (context, blobContent) {
             context.log.error(
                 'Some messages were unable to be sent. See other logs for details.'
             );
+            throw new Error('Error occurred when sending logs');
         }
     } catch (err) {
         context.log.error('Error raised when sending logs: ', err);
