@@ -328,6 +328,10 @@ def find_cloudwatch_source(log_group):
     if log_group.startswith("/aws/fsx/windows"):
         return "aws.fsx"
 
+    # e.g. aws-waf-logs-xxxx
+    if log_group.startswith("aws-waf-logs-"):
+        return "waf"
+      
     if log_group.startswith("/aws/appsync/"):
         return "appsync"
 
