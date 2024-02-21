@@ -313,6 +313,9 @@ def find_cloudwatch_source(log_group):
     ):
         return "apigateway"
 
+    if log_group.startswith('/aws/batch/job'):
+        return "batch"
+
     if log_group.startswith("/aws/vendedlogs/states"):
         return "stepfunction"
 
@@ -548,6 +551,10 @@ def awslogs_handler(event, context, metadata):
     # Set service from custom tags, which may include the tags set on the log group
     # Returns DD_SOURCE by default
     metadata[DD_SERVICE] = get_service_from_tags_and_remove_duplicates(metadata)
+
+    if metadata[DD_SOURCE] == "batch":
+        metadata[DD_SERVICE] = aws_attributes["aws"]["awslogs"]["logStream"].split("/")[0]
+        metadata[DD_HOST] = aws_attributes["aws"]["awslogs"]["logStream"].split("/")[-1]
 
     # Set host as log group where cloudwatch is source
     if metadata[DD_SOURCE] == "cloudwatch" or metadata.get(DD_HOST, None) == None:
