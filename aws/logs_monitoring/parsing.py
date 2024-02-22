@@ -331,6 +331,13 @@ def find_cloudwatch_source(log_group):
     if log_group.startswith("/aws/appsync/"):
         return "appsync"
 
+    # e.g. /aws/OpenSearchService/domains/*/SEARCH_SLOW_LOGS
+    # e.g. /aws/OpenSearchService/domains/*/INDEX_SLOW_LOGS
+    # e.g. /aws/OpenSearchService/domains/*/ES_APPLICATION_LOGS
+    # e.g. /aws/OpenSearchService/domains/*/AUDIT_LOGS
+    if log_group.startswith("/aws/opensearchservice/domains/"):
+        return "elasticsearch"
+
     for source in [
         "/aws/lambda",  # e.g. /aws/lambda/helloDatadog
         "/aws/codebuild",  # e.g. /aws/codebuild/my-project

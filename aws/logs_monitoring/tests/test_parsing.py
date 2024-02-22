@@ -273,6 +273,15 @@ class TestParseEventSource(unittest.TestCase):
             "appsync",
         )
 
+    def test_opensearch_event(self):
+        self.assertEqual(
+            parse_event_source(
+                {"awslogs": "logs"},
+                "/aws/OpenSearchService/domains/my-opensearch-cluster/ES_APPLICATION_LOGS",
+            ),
+            "elasticsearch",
+        )
+
     def test_cloudfront_event(self):
         self.assertEqual(
             parse_event_source(
