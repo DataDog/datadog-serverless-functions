@@ -128,6 +128,16 @@ class TestParseEventSource(unittest.TestCase):
             parse_event_source({"awslogs": "logs"}, "/aws/http-api/my-project"),
             "apigateway",
         )
+        self.assertEqual(
+            parse_event_source({"awslogs": "logs"},
+                               "/aws/vendedlogs/http-api/my-project"),
+            "apigateway",
+        )
+        self.assertEqual(
+            parse_event_source({"awslogs": "logs"},
+                               "/aws/vendedlogs/http-api/my-project"),
+            "apigateway",
+        )
 
     def test_dms_event(self):
         self.assertEqual(
