@@ -3,135 +3,26 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2021 Datadog, Inc.
 
-from settings import DD_FORWARDER_VERSION
-import gzip
-import json
-import os
-from concurrent.futures import as_completed
 
-import re
+import os
 import socket
 import ssl
 import logging
 import time
+from concurrent.futures import as_completed
 from requests_futures.sessions import FuturesSession
+from logs_helpers import compress_logs, compileRegex
+from exceptions import RetriableException, ScrubbingException
 
-from datadog_lambda.metric import lambda_stats
-from telemetry import (
-    DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX,
-    get_forwarder_telemetry_tags,
-)
 from settings import (
-    DD_API_KEY,
-    DD_USE_TCP,
     DD_USE_COMPRESSION,
     DD_COMPRESSION_LEVEL,
-    DD_NO_SSL,
-    DD_SKIP_SSL_VALIDATION,
-    DD_URL,
-    DD_PORT,
-    SCRUBBING_RULE_CONFIGS,
-    INCLUDE_AT_MATCH,
-    EXCLUDE_AT_MATCH,
     DD_MAX_WORKERS,
+    DD_FORWARDER_VERSION,
 )
 
 logger = logging.getLogger()
-
-
-class RetriableException(Exception):
-    pass
-
-
-class ScrubbingException(Exception):
-    pass
-
-
-def forward_logs(logs):
-    """Forward logs to Datadog"""
-    if logger.isEnabledFor(logging.DEBUG):
-        logger.debug(f"Forwarding {len(logs)} logs")
-    logs_to_forward = filter_logs(
-        [json.dumps(log, ensure_ascii=False) for log in logs],
-        include_pattern=INCLUDE_AT_MATCH,
-        exclude_pattern=EXCLUDE_AT_MATCH,
-    )
-    scrubber = DatadogScrubber(SCRUBBING_RULE_CONFIGS)
-    if DD_USE_TCP:
-        batcher = DatadogBatcher(256 * 1000, 256 * 1000, 1)
-        cli = DatadogTCPClient(DD_URL, DD_PORT, DD_NO_SSL, DD_API_KEY, scrubber)
-    else:
-        batcher = DatadogBatcher(512 * 1000, 4 * 1000 * 1000, 400)
-        cli = DatadogHTTPClient(
-            DD_URL, DD_PORT, DD_NO_SSL, DD_SKIP_SSL_VALIDATION, DD_API_KEY, scrubber
-        )
-
-    with DatadogClient(cli) as client:
-        for batch in batcher.batch(logs_to_forward):
-            try:
-                client.send(batch)
-            except Exception:
-                logger.exception(f"Exception while forwarding log batch {batch}")
-            else:
-                if logger.isEnabledFor(logging.DEBUG):
-                    logger.debug(f"Forwarded log batch: {json.dumps(batch)}")
-
-    lambda_stats.distribution(
-        "{}.logs_forwarded".format(DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX),
-        len(logs_to_forward),
-        tags=get_forwarder_telemetry_tags(),
-    )
-
-
-def compileRegex(rule, pattern):
-    if pattern is not None:
-        if pattern == "":
-            # If pattern is an empty string, raise exception
-            raise Exception(
-                "No pattern provided:\nAdd pattern or remove {} environment variable".format(
-                    rule
-                )
-            )
-        try:
-            return re.compile(pattern)
-        except Exception:
-            raise Exception(
-                "could not compile {} regex with pattern: {}".format(rule, pattern)
-            )
-
-
-def filter_logs(logs, include_pattern=None, exclude_pattern=None):
-    """
-    Applies log filtering rules.
-    If no filtering rules exist, return all the logs.
-    """
-    if include_pattern is None and exclude_pattern is None:
-        return logs
-    # Add logs that should be sent to logs_to_send
-    logs_to_send = []
-    for log in logs:
-        if exclude_pattern is not None or include_pattern is not None:
-            logger.debug("Filtering log event:")
-            logger.debug(log)
-        try:
-            if exclude_pattern is not None:
-                # if an exclude match is found, do not add log to logs_to_send
-                logger.debug(f"Applying exclude pattern: {exclude_pattern}")
-                exclude_regex = compileRegex("EXCLUDE_AT_MATCH", exclude_pattern)
-                if re.search(exclude_regex, log):
-                    logger.debug("Exclude pattern matched, excluding log event")
-                    continue
-            if include_pattern is not None:
-                # if no include match is found, do not add log to logs_to_send
-                logger.debug(f"Applying include pattern: {include_pattern}")
-                include_regex = compileRegex("INCLUDE_AT_MATCH", include_pattern)
-                if not re.search(include_regex, log):
-                    logger.debug("Include pattern did not match, excluding log event")
-                    continue
-            logs_to_send.append(log)
-        except ScrubbingException:
-            raise Exception("could not filter the payload")
-    return logs_to_send
+logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
 
 
 class DatadogClient(object):
@@ -161,17 +52,6 @@ class DatadogClient(object):
 
     def __exit__(self, ex_type, ex_value, traceback):
         self._client.__exit__(ex_type, ex_value, traceback)
-
-
-def compress_logs(batch, level):
-    if level < 0:
-        compression_level = 0
-    elif level > 9:
-        compression_level = 9
-    else:
-        compression_level = level
-
-    return gzip.compress(bytes(batch, "utf-8"), compression_level)
 
 
 class DatadogScrubber(object):

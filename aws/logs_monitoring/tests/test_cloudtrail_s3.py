@@ -24,7 +24,7 @@ env_patch = patch.dict(
 env_patch.start()
 
 import lambda_function
-import parsing
+from parsing import parse
 
 env_patch.stop()
 
@@ -120,7 +120,7 @@ class TestS3CloudwatchParsing(unittest.TestCase):
             }
         }
 
-        result = parsing.parse({"Records": [payload]}, context)
+        result = parse({"Records": [payload]}, context)
 
         expected = copy.deepcopy([test_data["Records"][0]])
         expected[0].update(

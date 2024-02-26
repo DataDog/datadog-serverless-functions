@@ -1,7 +1,8 @@
 import unittest
 import os
 
-from logs import DatadogScrubber, filter_logs
+from logs import DatadogScrubber
+from logs_helpers import filter_logs
 from settings import ScrubbingRuleConfig, SCRUBBING_RULE_CONFIGS, get_env_var
 
 
@@ -80,3 +81,7 @@ class TestFilterLogs(unittest.TestCase):
     def test_no_filtering_rules(self):
         filtered_logs = filter_logs(self.example_logs)
         self.assertEqual(filtered_logs, self.example_logs)
+
+
+if __name__ == "__main__":
+    unittest.main()
