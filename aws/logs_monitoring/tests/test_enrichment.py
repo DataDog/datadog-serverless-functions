@@ -1,6 +1,6 @@
 import unittest
 import json
-from enrichment import (
+from steps.enrichment import (
     extract_host_from_cloudtrails,
     extract_host_from_guardduty,
     extract_host_from_route53,

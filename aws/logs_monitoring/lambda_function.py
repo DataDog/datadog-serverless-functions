@@ -11,10 +11,10 @@ import requests
 from datadog_lambda.wrapper import datadog_lambda_wrapper
 from datadog import api
 from enhanced_lambda_metrics import parse_and_submit_enhanced_metrics
-from parsing import parse
-from enrichment import enrich
-from transformation import transform
-from splitting import split
+from steps.parsing import parse
+from steps.enrichment import enrich
+from steps.transformation import transform
+from steps.splitting import split
 from forwarder import (
     forward_metrics,
     forward_traces,

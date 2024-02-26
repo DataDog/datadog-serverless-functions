@@ -27,10 +27,10 @@ env_patch = patch.dict(
 )
 env_patch.start()
 from lambda_function import invoke_additional_target_lambdas
-from enrichment import enrich
-from transformation import transform
-from splitting import split
-from parsing import parse, parse_event_type
+from steps.enrichment import enrich
+from steps.transformation import transform
+from steps.splitting import split
+from steps.parsing import parse, parse_event_type
 
 env_patch.stop()
 
@@ -141,7 +141,7 @@ class TestLambdaFunctionEndToEnd(unittest.TestCase):
     @patch("caching.cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.get")
     def test_setting_service_tag_from_log_group_cache(self, cw_logs_tags_get):
         reload(sys.modules["settings"])
-        reload(sys.modules["parsing"])
+        reload(sys.modules["steps.parsing"])
         cw_logs_tags_get.return_value = ["service:log_group_service"]
         context = Context()
         input_data = self._get_input_data()
@@ -162,7 +162,7 @@ class TestLambdaFunctionEndToEnd(unittest.TestCase):
     @patch("caching.cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.get")
     def test_service_override_from_dd_tags(self, cw_logs_tags_get):
         reload(sys.modules["settings"])
-        reload(sys.modules["parsing"])
+        reload(sys.modules["steps.parsing"])
         cw_logs_tags_get.return_value = ["service:log_group_service"]
         context = Context()
         input_data = self._get_input_data()

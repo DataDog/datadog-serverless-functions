@@ -23,7 +23,7 @@ env_patch = patch.dict(
     },
 )
 env_patch.start()
-from parsing import (
+from steps.parsing import (
     awslogs_handler,
     parse_event_source,
     parse_service_arn,
@@ -396,12 +396,12 @@ class TestParseServiceArn(unittest.TestCase):
 
 
 class TestAWSLogsHandler(unittest.TestCase):
-    @patch("parsing.CloudwatchLogGroupTagsCache.get")
-    @patch("parsing.CloudwatchLogGroupTagsCache.release_s3_cache_lock")
-    @patch("parsing.CloudwatchLogGroupTagsCache.acquire_s3_cache_lock")
-    @patch("parsing.CloudwatchLogGroupTagsCache.write_cache_to_s3")
+    @patch("steps.parsing.CloudwatchLogGroupTagsCache.get")
+    @patch("steps.parsing.CloudwatchLogGroupTagsCache.release_s3_cache_lock")
+    @patch("steps.parsing.CloudwatchLogGroupTagsCache.acquire_s3_cache_lock")
+    @patch("steps.parsing.CloudwatchLogGroupTagsCache.write_cache_to_s3")
     @patch("caching.base_tags_cache.send_forwarder_internal_metrics")
-    @patch("parsing.CloudwatchLogGroupTagsCache.get_cache_from_s3")
+    @patch("steps.parsing.CloudwatchLogGroupTagsCache.get_cache_from_s3")
     def test_awslogs_handler_rds_postgresql(
         self,
         mock_get_s3_cache,
@@ -451,13 +451,13 @@ class TestAWSLogsHandler(unittest.TestCase):
         verify_as_json(list(awslogs_handler(event, context, metadata)))
         verify_as_json(metadata, options=NamerFactory.with_parameters("metadata"))
 
-    @patch("parsing.CloudwatchLogGroupTagsCache.get")
-    @patch("parsing.StepFunctionsTagsCache.get")
-    @patch("parsing.StepFunctionsTagsCache.release_s3_cache_lock")
-    @patch("parsing.StepFunctionsTagsCache.acquire_s3_cache_lock")
-    @patch("parsing.StepFunctionsTagsCache.write_cache_to_s3")
+    @patch("steps.parsing.CloudwatchLogGroupTagsCache.get")
+    @patch("steps.parsing.StepFunctionsTagsCache.get")
+    @patch("steps.parsing.StepFunctionsTagsCache.release_s3_cache_lock")
+    @patch("steps.parsing.StepFunctionsTagsCache.acquire_s3_cache_lock")
+    @patch("steps.parsing.StepFunctionsTagsCache.write_cache_to_s3")
     @patch("caching.base_tags_cache.send_forwarder_internal_metrics")
-    @patch("parsing.StepFunctionsTagsCache.get_cache_from_s3")
+    @patch("steps.parsing.StepFunctionsTagsCache.get_cache_from_s3")
     def test_awslogs_handler_step_functions_tags_added_properly(
         self,
         mock_get_s3_cache,

@@ -1,6 +1,6 @@
 import unittest
 from approvaltests.approvals import verify_as_json
-from transformation import (
+from steps.transformation import (
     separate_security_hub_findings,
     parse_aws_waf_logs,
 )

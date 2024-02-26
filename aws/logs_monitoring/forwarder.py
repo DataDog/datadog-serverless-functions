@@ -8,14 +8,14 @@ from telemetry import (
 )
 from datadog_lambda.metric import lambda_stats
 from trace_forwarder.connection import TraceConnection
-from logs import (
+from logs.logs import (
     DatadogScrubber,
     DatadogBatcher,
     DatadogClient,
     DatadogHTTPClient,
     DatadogTCPClient,
 )
-from logs_helpers import filter_logs
+from logs.logs_helpers import filter_logs
 from settings import (
     DD_API_KEY,
     DD_USE_TCP,

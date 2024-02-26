@@ -1,5 +1,5 @@
 import unittest
-from splitting import (
+from steps.splitting import (
     extract_metric,
     extract_trace_payload,
 )

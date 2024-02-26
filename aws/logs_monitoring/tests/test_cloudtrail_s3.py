@@ -24,7 +24,7 @@ env_patch = patch.dict(
 env_patch.start()
 
 import lambda_function
-from parsing import parse
+from steps.parsing import parse
 
 env_patch.stop()
 
@@ -99,7 +99,7 @@ class TestS3CloudwatchParsing(unittest.TestCase):
         self.maxDiff = 9000
 
     @patch("caching.base_tags_cache.boto3")
-    @patch("parsing.boto3")
+    @patch("steps.parsing.boto3")
     @patch("lambda_function.boto3")
     def test_s3_cloudtrail_pasing_and_enrichment(
         self, lambda_boto3, parsing_boto3, cache_boto3

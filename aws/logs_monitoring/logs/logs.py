@@ -11,8 +11,8 @@ import logging
 import time
 from concurrent.futures import as_completed
 from requests_futures.sessions import FuturesSession
-from logs_helpers import compress_logs, compileRegex
-from exceptions import RetriableException, ScrubbingException
+from logs.logs_helpers import compress_logs, compileRegex
+from logs.exceptions import RetriableException, ScrubbingException
 
 from settings import (
     DD_USE_COMPRESSION,

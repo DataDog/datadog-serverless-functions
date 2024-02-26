@@ -2,7 +2,7 @@ import logging
 import re
 import gzip
 import os
-from exceptions import ScrubbingException
+from logs.exceptions import ScrubbingException
 
 logger = logging.getLogger()
 logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
