@@ -1,6 +1,6 @@
 import boto3
 
-from base_tags_cache import (
+from caching.base_tags_cache import (
     BaseTagsCache,
     logger,
     sanitize_aws_tag_string,

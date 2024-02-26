@@ -138,7 +138,7 @@ class TestLambdaFunctionEndToEnd(unittest.TestCase):
 
         del os.environ["DD_FETCH_LAMBDA_TAGS"]
 
-    @patch("cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.get")
+    @patch("caching.cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.get")
     def test_setting_service_tag_from_log_group_cache(self, cw_logs_tags_get):
         reload(sys.modules["settings"])
         reload(sys.modules["parsing"])
@@ -159,7 +159,7 @@ class TestLambdaFunctionEndToEnd(unittest.TestCase):
             self.assertEqual(log["service"], "log_group_service")
 
     @patch.dict(os.environ, {"DD_TAGS": "service:dd_tag_service"}, clear=True)
-    @patch("cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.get")
+    @patch("caching.cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.get")
     def test_service_override_from_dd_tags(self, cw_logs_tags_get):
         reload(sys.modules["settings"])
         reload(sys.modules["parsing"])
@@ -179,8 +179,8 @@ class TestLambdaFunctionEndToEnd(unittest.TestCase):
         for log in logs:
             self.assertEqual(log["service"], "dd_tag_service")
 
-    @patch("lambda_cache.LambdaTagsCache.get")
-    @patch("cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.get")
+    @patch("caching.lambda_cache.LambdaTagsCache.get")
+    @patch("caching.cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.get")
     def test_overrding_service_tag_from_lambda_cache(
         self, lambda_tags_get, cw_logs_tags_get
     ):
@@ -203,8 +203,8 @@ class TestLambdaFunctionEndToEnd(unittest.TestCase):
             self.assertEqual(log["service"], "lambda_service")
 
     @patch.dict(os.environ, {"DD_TAGS": "service:dd_tag_service"}, clear=True)
-    @patch("lambda_cache.LambdaTagsCache.get")
-    @patch("cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.get")
+    @patch("caching.lambda_cache.LambdaTagsCache.get")
+    @patch("caching.cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.get")
     def test_overrding_service_tag_from_lambda_cache_when_dd_tags_is_set(
         self, lambda_tags_get, cw_logs_tags_get
     ):

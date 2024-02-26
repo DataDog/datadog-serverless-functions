@@ -400,7 +400,7 @@ class TestAWSLogsHandler(unittest.TestCase):
     @patch("parsing.CloudwatchLogGroupTagsCache.release_s3_cache_lock")
     @patch("parsing.CloudwatchLogGroupTagsCache.acquire_s3_cache_lock")
     @patch("parsing.CloudwatchLogGroupTagsCache.write_cache_to_s3")
-    @patch("base_tags_cache.send_forwarder_internal_metrics")
+    @patch("caching.base_tags_cache.send_forwarder_internal_metrics")
     @patch("parsing.CloudwatchLogGroupTagsCache.get_cache_from_s3")
     def test_awslogs_handler_rds_postgresql(
         self,
@@ -456,7 +456,7 @@ class TestAWSLogsHandler(unittest.TestCase):
     @patch("parsing.StepFunctionsTagsCache.release_s3_cache_lock")
     @patch("parsing.StepFunctionsTagsCache.acquire_s3_cache_lock")
     @patch("parsing.StepFunctionsTagsCache.write_cache_to_s3")
-    @patch("base_tags_cache.send_forwarder_internal_metrics")
+    @patch("caching.base_tags_cache.send_forwarder_internal_metrics")
     @patch("parsing.StepFunctionsTagsCache.get_cache_from_s3")
     def test_awslogs_handler_step_functions_tags_added_properly(
         self,

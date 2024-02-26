@@ -19,8 +19,8 @@ from customized_log_group import (
     get_lambda_function_name_from_logstream_name,
     is_lambda_customized_log_group,
 )
-from step_functions_cache import StepFunctionsTagsCache
-from cloudwatch_log_group_cache import CloudwatchLogGroupTagsCache
+from caching.step_functions_cache import StepFunctionsTagsCache
+from caching.cloudwatch_log_group_cache import CloudwatchLogGroupTagsCache
 from telemetry import (
     DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX,
     get_forwarder_telemetry_tags,

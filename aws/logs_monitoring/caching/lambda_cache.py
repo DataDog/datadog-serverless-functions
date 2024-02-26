@@ -1,6 +1,6 @@
 from botocore.exceptions import ClientError
 
-from base_tags_cache import (
+from caching.base_tags_cache import (
     GET_RESOURCES_LAMBDA_FILTER,
     BaseTagsCache,
     logger,
