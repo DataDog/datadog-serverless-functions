@@ -1,9 +1,9 @@
-
 import gzip
 import unittest
 from approvaltests.combination_approvals import verify_all_combinations
 from steps.handlers.s3_handler import (
     parse_service_arn,
+    get_partition_from_region,
     get_structured_lines_for_s3_handler,
 )
 
@@ -52,6 +52,12 @@ class TestS3EventsHandler(unittest.TestCase):
                 ]
             ],
         )
+
+    def test_get_partition_from_region(self):
+        self.assertEqual(get_partition_from_region("us-east-1"), "aws")
+        self.assertEqual(get_partition_from_region("us-gov-west-1"), "aws-us-gov")
+        self.assertEqual(get_partition_from_region("cn-north-1"), "aws-cn")
+        self.assertEqual(get_partition_from_region(None), "aws")
 
 
 class TestParseServiceArn(unittest.TestCase):

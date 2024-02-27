@@ -24,20 +24,29 @@ env_patch = patch.dict(
 env_patch.start()
 from steps.handlers.awslogs_handler import (
     awslogs_handler,
+    process_lambda_logs,
     get_state_machine_arn,
     get_lower_cased_lambda_function_name,
 )
-env_patch.stop()
 
+env_patch.stop()
 
 
 class TestAWSLogsHandler(unittest.TestCase):
     @patch("steps.handlers.awslogs_handler.CloudwatchLogGroupTagsCache.get")
-    @patch("steps.handlers.awslogs_handler.CloudwatchLogGroupTagsCache.release_s3_cache_lock")
-    @patch("steps.handlers.awslogs_handler.CloudwatchLogGroupTagsCache.acquire_s3_cache_lock")
-    @patch("steps.handlers.awslogs_handler.CloudwatchLogGroupTagsCache.write_cache_to_s3")
+    @patch(
+        "steps.handlers.awslogs_handler.CloudwatchLogGroupTagsCache.release_s3_cache_lock"
+    )
+    @patch(
+        "steps.handlers.awslogs_handler.CloudwatchLogGroupTagsCache.acquire_s3_cache_lock"
+    )
+    @patch(
+        "steps.handlers.awslogs_handler.CloudwatchLogGroupTagsCache.write_cache_to_s3"
+    )
     @patch("caching.base_tags_cache.send_forwarder_internal_metrics")
-    @patch("steps.handlers.awslogs_handler.CloudwatchLogGroupTagsCache.get_cache_from_s3")
+    @patch(
+        "steps.handlers.awslogs_handler.CloudwatchLogGroupTagsCache.get_cache_from_s3"
+    )
     def test_awslogs_handler_rds_postgresql(
         self,
         mock_get_s3_cache,
@@ -89,8 +98,12 @@ class TestAWSLogsHandler(unittest.TestCase):
 
     @patch("steps.handlers.awslogs_handler.CloudwatchLogGroupTagsCache.get")
     @patch("steps.handlers.awslogs_handler.StepFunctionsTagsCache.get")
-    @patch("steps.handlers.awslogs_handler.StepFunctionsTagsCache.release_s3_cache_lock")
-    @patch("steps.handlers.awslogs_handler.StepFunctionsTagsCache.acquire_s3_cache_lock")
+    @patch(
+        "steps.handlers.awslogs_handler.StepFunctionsTagsCache.release_s3_cache_lock"
+    )
+    @patch(
+        "steps.handlers.awslogs_handler.StepFunctionsTagsCache.acquire_s3_cache_lock"
+    )
     @patch("steps.handlers.awslogs_handler.StepFunctionsTagsCache.write_cache_to_s3")
     @patch("caching.base_tags_cache.send_forwarder_internal_metrics")
     @patch("steps.handlers.awslogs_handler.StepFunctionsTagsCache.get_cache_from_s3")
@@ -147,6 +160,59 @@ class TestAWSLogsHandler(unittest.TestCase):
 
         verify_as_json(list(awslogs_handler(event, context, metadata)))
         verify_as_json(metadata, options=NamerFactory.with_parameters("metadata"))
+
+    def test_process_lambda_logs(self):
+        # Non Lambda log
+        stepfunction_loggroup = {
+            "messageType": "DATA_MESSAGE",
+            "logGroup": "/aws/vendedlogs/states/logs-to-traces-sequential-Logs",
+            "logStream": "states/logs-to-traces-sequential/2022-11-10-15-50/7851b2d9",
+            "logEvents": [],
+        }
+        metadata = {"ddsource": "postgresql", "ddtags": ""}
+        aws_attributes = {}
+        context = None
+        process_lambda_logs(stepfunction_loggroup, aws_attributes, context, metadata)
+        self.assertEqual(metadata, {"ddsource": "postgresql", "ddtags": ""})
+
+        # Lambda log
+        lambda_default_loggroup = {
+            "messageType": "DATA_MESSAGE",
+            "logGroup": "/aws/lambda/test-lambda-default-log-group",
+            "logStream": "2023/11/06/[$LATEST]b25b1f977b3e416faa45a00f427e7acb",
+            "logEvents": [],
+        }
+        metadata = {"ddsource": "postgresql", "ddtags": "env:dev"}
+        aws_attributes = {}
+        context = MagicMock()
+        context.invoked_function_arn = "arn:aws:lambda:sa-east-1:601427279990:function:inferred-spans-python-dev-initsender"
+        process_lambda_logs(lambda_default_loggroup, aws_attributes, context, metadata)
+        self.assertEqual(
+            metadata,
+            {
+                "ddsource": "postgresql",
+                "ddtags": "env:dev",
+            },
+        )
+        self.assertEqual(
+            aws_attributes,
+            {
+                "lambda": {
+                    "arn": "arn:aws:lambda:sa-east-1:601427279990:function:test-lambda-default-log-group"
+                }
+            },
+        )
+
+        # env not set
+        metadata = {"ddsource": "postgresql", "ddtags": ""}
+        process_lambda_logs(lambda_default_loggroup, aws_attributes, context, metadata)
+        self.assertEqual(
+            metadata,
+            {
+                "ddsource": "postgresql",
+                "ddtags": ",env:none",
+            },
+        )
 
 
 class TestLambdaCustomizedLogGroup(unittest.TestCase):

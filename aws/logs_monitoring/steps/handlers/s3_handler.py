@@ -42,6 +42,7 @@ if DD_MULTILINE_LOG_REGEX_PATTERN:
 logger = logging.getLogger()
 logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
 
+
 # Handle S3 events
 def s3_handler(event, context, metadata):
     # Need to use path style to access s3 via VPC Endpoints

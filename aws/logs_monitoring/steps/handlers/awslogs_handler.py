@@ -199,7 +199,6 @@ def process_lambda_logs(logs, aws_attributes, context, metadata):
             metadata[DD_CUSTOM_TAGS] += ",env:none"
 
 
-
 # The lambda function name can be inferred from either a customized logstream name, or a loggroup name
 def get_lower_cased_lambda_function_name(logs):
     logstream_name = logs["logStream"]

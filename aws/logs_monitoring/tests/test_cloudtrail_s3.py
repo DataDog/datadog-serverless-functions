@@ -22,7 +22,6 @@ env_patch = patch.dict(
     },
 )
 env_patch.start()
-
 import lambda_function
 from steps.parsing import parse
 
@@ -88,15 +87,14 @@ test_data = {
 }
 
 
-def test_data_gzipped() -> io.BytesIO:
-    return io.BytesIO(
-        gzip.compress(json.dumps(copy.deepcopy(test_data)).encode("utf-8"))
-    )
-
-
 class TestS3CloudwatchParsing(unittest.TestCase):
     def setUp(self):
         self.maxDiff = 9000
+
+    def get_test_data_gzipped(self) -> io.BytesIO:
+        return io.BytesIO(
+            gzip.compress(json.dumps(copy.deepcopy(test_data)).encode("utf-8"))
+        )
 
     @patch("caching.base_tags_cache.boto3")
     @patch("steps.handlers.s3_handler.boto3")
@@ -107,7 +105,7 @@ class TestS3CloudwatchParsing(unittest.TestCase):
         context = Context()
 
         boto3 = parsing_boto3.client()
-        boto3.get_object.return_value = {"Body": test_data_gzipped()}
+        boto3.get_object.return_value = {"Body": self.get_test_data_gzipped()}
 
         payload = {
             "s3": {

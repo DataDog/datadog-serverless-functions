@@ -31,6 +31,7 @@ from steps.enrichment import enrich
 from steps.transformation import transform
 from steps.splitting import split
 from steps.parsing import parse, parse_event_type
+
 env_patch.stop()
 
 
@@ -70,7 +71,9 @@ class TestInvokeAdditionalTargetLambdas(unittest.TestCase):
 
 class TestLambdaFunctionEndToEnd(unittest.TestCase):
     @patch("enhanced_lambda_metrics.LambdaTagsCache.get")
-    @patch("caching.cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.get_cache_from_s3")
+    @patch(
+        "caching.cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.get_cache_from_s3"
+    )
     def test_datadog_forwarder(self, mock_get_lambda_tags, mock_get_s3_cache):
         mock_get_lambda_tags.return_value = (
             {
@@ -141,7 +144,9 @@ class TestLambdaFunctionEndToEnd(unittest.TestCase):
 
     @patch("caching.cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.get")
     @patch("caching.lambda_cache.LambdaTagsCache.get")
-    def test_setting_service_tag_from_log_group_cache(self, cw_logs_tags_get, lambda_tags_get):
+    def test_setting_service_tag_from_log_group_cache(
+        self, cw_logs_tags_get, lambda_tags_get
+    ):
         reload(sys.modules["settings"])
         reload(sys.modules["steps.parsing"])
         cw_logs_tags_get.return_value = ["service:log_group_service"]
