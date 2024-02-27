@@ -15,7 +15,7 @@ from steps.parsing import parse
 from steps.enrichment import enrich
 from steps.transformation import transform
 from steps.splitting import split
-from forwarder import (
+from forwarders import (
     forward_metrics,
     forward_traces,
     forward_logs,

@@ -99,7 +99,7 @@ class TestS3CloudwatchParsing(unittest.TestCase):
         self.maxDiff = 9000
 
     @patch("caching.base_tags_cache.boto3")
-    @patch("steps.parsing.boto3")
+    @patch("steps.handlers.s3_handler.boto3")
     @patch("lambda_function.boto3")
     def test_s3_cloudtrail_pasing_and_enrichment(
         self, lambda_boto3, parsing_boto3, cache_boto3
