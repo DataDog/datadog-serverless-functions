@@ -2,6 +2,7 @@ import re
 
 from settings import (
     DD_SOURCE,
+    DD_SERVICE,
     DD_CUSTOM_TAGS,
 )
 
@@ -157,11 +158,14 @@ def get_service_from_tags_and_remove_duplicates(metadata):
                 del tagsplit[i]
             else:
                 service = tag[8:]
-
     metadata[DD_CUSTOM_TAGS] = ",".join(tagsplit)
 
     # Default service to source value
     return service if service else metadata[DD_SOURCE]
+
+
+def add_service_tag(metadata):
+    metadata[DD_SERVICE] = get_service_from_tags_and_remove_duplicates(metadata)
 
 
 def is_cloudtrail(key):

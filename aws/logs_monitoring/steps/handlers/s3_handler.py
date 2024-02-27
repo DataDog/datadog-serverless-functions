@@ -10,20 +10,20 @@ import boto3
 import botocore
 
 from steps.common import (
+    add_service_tag,
     merge_dicts,
     is_cloudtrail,
     parse_event_source,
-    get_service_from_tags_and_remove_duplicates,
 )
 from settings import (
+    GOV_STRING,
+    CN_STRING,
     DD_SOURCE,
-    DD_SERVICE,
     DD_USE_VPC,
     DD_MULTILINE_LOG_REGEX_PATTERN,
     DD_HOST,
 )
 
-GOV, CN = "gov", "cn"
 if DD_MULTILINE_LOG_REGEX_PATTERN:
     try:
         MULTILINE_REGEX = re.compile(
@@ -45,6 +45,27 @@ logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").uppe
 
 # Handle S3 events
 def s3_handler(event, context, metadata):
+    s3 = get_s3_client()
+    # if this is a S3 event carried in a SNS message, extract it and override the event
+    first_record = event["Records"][0]
+    if "Sns" in first_record:
+        event = json.loads(first_record["Sns"]["Message"])
+    # Get the object from the event and show its content type
+    bucket = first_record["s3"]["bucket"]["name"]
+    key = urllib.parse.unquote_plus(first_record["s3"]["object"]["key"])
+    source = set_source(event, metadata, bucket, key)
+    add_service_tag(metadata)
+    ##Get the ARN of the service and set it as the hostname
+    set_host(context, metadata, bucket, key, source)
+    # Extract the S3 object
+    response = s3.get_object(Bucket=bucket, Key=key)
+    body = response["Body"]
+    data = body.read()
+
+    yield from get_structured_lines_for_s3_handler(data, bucket, key, source)
+
+
+def get_s3_client():
     # Need to use path style to access s3 via VPC Endpoints
     # https://github.com/gford1000-aws/lambda_s3_access_using_vpc_endpoint#boto3-specific-notes
     if DD_USE_VPC:
@@ -55,32 +76,74 @@ def s3_handler(event, context, metadata):
         )
     else:
         s3 = boto3.client("s3")
-    # if this is a S3 event carried in a SNS message, extract it and override the event
-    if "Sns" in event["Records"][0]:
-        event = json.loads(event["Records"][0]["Sns"]["Message"])
+    return s3
 
-    # Get the object from the event and show its content type
-    bucket = event["Records"][0]["s3"]["bucket"]["name"]
-    key = urllib.parse.unquote_plus(event["Records"][0]["s3"]["object"]["key"])
 
+def set_source(event, metadata, bucket, key):
     source = parse_event_source(event, key)
     if "transit-gateway" in bucket:
         source = "transitgateway"
     metadata[DD_SOURCE] = source
 
-    metadata[DD_SERVICE] = get_service_from_tags_and_remove_duplicates(metadata)
+    return source
 
-    ##Get the ARN of the service and set it as the hostname
+
+def set_host(context, metadata, bucket, key, source):
     hostname = parse_service_arn(source, key, bucket, context)
     if hostname:
         metadata[DD_HOST] = hostname
 
-    # Extract the S3 object
-    response = s3.get_object(Bucket=bucket, Key=key)
-    body = response["Body"]
-    data = body.read()
 
-    yield from get_structured_lines_for_s3_handler(data, bucket, key, source)
+def get_structured_lines_for_s3_handler(data, bucket, key, source):
+    # Decompress data that has a .gz extension or magic header http://www.onicos.com/staff/iz/formats/gzip.html
+    if key[-3:] == ".gz" or data[:2] == b"\x1f\x8b":
+        with gzip.GzipFile(fileobj=BytesIO(data)) as decompress_stream:
+            # Reading line by line avoid a bug where gzip would take a very long time (>5min) for
+            # file around 60MB gzipped
+            data = b"".join(BufferedReader(decompress_stream))
+
+    is_cloudtrail_bucket = False
+    if is_cloudtrail(str(key)):
+        try:
+            cloud_trail = json.loads(data)
+            if cloud_trail.get("Records") is not None:
+                # only parse as a cloudtrail bucket if we have a Records field to parse
+                is_cloudtrail_bucket = True
+                for event in cloud_trail["Records"]:
+                    # Create structured object and send it
+                    structured_line = merge_dicts(
+                        event, {"aws": {"s3": {"bucket": bucket, "key": key}}}
+                    )
+                    yield structured_line
+        except Exception as e:
+            logger.debug("Unable to parse cloudtrail log: %s" % e)
+
+    if not is_cloudtrail_bucket:
+        # Check if using multiline log regex pattern
+        # and determine whether line or pattern separated logs
+        data = data.decode("utf-8", errors="ignore")
+        if DD_MULTILINE_LOG_REGEX_PATTERN and MULTILINE_REGEX_START_PATTERN.match(data):
+            split_data = MULTILINE_REGEX_START_PATTERN.split(data)
+        else:
+            if DD_MULTILINE_LOG_REGEX_PATTERN:
+                logger.debug(
+                    "DD_MULTILINE_LOG_REGEX_PATTERN %s did not match start of file, splitting by line",
+                    DD_MULTILINE_LOG_REGEX_PATTERN,
+                )
+            if source == "waf":
+                # WAF logs are \n separated
+                split_data = [d for d in data.split("\n") if d != ""]
+            else:
+                split_data = data.splitlines()
+
+        # Send lines to Datadog
+        for line in split_data:
+            # Create structured object and send it
+            structured_line = {
+                "aws": {"s3": {"bucket": bucket, "key": key}},
+                "message": line,
+            }
+            yield structured_line
 
 
 def parse_service_arn(source, key, bucket, context):
@@ -161,60 +224,8 @@ def parse_service_arn(source, key, bucket, context):
 def get_partition_from_region(region):
     partition = "aws"
     if region:
-        if GOV in region:
+        if GOV_STRING in region:
             partition = "aws-us-gov"
-        elif CN in region:
+        elif CN_STRING in region:
             partition = "aws-cn"
     return partition
-
-
-def get_structured_lines_for_s3_handler(data, bucket, key, source):
-    # Decompress data that has a .gz extension or magic header http://www.onicos.com/staff/iz/formats/gzip.html
-    if key[-3:] == ".gz" or data[:2] == b"\x1f\x8b":
-        with gzip.GzipFile(fileobj=BytesIO(data)) as decompress_stream:
-            # Reading line by line avoid a bug where gzip would take a very long time (>5min) for
-            # file around 60MB gzipped
-            data = b"".join(BufferedReader(decompress_stream))
-
-    is_cloudtrail_bucket = False
-    if is_cloudtrail(str(key)):
-        try:
-            cloud_trail = json.loads(data)
-            if cloud_trail.get("Records") is not None:
-                # only parse as a cloudtrail bucket if we have a Records field to parse
-                is_cloudtrail_bucket = True
-                for event in cloud_trail["Records"]:
-                    # Create structured object and send it
-                    structured_line = merge_dicts(
-                        event, {"aws": {"s3": {"bucket": bucket, "key": key}}}
-                    )
-                    yield structured_line
-        except Exception as e:
-            logger.debug("Unable to parse cloudtrail log: %s" % e)
-
-    if not is_cloudtrail_bucket:
-        # Check if using multiline log regex pattern
-        # and determine whether line or pattern separated logs
-        data = data.decode("utf-8", errors="ignore")
-        if DD_MULTILINE_LOG_REGEX_PATTERN and MULTILINE_REGEX_START_PATTERN.match(data):
-            split_data = MULTILINE_REGEX.split(data)
-        else:
-            if DD_MULTILINE_LOG_REGEX_PATTERN:
-                logger.debug(
-                    "DD_MULTILINE_LOG_REGEX_PATTERN %s did not match start of file, splitting by line",
-                    DD_MULTILINE_LOG_REGEX_PATTERN,
-                )
-            if source == "waf":
-                # WAF logs are \n separated
-                split_data = [d for d in data.split("\n") if d != ""]
-            else:
-                split_data = data.splitlines()
-
-        # Send lines to Datadog
-        for line in split_data:
-            # Create structured object and send it
-            structured_line = {
-                "aws": {"s3": {"bucket": bucket, "key": key}},
-                "message": line,
-            }
-            yield structured_line

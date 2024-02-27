@@ -7,9 +7,9 @@ import re
 from io import BufferedReader, BytesIO
 
 from steps.common import (
+    add_service_tag,
     merge_dicts,
     parse_event_source,
-    get_service_from_tags_and_remove_duplicates,
 )
 from customized_log_group import (
     is_lambda_customized_log_group,
@@ -19,7 +19,6 @@ from caching.cloudwatch_log_group_cache import CloudwatchLogGroupTagsCache
 from caching.step_functions_cache import StepFunctionsTagsCache
 from settings import (
     DD_SOURCE,
-    DD_SERVICE,
     DD_HOST,
     DD_CUSTOM_TAGS,
 )
@@ -38,17 +37,44 @@ logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").uppe
 # Handle CloudWatch logs
 def awslogs_handler(event, context, metadata):
     # Get logs
+    logs = extract_logs(event)
+    # Set the source on the logs
+    set_source(event, metadata, logs)
+    # Build aws attributes
+    aws_attributes = init_attributes(logs)
+    add_cloudwatch_tags_from_cache(metadata, logs)
+    # Set service from custom tags, which may include the tags set on the log group
+    # Returns DD_SOURCE by default
+    add_service_tag(metadata)
+    # Set host as log group where cloudwatch is source
+    set_host(metadata, logs, aws_attributes)
+    # For Lambda logs we want to extract the function name,
+    # then rebuild the arn of the monitored lambda using that name.
+    if metadata[DD_SOURCE] == "lambda":
+        process_lambda_logs(logs, aws_attributes, context, metadata)
+    # The EKS log group contains various sources from the K8S control plane.
+    # In order to have these automatically trigger the correct pipelines they
+    # need to send their events with the correct log source.
+    if metadata[DD_SOURCE] == "eks":
+        process_eks_logs(logs, metadata)
+
+    # Create and send structured logs to Datadog
+    for log in logs["logEvents"]:
+        yield merge_dicts(log, aws_attributes)
+
+
+def extract_logs(event):
     with gzip.GzipFile(
         fileobj=BytesIO(base64.b64decode(event["awslogs"]["data"]))
     ) as decompress_stream:
         # Reading line by line avoid a bug where gzip would take a very long
         # time (>5min) for file around 60MB gzipped
         data = b"".join(BufferedReader(decompress_stream))
-    logs = json.loads(data)
+    return json.loads(data)
 
-    # Set the source on the logs
+
+def set_source(event, metadata, logs):
     source = logs.get("logGroup", "cloudwatch")
-
     # Use the logStream to identify if this is a CloudTrail, TransitGateway, or Bedrock event
     # i.e. 123456779121_CloudTrail_us-east-1
     if "_CloudTrail_" in logs["logStream"]:
@@ -65,8 +91,9 @@ def awslogs_handler(event, context, metadata):
     if is_lambda_customized_log_group(logs["logStream"]):
         metadata[DD_SOURCE] = "lambda"
 
-    # Build aws attributes
-    aws_attributes = {
+
+def init_attributes(logs):
+    return {
         "aws": {
             "awslogs": {
                 "logGroup": logs["logGroup"],
@@ -76,6 +103,8 @@ def awslogs_handler(event, context, metadata):
         }
     }
 
+
+def add_cloudwatch_tags_from_cache(metadata, logs):
     formatted_tags = account_cw_logs_tags_cache.get(logs["logGroup"])
     if len(formatted_tags) > 0:
         metadata[DD_CUSTOM_TAGS] = (
@@ -84,11 +113,8 @@ def awslogs_handler(event, context, metadata):
             else metadata[DD_CUSTOM_TAGS] + "," + ",".join(formatted_tags)
         )
 
-    # Set service from custom tags, which may include the tags set on the log group
-    # Returns DD_SOURCE by default
-    metadata[DD_SERVICE] = get_service_from_tags_and_remove_duplicates(metadata)
 
-    # Set host as log group where cloudwatch is source
+def set_host(metadata, logs, aws_attributes):
     if metadata[DD_SOURCE] == "cloudwatch" or metadata.get(DD_HOST, None) == None:
         metadata[DD_HOST] = aws_attributes["aws"]["awslogs"]["logGroup"]
 
@@ -139,30 +165,19 @@ def awslogs_handler(event, context, metadata):
                 metadata[DD_CUSTOM_TAGS] + ",logname:" + match.group("name")
             )
 
-    # For Lambda logs we want to extract the function name,
-    # then rebuild the arn of the monitored lambda using that name.
-    if metadata[DD_SOURCE] == "lambda":
-        process_lambda_logs(logs, aws_attributes, context, metadata)
 
-    # The EKS log group contains various sources from the K8S control plane.
-    # In order to have these automatically trigger the correct pipelines they
-    # need to send their events with the correct log source.
-    if metadata[DD_SOURCE] == "eks":
-        if logs["logStream"].startswith("kube-apiserver-audit-"):
-            metadata[DD_SOURCE] = "kubernetes.audit"
-        elif logs["logStream"].startswith("kube-scheduler-"):
-            metadata[DD_SOURCE] = "kube_scheduler"
-        elif logs["logStream"].startswith("kube-apiserver-"):
-            metadata[DD_SOURCE] = "kube-apiserver"
-        elif logs["logStream"].startswith("kube-controller-manager-"):
-            metadata[DD_SOURCE] = "kube-controller-manager"
-        elif logs["logStream"].startswith("authenticator-"):
-            metadata[DD_SOURCE] = "aws-iam-authenticator"
-        # In case the conditions above don't match we maintain eks as the source
-
-    # Create and send structured logs to Datadog
-    for log in logs["logEvents"]:
-        yield merge_dicts(log, aws_attributes)
+def process_eks_logs(logs, metadata):
+    if logs["logStream"].startswith("kube-apiserver-audit-"):
+        metadata[DD_SOURCE] = "kubernetes.audit"
+    elif logs["logStream"].startswith("kube-scheduler-"):
+        metadata[DD_SOURCE] = "kube_scheduler"
+    elif logs["logStream"].startswith("kube-apiserver-"):
+        metadata[DD_SOURCE] = "kube-apiserver"
+    elif logs["logStream"].startswith("kube-controller-manager-"):
+        metadata[DD_SOURCE] = "kube-controller-manager"
+    elif logs["logStream"].startswith("authenticator-"):
+        metadata[DD_SOURCE] = "aws-iam-authenticator"
+    # In case the conditions above don't match we maintain eks as the source
 
 
 def get_state_machine_arn(message):

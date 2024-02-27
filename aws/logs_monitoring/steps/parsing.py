@@ -20,6 +20,13 @@ from steps.common import (
     get_service_from_tags_and_remove_duplicates,
 )
 from settings import (
+    AWS_STRING,
+    FUNCTIONVERSION_STRING,
+    INVOKEDFUNCTIONARN_STRING,
+    SOURCECATEGORY_STRING,
+    FORWARDERNAME_STRING,
+    FORWARDERMEMSIZE_STRING,
+    FORWARDERVERSION_STRING,
     DD_TAGS,
     DD_SOURCE,
     DD_CUSTOM_TAGS,
@@ -40,16 +47,19 @@ def parse(event, context):
         event_type = parse_event_type(event)
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug(f"Parsed event type: {event_type}")
-        if event_type == "s3":
-            events = s3_handler(event, context, metadata)
-        elif event_type == "awslogs":
-            events = awslogs_handler(event, context, metadata)
-        elif event_type == "events":
-            events = cwevent_handler(event, metadata)
-        elif event_type == "sns":
-            events = sns_handler(event, metadata)
-        elif event_type == "kinesis":
-            events = kinesis_awslogs_handler(event, context, metadata)
+        match event_type:
+            case "s3":
+                events = s3_handler(event, context, metadata)
+            case "awslogs":
+                events = awslogs_handler(event, context, metadata)
+            case "events":
+                events = cwevent_handler(event, metadata)
+            case "sns":
+                events = sns_handler(event, metadata)
+            case "kinesis":
+                events = kinesis_awslogs_handler(event, context, metadata)
+            case _:
+                events = ["Parsing: Unsupported event type"]
     except Exception as e:
         # Logs through the socket the error
         err_message = "Error parsing the object. Exception: {} for event {}".format(
@@ -64,18 +74,14 @@ def parse(event, context):
 
 def generate_metadata(context):
     metadata = {
-        "ddsourcecategory": "aws",
-        "aws": {
-            "function_version": context.function_version,
-            "invoked_function_arn": context.invoked_function_arn,
+        SOURCECATEGORY_STRING: AWS_STRING,
+        AWS_STRING: {
+            FUNCTIONVERSION_STRING: context.function_version,
+            INVOKEDFUNCTIONARN_STRING: context.invoked_function_arn,
         },
     }
     # Add custom tags here by adding new value with the following format "key1:value1, key2:value2"  - might be subject to modifications
-    dd_custom_tags_data = {
-        "forwardername": context.function_name.lower(),
-        "forwarder_memorysize": context.memory_limit_in_mb,
-        "forwarder_version": DD_FORWARDER_VERSION,
-    }
+    dd_custom_tags_data = generate_custom_tags(context)
     metadata[DD_CUSTOM_TAGS] = ",".join(
         filter(
             None,
@@ -91,14 +97,23 @@ def generate_metadata(context):
     return metadata
 
 
+def generate_custom_tags(context):
+    dd_custom_tags_data = {
+        FORWARDERNAME_STRING: context.function_name.lower(),
+        FORWARDERMEMSIZE_STRING: context.memory_limit_in_mb,
+        FORWARDERVERSION_STRING: DD_FORWARDER_VERSION,
+    }
+
+    return dd_custom_tags_data
+
+
 def parse_event_type(event):
-    if "Records" in event and len(event["Records"]) > 0:
-        if "s3" in event["Records"][0]:
+    if "Records" in event and event["Records"]:
+        record = event["Records"][0]
+        if "s3" in record:
             return "s3"
-        elif "Sns" in event["Records"][0]:
-            # it's not uncommon to fan out s3 notifications through SNS,
-            # should treat it as an s3 event rather than sns event.
-            sns_msg = event["Records"][0]["Sns"]["Message"]
+        elif "Sns" in record:
+            sns_msg = record["Sns"]["Message"]
             try:
                 sns_msg_dict = json.loads(sns_msg)
                 if "Records" in sns_msg_dict and "s3" in sns_msg_dict["Records"][0]:
@@ -107,12 +122,10 @@ def parse_event_type(event):
                 if logger.isEnabledFor(logging.DEBUG):
                     logger.debug(f"No s3 event detected from SNS message: {sns_msg}")
             return "sns"
-        elif "kinesis" in event["Records"][0]:
+        elif "kinesis" in record:
             return "kinesis"
-
     elif "awslogs" in event:
         return "awslogs"
-
     elif "detail" in event:
         return "events"
     raise Exception("Event type not supported (see #Event supported section)")
@@ -120,28 +133,23 @@ def parse_event_type(event):
 
 # Handle Cloudwatch Events
 def cwevent_handler(event, metadata):
-    data = event
-
     # Set the source on the log
-    source = data.get("source", "cloudwatch")
+    source = event.get("source", "cloudwatch")
     service = source.split(".")
     if len(service) > 1:
         metadata[DD_SOURCE] = service[1]
     else:
         metadata[DD_SOURCE] = "cloudwatch"
-
     metadata[DD_SERVICE] = get_service_from_tags_and_remove_duplicates(metadata)
 
-    yield data
+    yield event
 
 
 # Handle Sns events
 def sns_handler(event, metadata):
-    data = event
     # Set the source on the log
     metadata[DD_SOURCE] = "sns"
-
-    for ev in data["Records"]:
+    for ev in event["Records"]:
         # Create structured object and send it
         structured_line = ev
         yield structured_line

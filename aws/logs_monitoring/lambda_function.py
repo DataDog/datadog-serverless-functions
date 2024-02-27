@@ -66,7 +66,10 @@ def datadog_forwarder(event, context):
     if DD_ADDITIONAL_TARGET_LAMBDAS:
         invoke_additional_target_lambdas(event)
 
-    metrics, logs, trace_payloads = split(transform(enrich(parse(event, context))))
+    parsed = parse(event, context)
+    enriched = enrich(parsed)
+    transformed = transform(enriched)
+    metrics, logs, trace_payloads = split(transformed)
 
     if DD_FORWARD_LOG:
         forward_logs(logs)
