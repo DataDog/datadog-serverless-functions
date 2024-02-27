@@ -196,8 +196,8 @@ def get_structured_lines_for_s3_handler(data, bucket, key, source):
         # Check if using multiline log regex pattern
         # and determine whether line or pattern separated logs
         data = data.decode("utf-8", errors="ignore")
-        if DD_MULTILINE_LOG_REGEX_PATTERN and multiline_regex_start_pattern.match(data):
-            split_data = multiline_regex.split(data)
+        if DD_MULTILINE_LOG_REGEX_PATTERN and MULTILINE_REGEX_START_PATTERN.match(data):
+            split_data = MULTILINE_REGEX.split(data)
         else:
             if DD_MULTILINE_LOG_REGEX_PATTERN:
                 logger.debug(
