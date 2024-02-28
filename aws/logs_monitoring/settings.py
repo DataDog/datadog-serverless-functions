@@ -239,6 +239,17 @@ DD_SERVICE = "service"
 DD_HOST = "host"
 DD_FORWARDER_VERSION = "3.103.0"
 
+# CONST STRINGS
+AWS_STRING = "aws"
+FUNCTIONVERSION_STRING = "function_version"
+INVOKEDFUNCTIONARN_STRING = "invoked_function_arn"
+SOURCECATEGORY_STRING = "ddsourcecategory"
+FORWARDERNAME_STRING = "forwardername"
+FORWARDERMEMSIZE_STRING = "forwarder_memorysize"
+FORWARDERVERSION_STRING = "forwarder_version"
+GOV_STRING = "gov"
+CN_STRING = "cn"
+
 # Additional target lambda invoked async with event data
 DD_ADDITIONAL_TARGET_LAMBDAS = get_env_var("DD_ADDITIONAL_TARGET_LAMBDAS", default=None)
 

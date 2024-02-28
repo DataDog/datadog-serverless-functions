@@ -13,12 +13,12 @@ from enhanced_lambda_metrics import (
     create_out_of_memory_enhanced_metric,
 )
 
-from base_tags_cache import (
+from caching.base_tags_cache import (
     sanitize_aws_tag_string,
     parse_get_resources_response_for_tags_by_arn,
     get_dd_tag_string_from_aws_dict,
 )
-from lambda_cache import LambdaTagsCache
+from caching.lambda_cache import LambdaTagsCache
 
 
 class TestEnhancedLambdaMetrics(unittest.TestCase):
@@ -313,8 +313,8 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
         success_message = "Success!"
         self.assertEqual(len(create_out_of_memory_enhanced_metric(success_message)), 0)
 
-    @patch("base_tags_cache.send_forwarder_internal_metrics")
-    @patch("lambda_cache.LambdaTagsCache.get_cache_from_s3")
+    @patch("caching.base_tags_cache.send_forwarder_internal_metrics")
+    @patch("caching.lambda_cache.LambdaTagsCache.get_cache_from_s3")
     def test_generate_enhanced_lambda_metrics(
         self, mock_get_s3_cache, mock_forward_metrics
     ):
@@ -411,8 +411,8 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
 
         del os.environ["DD_FETCH_LAMBDA_TAGS"]
 
-    @patch("base_tags_cache.send_forwarder_internal_metrics")
-    @patch("lambda_cache.LambdaTagsCache.get_cache_from_s3")
+    @patch("caching.base_tags_cache.send_forwarder_internal_metrics")
+    @patch("caching.lambda_cache.LambdaTagsCache.get_cache_from_s3")
     def test_generate_enhanced_lambda_metrics_with_tags(
         self, mock_get_s3_cache, mock_forward_metrics
     ):
@@ -524,8 +524,8 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
 
         del os.environ["DD_FETCH_LAMBDA_TAGS"]
 
-    @patch("base_tags_cache.send_forwarder_internal_metrics")
-    @patch("lambda_cache.LambdaTagsCache.get_cache_from_s3")
+    @patch("caching.base_tags_cache.send_forwarder_internal_metrics")
+    @patch("caching.lambda_cache.LambdaTagsCache.get_cache_from_s3")
     def test_generate_enhanced_lambda_metrics_once_with_missing_arn(
         self, mock_get_s3_cache, mock_forward_metrics
     ):
@@ -560,8 +560,8 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
 
         del os.environ["DD_FETCH_LAMBDA_TAGS"]
 
-    @patch("base_tags_cache.send_forwarder_internal_metrics")
-    @patch("lambda_cache.LambdaTagsCache.get_cache_from_s3")
+    @patch("caching.base_tags_cache.send_forwarder_internal_metrics")
+    @patch("caching.lambda_cache.LambdaTagsCache.get_cache_from_s3")
     def test_generate_enhanced_lambda_metrics_refresh_on_new_arn(
         self, mock_get_s3_cache, mock_forward_metrics
     ):
@@ -603,12 +603,12 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
 
         del os.environ["DD_FETCH_LAMBDA_TAGS"]
 
-    @patch("lambda_cache.LambdaTagsCache.release_s3_cache_lock")
-    @patch("lambda_cache.LambdaTagsCache.acquire_s3_cache_lock")
-    @patch("lambda_cache.LambdaTagsCache.write_cache_to_s3")
-    @patch("lambda_cache.LambdaTagsCache.build_tags_cache")
-    @patch("lambda_cache.send_forwarder_internal_metrics")
-    @patch("lambda_cache.LambdaTagsCache.get_cache_from_s3")
+    @patch("caching.lambda_cache.LambdaTagsCache.release_s3_cache_lock")
+    @patch("caching.lambda_cache.LambdaTagsCache.acquire_s3_cache_lock")
+    @patch("caching.lambda_cache.LambdaTagsCache.write_cache_to_s3")
+    @patch("caching.lambda_cache.LambdaTagsCache.build_tags_cache")
+    @patch("caching.lambda_cache.send_forwarder_internal_metrics")
+    @patch("caching.lambda_cache.LambdaTagsCache.get_cache_from_s3")
     def test_generate_enhanced_lambda_metrics_refresh_s3_cache(
         self,
         mock_get_s3_cache,
@@ -664,13 +664,13 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
 
         del os.environ["DD_FETCH_LAMBDA_TAGS"]
 
-    @patch("lambda_cache.LambdaTagsCache.release_s3_cache_lock")
-    @patch("lambda_cache.LambdaTagsCache.acquire_s3_cache_lock")
-    @patch("lambda_cache.resource_tagging_client")
-    @patch("lambda_cache.LambdaTagsCache.write_cache_to_s3")
-    @patch("lambda_cache.parse_get_resources_response_for_tags_by_arn")
-    @patch("lambda_cache.send_forwarder_internal_metrics")
-    @patch("lambda_cache.LambdaTagsCache.get_cache_from_s3")
+    @patch("caching.lambda_cache.LambdaTagsCache.release_s3_cache_lock")
+    @patch("caching.lambda_cache.LambdaTagsCache.acquire_s3_cache_lock")
+    @patch("caching.lambda_cache.resource_tagging_client")
+    @patch("caching.lambda_cache.LambdaTagsCache.write_cache_to_s3")
+    @patch("caching.lambda_cache.parse_get_resources_response_for_tags_by_arn")
+    @patch("caching.lambda_cache.send_forwarder_internal_metrics")
+    @patch("caching.lambda_cache.LambdaTagsCache.get_cache_from_s3")
     def test_generate_enhanced_lambda_metrics_client_error(
         self,
         mock_get_s3_cache,
@@ -724,8 +724,8 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
 
         del os.environ["DD_FETCH_LAMBDA_TAGS"]
 
-    @patch("base_tags_cache.send_forwarder_internal_metrics")
-    @patch("lambda_cache.LambdaTagsCache.get_cache_from_s3")
+    @patch("caching.base_tags_cache.send_forwarder_internal_metrics")
+    @patch("caching.lambda_cache.LambdaTagsCache.get_cache_from_s3")
     def test_generate_enhanced_lambda_metrics_timeout(
         self, mock_get_s3_cache, mock_forward_metrics
     ):
@@ -782,8 +782,8 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
         )
         del os.environ["DD_FETCH_LAMBDA_TAGS"]
 
-    @patch("base_tags_cache.send_forwarder_internal_metrics")
-    @patch("lambda_cache.LambdaTagsCache.get_cache_from_s3")
+    @patch("caching.base_tags_cache.send_forwarder_internal_metrics")
+    @patch("caching.lambda_cache.LambdaTagsCache.get_cache_from_s3")
     def test_generate_enhanced_lambda_metrics_out_of_memory(
         self, mock_get_s3_cache, mock_forward_metrics
     ):

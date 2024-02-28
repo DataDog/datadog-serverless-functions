@@ -1,6 +1,6 @@
 from botocore.exceptions import ClientError
 
-from base_tags_cache import (
+from caching.base_tags_cache import (
     BaseTagsCache,
     logger,
     parse_get_resources_response_for_tags_by_arn,
