@@ -45,6 +45,7 @@ logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").uppe
 
 # Handle S3 events
 def s3_handler(event, context, metadata):
+    # Get the S3 client
     s3 = get_s3_client()
     # if this is a S3 event carried in a SNS message, extract it and override the event
     first_record = event["Records"][0]

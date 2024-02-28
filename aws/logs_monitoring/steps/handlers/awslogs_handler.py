@@ -38,10 +38,11 @@ logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").uppe
 def awslogs_handler(event, context, metadata):
     # Get logs
     logs = extract_logs(event)
-    # Set the source on the logs
-    set_source(event, metadata, logs)
     # Build aws attributes
     aws_attributes = init_attributes(logs)
+    # Set the source on the logs
+    set_source(event, metadata, logs)
+    # Add custom tags from cache
     add_cloudwatch_tags_from_cache(metadata, logs)
     # Set service from custom tags, which may include the tags set on the log group
     # Returns DD_SOURCE by default
