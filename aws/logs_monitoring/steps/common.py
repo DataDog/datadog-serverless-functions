@@ -1,10 +1,6 @@
 import re
 
-from settings import (
-    DD_SOURCE,
-    DD_SERVICE,
-    DD_CUSTOM_TAGS,
-)
+from settings import DD_CUSTOM_TAGS, DD_SERVICE, DD_SOURCE
 
 CLOUDTRAIL_REGEX = re.compile(
     "\d+_CloudTrail(|-Digest)_\w{2}(|-gov|-cn)-\w{4,9}-\d_(|.+)\d{8}T\d{4,6}Z(|.+).json.gz$",

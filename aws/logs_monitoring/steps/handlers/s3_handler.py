@@ -1,28 +1,22 @@
-import logging
 import gzip
 import json
-
+import logging
 import os
 import re
 import urllib.parse
 from io import BufferedReader, BytesIO
+
 import boto3
 import botocore
-
-from steps.common import (
-    add_service_tag,
-    merge_dicts,
-    is_cloudtrail,
-    parse_event_source,
-)
 from settings import (
-    GOV_STRING,
     CN_STRING,
+    DD_HOST,
+    DD_MULTILINE_LOG_REGEX_PATTERN,
     DD_SOURCE,
     DD_USE_VPC,
-    DD_MULTILINE_LOG_REGEX_PATTERN,
-    DD_HOST,
+    GOV_STRING,
 )
+from steps.common import add_service_tag, is_cloudtrail, merge_dicts, parse_event_source
 
 if DD_MULTILINE_LOG_REGEX_PATTERN:
     try:
@@ -56,7 +50,7 @@ def s3_handler(event, context, metadata):
     key = urllib.parse.unquote_plus(first_record["s3"]["object"]["key"])
     source = set_source(event, metadata, bucket, key)
     add_service_tag(metadata)
-    ##Get the ARN of the service and set it as the hostname
+    # Get the ARN of the service and set it as the hostname
     set_host(context, metadata, bucket, key, source)
     # Extract the S3 object
     response = s3.get_object(Bucket=bucket, Key=key)
@@ -179,10 +173,12 @@ def parse_service_arn(source, key, bucket, context):
                 return "arn:{}:elasticloadbalancing:{}:{}:loadbalancer/{}".format(
                     partition, region, idvalue, elbname
                 )
+
     if source == "s3":
         # For S3 access logs we use the bucket name to rebuild the arn
         if bucket:
             return "arn:aws:s3:::{}".format(bucket)
+
     if source == "cloudfront":
         # For Cloudfront logs we need to get the account and distribution id from the lambda arn and the filename
         # 1. We extract the cloudfront id  from the filename
@@ -202,6 +198,7 @@ def parse_service_arn(source, key, bucket, context):
                     return "arn:aws:cloudfront::{}:distribution/{}".format(
                         awsaccountID, distributionID
                     )
+
     if source == "redshift":
         # For redshift logs we leverage the filename to extract the relevant information
         # 1. We extract the region from the filename
@@ -219,6 +216,25 @@ def parse_service_arn(source, key, bucket, context):
                 return "arn:{}:redshift:{}:{}:cluster:{}:".format(
                     get_partition_from_region(region), region, accountID, clustername
                 )
+
+    if source == "vpc":
+        namesplit = key.split("/")
+        if len(namesplit) >= 4:
+            accountID = namesplit[1]
+            region = namesplit[3]
+
+            filesplit = namesplit[7].split("_")
+
+            if len(filesplit) >= 4:
+                identifier = filesplit[3]
+
+                return "arn:{}:ec2:{}:{}:vpc-flow-log/{}".format(
+                    get_partition_from_region(region),
+                    region,
+                    accountID,
+                    identifier,
+                )
+
     return
 
 
