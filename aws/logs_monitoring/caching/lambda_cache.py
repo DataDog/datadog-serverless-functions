@@ -1,15 +1,15 @@
+import os
 from botocore.exceptions import ClientError
-
-from caching.base_tags_cache import (
-    GET_RESOURCES_LAMBDA_FILTER,
-    BaseTagsCache,
-    logger,
-    parse_get_resources_response_for_tags_by_arn,
-    resource_tagging_client,
+from caching.base_tags_cache import BaseTagsCache
+from caching.common import (
     send_forwarder_internal_metrics,
-    should_fetch_lambda_tags,
+    parse_get_resources_response_for_tags_by_arn,
 )
-from settings import DD_S3_CACHE_FILENAME, DD_S3_CACHE_LOCK_FILENAME
+from settings import (
+    DD_S3_CACHE_FILENAME,
+    DD_S3_CACHE_LOCK_FILENAME,
+    GET_RESOURCES_LAMBDA_FILTER,
+)
 
 
 class LambdaTagsCache(BaseTagsCache):
@@ -17,7 +17,7 @@ class LambdaTagsCache(BaseTagsCache):
     CACHE_LOCK_FILENAME = DD_S3_CACHE_LOCK_FILENAME
 
     def should_fetch_tags(self):
-        return should_fetch_lambda_tags()
+        return os.environ.get("DD_FETCH_LAMBDA_TAGS", "false").lower() == "true"
 
     def build_tags_cache(self):
         """Makes API calls to GetResources to get the live tags of the account's Lambda functions
@@ -29,10 +29,10 @@ class LambdaTagsCache(BaseTagsCache):
         """
         tags_fetch_success = False
         tags_by_arn_cache = {}
-        get_resources_paginator = resource_tagging_client.get_paginator("get_resources")
+        resource_paginator = self.get_resources_paginator()
 
         try:
-            for page in get_resources_paginator.paginate(
+            for page in resource_paginator.paginate(
                 ResourceTypeFilters=[GET_RESOURCES_LAMBDA_FILTER], ResourcesPerPage=100
             ):
                 send_forwarder_internal_metrics("get_resources_api_calls")
@@ -41,7 +41,7 @@ class LambdaTagsCache(BaseTagsCache):
                 tags_fetch_success = True
 
         except ClientError as e:
-            logger.exception(
+            self.logger.exception(
                 "Encountered a ClientError when trying to fetch tags. You may need to give "
                 "this Lambda's role the 'tag:GetResources' permission"
             )
@@ -53,7 +53,7 @@ class LambdaTagsCache(BaseTagsCache):
             )
             tags_fetch_success = False
 
-        logger.debug(
+        self.logger.debug(
             "Built this tags cache from GetResources API calls: %s", tags_by_arn_cache
         )
 
@@ -74,7 +74,7 @@ class LambdaTagsCache(BaseTagsCache):
             lambda_tags (str[]): the list of "key:value" Datadog tag strings
         """
         if not self.should_fetch_tags():
-            logger.debug(
+            self.logger.debug(
                 "Not fetching lambda function tags because the env variable DD_FETCH_LAMBDA_TAGS is "
                 "not set to true"
             )
@@ -82,7 +82,7 @@ class LambdaTagsCache(BaseTagsCache):
 
         if self._is_expired():
             send_forwarder_internal_metrics("local_cache_expired")
-            logger.debug("Local cache expired, fetching cache from S3")
+            self.logger.debug("Local cache expired, fetching cache from S3")
             self._refresh()
 
         return self.tags_by_id.get(key, [])
