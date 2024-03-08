@@ -2,7 +2,7 @@
 # under the Apache License Version 2.0.
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2021 Datadog, Inc.
-
+import os
 import logging
 import re
 import datetime
@@ -69,7 +69,7 @@ METRIC_ADJUSTMENT_FACTORS = {
 }
 
 logger = logging.getLogger()
-
+logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
 
 try:
     from datadog_lambda.metric import lambda_stats

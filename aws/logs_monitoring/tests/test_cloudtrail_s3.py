@@ -96,14 +96,15 @@ class TestS3CloudwatchParsing(unittest.TestCase):
             gzip.compress(json.dumps(copy.deepcopy(test_data)).encode("utf-8"))
         )
 
+    @patch("steps.handlers.s3_handler.S3TagsCache.get")
     @patch("caching.base_tags_cache.boto3")
     @patch("steps.handlers.s3_handler.boto3")
     @patch("lambda_function.boto3")
     def test_s3_cloudtrail_pasing_and_enrichment(
-        self, lambda_boto3, parsing_boto3, cache_boto3
+        self, lambda_boto3, parsing_boto3, cache_boto3, s3_cache_mock
     ):
         context = Context()
-
+        s3_cache_mock.return_value = []
         boto3 = parsing_boto3.client()
         boto3.get_object.return_value = {"Body": self.get_test_data_gzipped()}
 

@@ -11,6 +11,7 @@ import botocore.config
 import logging
 
 logger = logging.getLogger()
+logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
 
 
 def get_env_var(envvar, default, boolean=False):
@@ -261,6 +262,11 @@ DD_S3_LOG_GROUP_CACHE_FILENAME = "log-group-cache.json"
 DD_S3_LOG_GROUP_CACHE_LOCK_FILENAME = "log-group-cache.lock"
 DD_S3_STEP_FUNCTIONS_CACHE_FILENAME = "step-functions-cache.json"
 DD_S3_STEP_FUNCTIONS_CACHE_LOCK_FILENAME = "step-functions-cache.lock"
+DD_S3_TAGS_CACHE_FILENAME = "s3-cache.json"
+DD_S3_TAGS_CACHE_LOCK_FILENAME = "s3-cache.lock"
 
 DD_TAGS_CACHE_TTL_SECONDS = int(get_env_var("DD_TAGS_CACHE_TTL_SECONDS", default=300))
 DD_S3_CACHE_LOCK_TTL_SECONDS = 60
+GET_RESOURCES_LAMBDA_FILTER = "lambda"
+GET_RESOURCES_STEP_FUNCTIONS_FILTER = "states"
+GET_RESOURCES_S3_FILTER = "s3:bucket"

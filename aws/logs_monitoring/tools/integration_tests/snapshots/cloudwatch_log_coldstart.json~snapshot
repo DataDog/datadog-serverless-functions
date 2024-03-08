@@ -35,7 +35,7 @@
             "device": null,
             "host": null,
             "interval": 10,
-            "metric": "aws.dd_forwarder.local_cache_expired",
+            "metric": "aws.dd_forwarder.local_lambda_cache_expired",
             "points": "<redacted from snapshot>",
             "tags": [
               "forwardername:test",
