@@ -233,6 +233,62 @@ class TestLambdaFunctionEndToEnd(unittest.TestCase):
         for log in logs:
             self.assertEqual(log["service"], "lambda_service")
 
+    @patch("caching.s3_tags_cache.S3TagsCache.get")
+    @patch("steps.handlers.s3_handler.get_s3_client")
+    @patch("steps.handlers.s3_handler.extract_data")
+    def test_s3_tags_not_added_to_metadata(
+        self, mock_extract_data, mock_get_s3_client, mock_s3_tags_get
+    ):
+        mock_get_s3_client.side_effect = MagicMock()
+        mock_s3_tags_get.return_value = ["s3_tag:tag_value"]
+        context = Context()
+        event = {
+            "Records": [
+                {
+                    "s3": {
+                        "bucket": {"name": "mybucket"},
+                        "object": {"key": "mykey"},
+                    }
+                }
+            ]
+        }
+        mock_extract_data.return_value = bytes(json.dumps(event), encoding="utf-8")
+
+        normalized_events = parse(event, context)
+
+        assert "s3_tag:tag_value" not in normalized_events[0]["ddtags"]
+
+    @patch("steps.handlers.s3_handler.parse_service_arn")
+    @patch("caching.s3_tags_cache.S3TagsCache.get")
+    @patch("steps.handlers.s3_handler.get_s3_client")
+    @patch("steps.handlers.s3_handler.extract_data")
+    def test_s3_tags_added_to_metadata(
+        self,
+        mock_extract_data,
+        mock_get_s3_client,
+        mock_s3_tags_get,
+        mock_parse_service_arn,
+    ):
+        mock_get_s3_client.side_effect = MagicMock()
+        mock_s3_tags_get.return_value = ["s3_tag:tag_value"]
+        context = Context()
+        event = {
+            "Records": [
+                {
+                    "s3": {
+                        "bucket": {"name": "mybucket"},
+                        "object": {"key": "mykey"},
+                    }
+                }
+            ]
+        }
+        mock_extract_data.return_value = bytes(json.dumps(event), encoding="utf-8")
+        mock_parse_service_arn.return_value = ""
+
+        normalized_events = parse(event, context)
+
+        assert "s3_tag:tag_value" in normalized_events[0]["ddtags"]
+
     def _get_input_data(self):
         my_path = os.path.abspath(os.path.dirname(__file__))
         path = os.path.join(my_path, "events/cloudwatch_logs.json")

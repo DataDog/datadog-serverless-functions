@@ -8,9 +8,11 @@ from io import BufferedReader, BytesIO
 
 import boto3
 import botocore
+from caching.s3_tags_cache import S3TagsCache
 from settings import (
     CN_STRING,
     DD_HOST,
+    DD_CUSTOM_TAGS,
     DD_MULTILINE_LOG_REGEX_PATTERN,
     DD_SOURCE,
     DD_USE_VPC,
@@ -32,6 +34,7 @@ if DD_MULTILINE_LOG_REGEX_PATTERN:
     MULTILINE_REGEX_START_PATTERN = re.compile(
         "^{}".format(DD_MULTILINE_LOG_REGEX_PATTERN)
     )
+s3_tags_cache = S3TagsCache()
 
 logger = logging.getLogger()
 logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
@@ -49,15 +52,23 @@ def s3_handler(event, context, metadata):
     bucket = first_record["s3"]["bucket"]["name"]
     key = urllib.parse.unquote_plus(first_record["s3"]["object"]["key"])
     source = set_source(event, metadata, bucket, key)
+    # Add Service tag
     add_service_tag(metadata)
     # Get the ARN of the service and set it as the hostname
     set_host(context, metadata, bucket, key, source)
-    # Extract the S3 object
+    # Add S3 bucket tags
+    add_s3_tags_from_cache(metadata, bucket)
+    # Extract S3 object
+    data = extract_data(s3, bucket, key)
+
+    yield from get_structured_lines_for_s3_handler(data, bucket, key, source)
+
+
+def extract_data(s3, bucket, key):
     response = s3.get_object(Bucket=bucket, Key=key)
     body = response["Body"]
     data = body.read()
-
-    yield from get_structured_lines_for_s3_handler(data, bucket, key, source)
+    return data
 
 
 def get_s3_client():
@@ -72,6 +83,21 @@ def get_s3_client():
     else:
         s3 = boto3.client("s3")
     return s3
+
+
+def add_s3_tags_from_cache(metadata, bucket):
+    bucket_arn = get_s3_arn(bucket)
+
+    if metadata.get(DD_HOST, "") == bucket_arn:
+        return
+
+    s3_tags = s3_tags_cache.get(bucket_arn)
+    if len(s3_tags) > 0:
+        metadata[DD_CUSTOM_TAGS] = (
+            ",".join(s3_tags)
+            if not metadata[DD_CUSTOM_TAGS]
+            else metadata[DD_CUSTOM_TAGS] + "," + ",".join(s3_tags)
+        )
 
 
 def set_source(event, metadata, bucket, key):
@@ -176,7 +202,7 @@ def parse_service_arn(source, key, bucket, context):
     if source == "s3":
         # For S3 access logs we use the bucket name to rebuild the arn
         if bucket:
-            return "arn:aws:s3:::{}".format(bucket)
+            return get_s3_arn(bucket)
     if source == "cloudfront":
         # For Cloudfront logs we need to get the account and distribution id from the lambda arn and the filename
         # 1. We extract the cloudfront id  from the filename
@@ -224,3 +250,7 @@ def get_partition_from_region(region):
         elif CN_STRING in region:
             partition = "aws-cn"
     return partition
+
+
+def get_s3_arn(bucket):
+    return "arn:aws:s3:::{}".format(bucket)

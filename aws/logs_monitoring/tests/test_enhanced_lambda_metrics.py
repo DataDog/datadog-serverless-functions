@@ -1,8 +1,6 @@
 import unittest
 import os
 from time import time
-from botocore.exceptions import ClientError
-
 from unittest.mock import patch
 from unittest import mock
 
@@ -13,11 +11,6 @@ from enhanced_lambda_metrics import (
     create_out_of_memory_enhanced_metric,
 )
 
-from caching.base_tags_cache import (
-    sanitize_aws_tag_string,
-    parse_get_resources_response_for_tags_by_arn,
-    get_dd_tag_string_from_aws_dict,
-)
 from caching.lambda_cache import LambdaTagsCache
 
 
@@ -43,49 +36,6 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
         "Sampled: true"
     )
 
-    def test_sanitize_tag_string(self):
-        self.assertEqual(sanitize_aws_tag_string("serverless"), "serverless")
-        # Don't replace : \ / . in middle of string
-        self.assertEqual(sanitize_aws_tag_string("ser-/.ver_less"), "ser-/.ver_less")
-        # Remove invalid characters
-        self.assertEqual(sanitize_aws_tag_string("s+e@rv_erl_ess"), "s_e_rv_erl_ess")
-        # Dedup underscores
-        self.assertEqual(sanitize_aws_tag_string("serverl___ess"), "serverl_ess")
-        # Keep colons when remove_colons=False
-        self.assertEqual(sanitize_aws_tag_string("serv:erless:"), "serv:erless:")
-        # Substitute colon when remove_colons=True
-        self.assertEqual(
-            sanitize_aws_tag_string("serv:erless:", remove_colons=True), "serv_erless"
-        )
-        # Convert to lower
-        self.assertEqual(sanitize_aws_tag_string("serVerLess"), "serverless")
-        self.assertEqual(sanitize_aws_tag_string(""), "")
-        self.assertEqual(sanitize_aws_tag_string("6.6.6"), ".6.6")
-        self.assertEqual(
-            sanitize_aws_tag_string("6.6.6", remove_leading_digits=False), "6.6.6"
-        )
-
-    def test_get_dd_tag_string_from_aws_dict(self):
-        # Sanitize the key and value, combine them into a string
-        test_dict = {
-            "Key": "region",
-            "Value": "us-east-1",
-        }
-
-        self.assertEqual(get_dd_tag_string_from_aws_dict(test_dict), "region:us-east-1")
-
-        # Truncate to 200 characters
-        long_string = "a" * 300
-
-        test_dict = {
-            "Key": "too-long",
-            "Value": long_string,
-        }
-
-        self.assertEqual(
-            get_dd_tag_string_from_aws_dict(test_dict), f"too-long:{long_string[0:191]}"
-        )
-
     def test_parse_lambda_tags_from_arn(self):
         self.assertListEqual(
             parse_lambda_tags_from_arn(
@@ -97,46 +47,6 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
                 "aws_account:1234597598159",
                 "functionname:swf-hello-test",
             ],
-        )
-
-    def test_generate_custom_tags_cache(self):
-        self.assertEqual(
-            parse_get_resources_response_for_tags_by_arn(
-                {
-                    "ResourceTagMappingList": [
-                        {
-                            "ResourceARN": "arn:aws:lambda:us-east-1:123497598159:function:my-test-lambda-dev",
-                            "Tags": [
-                                {"Key": "stage", "Value": "dev"},
-                                {"Key": "team", "Value": "serverless"},
-                                {"Key": "empty", "Value": ""},
-                            ],
-                        },
-                        {
-                            "ResourceARN": "arn:aws:lambda:us-east-1:123497598159:function:my-test-lambda-prod",
-                            "Tags": [
-                                {"Key": "stage", "Value": "prod"},
-                                {"Key": "team", "Value": "serverless"},
-                                {"Key": "datacenter", "Value": "eu"},
-                                {"Key": "empty", "Value": ""},
-                            ],
-                        },
-                    ]
-                }
-            ),
-            {
-                "arn:aws:lambda:us-east-1:123497598159:function:my-test-lambda-dev": [
-                    "stage:dev",
-                    "team:serverless",
-                    "empty",
-                ],
-                "arn:aws:lambda:us-east-1:123497598159:function:my-test-lambda-prod": [
-                    "stage:prod",
-                    "team:serverless",
-                    "datacenter:eu",
-                    "empty",
-                ],
-            },
         )
 
     def test_parse_metrics_from_report_log(self):
@@ -313,7 +223,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
         success_message = "Success!"
         self.assertEqual(len(create_out_of_memory_enhanced_metric(success_message)), 0)
 
-    @patch("caching.base_tags_cache.send_forwarder_internal_metrics")
+    @patch("caching.common.send_forwarder_internal_metrics")
     @patch("caching.lambda_cache.LambdaTagsCache.get_cache_from_s3")
     def test_generate_enhanced_lambda_metrics(
         self, mock_get_s3_cache, mock_forward_metrics
@@ -411,7 +321,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
 
         del os.environ["DD_FETCH_LAMBDA_TAGS"]
 
-    @patch("caching.base_tags_cache.send_forwarder_internal_metrics")
+    @patch("caching.common.send_forwarder_internal_metrics")
     @patch("caching.lambda_cache.LambdaTagsCache.get_cache_from_s3")
     def test_generate_enhanced_lambda_metrics_with_tags(
         self, mock_get_s3_cache, mock_forward_metrics
@@ -524,7 +434,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
 
         del os.environ["DD_FETCH_LAMBDA_TAGS"]
 
-    @patch("caching.base_tags_cache.send_forwarder_internal_metrics")
+    @patch("caching.common.send_forwarder_internal_metrics")
     @patch("caching.lambda_cache.LambdaTagsCache.get_cache_from_s3")
     def test_generate_enhanced_lambda_metrics_once_with_missing_arn(
         self, mock_get_s3_cache, mock_forward_metrics
@@ -560,7 +470,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
 
         del os.environ["DD_FETCH_LAMBDA_TAGS"]
 
-    @patch("caching.base_tags_cache.send_forwarder_internal_metrics")
+    @patch("caching.common.send_forwarder_internal_metrics")
     @patch("caching.lambda_cache.LambdaTagsCache.get_cache_from_s3")
     def test_generate_enhanced_lambda_metrics_refresh_on_new_arn(
         self, mock_get_s3_cache, mock_forward_metrics
@@ -666,18 +576,18 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
 
     @patch("caching.lambda_cache.LambdaTagsCache.release_s3_cache_lock")
     @patch("caching.lambda_cache.LambdaTagsCache.acquire_s3_cache_lock")
-    @patch("caching.lambda_cache.resource_tagging_client")
+    @patch("caching.lambda_cache.LambdaTagsCache.get_resources_paginator")
     @patch("caching.lambda_cache.LambdaTagsCache.write_cache_to_s3")
-    @patch("caching.lambda_cache.parse_get_resources_response_for_tags_by_arn")
     @patch("caching.lambda_cache.send_forwarder_internal_metrics")
+    @patch("caching.base_tags_cache.send_forwarder_internal_metrics")
     @patch("caching.lambda_cache.LambdaTagsCache.get_cache_from_s3")
     def test_generate_enhanced_lambda_metrics_client_error(
         self,
         mock_get_s3_cache,
-        mock_forward_metrics,
-        mock_parse_responses,
+        mock_base_tags_cache_forward_metrics,
+        mock_lambda_cache_forward_metrics,
         mock_write_cache,
-        mock_resource_tagging_client,
+        mock_get_resources_paginator,
         mock_acquire_lock,
         mock_release_lock,
     ):
@@ -687,12 +597,8 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
             1000,
         )
         paginator = mock.MagicMock()
-        paginator.paginate.return_value = ["foo"]
-        mock_resource_tagging_client.get_paginator.return_value = paginator
-
-        mock_parse_responses.side_effect = ClientError(
-            {"ResponseMetadata": {"HTTPStatusCode": 429}}, "Client Error"
-        )
+        paginator.paginate.return_value = [{"ResourceTagMappingList": []}]
+        mock_get_resources_paginator.return_value = paginator
         tags_cache = LambdaTagsCache()
 
         logs_input = {
@@ -717,14 +623,15 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
         generate_enhanced_lambda_metrics(logs_input, tags_cache)
 
         mock_get_s3_cache.assert_called_once()
-        mock_resource_tagging_client.get_paginator.assert_called_once()
-        paginator.paginate.assert_called_once()
         mock_get_s3_cache.reset_mock()
-        assert mock_forward_metrics.call_count == 3
+        mock_get_resources_paginator.assert_called_once()
+        paginator.paginate.assert_called_once()
+        assert mock_base_tags_cache_forward_metrics.call_count == 1
+        assert mock_lambda_cache_forward_metrics.call_count == 2
 
         del os.environ["DD_FETCH_LAMBDA_TAGS"]
 
-    @patch("caching.base_tags_cache.send_forwarder_internal_metrics")
+    @patch("caching.common.send_forwarder_internal_metrics")
     @patch("caching.lambda_cache.LambdaTagsCache.get_cache_from_s3")
     def test_generate_enhanced_lambda_metrics_timeout(
         self, mock_get_s3_cache, mock_forward_metrics
@@ -782,7 +689,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
         )
         del os.environ["DD_FETCH_LAMBDA_TAGS"]
 
-    @patch("caching.base_tags_cache.send_forwarder_internal_metrics")
+    @patch("caching.common.send_forwarder_internal_metrics")
     @patch("caching.lambda_cache.LambdaTagsCache.get_cache_from_s3")
     def test_generate_enhanced_lambda_metrics_out_of_memory(
         self, mock_get_s3_cache, mock_forward_metrics
