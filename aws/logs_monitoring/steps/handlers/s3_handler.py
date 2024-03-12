@@ -18,6 +18,7 @@ from settings import (
     DD_USE_VPC,
     GOV_STRING,
 )
+from steps.enums import AwsEventSource, AwsS3EventSourceKeyword
 from steps.common import add_service_tag, is_cloudtrail, merge_dicts, parse_event_source
 
 if DD_MULTILINE_LOG_REGEX_PATTERN:
@@ -45,12 +46,12 @@ def s3_handler(event, context, metadata):
     # Get the S3 client
     s3 = get_s3_client()
     # if this is a S3 event carried in a SNS message, extract it and override the event
-    first_record = event["Records"][0]
-    if "Sns" in first_record:
-        event = json.loads(first_record["Sns"]["Message"])
+    first_record = event.get("Records")[0]
+    if sns := first_record.get("Sns"):
+        event = json.loads(sns.get("Message"))
     # Get the object from the event and show its content type
-    bucket = first_record["s3"]["bucket"]["name"]
-    key = urllib.parse.unquote_plus(first_record["s3"]["object"]["key"])
+    bucket = first_record.get("s3").get("bucket").get("name")
+    key = urllib.parse.unquote_plus(first_record.get("s3").get("object").get("key"))
     source = set_source(event, metadata, bucket, key)
     # Add Service tag
     add_service_tag(metadata)
@@ -66,7 +67,7 @@ def s3_handler(event, context, metadata):
 
 def extract_data(s3, bucket, key):
     response = s3.get_object(Bucket=bucket, Key=key)
-    body = response["Body"]
+    body = response.get("Body")
     data = body.read()
     return data
 
@@ -102,8 +103,8 @@ def add_s3_tags_from_cache(metadata, bucket):
 
 def set_source(event, metadata, bucket, key):
     source = parse_event_source(event, key)
-    if "transit-gateway" in bucket:
-        source = "transitgateway"
+    if str(AwsS3EventSourceKeyword.TRANSITAGATEWAY) in bucket:
+        source = AwsEventSource.TRANSITGATEWAY
     metadata[DD_SOURCE] = source
 
     return source
@@ -130,7 +131,7 @@ def get_structured_lines_for_s3_handler(data, bucket, key, source):
             if cloud_trail.get("Records") is not None:
                 # only parse as a cloudtrail bucket if we have a Records field to parse
                 is_cloudtrail_bucket = True
-                for event in cloud_trail["Records"]:
+                for event in cloud_trail.get("Records"):
                     # Create structured object and send it
                     structured_line = merge_dicts(
                         event, {"aws": {"s3": {"bucket": bucket, "key": key}}}
@@ -151,7 +152,7 @@ def get_structured_lines_for_s3_handler(data, bucket, key, source):
                     "DD_MULTILINE_LOG_REGEX_PATTERN %s did not match start of file, splitting by line",
                     DD_MULTILINE_LOG_REGEX_PATTERN,
                 )
-            if source == "waf":
+            if source == str(AwsEventSource.WAF):
                 # WAF logs are \n separated
                 split_data = [d for d in data.split("\n") if d != ""]
             else:
@@ -168,78 +169,94 @@ def get_structured_lines_for_s3_handler(data, bucket, key, source):
 
 
 def parse_service_arn(source, key, bucket, context):
-    if source == "elb":
-        # For ELB logs we parse the filename to extract parameters in order to rebuild the ARN
-        # 1. We extract the region from the filename
-        # 2. We extract the loadbalancer name and replace the "." by "/" to match the ARN format
-        # 3. We extract the id of the loadbalancer
-        # 4. We build the arn
-        idsplit = key.split("/")
-        if not idsplit:
-            logger.debug("Invalid service ARN, unable to parse ELB ARN")
-            return
-        # If there is a prefix on the S3 bucket, remove the prefix before splitting the key
-        if idsplit[0] != "AWSLogs":
-            try:
-                idsplit = idsplit[idsplit.index("AWSLogs") :]
-                keysplit = "/".join(idsplit).split("_")
-            except ValueError:
-                logger.debug("Invalid S3 key, doesn't contain AWSLogs")
-                return
-        # If no prefix, split the key
-        else:
-            keysplit = key.split("_")
-        if len(keysplit) > 3:
-            region = keysplit[2].lower()
-            name = keysplit[3]
-            elbname = name.replace(".", "/")
-            if len(idsplit) > 1:
-                idvalue = idsplit[1]
-                partition = get_partition_from_region(region)
-                return "arn:{}:elasticloadbalancing:{}:{}:loadbalancer/{}".format(
-                    partition, region, idvalue, elbname
-                )
-    if source == "s3":
-        # For S3 access logs we use the bucket name to rebuild the arn
-        if bucket:
-            return get_s3_arn(bucket)
-    if source == "cloudfront":
-        # For Cloudfront logs we need to get the account and distribution id from the lambda arn and the filename
-        # 1. We extract the cloudfront id  from the filename
-        # 2. We extract the AWS account id from the lambda arn
-        # 3. We build the arn
-        namesplit = key.split("/")
-        if len(namesplit) > 0:
-            filename = namesplit[len(namesplit) - 1]
-            # (distribution-ID.YYYY-MM-DD-HH.unique-ID.gz)
-            filenamesplit = filename.split(".")
-            if len(filenamesplit) > 3:
-                distributionID = filenamesplit[len(filenamesplit) - 4].lower()
-                arn = context.invoked_function_arn
-                arnsplit = arn.split(":")
-                if len(arnsplit) == 7:
-                    awsaccountID = arnsplit[4].lower()
-                    return "arn:aws:cloudfront::{}:distribution/{}".format(
-                        awsaccountID, distributionID
-                    )
-    if source == "redshift":
-        # For redshift logs we leverage the filename to extract the relevant information
-        # 1. We extract the region from the filename
-        # 2. We extract the account-id from the filename
-        # 3. We extract the name of the cluster
-        # 4. We build the arn: arn:aws:redshift:region:account-id:cluster:cluster-name
-        namesplit = key.split("/")
-        if len(namesplit) == 8:
-            region = namesplit[3].lower()
-            accountID = namesplit[1].lower()
-            filename = namesplit[7]
-            filesplit = filename.split("_")
-            if len(filesplit) == 6:
-                clustername = filesplit[3]
-                return "arn:{}:redshift:{}:{}:cluster:{}:".format(
-                    get_partition_from_region(region), region, accountID, clustername
-                )
+    src = AwsEventSource._value2member_map_.get(source)
+    match src:
+        case AwsEventSource.ELB:
+            return handle_elb_source(key)
+        case AwsEventSource.S3:
+            # For S3 access logs we use the bucket name to rebuild the arn
+            return get_s3_arn(bucket) if bucket else None
+        case AwsEventSource.CLOUDFRONT:
+            return handle_cloudfront_source(context, key)
+        case AwsEventSource.REDSHIFT:
+            return handle_redshift_source(key)
+
     return
+
+
+def handle_elb_source(key):
+    # For ELB logs we parse the filename to extract parameters in order to rebuild the ARN
+    # 1. We extract the region from the filename
+    # 2. We extract the loadbalancer name and replace the "." by "/" to match the ARN format
+    # 3. We extract the id of the loadbalancer
+    # 4. We build the arn
+    idsplit = key.split("/")
+    if not idsplit:
+        logger.debug("Invalid service ARN, unable to parse ELB ARN")
+        return
+    # If there is a prefix on the S3 bucket, remove the prefix before splitting the key
+    if idsplit[0] != "AWSLogs":
+        try:
+            idsplit = idsplit[idsplit.index("AWSLogs") :]
+            keysplit = "/".join(idsplit).split("_")
+        except ValueError:
+            logger.debug("Invalid S3 key, doesn't contain AWSLogs")
+            return
+    # If no prefix, split the key
+    else:
+        keysplit = key.split("_")
+    if len(keysplit) > 3:
+        region = keysplit[2].lower()
+        name = keysplit[3]
+        elbname = name.replace(".", "/")
+        if len(idsplit) > 1:
+            idvalue = idsplit[1]
+            partition = get_partition_from_region(region)
+            return "arn:{}:elasticloadbalancing:{}:{}:loadbalancer/{}".format(
+                partition, region, idvalue, elbname
+            )
+
+
+def handle_cloudfront_source(context, key):
+    # For Cloudfront logs we need to get the account and distribution id from the lambda arn and the filename
+    # 1. We extract the cloudfront id  from the filename
+    # 2. We extract the AWS account id from the lambda arn
+    namesplit = key.split("/")
+    if len(namesplit) > 0:
+        filename = namesplit[len(namesplit) - 1]
+        # (distribution-ID.YYYY-MM-DD-HH.unique-ID.gz)
+        filenamesplit = filename.split(".")
+        if len(filenamesplit) > 3:
+            distributionID = filenamesplit[len(filenamesplit) - 4].lower()
+            arn = context.invoked_function_arn
+            arnsplit = arn.split(":")
+            if len(arnsplit) == 7:
+                awsaccountID = arnsplit[4].lower()
+                return "arn:aws:cloudfront::{}:distribution/{}".format(
+                    awsaccountID, distributionID
+                )
+
+
+def handle_redshift_source(key):
+    # For redshift logs we leverage the filename to extract the relevant information
+    # 1. We extract the region from the filename
+    # 2. We extract the account-id from the filename
+    # 3. We extract the name of the cluster
+    # 4. We build the arn: arn:aws:redshift:region:account-id:cluster:cluster-name
+    namesplit = key.split("/")
+    if len(namesplit) == 8:
+        region = namesplit[3].lower()
+        accountID = namesplit[1].lower()
+        filename = namesplit[7]
+        filesplit = filename.split("_")
+        if len(filesplit) == 6:
+            clustername = filesplit[3]
+            return "arn:{}:redshift:{}:{}:cluster:{}:".format(
+                get_partition_from_region(region),
+                region,
+                accountID,
+                clustername,
+            )
 
 
 def get_partition_from_region(region):

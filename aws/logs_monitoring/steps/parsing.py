@@ -19,6 +19,7 @@ from steps.common import (
     merge_dicts,
     get_service_from_tags_and_remove_duplicates,
 )
+from steps.enums import AwsEventType, AwsEventTypeKeyword, AwsEventSource
 from settings import (
     AWS_STRING,
     FUNCTIONVERSION_STRING,
@@ -41,22 +42,22 @@ logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").uppe
 def parse(event, context):
     """Parse Lambda input to normalized events"""
     metadata = generate_metadata(context)
-    event_type = "unknown"
+    event_type = AwsEventType.UNKNOWN
     try:
         # Route to the corresponding parser
         event_type = parse_event_type(event)
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug(f"Parsed event type: {event_type}")
         match event_type:
-            case "s3":
+            case AwsEventType.S3:
                 events = s3_handler(event, context, metadata)
-            case "awslogs":
+            case AwsEventType.AWSLOGS:
                 events = awslogs_handler(event, context, metadata)
-            case "events":
+            case AwsEventType.EVENTS:
                 events = cwevent_handler(event, metadata)
-            case "sns":
+            case AwsEventType.SNS:
                 events = sns_handler(event, metadata)
-            case "kinesis":
+            case AwsEventType.KINESIS:
                 events = kinesis_awslogs_handler(event, context, metadata)
             case _:
                 events = ["Parsing: Unsupported event type"]
@@ -108,38 +109,41 @@ def generate_custom_tags(context):
 
 
 def parse_event_type(event):
-    if "Records" in event and event["Records"]:
-        record = event["Records"][0]
-        if "s3" in record:
-            return "s3"
-        elif "Sns" in record:
-            sns_msg = record["Sns"]["Message"]
+    if records := event.get(str(AwsEventTypeKeyword.RECORDS), None):
+        record = records[0]
+        if record.get(str(AwsEventType.S3), None):
+            return AwsEventType.S3
+        elif sns_record := record.get(str(AwsEventTypeKeyword.SNS), None):
+            sns_msg = sns_record.get(str(AwsEventTypeKeyword.MESSAGE), None)
             try:
                 sns_msg_dict = json.loads(sns_msg)
-                if "Records" in sns_msg_dict and "s3" in sns_msg_dict["Records"][0]:
-                    return "s3"
+                if inner_records := sns_msg_dict.get(
+                    str(AwsEventTypeKeyword.RECORDS), None
+                ):
+                    if inner_records[0].get(str(AwsEventType.S3)):
+                        return AwsEventType.S3
             except Exception:
                 if logger.isEnabledFor(logging.DEBUG):
                     logger.debug(f"No s3 event detected from SNS message: {sns_msg}")
-            return "sns"
-        elif "kinesis" in record:
-            return "kinesis"
-    elif "awslogs" in event:
-        return "awslogs"
+            return AwsEventType.SNS
+        elif str(AwsEventType.KINESIS) in record:
+            return AwsEventType.KINESIS
+    elif str(AwsEventType.AWSLOGS) in event:
+        return AwsEventType.AWSLOGS
     elif "detail" in event:
-        return "events"
+        return AwsEventType.EVENTS
     raise Exception("Event type not supported (see #Event supported section)")
 
 
 # Handle Cloudwatch Events
 def cwevent_handler(event, metadata):
     # Set the source on the log
-    source = event.get("source", "cloudwatch")
+    source = event.get("source", str(AwsEventSource.CLOUDWATCH))
     service = source.split(".")
     if len(service) > 1:
         metadata[DD_SOURCE] = service[1]
     else:
-        metadata[DD_SOURCE] = "cloudwatch"
+        metadata[DD_SOURCE] = str(AwsEventSource.CLOUDWATCH)
     metadata[DD_SERVICE] = get_service_from_tags_and_remove_duplicates(metadata)
 
     yield event
@@ -148,11 +152,9 @@ def cwevent_handler(event, metadata):
 # Handle Sns events
 def sns_handler(event, metadata):
     # Set the source on the log
-    metadata[DD_SOURCE] = "sns"
+    metadata[DD_SOURCE] = str(AwsEventSource.SNS)
     for ev in event["Records"]:
-        # Create structured object and send it
-        structured_line = ev
-        yield structured_line
+        yield ev
 
 
 # Handle CloudWatch logs from Kinesis

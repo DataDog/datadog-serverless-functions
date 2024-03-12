@@ -11,14 +11,14 @@
         },
         "ddsource": "lambda",
         "ddsourcecategory": "aws",
-        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,functionname:hello-dog-node-dev-hello12x,region:sa-east-1,service:hello-dog-node-dev-hello12x",
+        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,,account_id:601427279990,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
         "host": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x",
         "id": "35311576111948622874033876462979853992919938886093242368",
         "lambda": {
             "arn": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x"
         },
         "message": "2020-03-05T16:30:36.113Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tDEBUG\t[dd.trace_id=3172564172058669914 dd.span_id=14292093692483532556] {\"status\":\"debug\",\"message\":\"datadog:Patched console output with trace context\"}\n",
-        "service": "hello-dog-node-dev-hello12x",
+        "service": "hello",
         "timestamp": 1583425836114
     },
     {
@@ -33,14 +33,14 @@
         },
         "ddsource": "lambda",
         "ddsourcecategory": "aws",
-        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,functionname:hello-dog-node-dev-hello12x,region:sa-east-1,service:hello-dog-node-dev-hello12x",
+        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,,account_id:601427279990,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
         "host": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x",
         "id": "35311576111948622874033876462979853992919938886093242369",
         "lambda": {
             "arn": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x"
         },
         "message": "2020-03-05T16:30:36.114Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tDEBUG\t[dd.trace_id=3172564172058669914 dd.span_id=14292093692483532556] {\"autoPatchHTTP\":true,\"tracerInitialized\":true,\"status\":\"debug\",\"message\":\"datadog:Not patching HTTP libraries\"}\n",
-        "service": "hello-dog-node-dev-hello12x",
+        "service": "hello",
         "timestamp": 1583425836114
     },
     {
@@ -55,14 +55,14 @@
         },
         "ddsource": "lambda",
         "ddsourcecategory": "aws",
-        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,functionname:hello-dog-node-dev-hello12x,region:sa-east-1,service:hello-dog-node-dev-hello12x",
+        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,,account_id:601427279990,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
         "host": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x",
         "id": "35311576111948622874033876462979853992919938886093242370",
         "lambda": {
             "arn": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x"
         },
         "message": "2020-03-05T16:30:36.114Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tDEBUG\t[dd.trace_id=3172564172058669914 dd.span_id=14292093692483532556] {\"status\":\"debug\",\"message\":\"datadog:Reading trace context from env var Root=1-5e61292c-cc1229a4dfbeae1043928548;Parent=c657b77d9514f70c;Sampled=1\"}\n",
-        "service": "hello-dog-node-dev-hello12x",
+        "service": "hello",
         "timestamp": 1583425836114
     },
     {
@@ -77,14 +77,14 @@
         },
         "ddsource": "lambda",
         "ddsourcecategory": "aws",
-        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,functionname:hello-dog-node-dev-hello12x,region:sa-east-1,service:hello-dog-node-dev-hello12x",
+        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,,account_id:601427279990,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
         "host": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x",
         "id": "35311576111948622874033876462979853992919938886093242371",
         "lambda": {
             "arn": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x"
         },
         "message": "2020-03-05T16:30:36.114Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tDEBUG\t[dd.trace_id=3172564172058669914 dd.span_id=14292093692483532556] {\"parentID\":\"14292093692483532556\",\"sampleMode\":2,\"source\":\"xray\",\"traceID\":\"6899143064054564168\",\"status\":\"debug\",\"message\":\"datadog:read trace context from environment\"}\n",
-        "service": "hello-dog-node-dev-hello12x",
+        "service": "hello",
         "timestamp": 1583425836114
     },
     {
@@ -99,14 +99,14 @@
         },
         "ddsource": "lambda",
         "ddsourcecategory": "aws",
-        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,functionname:hello-dog-node-dev-hello12x,region:sa-east-1,service:hello-dog-node-dev-hello12x",
+        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,,account_id:601427279990,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
         "host": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x",
         "id": "35311576111948622874033876462979853992919938886093242372",
         "lambda": {
             "arn": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x"
         },
         "message": "{\"e\":1583425836.114,\"m\":\"aws.lambda.enhanced.invocations\",\"t\":[\"region:us-east-1\",\"account_id:601427279990\",\"functionname:hello-dog-node-dev-hello12x\",\"cold_start:false\",\"memorysize:128\",\"runtime:nodejs12.x\"],\"v\":1}\n",
-        "service": "hello-dog-node-dev-hello12x",
+        "service": "hello",
         "timestamp": 1583425836114
     },
     {
@@ -121,14 +121,14 @@
         },
         "ddsource": "lambda",
         "ddsourcecategory": "aws",
-        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,functionname:hello-dog-node-dev-hello12x,region:sa-east-1,service:hello-dog-node-dev-hello12x",
+        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,,account_id:601427279990,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
         "host": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x",
         "id": "35311576112305434797210366433244425485282312670188929029",
         "lambda": {
             "arn": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x"
         },
         "message": "2020-03-05T16:30:36.130Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tDEBUG\t[dd.trace_id=6899143064054564168 dd.span_id=14292093692483532556] {\"status\":\"debug\",\"message\":\"datadog:set trace context from xray with parent 14292093692483532556 from segment\"}\n",
-        "service": "hello-dog-node-dev-hello12x",
+        "service": "hello",
         "timestamp": 1583425836130
     },
     {
@@ -143,14 +143,14 @@
         },
         "ddsource": "lambda",
         "ddsourcecategory": "aws",
-        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,functionname:hello-dog-node-dev-hello12x,region:sa-east-1,service:hello-dog-node-dev-hello12x",
+        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,,account_id:601427279990,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
         "host": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x",
         "id": "35311576113197464605151591358905854216188247130428145670",
         "lambda": {
             "arn": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x"
         },
         "message": "2020-03-05T16:30:36.131Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tDEBUG\t[dd.trace_id=6899143064054564168 dd.span_id=14292093692483532556] {\"status\":\"debug\",\"message\":\"datadog:set trace context from xray with parent 14292093692483532556 from segment\"}\n",
-        "service": "hello-dog-node-dev-hello12x",
+        "service": "hello",
         "timestamp": 1583425836170
     },
     {
@@ -165,14 +165,14 @@
         },
         "ddsource": "lambda",
         "ddsourcecategory": "aws",
-        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,functionname:hello-dog-node-dev-hello12x,region:sa-east-1,service:hello-dog-node-dev-hello12x",
+        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,,account_id:601427279990,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
         "host": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x",
         "id": "35311576113197464605151591358905854216188247130428145671",
         "lambda": {
             "arn": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x"
         },
         "message": "2020-03-05T16:30:36.131Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tDEBUG\t[dd.trace_id=6899143064054564168 dd.span_id=14292093692483532556] {\"status\":\"debug\",\"message\":\"datadog:set trace context from xray with parent 14292093692483532556 from segment\"}\n",
-        "service": "hello-dog-node-dev-hello12x",
+        "service": "hello",
         "timestamp": 1583425836170
     },
     {
@@ -187,14 +187,14 @@
         },
         "ddsource": "lambda",
         "ddsourcecategory": "aws",
-        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,functionname:hello-dog-node-dev-hello12x,region:sa-east-1,service:hello-dog-node-dev-hello12x",
+        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,,account_id:601427279990,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
         "host": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x",
         "id": "35311576113197464605151591358905854216188247130428145672",
         "lambda": {
             "arn": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x"
         },
         "message": "2020-03-05T16:30:36.131Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tDEBUG\t[dd.trace_id=6899143064054564168 dd.span_id=14292093692483532556] {\"status\":\"debug\",\"message\":\"datadog:set trace context from xray with parent 14292093692483532556 from segment\"}\n",
-        "service": "hello-dog-node-dev-hello12x",
+        "service": "hello",
         "timestamp": 1583425836170
     },
     {
@@ -209,14 +209,14 @@
         },
         "ddsource": "lambda",
         "ddsourcecategory": "aws",
-        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,functionname:hello-dog-node-dev-hello12x,region:sa-east-1,service:hello-dog-node-dev-hello12x",
+        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,,account_id:601427279990,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
         "host": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x",
         "id": "35311576113197464605151591358905854216188247130428145673",
         "lambda": {
             "arn": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x"
         },
         "message": "2020-03-05T16:30:36.131Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tDEBUG\t[dd.trace_id=6899143064054564168 dd.span_id=14292093692483532556] {\"status\":\"debug\",\"message\":\"datadog:Attempting to find parent for datadog trace trace\"}\n",
-        "service": "hello-dog-node-dev-hello12x",
+        "service": "hello",
         "timestamp": 1583425836170
     },
     {
@@ -231,14 +231,14 @@
         },
         "ddsource": "lambda",
         "ddsourcecategory": "aws",
-        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,functionname:hello-dog-node-dev-hello12x,region:sa-east-1,service:hello-dog-node-dev-hello12x",
+        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,,account_id:601427279990,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
         "host": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x",
         "id": "35311576113197464605151591358905854216188247130428145674",
         "lambda": {
             "arn": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x"
         },
         "message": "2020-03-05T16:30:36.131Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tDEBUG\t[dd.trace_id=6899143064054564168 dd.span_id=14292093692483532556] {\"status\":\"debug\",\"message\":\"datadog:Applying lambda context to datadog traces\"}\n",
-        "service": "hello-dog-node-dev-hello12x",
+        "service": "hello",
         "timestamp": 1583425836170
     },
     {
@@ -253,14 +253,14 @@
         },
         "ddsource": "lambda",
         "ddsourcecategory": "aws",
-        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,functionname:hello-dog-node-dev-hello12x,region:sa-east-1,service:hello-dog-node-dev-hello12x",
+        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,,account_id:601427279990,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
         "host": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x",
         "id": "35311576113643479509122203821736568581641214360547753995",
         "lambda": {
             "arn": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x"
         },
         "message": "2020-03-05T16:30:36.172Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tINFO\t[dd.trace_id=6899143064054564168 dd.span_id=2927617725217152879] Request Headers undefined\n",
-        "service": "hello-dog-node-dev-hello12x",
+        "service": "hello",
         "timestamp": 1583425836190
     },
     {
@@ -275,14 +275,14 @@
         },
         "ddsource": "lambda",
         "ddsourcecategory": "aws",
-        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,functionname:hello-dog-node-dev-hello12x,region:sa-east-1,service:hello-dog-node-dev-hello12x",
+        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,,account_id:601427279990,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
         "host": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x",
         "id": "35311576113643479509122203821736568581641214360547753996",
         "lambda": {
             "arn": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x"
         },
         "message": "2020-03-05T16:30:36.172Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tINFO\t[dd.trace_id=6899143064054564168 dd.span_id=2927617725217152879] Root=1-5e61292c-cc1229a4dfbeae1043928548;Parent=c657b77d9514f70c;Sampled=1\n",
-        "service": "hello-dog-node-dev-hello12x",
+        "service": "hello",
         "timestamp": 1583425836190
     },
     {
@@ -297,14 +297,14 @@
         },
         "ddsource": "lambda",
         "ddsourcecategory": "aws",
-        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,functionname:hello-dog-node-dev-hello12x,region:sa-east-1,service:hello-dog-node-dev-hello12x",
+        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,,account_id:601427279990,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
         "host": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x",
         "id": "35311576113643479509122203821736568581641214360547753997",
         "lambda": {
             "arn": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x"
         },
         "message": "{\"e\":1583425836.172,\"m\":\"hello.js10x.dog-2\",\"t\":[\"dd_lambda_layer:datadog-nodev12.14.1\"],\"v\":10}\n",
-        "service": "hello-dog-node-dev-hello12x",
+        "service": "hello",
         "timestamp": 1583425836190
     },
     {
@@ -319,14 +319,14 @@
         },
         "ddsource": "lambda",
         "ddsourcecategory": "aws",
-        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,functionname:hello-dog-node-dev-hello12x,region:sa-east-1,service:hello-dog-node-dev-hello12x",
+        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,,account_id:601427279990,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
         "host": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x",
         "id": "35311576123455807396475678004012284621606493423179137038",
         "lambda": {
             "arn": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x"
         },
         "message": "2020-03-05T16:30:36.592Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tINFO\t[dd.trace_id=6899143064054564168 dd.span_id=3694123456155101779] 8103.047457805628\n",
-        "service": "hello-dog-node-dev-hello12x",
+        "service": "hello",
         "timestamp": 1583425836630
     },
     {
@@ -341,14 +341,14 @@
         },
         "ddsource": "lambda",
         "ddsourcecategory": "aws",
-        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,functionname:hello-dog-node-dev-hello12x,region:sa-east-1,service:hello-dog-node-dev-hello12x",
+        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,,account_id:601427279990,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
         "host": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x",
         "id": "35311576123478108141674208627153820339879141784685117455",
         "lambda": {
             "arn": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x"
         },
         "message": "2020-03-05T16:30:36.631Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tINFO\t[dd.trace_id=6899143064054564168 dd.span_id=2927617725217152879] Finishing Span\n",
-        "service": "hello-dog-node-dev-hello12x",
+        "service": "hello",
         "timestamp": 1583425836631
     },
     {
@@ -363,14 +363,14 @@
         },
         "ddsource": "lambda",
         "ddsourcecategory": "aws",
-        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,functionname:hello-dog-node-dev-hello12x,region:sa-east-1,service:hello-dog-node-dev-hello12x",
+        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,,account_id:601427279990,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
         "host": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x",
         "id": "35311576125685881916328740318165856448871329573777178640",
         "lambda": {
             "arn": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x"
         },
         "message": "{\"traces\": [[{\"trace_id\": \"9CDC6ED69F05CB63\", \"parent_id\": \"0000000000000000\", \"span_id\": \"A812B5E71D1C5417\", \"service\": \"ialbefmodl.execute-api.sa-east-1.amazonaws.com\", \"resource\": \"ialbefmodl.execute-api.sa-east-1.amazonaws.com/\", \"name\": \"aws.apigateway\", \"error\": 0, \"start\": 1636820292450000128, \"duration\": 149992638, \"meta\": {\"runtime-id\": \"810d8797397b4a8c94ca00582b397222\", \"_dd.origin\": \"lambda\", \"operation_name\": \"aws.apigateway.rest\", \"http.url\": \"ialbefmodl.execute-api.sa-east-1.amazonaws.com/\", \"endpoint\": \"/\", \"http.method\": \"GET\", \"resource_names\": \"ialbefmodl.execute-api.sa-east-1.amazonaws.com/\", \"request_id\": \"9f09f496-83c7-441b-bc59-9741107b0683\", \"inferred_span.inherit_lambda\": \"False\", \"inferred_span.is_async\": \"False\", \"http.status_code\": \"200\"}, \"metrics\": {\"_dd.agent_psr\": 1, \"system.pid\": 9, \"_sampling_priority_v1\": 1}, \"type\": \"http\"}, {\"trace_id\": \"9CDC6ED69F05CB63\", \"parent_id\": \"A812B5E71D1C5417\", \"span_id\": \"080EE818C637C434\", \"service\": \"aws.lambda\", \"resource\": \"inferred-spans-python-dev-initSender\", \"name\": \"aws.lambda\", \"error\": 0, \"start\": 1636820292466458058, \"duration\": 133507715, \"meta\": {\"_dd.origin\": \"lambda\", \"cold_start\": \"false\", \"function_arn\": \"arn:aws:lambda:sa-east-1:601427279990:function:inferred-spans-python-dev-initsender\", \"function_version\": \"$LATEST\", \"request_id\": \"9f09f496-83c7-441b-bc59-9741107b0683\", \"resource_names\": \"inferred-spans-python-dev-initSender\", \"functionname\": \"inferred-spans-python-dev-initsender\", \"datadog_lambda\": \"3.49.0\", \"dd_trace\": \"0.50.4\", \"span.name\": \"aws.lambda\", \"function_trigger.event_source\": \"api-gateway\", \"function_trigger.event_source_arn\": \"arn:aws:apigateway:sa-east-1::/restapis/ialbefmodl/stages/dev\", \"http.url\": \"ialbefmodl.execute-api.sa-east-1.amazonaws.com\", \"http.url_details.path\": \"/dev/\", \"http.method\": \"GET\", \"http.status_code\": \"200\"}, \"type\": \"serverless\"}, {\"trace_id\": \"9CDC6ED69F05CB63\", \"parent_id\": \"080EE818C637C434\", \"span_id\": \"1E1CBE25CBABD2AD\", \"service\": \"aws.sqs\", \"resource\": \"sqs.sendmessage\", \"name\": \"sqs.command\", \"error\": 0, \"start\": 1636820292466887097, \"duration\": 19825652, \"meta\": {\"_dd.origin\": \"lambda\", \"params.MessageAttributes._datadog.StringValue\": \"{\\\"x-datadog-trace-id\\\": \\\"11303031032863116131\\\", \\\"x-datadog-parent-id\\\": \\\"2169818190025839277\\\", \\\"x-datadog-sampling-priority\\\": \\\"1\\\"}\", \"params.MessageAttributes._datadog.DataType\": \"String\", \"params.QueueUrl\": \"https://sqs.sa-east-1.amazonaws.com/601427279990/serverlessTracingQueuePy\", \"aws.agent\": \"botocore\", \"aws.operation\": \"SendMessage\", \"aws.region\": \"sa-east-1\", \"http.status_code\": \"200\", \"aws.requestid\": \"adc84b9d-0bc0-5ad9-82e0-1194ec44018a\"}, \"metrics\": {\"_dd.measured\": 1, \"retry_attempts\": 0}, \"type\": \"http\"}, {\"trace_id\": \"9CDC6ED69F05CB63\", \"parent_id\": \"080EE818C637C434\", \"span_id\": \"2084449425493209\", \"service\": \"aws.sns\", \"resource\": \"sns.publish\", \"name\": \"sns.command\", \"error\": 0, \"start\": 1636820292487211990, \"duration\": 21565856, \"meta\": {\"_dd.origin\": \"lambda\", \"params.MessageAttributes._datadog.StringValue\": \"{\\\"x-datadog-trace-id\\\": \\\"11303031032863116131\\\", \\\"x-datadog-parent-id\\\": \\\"580656595079775284\\\", \\\"x-datadog-sampling-priority\\\": \\\"1\\\"}\", \"params.MessageAttributes._datadog.DataType\": \"String\", \"params.Message\": \"Asynchronously invoking a Lambda function with SNS.\", \"params.TopicArn\": \"arn:aws:sns:sa-east-1:601427279990:serverlessTracingTopicPy\", \"aws.agent\": \"botocore\", \"aws.operation\": \"Publish\", \"aws.region\": \"sa-east-1\", \"http.status_code\": \"200\", \"aws.requestid\": \"37ec8df5-bc7c-583e-835c-d7fc5bf87b1b\"}, \"metrics\": {\"_dd.measured\": 1, \"retry_attempts\": 0}, \"type\": \"http\"}, {\"trace_id\": \"9CDC6ED69F05CB63\", \"parent_id\": \"080EE818C637C434\", \"span_id\": \"640267352BAD0C2B\", \"service\": \"aws.dynamodb\", \"resource\": \"dynamodb.putitem\", \"name\": \"dynamodb.command\", \"error\": 0, \"start\": 1636820292508904508, \"duration\": 6481144, \"meta\": {\"_dd.origin\": \"lambda\", \"params.Item.email.S\": \"e560387c-da16-4aae-8479-2c9232234ed6\", \"params.TableName\": \"usersTable\", \"aws.agent\": \"botocore\", \"aws.operation\": \"PutItem\", \"aws.region\": \"sa-east-1\", \"http.status_code\": \"200\", \"aws.requestid\": \"QHMDJ5RCOUB1LNCAB0VVKEDCHVVV4KQNSO5AEMVJF66Q9ASUAAJG\"}, \"metrics\": {\"_dd.measured\": 1, \"retry_attempts\": 0}, \"type\": \"http\"}, {\"trace_id\": \"9CDC6ED69F05CB63\", \"parent_id\": \"080EE818C637C434\", \"span_id\": \"D50A24D92FF59FD4\", \"service\": \"aws.kinesis\", \"resource\": \"kinesis.putrecord\", \"name\": \"kinesis.command\", \"error\": 0, \"start\": 1636820292515486978, \"duration\": 7799031, \"meta\": {\"_dd.origin\": \"lambda\", \"params.PartitionKey\": \"partitionkey\", \"params.Data\": \"{\\\"foo\\\": \\\"bar\\\"}\", \"params.StreamName\": \"kinesisStream\", \"aws.agent\": \"botocore\", \"aws.operation\": \"PutRecord\", \"aws.region\": \"sa-east-1\", \"http.status_code\": \"200\", \"aws.requestid\": \"dda3348f-e941-9fe5-87aa-d30b19df6a3e\"}, \"metrics\": {\"_dd.measured\": 1, \"retry_attempts\": 0}, \"type\": \"http\"}, {\"trace_id\": \"9CDC6ED69F05CB63\", \"parent_id\": \"080EE818C637C434\", \"span_id\": \"0E4800A960384F8F\", \"service\": \"aws.events\", \"resource\": \"events.putevents\", \"name\": \"events.command\", \"error\": 0, \"start\": 1636820292523387895, \"duration\": 13733007, \"meta\": {\"_dd.origin\": \"lambda\", \"params.Entries\": \"[{'Source': 'eventbridge.custom.event.sender', 'DetailType': 'testdetail', 'Detail': '{\\\"foo\\\": \\\"bar\\\"}', 'EventBusName': 'inferredBus'}]\", \"aws.agent\": \"botocore\", \"aws.operation\": \"PutEvents\", \"aws.region\": \"sa-east-1\", \"http.status_code\": \"200\", \"aws.requestid\": \"d7545887-c739-4e35-ab65-c6504e714d07\"}, \"metrics\": {\"_dd.measured\": 1, \"retry_attempts\": 0}, \"type\": \"http\"}, {\"trace_id\": \"9CDC6ED69F05CB63\", \"parent_id\": \"080EE818C637C434\", \"span_id\": \"154151ED08C6AD19\", \"service\": \"aws.s3\", \"resource\": \"s3.putobject\", \"name\": \"s3.command\", \"error\": 0, \"start\": 1636820292538263155, \"duration\": 38689743, \"meta\": {\"_dd.origin\": \"lambda\", \"params.Key\": \"76909630-1599-4fcc-ab10-5425637e1bee\", \"params.Bucket\": \"inferred-spans-python-bucket\", \"aws.agent\": \"botocore\", \"aws.operation\": \"PutObject\", \"aws.region\": \"sa-east-1\", \"http.status_code\": \"200\", \"aws.requestid\": \"0Z7JMRYXA4WXJP0M\"}, \"metrics\": {\"_dd.measured\": 1, \"retry_attempts\": 0}, \"type\": \"http\"}, {\"trace_id\": \"9CDC6ED69F05CB63\", \"parent_id\": \"080EE818C637C434\", \"span_id\": \"70BB81DD6895FD93\", \"service\": \"aws.lambda\", \"resource\": \"lambda.invoke\", \"name\": \"lambda.command\", \"error\": 0, \"start\": 1636820292579315022, \"duration\": 20111883, \"meta\": {\"_dd.origin\": \"lambda\", \"params.ClientContext\": \"eyJjdXN0b20iOiB7Il9kYXRhZG9nIjogeyJ4LWRhdGFkb2ctdHJhY2UtaWQiOiAiMTEzMDMwMzEwMzI4NjMxMTYxMzEiLCAieC1kYXRhZG9nLXBhcmVudC1pZCI6ICI4MTIzMjI5MTQwODM1MjM3MjY3IiwgIngtZGF0YWRvZy1zYW1wbGluZy1wcmlvcml0eSI6ICIxIn19fQ==\", \"params.FunctionName\": \"inferred-spans-python-dev-directInvokeReceiver\", \"aws.agent\": \"botocore\", \"aws.operation\": \"Invoke\", \"aws.region\": \"sa-east-1\", \"http.status_code\": \"200\", \"aws.requestid\": \"0e6344ef-befc-4066-b755-f2c902fc4f7f\"}, \"metrics\": {\"_dd.measured\": 1, \"retry_attempts\": 0}, \"type\": \"http\"}]]}\n",
-        "service": "hello-dog-node-dev-hello12x",
+        "service": "hello",
         "timestamp": 1583425836730
     },
     {
@@ -385,14 +385,14 @@
         },
         "ddsource": "lambda",
         "ddsourcecategory": "aws",
-        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,functionname:hello-dog-node-dev-hello12x,region:sa-east-1,service:hello-dog-node-dev-hello12x",
+        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,,account_id:601427279990,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
         "host": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x",
         "id": "35311576126131896820299352780996570814324296803896786961",
         "lambda": {
             "arn": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x"
         },
         "message": "END RequestId: f08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\n",
-        "service": "hello-dog-node-dev-hello12x",
+        "service": "hello",
         "timestamp": 1583425836750
     },
     {
@@ -407,14 +407,14 @@
         },
         "ddsource": "lambda",
         "ddsourcecategory": "aws",
-        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,env:none,account_id:601427279990,aws_account:601427279990,functionname:hello-dog-node-dev-hello12x,region:sa-east-1,service:hello-dog-node-dev-hello12x",
+        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,,account_id:601427279990,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
         "host": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x",
         "id": "35311576126131896820299352780996570814324296803896786962",
         "lambda": {
             "arn": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x"
         },
         "message": "REPORT RequestId: f08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tDuration: 619.31 ms\tBilled Duration: 700 ms\tMemory Size: 128 MB\tMax Memory Used: 118 MB\t\nXRAY TraceId: 1-5e61292c-cc1229a4dfbeae1043928548\tSegmentId: 07a85e713f6302b2\tSampled: true\t\n",
-        "service": "hello-dog-node-dev-hello12x",
+        "service": "hello",
         "timestamp": 1583425836750
     }
 ]

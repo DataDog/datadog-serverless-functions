@@ -1,5 +1,13 @@
 import re
-
+from steps.enums import (
+    AwsEventSource,
+    AwsEventType,
+    AwsEventTypeKeyword,
+    AwsCwEventSourcePrefix,
+    AwsS3EventSourceKeyword,
+    KEYWORD_TO_SOURCE_MAP,
+    PREFIX_TO_SOURCE_MAP,
+)
 from settings import DD_CUSTOM_TAGS, DD_SERVICE, DD_SOURCE
 
 CLOUDTRAIL_REGEX = re.compile(
@@ -8,142 +16,85 @@ CLOUDTRAIL_REGEX = re.compile(
 )
 
 
-def parse_event_source(event, key):
+def parse_event_source(event, override):
     """Parse out the source that will be assigned to the log in Datadog
     Args:
         event (dict): The AWS-formatted log event that the forwarder was triggered with
         key (string): The S3 object key if the event is from S3 or the CW Log Group if the event is from CW Logs
     """
-    lowercase_key = str(key).lower()
+    lowercased = str(override).lower()
 
     # Determines if the key matches any known sources for Cloudwatch logs
-    if "awslogs" in event:
-        return find_cloudwatch_source(lowercase_key)
+    if event.get(str(AwsEventType.AWSLOGS), None):
+        return find_cloudwatch_source(lowercased)
 
     # Determines if the key matches any known sources for S3 logs
-    if "Records" in event and len(event["Records"]) > 0:
-        if "s3" in event["Records"][0]:
-            if is_cloudtrail(str(key)):
-                return "cloudtrail"
+    if records := event.get(str(AwsEventTypeKeyword.RECORDS), None):
+        if len(records) > 0 and str(AwsEventSource.S3) in records[0]:
+            if is_cloudtrail(lowercased):
+                return str(AwsEventSource.CLOUDTRAIL)
 
-            return find_s3_source(lowercase_key)
+            return find_s3_source(lowercased)
 
-    return "aws"
+    return str(AwsEventSource.AWS)
+
+
+def is_cloudtrail(key):
+    match = CLOUDTRAIL_REGEX.search(key)
+    return bool(match)
 
 
 def find_cloudwatch_source(log_group):
-    # e.g. /aws/rds/instance/my-mariadb/error
-    if log_group.startswith("/aws/rds"):
-        for engine in ["mariadb", "mysql", "postgresql"]:
-            if engine in log_group:
-                return engine
-        return "rds"
+    for prefix in AwsCwEventSourcePrefix:
+        if log_group.startswith(str(prefix)):
+            if prefix == AwsCwEventSourcePrefix.RDS:
+                return find_rds_source(log_group)
 
-    if log_group.startswith(
-        (
-            # default location for rest api execution logs
-            "api-gateway",  # e.g. Api-Gateway-Execution-Logs_xxxxxx/dev
-            # default location set by serverless framework for rest api access logs
-            "/aws/api-gateway",  # e.g. /aws/api-gateway/my-project
-            # default location set by serverless framework for http api logs
-            "/aws/http-api",  # e.g. /aws/http-api/my-project
-            # WebSocket API Execution Logs, e.g. /aws/apigateway/api-id/stage-name
-            "/aws/apigateway/",
-        )
-    ):
-        return "apigateway"
+            return str(PREFIX_TO_SOURCE_MAP[prefix])
 
-    if log_group.startswith("/aws/vendedlogs/states"):
-        return "stepfunction"
-
-    # e.g. dms-tasks-test-instance
-    if log_group.startswith("dms-tasks"):
-        return "dms"
-
-    # e.g. sns/us-east-1/123456779121/SnsTopicX
-    if log_group.startswith("sns/"):
-        return "sns"
-
-    # e.g. /aws/fsx/windows/xxx
-    if log_group.startswith("/aws/fsx/windows"):
-        return "aws.fsx"
-
-    if log_group.startswith("/aws/appsync/"):
-        return "appsync"
-
+    # directly look for the source in the log group
     for source in [
-        "/aws/lambda",  # e.g. /aws/lambda/helloDatadog
-        "/aws/codebuild",  # e.g. /aws/codebuild/my-project
-        "/aws/kinesis",  # e.g. /aws/kinesisfirehose/dev
-        "/aws/docdb",  # e.g. /aws/docdb/yourClusterName/profile
-        "/aws/eks",  # e.g. /aws/eks/yourClusterName/profile
-    ]:
-        if log_group.startswith(source):
-            return source.replace("/aws/", "")
-
-    # the below substrings must be in your log group to be detected
-    for source in [
-        "network-firewall",
-        "route53",
-        "vpc",
-        "fargate",
-        "cloudtrail",
-        "msk",
-        "elasticsearch",
-        "transitgateway",
-        "verified-access",
-        "bedrock",
+        str(AwsEventSource.NETWORKFIREWALL),
+        str(AwsEventSource.ROUTE53),
+        str(AwsEventSource.VPC),
+        str(AwsEventSource.FARGATE),
+        str(AwsEventSource.CLOUDTRAIL),
+        str(AwsEventSource.MSK),
+        str(AwsEventSource.ELASTICSEARCH),
+        str(AwsEventSource.TRANSITGATEWAY),
+        str(AwsEventSource.VERIFIED_ACCESS),
+        str(AwsEventSource.BEDROCK),
+        str(AwsEventSource.CLOUDFRONT),
     ]:
         if source in log_group:
             return source
 
-    return "cloudwatch"
+    return str(AwsEventSource.CLOUDWATCH)
+
+
+def find_rds_source(log_group):
+    for engine in [
+        str(AwsEventSource.MARIADB),
+        str(AwsEventSource.MYSQL),
+        str(AwsEventSource.POSTGRESQL),
+    ]:
+        if engine in log_group:
+            return engine
+
+    return str(AwsEventSource.RDS)
 
 
 def find_s3_source(key):
-    # e.g. AWSLogs/123456779121/elasticloadbalancing/us-east-1/2020/10/02/123456779121_elasticloadbalancing_us-east-1_app.alb.xxxxx.xx.xxx.xxx_x.log.gz
-    if "elasticloadbalancing" in key:
-        return "elb"
+    for keyword in AwsS3EventSourceKeyword:
+        keyword_str = str(keyword)
+        if keyword_str in key:
+            return str(KEYWORD_TO_SOURCE_MAP[keyword])
 
-    # e.g. AWSLogs/123456779121/vpcflowlogs/us-east-1/2020/10/02/123456779121_vpcflowlogs_us-east-1_fl-xxxxx.log.gz
-    if "vpcflowlogs" in key:
-        return "vpc"
+    return str(AwsEventSource.S3)
 
-    # e.g. AWSLogs/123456779121/vpcdnsquerylogs/vpc-********/2021/05/11/vpc-********_vpcdnsquerylogs_********_20210511T0910Z_71584702.log.gz
-    if "vpcdnsquerylogs" in key:
-        return "route53"
 
-    # e.g. 2020/10/02/21/aws-waf-logs-testing-1-2020-10-02-21-25-30-x123x-x456x or AWSLogs/123456779121/WAFLogs/us-east-1/xxxxxx-waf/2022/10/11/14/10/123456779121_waflogs_us-east-1_xxxxx-waf_20221011T1410Z_12756524.log.gz
-    if "aws-waf-logs" in key or "waflogs" in key:
-        return "waf"
-
-    # e.g. AWSLogs/123456779121/redshift/us-east-1/2020/10/21/123456779121_redshift_us-east-1_mycluster_userlog_2020-10-21T18:01.gz
-    if "_redshift_" in key:
-        return "redshift"
-
-    # this substring must be in your target prefix to be detected
-    if "amazon_documentdb" in key:
-        return "docdb"
-
-    # e.g. carbon-black-cloud-forwarder/alerts/org_key=*****/year=2021/month=7/day=19/hour=18/minute=15/second=41/8436e850-7e78-40e4-b3cd-6ebbc854d0a2.jsonl.gz
-    if "carbon-black" in key:
-        return "carbonblack"
-
-    # the below substrings must be in your target prefix to be detected
-    for source in [
-        "amazon_codebuild",
-        "amazon_kinesis",
-        "amazon_dms",
-        "amazon_msk",
-        "network-firewall",
-        "cloudfront",
-        "verified-access",
-        "bedrock",
-    ]:
-        if source in key:
-            return source.replace("amazon_", "")
-
-    return "s3"
+def add_service_tag(metadata):
+    metadata[DD_SERVICE] = get_service_from_tags_and_remove_duplicates(metadata)
 
 
 def get_service_from_tags_and_remove_duplicates(metadata):
@@ -160,15 +111,6 @@ def get_service_from_tags_and_remove_duplicates(metadata):
 
     # Default service to source value
     return service if service else metadata[DD_SOURCE]
-
-
-def add_service_tag(metadata):
-    metadata[DD_SERVICE] = get_service_from_tags_and_remove_duplicates(metadata)
-
-
-def is_cloudtrail(key):
-    match = CLOUDTRAIL_REGEX.search(key)
-    return bool(match)
 
 
 def merge_dicts(a, b, path=None):

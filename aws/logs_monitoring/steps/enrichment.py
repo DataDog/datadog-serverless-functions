@@ -9,6 +9,7 @@ from settings import (
     DD_CUSTOM_TAGS,
 )
 from enhanced_lambda_metrics import get_enriched_lambda_log_tags
+from steps.enums import AwsEventSource
 
 HOST_IDENTITY_REGEXP = re.compile(
     r"^arn:aws:sts::.*?:assumed-role\/(?P<role>.*?)/(?P<host>i-([0-9a-f]{8}|[0-9a-f]{17}))$"
@@ -159,7 +160,7 @@ def extract_host_from_cloudtrails(event):
     "message" field, but in the event object itself.
     """
 
-    if event is not None and event.get(DD_SOURCE) == "cloudtrail":
+    if event is not None and event.get(DD_SOURCE) == str(AwsEventSource.CLOUDTRAIL):
         message = event.get("message", {})
         if isinstance(message, str):
             try:
@@ -181,7 +182,7 @@ def extract_host_from_cloudtrails(event):
 
 
 def extract_host_from_guardduty(event):
-    if event is not None and event.get(DD_SOURCE) == "guardduty":
+    if event is not None and event.get(DD_SOURCE) == str(AwsEventSource.GUARDDUTY):
         host = event.get("detail", {}).get("resource")
         if isinstance(host, dict):
             host = host.get("instanceDetails", {}).get("instanceId")
@@ -190,7 +191,7 @@ def extract_host_from_guardduty(event):
 
 
 def extract_host_from_route53(event):
-    if event is not None and event.get(DD_SOURCE) == "route53":
+    if event is not None and event.get(DD_SOURCE) == str(AwsEventSource.ROUTE53):
         message = event.get("message", {})
         if isinstance(message, str):
             try:

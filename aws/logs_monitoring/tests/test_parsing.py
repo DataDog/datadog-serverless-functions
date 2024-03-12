@@ -8,6 +8,7 @@ from settings import (
     DD_CUSTOM_TAGS,
     DD_SOURCE,
 )
+from steps.enums import AwsEventSource
 
 
 class TestParseEventSource(unittest.TestCase):
@@ -20,7 +21,7 @@ class TestParseEventSource(unittest.TestCase):
                 {"Records": ["logs-from-s3"]},
                 "cloud-trail/AWSLogs/123456779121/CloudTrail/us-west-3/2018/01/07/123456779121_CloudTrail_eu-west-3_20180707T1735Z_abcdefghi0MCRL2O.json.gz",
             ),
-            "cloudtrail",
+            str(AwsEventSource.CLOUDTRAIL),
         )
 
     def test_cloudtrail_digest_event(self):
@@ -29,7 +30,7 @@ class TestParseEventSource(unittest.TestCase):
                 {"Records": ["logs-from-s3"]},
                 "cloud-trail/AWSLogs/123456779121/CloudTrail/us-east-1/2018/01/07/123456779121_CloudTrail-Digest_us-east-1_AWS-CloudTrail_us-east-1_20180707T173567Z.json.gz",
             ),
-            "cloudtrail",
+            str(AwsEventSource.CLOUDTRAIL),
         )
 
     def test_cloudtrail_gov_event(self):
@@ -38,7 +39,7 @@ class TestParseEventSource(unittest.TestCase):
                 {"Records": ["logs-from-s3"]},
                 "cloud-trail/AWSLogs/123456779121/CloudTrail/us-gov-west-1/2018/01/07/123456779121_CloudTrail_us-gov-west-1_20180707T1735Z_abcdefghi0MCRL2O.json.gz",
             ),
-            "cloudtrail",
+            str(AwsEventSource.CLOUDTRAIL),
         )
 
     def test_cloudtrail_event_with_service_substrings(self):
@@ -48,24 +49,25 @@ class TestParseEventSource(unittest.TestCase):
                 {"Records": ["logs-from-s3"]},
                 "cloud-trail/AWSLogs/123456779121/CloudTrail/us-west-3/2018/01/07/123456779121_CloudTrail_eu-west-3_20180707T1735Z_xywafKsnsXMBrdsMCRL2O.json.gz",
             ),
-            "cloudtrail",
+            str(AwsEventSource.CLOUDTRAIL),
         )
 
     def test_rds_event(self):
         self.assertEqual(
-            parse_event_source({"awslogs": "logs"}, "/aws/rds/my-rds-resource"), "rds"
+            parse_event_source({"awslogs": "logs"}, "/aws/rds/my-rds-resource"),
+            str(AwsEventSource.RDS),
         )
 
     def test_mariadb_event(self):
         self.assertEqual(
             parse_event_source({"awslogs": "logs"}, "/aws/rds/mariaDB-instance/error"),
-            "mariadb",
+            str(AwsEventSource.MARIADB),
         )
 
     def test_mysql_event(self):
         self.assertEqual(
             parse_event_source({"awslogs": "logs"}, "/aws/rds/mySQL-instance/error"),
-            "mysql",
+            str(AwsEventSource.MYSQL),
         )
 
     def test_postgresql_event(self):
@@ -73,12 +75,13 @@ class TestParseEventSource(unittest.TestCase):
             parse_event_source(
                 {"awslogs": "logs"}, "/aws/rds/instance/datadog/postgresql"
             ),
-            "postgresql",
+            str(AwsEventSource.POSTGRESQL),
         )
 
     def test_lambda_event(self):
         self.assertEqual(
-            parse_event_source({"awslogs": "logs"}, "/aws/lambda/postRestAPI"), "lambda"
+            parse_event_source({"awslogs": "logs"}, "/aws/lambda/postRestAPI"),
+            str(AwsEventSource.LAMBDA),
         )
 
     def test_apigateway_event(self):
@@ -86,26 +89,27 @@ class TestParseEventSource(unittest.TestCase):
             parse_event_source(
                 {"awslogs": "logs"}, "Api-Gateway-Execution-Logs_a1b23c/test"
             ),
-            "apigateway",
+            str(AwsEventSource.APIGATEWAY),
         )
         self.assertEqual(
             parse_event_source({"awslogs": "logs"}, "/aws/api-gateway/my-project"),
-            "apigateway",
+            str(AwsEventSource.APIGATEWAY),
         )
         self.assertEqual(
             parse_event_source({"awslogs": "logs"}, "/aws/http-api/my-project"),
-            "apigateway",
+            str(AwsEventSource.APIGATEWAY),
         )
 
     def test_dms_event(self):
         self.assertEqual(
-            parse_event_source({"awslogs": "logs"}, "dms-tasks-test-instance"), "dms"
+            parse_event_source({"awslogs": "logs"}, "dms-tasks-test-instance"),
+            str(AwsEventSource.DMS),
         )
         self.assertEqual(
             parse_event_source(
                 {"Records": ["logs-from-s3"]}, "AWSLogs/amazon_dms/my-s3.json.gz"
             ),
-            "dms",
+            str(AwsEventSource.DMS),
         )
 
     def test_sns_event(self):
@@ -113,7 +117,7 @@ class TestParseEventSource(unittest.TestCase):
             parse_event_source(
                 {"awslogs": "logs"}, "sns/us-east-1/123456779121/SnsTopicX"
             ),
-            "sns",
+            str(AwsEventSource.SNS),
         )
 
     def test_codebuild_event(self):
@@ -121,43 +125,44 @@ class TestParseEventSource(unittest.TestCase):
             parse_event_source(
                 {"awslogs": "logs"}, "/aws/codebuild/new-project-sample"
             ),
-            "codebuild",
+            str(AwsEventSource.CODEBUILD),
         )
 
     def test_kinesis_event(self):
         self.assertEqual(
             parse_event_source({"awslogs": "logs"}, "/aws/kinesisfirehose/test"),
-            "kinesis",
+            str(AwsEventSource.KINESIS),
         )
         self.assertEqual(
             parse_event_source(
                 {"Records": ["logs-from-s3"]}, "AWSLogs/amazon_kinesis/my-s3.json.gz"
             ),
-            "kinesis",
+            str(AwsEventSource.KINESIS),
         )
 
     def test_docdb_event(self):
         self.assertEqual(
             parse_event_source({"awslogs": "logs"}, "/aws/docdb/testCluster/profile"),
-            "docdb",
+            str(AwsEventSource.DOCDB),
         )
         self.assertEqual(
             parse_event_source(
                 {"Records": ["logs-from-s3"]}, "/amazon_documentdb/dev/123abc.zip"
             ),
-            "docdb",
+            str(AwsEventSource.DOCDB),
         )
 
     def test_vpc_event(self):
         self.assertEqual(
-            parse_event_source({"awslogs": "logs"}, "abc123_my_vpc_loggroup"), "vpc"
+            parse_event_source({"awslogs": "logs"}, "abc123_my_vpc_loggroup"),
+            str(AwsEventSource.VPC),
         )
         self.assertEqual(
             parse_event_source(
                 {"Records": ["logs-from-s3"]},
                 "AWSLogs/123456779121/vpcflowlogs/us-east-1/2020/10/02/123456779121_vpcflowlogs_us-east-1_fl-xxxxx.log.gz",
             ),
-            "vpc",
+            str(AwsEventSource.VPC),
         )
 
     def test_elb_event(self):
@@ -166,7 +171,7 @@ class TestParseEventSource(unittest.TestCase):
                 {"Records": ["logs-from-s3"]},
                 "AWSLogs/123456779121/elasticloadbalancing/us-east-1/2020/10/02/123456779121_elasticloadbalancing_us-east-1_app.alb.xxxxx.xx.xxx.xxx_x.log.gz",
             ),
-            "elb",
+            str(AwsEventSource.ELB),
         )
 
     def test_waf_event(self):
@@ -175,7 +180,7 @@ class TestParseEventSource(unittest.TestCase):
                 {"Records": ["logs-from-s3"]},
                 "2020/10/02/21/aws-waf-logs-testing-1-2020-10-02-21-25-30-x123x-x456x",
             ),
-            "waf",
+            str(AwsEventSource.WAF),
         )
 
         self.assertEqual(
@@ -183,7 +188,7 @@ class TestParseEventSource(unittest.TestCase):
                 {"Records": ["logs-from-s3"]},
                 "AWSLogs/123456779121/WAFLogs/us-east-1/xxxxxx-waf/2022/10/11/14/10/123456779121_waflogs_us-east-1_xxxxx-waf_20221011T1410Z_12756524.log.gz",
             ),
-            "waf",
+            str(AwsEventSource.WAF),
         )
 
     def test_redshift_event(self):
@@ -192,7 +197,7 @@ class TestParseEventSource(unittest.TestCase):
                 {"Records": ["logs-from-s3"]},
                 "AWSLogs/123456779121/redshift/us-east-1/2020/10/21/123456779121_redshift_us-east-1_mycluster_userlog_2020-10-21T18:01.gz",
             ),
-            "redshift",
+            str(AwsEventSource.REDSHIFT),
         )
 
     def test_redshift_gov_event(self):
@@ -202,7 +207,7 @@ class TestParseEventSource(unittest.TestCase):
                 "AWSLogs/123456779121/redshift/us-gov-east-1/2020/10/21/123456779121_redshift_us-gov-east"
                 "-1_mycluster_userlog_2020-10-21T18:01.gz",
             ),
-            "redshift",
+            str(AwsEventSource.REDSHIFT),
         )
 
     def test_route53_event(self):
@@ -211,7 +216,7 @@ class TestParseEventSource(unittest.TestCase):
                 {"awslogs": "logs"},
                 "my-route53-loggroup123",
             ),
-            "route53",
+            str(AwsEventSource.ROUTE53),
         )
 
     def test_vpcdnsquerylogs_event(self):
@@ -220,7 +225,7 @@ class TestParseEventSource(unittest.TestCase):
                 {"Records": ["logs-from-s3"]},
                 "AWSLogs/123456779121/vpcdnsquerylogs/vpc-********/2021/05/11/vpc-********_vpcdnsquerylogs_********_20210511T0910Z_71584702.log.gz",
             ),
-            "route53",
+            str(AwsEventSource.ROUTE53),
         )
 
     def test_fargate_event(self):
@@ -229,7 +234,7 @@ class TestParseEventSource(unittest.TestCase):
                 {"awslogs": "logs"},
                 "/ecs/fargate-logs",
             ),
-            "fargate",
+            str(AwsEventSource.FARGATE),
         )
 
     def test_appsync_event(self):
@@ -238,7 +243,7 @@ class TestParseEventSource(unittest.TestCase):
                 {"awslogs": "logs"},
                 "/aws/appsync/apis/",
             ),
-            "appsync",
+            str(AwsEventSource.APPSYNC),
         )
 
     def test_cloudfront_event(self):
@@ -247,7 +252,7 @@ class TestParseEventSource(unittest.TestCase):
                 {"Records": ["logs-from-s3"]},
                 "AWSLogs/cloudfront/123456779121/test/01.gz",
             ),
-            "cloudfront",
+            str(AwsEventSource.CLOUDFRONT),
         )
 
     def test_eks_event(self):
@@ -256,13 +261,13 @@ class TestParseEventSource(unittest.TestCase):
                 {"awslogs": "logs"},
                 "/aws/eks/control-plane/cluster",
             ),
-            "eks",
+            str(AwsEventSource.EKS),
         )
 
     def test_elasticsearch_event(self):
         self.assertEqual(
             parse_event_source({"awslogs": "logs"}, "/elasticsearch/domain"),
-            "elasticsearch",
+            str(AwsEventSource.ELASTICSEARCH),
         )
 
     def test_msk_event(self):
@@ -271,14 +276,14 @@ class TestParseEventSource(unittest.TestCase):
                 {"awslogs": "logs"},
                 "/myMSKLogGroup",
             ),
-            "msk",
+            str(AwsEventSource.MSK),
         )
         self.assertEqual(
             parse_event_source(
                 {"Records": ["logs-from-s3"]},
                 "AWSLogs/amazon_msk/us-east-1/xxxxx.log.gz",
             ),
-            "msk",
+            str(AwsEventSource.MSK),
         )
 
     def test_carbon_black_event(self):
@@ -287,7 +292,7 @@ class TestParseEventSource(unittest.TestCase):
                 {"Records": ["logs-from-s3"]},
                 "carbon-black-cloud-forwarder/alerts/8436e850-7e78-40e4-b3cd-6ebbc854d0a2.jsonl.gz",
             ),
-            "carbonblack",
+            str(AwsEventSource.CARBONBLACK),
         )
 
     def test_step_function_event(self):
@@ -295,14 +300,19 @@ class TestParseEventSource(unittest.TestCase):
             parse_event_source(
                 {"awslogs": "logs"}, "/aws/vendedlogs/states/MyStateMachine-Logs"
             ),
-            "stepfunction",
+            str(AwsEventSource.STEPFUNCTION),
         )
 
     def test_cloudwatch_source_if_none_found(self):
-        self.assertEqual(parse_event_source({"awslogs": "logs"}, ""), "cloudwatch")
+        self.assertEqual(
+            parse_event_source({"awslogs": "logs"}, ""), str(AwsEventSource.CLOUDWATCH)
+        )
 
     def test_s3_source_if_none_found(self):
-        self.assertEqual(parse_event_source({"Records": ["logs-from-s3"]}, ""), "s3")
+        self.assertEqual(
+            parse_event_source({"Records": ["logs-from-s3"]}, ""),
+            str(AwsEventSource.S3),
+        )
 
 
 class TestGetServiceFromTags(unittest.TestCase):

@@ -28,6 +28,7 @@ from steps.handlers.awslogs_handler import (
     get_state_machine_arn,
     get_lower_cased_lambda_function_name,
 )
+from steps.handlers.aws_attributes import AwsAttributes
 
 env_patch.stop()
 
@@ -170,9 +171,13 @@ class TestAWSLogsHandler(unittest.TestCase):
             "logEvents": [],
         }
         metadata = {"ddsource": "postgresql", "ddtags": ""}
-        aws_attributes = {}
+        aws_attributes = AwsAttributes(
+            stepfunction_loggroup.get("logGroup"),
+            stepfunction_loggroup.get("logStream"),
+            stepfunction_loggroup.get("owner"),
+        )
         context = None
-        process_lambda_logs(stepfunction_loggroup, aws_attributes, context, metadata)
+        process_lambda_logs(aws_attributes, context, metadata)
         self.assertEqual(metadata, {"ddsource": "postgresql", "ddtags": ""})
 
         # Lambda log
@@ -183,10 +188,14 @@ class TestAWSLogsHandler(unittest.TestCase):
             "logEvents": [],
         }
         metadata = {"ddsource": "postgresql", "ddtags": "env:dev"}
-        aws_attributes = {}
+        aws_attributes = AwsAttributes(
+            lambda_default_loggroup.get("logGroup"),
+            lambda_default_loggroup.get("logStream"),
+            lambda_default_loggroup.get("owner"),
+        )
         context = MagicMock()
         context.invoked_function_arn = "arn:aws:lambda:sa-east-1:601427279990:function:inferred-spans-python-dev-initsender"
-        process_lambda_logs(lambda_default_loggroup, aws_attributes, context, metadata)
+        process_lambda_logs(aws_attributes, context, metadata)
         self.assertEqual(
             metadata,
             {
@@ -195,17 +204,13 @@ class TestAWSLogsHandler(unittest.TestCase):
             },
         )
         self.assertEqual(
-            aws_attributes,
-            {
-                "lambda": {
-                    "arn": "arn:aws:lambda:sa-east-1:601427279990:function:test-lambda-default-log-group"
-                }
-            },
+            aws_attributes.to_dict().get("lambda", None).get("arn", None),
+            "arn:aws:lambda:sa-east-1:601427279990:function:test-lambda-default-log-group",
         )
 
         # env not set
         metadata = {"ddsource": "postgresql", "ddtags": ""}
-        process_lambda_logs(lambda_default_loggroup, aws_attributes, context, metadata)
+        process_lambda_logs(aws_attributes, context, metadata)
         self.assertEqual(
             metadata,
             {
@@ -226,7 +231,10 @@ class TestLambdaCustomizedLogGroup(unittest.TestCase):
             "logEvents": [],
         }
         self.assertEqual(
-            get_lower_cased_lambda_function_name(stepfunction_loggroup), None
+            get_lower_cased_lambda_function_name(
+                stepfunction_loggroup["logStream"], stepfunction_loggroup["logGroup"]
+            ),
+            None,
         )
         lambda_default_loggroup = {
             "messageType": "DATA_MESSAGE",
@@ -235,7 +243,10 @@ class TestLambdaCustomizedLogGroup(unittest.TestCase):
             "logEvents": [],
         }
         self.assertEqual(
-            get_lower_cased_lambda_function_name(lambda_default_loggroup),
+            get_lower_cased_lambda_function_name(
+                lambda_default_loggroup["logStream"],
+                lambda_default_loggroup["logGroup"],
+            ),
             "test-lambda-default-log-group",
         )
         lambda_customized_loggroup = {
@@ -245,7 +256,10 @@ class TestLambdaCustomizedLogGroup(unittest.TestCase):
             "logEvents": [],
         }
         self.assertEqual(
-            get_lower_cased_lambda_function_name(lambda_customized_loggroup),
+            get_lower_cased_lambda_function_name(
+                lambda_customized_loggroup["logStream"],
+                lambda_customized_loggroup["logGroup"],
+            ),
             "test-customized-log-group1",
         )
 
