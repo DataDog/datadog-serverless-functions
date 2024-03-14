@@ -5,8 +5,6 @@ from steps.enums import (
     AwsEventTypeKeyword,
     AwsCwEventSourcePrefix,
     AwsS3EventSourceKeyword,
-    KEYWORD_TO_SOURCE_MAP,
-    PREFIX_TO_SOURCE_MAP,
 )
 from settings import DD_CUSTOM_TAGS, DD_SERVICE, DD_SOURCE
 
@@ -50,7 +48,7 @@ def find_cloudwatch_source(log_group):
             if prefix == AwsCwEventSourcePrefix.RDS:
                 return find_rds_source(log_group)
 
-            return str(PREFIX_TO_SOURCE_MAP[prefix])
+            return str(prefix.event_source)
 
     # directly look for the source in the log group
     for source in [
@@ -88,7 +86,7 @@ def find_s3_source(key):
     for keyword in AwsS3EventSourceKeyword:
         keyword_str = str(keyword)
         if keyword_str in key:
-            return str(KEYWORD_TO_SOURCE_MAP[keyword])
+            return str(keyword.event_source)
 
     return str(AwsEventSource.S3)
 

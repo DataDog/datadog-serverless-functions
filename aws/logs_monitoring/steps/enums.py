@@ -47,112 +47,77 @@ class AwsEventSource(Enum):
 
 
 class AwsS3EventSourceKeyword(Enum):
-    BEDROCK = "bedrock"
+    def __init__(self, string, event_source):
+        self.string = string
+        self.event_source = event_source
+
+    BEDROCK = ("bedrock", AwsEventSource.BEDROCK)
     # e.g. carbon-black-cloud-forwarder/alerts/org_key=*****/year=2021/month=7/day=19/hour=18/minute=15/second=41/8436e850-7e78-40e4-b3cd-6ebbc854d0a2.jsonl.gz
-    CARBONBLACK = "carbon-black"
-    CODEBUILD = "amazon_codebuild"
-    CLOUDFRONT = "cloudfront"
-    DMS = "amazon_dms"
-    DOCDB = "amazon_documentdb"
+    CARBONBLACK = ("carbon-black", AwsEventSource.CARBONBLACK)
+    CODEBUILD = ("amazon_codebuild", AwsEventSource.CODEBUILD)
+    CLOUDFRONT = ("cloudfront", AwsEventSource.CLOUDFRONT)
+    DMS = ("amazon_dms", AwsEventSource.DMS)
+    DOCDB = ("amazon_documentdb", AwsEventSource.DOCDB)
     # e.g. AWSLogs/123456779121/elasticloadbalancing/us-east-1/2020/10/02/123456779121_elasticloadbalancing_us-east-1_app.alb.xxxxx.xx.xxx.xxx_x.log.gz
-    ELB = "elasticloadbalancing"
-    KINESIS = "amazon_kinesis"
-    MSK = "amazon_msk"
-    NETWORKFIREWALL = "network-firewall"
+    ELB = ("elasticloadbalancing", AwsEventSource.ELB)
+    KINESIS = ("amazon_kinesis", AwsEventSource.KINESIS)
+    MSK = ("amazon_msk", AwsEventSource.MSK)
+    NETWORKFIREWALL = ("network-firewall", AwsEventSource.NETWORKFIREWALL)
     # e.g. AWSLogs/123456779121/redshift/us-east-1/2020/10/21/123456779121_redshift_us-east-1_mycluster_userlog_2020-10-21T18:01.gz
-    REDSHIFT = "_redshift_"
+    REDSHIFT = ("_redshift_", AwsEventSource.REDSHIFT)
     # e.g. AWSLogs/123456779121/vpcdnsquerylogs/vpc-********/2021/05/11/vpc-********_vpcdnsquerylogs_********_20210511T0910Z_71584702.log.gz
-    ROUTE53 = "vpcdnsquerylogs"
-    TRANSITAGATEWAY = "transit-gateway"
-    VERIFIED_ACCESS = "verified-access"
+    ROUTE53 = ("vpcdnsquerylogs", AwsEventSource.ROUTE53)
+    TRANSITAGATEWAY = ("transit-gateway", AwsEventSource.TRANSITGATEWAY)
+    VERIFIED_ACCESS = ("verified-access", AwsEventSource.VERIFIED_ACCESS)
     # e.g. AWSLogs/123456779121/vpcflowlogs/us-east-1/2020/10/02/123456779121_vpcflowlogs_us-east-1_fl-xxxxx.log.gz
-    VPC = "vpcflowlogs"
+    VPC = ("vpcflowlogs", AwsEventSource.VPC)
     # e.g. 2020/10/02/21/aws-waf-logs-testing-1-2020-10-02-21-25-30-x123x-x456x or AWSLogs/123456779121/WAFLogs/us-east-1/xxxxxx-waf/2022/10/11/14/10/123456779121_waflogs_us-east-1_xxxxx-waf_20221011T1410Z_12756524.log.gz
-    WAF_0 = "aws-waf-logs"
-    WAF_1 = "waflogs"
+    WAF_0 = ("aws-waf-logs", AwsEventSource.WAF)
+    WAF_1 = ("waflogs", AwsEventSource.WAF)
 
     def __str__(self):
-        return f"{self.value}"
-
-
-KEYWORD_TO_SOURCE_MAP = {
-    AwsS3EventSourceKeyword.BEDROCK: AwsEventSource.BEDROCK,
-    AwsS3EventSourceKeyword.CARBONBLACK: AwsEventSource.CARBONBLACK,
-    AwsS3EventSourceKeyword.CODEBUILD: AwsEventSource.CODEBUILD,
-    AwsS3EventSourceKeyword.CLOUDFRONT: AwsEventSource.CLOUDFRONT,
-    AwsS3EventSourceKeyword.DMS: AwsEventSource.DMS,
-    AwsS3EventSourceKeyword.DOCDB: AwsEventSource.DOCDB,
-    AwsS3EventSourceKeyword.ELB: AwsEventSource.ELB,
-    AwsS3EventSourceKeyword.KINESIS: AwsEventSource.KINESIS,
-    AwsS3EventSourceKeyword.MSK: AwsEventSource.MSK,
-    AwsS3EventSourceKeyword.NETWORKFIREWALL: AwsEventSource.NETWORKFIREWALL,
-    AwsS3EventSourceKeyword.REDSHIFT: AwsEventSource.REDSHIFT,
-    AwsS3EventSourceKeyword.ROUTE53: AwsEventSource.ROUTE53,
-    AwsS3EventSourceKeyword.TRANSITAGATEWAY: AwsEventSource.TRANSITGATEWAY,
-    AwsS3EventSourceKeyword.VERIFIED_ACCESS: AwsEventSource.VERIFIED_ACCESS,
-    AwsS3EventSourceKeyword.VPC: AwsEventSource.VPC,
-    AwsS3EventSourceKeyword.WAF_0: AwsEventSource.WAF,
-    AwsS3EventSourceKeyword.WAF_1: AwsEventSource.WAF,
-}
+        return f"{self.string}"
 
 
 class AwsCwEventSourcePrefix(Enum):
+    def __init__(self, string, event_source):
+        self.string = string
+        self.event_source = event_source
+
     # default location for rest api execution logs
-    APIGATEWAY_0 = "api-gateway"
+    APIGATEWAY_0 = ("api-gateway", AwsEventSource.APIGATEWAY)
     # default location set by serverless framework for rest api access logs
-    APIGATEWAY_1 = "/aws/api-gateway"
+    APIGATEWAY_1 = ("/aws/api-gateway", AwsEventSource.APIGATEWAY)
     # default location set by serverless framework for http api logs
-    APIGATEWAY_2 = "/aws/http-api"
+    APIGATEWAY_2 = ("/aws/http-api", AwsEventSource.APIGATEWAY)
     # WebSocket API Execution Logs, e.g. /aws/apigateway/api-id/stage-name
-    APIGATEWAY_3 = "/aws/apigateway"
+    APIGATEWAY_3 = ("/aws/apigateway", AwsEventSource.APIGATEWAY)
     # e.g. /aws/appsync/yourApiId
-    APPSYNC = "/aws/appsync"
-    BEDROCK = "aws/bedrock/modelinvocations"
+    APPSYNC = ("/aws/appsync", AwsEventSource.APPSYNC)
+    BEDROCK = ("aws/bedrock/modelinvocations", AwsEventSource.BEDROCK)
     # e.g. /aws/codebuild/my-project
-    CODEBUILD = "/aws/codebuild"
-    CLOUDTRAIL = "_CloudTrail_"
+    CODEBUILD = ("/aws/codebuild", AwsEventSource.CODEBUILD)
+    CLOUDTRAIL = ("_CloudTrail_", AwsEventSource.CLOUDTRAIL)
     # e.g. dms-tasks-test-instance
-    DMS = "dms-tasks"
+    DMS = ("dms-tasks", AwsEventSource.DMS)
     # e.g. /aws/docdb/yourClusterName/profile
-    DOCDB = "/aws/docdb"
+    DOCDB = ("/aws/docdb", AwsEventSource.DOCDB)
     # e.g. /aws/eks/yourClusterName/profile
-    EKS = "/aws/eks"
+    EKS = ("/aws/eks", AwsEventSource.EKS)
     # e.g. /aws/fsx/windows/xxx
-    FSX = "/aws/fsx/windows"
+    FSX = ("/aws/fsx/windows", AwsEventSource.FSX)
     # e.g. /aws/kinesisfirehose/dev
-    KINESIS = "/aws/kinesis"
+    KINESIS = ("/aws/kinesis", AwsEventSource.KINESIS)
     # e.g. /aws/lambda/helloDatadog
-    lAMBDA = "/aws/lambda"
-    RDS = "/aws/rds"
+    lAMBDA = ("/aws/lambda", AwsEventSource.LAMBDA)
+    RDS = ("/aws/rds", AwsEventSource.RDS)
     # e.g. sns/us-east-1/123456779121/SnsTopicX
-    SNS = "sns/"
-    STEPFUNCTION = "/aws/vendedlogs/states"
-    TRANSITGATEWAY = "tgw-attach"
+    SNS = ("sns/", AwsEventSource.SNS)
+    STEPFUNCTION = ("/aws/vendedlogs/states", AwsEventSource.STEPFUNCTION)
+    TRANSITGATEWAY = ("tgw-attach", AwsEventSource.TRANSITGATEWAY)
 
     def __str__(self):
-        return f"{self.value}"
-
-
-PREFIX_TO_SOURCE_MAP = {
-    AwsCwEventSourcePrefix.APIGATEWAY_0: AwsEventSource.APIGATEWAY,
-    AwsCwEventSourcePrefix.APIGATEWAY_1: AwsEventSource.APIGATEWAY,
-    AwsCwEventSourcePrefix.APIGATEWAY_2: AwsEventSource.APIGATEWAY,
-    AwsCwEventSourcePrefix.APIGATEWAY_3: AwsEventSource.APIGATEWAY,
-    AwsCwEventSourcePrefix.APPSYNC: AwsEventSource.APPSYNC,
-    AwsCwEventSourcePrefix.BEDROCK: AwsEventSource.BEDROCK,
-    AwsCwEventSourcePrefix.CODEBUILD: AwsEventSource.CODEBUILD,
-    AwsCwEventSourcePrefix.CLOUDTRAIL: AwsEventSource.CLOUDTRAIL,
-    AwsCwEventSourcePrefix.DMS: AwsEventSource.DMS,
-    AwsCwEventSourcePrefix.DOCDB: AwsEventSource.DOCDB,
-    AwsCwEventSourcePrefix.EKS: AwsEventSource.EKS,
-    AwsCwEventSourcePrefix.FSX: AwsEventSource.FSX,
-    AwsCwEventSourcePrefix.KINESIS: AwsEventSource.KINESIS,
-    AwsCwEventSourcePrefix.lAMBDA: AwsEventSource.LAMBDA,
-    AwsCwEventSourcePrefix.RDS: AwsEventSource.RDS,
-    AwsCwEventSourcePrefix.SNS: AwsEventSource.SNS,
-    AwsCwEventSourcePrefix.STEPFUNCTION: AwsEventSource.STEPFUNCTION,
-    AwsCwEventSourcePrefix.TRANSITGATEWAY: AwsEventSource.TRANSITGATEWAY,
-}
+        return f"{self.string}"
 
 
 class AwsEventType(Enum):
