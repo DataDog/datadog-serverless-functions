@@ -22,11 +22,9 @@ logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").uppe
 
 
 class BaseTagsCache(object):
+    CACHE_PREFIX = None
     CACHE_FILENAME = None
     CACHE_LOCK_FILENAME = None
-
-    def get_resources_paginator(self):
-        return self.resource_tagging_client.get_paginator("get_resources")
 
     def __init__(self, tags_ttl_seconds=DD_TAGS_CACHE_TTL_SECONDS):
         self.tags_ttl_seconds = tags_ttl_seconds
@@ -35,11 +33,25 @@ class BaseTagsCache(object):
         self.logger = logger
         self.resource_tagging_client = boto3.client("resourcegroupstaggingapi")
 
+    def get_resources_paginator(self):
+        return self.resource_tagging_client.get_paginator("get_resources")
+
+    def get_cache_name_with_prefix(self):
+        return f"{self.CACHE_PREFIX}_{self.CACHE_FILENAME}"
+
+    def get_cache_lock_with_prefix(self):
+        return f"{self.CACHE_PREFIX}_{self.CACHE_LOCK_FILENAME}"
+
+    def set_cache_prefix(self, prefix):
+        self.CACHE_PREFIX = prefix
+
     def write_cache_to_s3(self, data):
         """Writes tags cache to s3"""
         try:
             self.logger.debug("Trying to write data to s3: {}".format(data))
-            s3_object = s3_client.Object(DD_S3_BUCKET_NAME, self.CACHE_FILENAME)
+            s3_object = s3_client.Object(
+                DD_S3_BUCKET_NAME, self.get_cache_name_with_prefix()
+            )
             s3_object.put(Body=(bytes(json.dumps(data).encode("UTF-8"))))
         except ClientError:
             send_forwarder_internal_metrics("s3_cache_write_failure")
@@ -48,7 +60,7 @@ class BaseTagsCache(object):
     def acquire_s3_cache_lock(self):
         """Acquire cache lock"""
         cache_lock_object = s3_client.Object(
-            DD_S3_BUCKET_NAME, self.CACHE_LOCK_FILENAME
+            DD_S3_BUCKET_NAME, self.get_cache_lock_with_prefix()
         )
         try:
             file_content = cache_lock_object.get()
@@ -75,7 +87,7 @@ class BaseTagsCache(object):
         """Release cache lock"""
         try:
             cache_lock_object = s3_client.Object(
-                DD_S3_BUCKET_NAME, self.CACHE_LOCK_FILENAME
+                DD_S3_BUCKET_NAME, self.get_cache_lock_with_prefix()
             )
             cache_lock_object.delete()
             send_forwarder_internal_metrics("s3_cache_lock_released")
@@ -87,7 +99,9 @@ class BaseTagsCache(object):
     def get_cache_from_s3(self):
         """Retrieves tags cache from s3 and returns the body along with
         the last modified datetime for the cache"""
-        cache_object = s3_client.Object(DD_S3_BUCKET_NAME, self.CACHE_FILENAME)
+        cache_object = s3_client.Object(
+            DD_S3_BUCKET_NAME, self.get_cache_name_with_prefix()
+        )
         try:
             file_content = cache_object.get()
             tags_cache = json.loads(file_content["Body"].read().decode("utf-8"))

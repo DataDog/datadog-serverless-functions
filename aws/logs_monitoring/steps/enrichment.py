@@ -8,7 +8,7 @@ from settings import (
     DD_HOST,
     DD_CUSTOM_TAGS,
 )
-from enhanced_lambda_metrics import get_enriched_lambda_log_tags
+from enhanced_lambda_metrics import parse_lambda_tags_from_arn
 from steps.enums import AwsEventSource
 
 HOST_IDENTITY_REGEXP = re.compile(
@@ -19,14 +19,14 @@ logger = logging.getLogger()
 logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
 
 
-def enrich(events):
+def enrich(events, cache_layer):
     """Adds event-specific tags and attributes to each event
 
     Args:
         events (dict[]): the list of event dicts we want to enrich
     """
     for event in events:
-        add_metadata_to_lambda_log(event)
+        add_metadata_to_lambda_log(event, cache_layer)
         extract_ddtags_from_message(event)
         extract_host_from_cloudtrails(event)
         extract_host_from_guardduty(event)
@@ -35,7 +35,7 @@ def enrich(events):
     return events
 
 
-def add_metadata_to_lambda_log(event):
+def add_metadata_to_lambda_log(event, cache_layer):
     """Mutate log dict to add tags, host, and service metadata
 
     * tags for functionname, aws_account, region
@@ -62,7 +62,7 @@ def add_metadata_to_lambda_log(event):
     tags = [f"functionname:{function_name}"]
 
     # Get custom tags of the Lambda function
-    custom_lambda_tags = get_enriched_lambda_log_tags(event)
+    custom_lambda_tags = get_enriched_lambda_log_tags(event, cache_layer)
 
     # If not set during parsing or has a default value
     # then set the service tag from lambda tags cache or using the function name
@@ -95,6 +95,25 @@ def add_metadata_to_lambda_log(event):
     tags.sort()  # Keep order deterministic
 
     event[DD_CUSTOM_TAGS] = ",".join([event[DD_CUSTOM_TAGS]] + tags)
+
+
+def get_enriched_lambda_log_tags(log_event, cache_layer):
+    """Retrieves extra tags from lambda, either read from the function arn, or by fetching lambda tags from the function itself.
+
+    Args:
+        log (dict<str, str | dict | int>): a log parsed from the event in the split method
+    """
+    # Note that this arn attribute has been lowercased already
+    log_function_arn = log_event.get("lambda", {}).get("arn")
+
+    if not log_function_arn:
+        return []
+    tags_from_arn = parse_lambda_tags_from_arn(log_function_arn)
+    lambda_custom_tags = cache_layer.get_lambda_tags_cache().get(log_function_arn)
+
+    # Combine and dedup tags
+    tags = list(set(tags_from_arn + lambda_custom_tags))
+    return tags
 
 
 def extract_ddtags_from_message(event):

@@ -15,8 +15,6 @@ from customized_log_group import (
     is_lambda_customized_log_group,
     get_lambda_function_name_from_logstream_name,
 )
-from caching.cloudwatch_log_group_cache import CloudwatchLogGroupTagsCache
-from caching.step_functions_cache import StepFunctionsTagsCache
 from steps.handlers.aws_attributes import AwsAttributes
 from steps.enums import AwsEventSource, AwsCwEventSourcePrefix
 from settings import (
@@ -27,17 +25,12 @@ from settings import (
 
 RDS_REGEX = re.compile("/aws/rds/(instance|cluster)/(?P<host>[^/]+)/(?P<name>[^/]+)")
 
-# Store the cache in the global scope so that it will be reused as long as
-# the log forwarder Lambda container is running
-account_step_functions_tags_cache = StepFunctionsTagsCache()
-account_cw_logs_tags_cache = CloudwatchLogGroupTagsCache()
-
 logger = logging.getLogger()
 logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
 
 
 # Handle CloudWatch logs
-def awslogs_handler(event, context, metadata):
+def awslogs_handler(event, context, metadata, cache_layer):
     # Get logs
     logs = extract_logs(event)
     # Build aws attributes
@@ -50,12 +43,12 @@ def awslogs_handler(event, context, metadata):
     # Set the source on the logs
     set_source(event, metadata, aws_attributes)
     # Add custom tags from cache
-    add_cloudwatch_tags_from_cache(metadata, aws_attributes)
+    add_cloudwatch_tags_from_cache(metadata, aws_attributes, cache_layer)
     # Set service from custom tags, which may include the tags set on the log group
     # Returns DD_SOURCE by default
     add_service_tag(metadata)
     # Set host as log group where cloudwatch is source
-    set_host(metadata, aws_attributes)
+    set_host(metadata, aws_attributes, cache_layer)
     # For Lambda logs we want to extract the function name,
     # then rebuild the arn of the monitored lambda using that name.
     if metadata[DD_SOURCE] == str(AwsEventSource.LAMBDA):
@@ -102,9 +95,9 @@ def set_source(event, metadata, aws_attributes):
         metadata[DD_SOURCE] = str(AwsEventSource.LAMBDA)
 
 
-def add_cloudwatch_tags_from_cache(metadata, aws_attributes):
+def add_cloudwatch_tags_from_cache(metadata, aws_attributes, cache_layer):
     log_group = aws_attributes.get_log_group()
-    formatted_tags = account_cw_logs_tags_cache.get(log_group)
+    formatted_tags = cache_layer.get_cloudwatch_log_group_tags_cache().get(log_group)
     if len(formatted_tags) > 0:
         metadata[DD_CUSTOM_TAGS] = (
             ",".join(formatted_tags)
@@ -113,7 +106,7 @@ def add_cloudwatch_tags_from_cache(metadata, aws_attributes):
         )
 
 
-def set_host(metadata, aws_attributes):
+def set_host(metadata, aws_attributes, cache_layer):
     if src := metadata.get(DD_SOURCE, None):
         metadata_source = AwsEventSource._value2member_map_.get(src)
     else:
@@ -134,7 +127,7 @@ def set_host(metadata, aws_attributes):
         case AwsEventSource.VERIFIED_ACCESS:
             handle_verified_access_source(metadata, log_events)
         case AwsEventSource.STEPFUNCTION:
-            handle_step_function_source(metadata, log_events, log_stream)
+            handle_step_function_source(metadata, log_events, log_stream, cache_layer)
         # When parsing rds logs, use the cloudwatch log group name to derive the
         # rds instance name, and add the log name of the stream ingested
         case (
@@ -155,7 +148,7 @@ def handle_rds_source(metadata, log_group):
         )
 
 
-def handle_step_function_source(metadata, log_events, log_stream):
+def handle_step_function_source(metadata, log_events, log_stream, cache_layer):
     if not log_stream.startswith("states/"):
         pass
     state_machine_arn = ""
@@ -169,7 +162,7 @@ def handle_step_function_source(metadata, log_events, log_stream):
     except Exception as e:
         logger.debug("Unable to set stepfunction host or get state_machine_arn: %s" % e)
 
-    formatted_stepfunctions_tags = account_step_functions_tags_cache.get(
+    formatted_stepfunctions_tags = cache_layer.get_step_functions_tags_cache().get(
         state_machine_arn
     )
     if len(formatted_stepfunctions_tags) > 0:

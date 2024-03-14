@@ -7,6 +7,7 @@ import sys
 from unittest.mock import patch, MagicMock
 from approvaltests.approvals import verify_as_json
 from approvaltests.namer import NamerFactory
+from caching.cache_layer import CacheLayer
 
 sys.modules["trace_forwarder.connection"] = MagicMock()
 sys.modules["datadog_lambda.wrapper"] = MagicMock()
@@ -34,38 +35,7 @@ env_patch.stop()
 
 
 class TestAWSLogsHandler(unittest.TestCase):
-    @patch("steps.handlers.awslogs_handler.CloudwatchLogGroupTagsCache.get")
-    @patch(
-        "steps.handlers.awslogs_handler.CloudwatchLogGroupTagsCache.release_s3_cache_lock"
-    )
-    @patch(
-        "steps.handlers.awslogs_handler.CloudwatchLogGroupTagsCache.acquire_s3_cache_lock"
-    )
-    @patch(
-        "steps.handlers.awslogs_handler.CloudwatchLogGroupTagsCache.write_cache_to_s3"
-    )
-    @patch("caching.base_tags_cache.send_forwarder_internal_metrics")
-    @patch(
-        "steps.handlers.awslogs_handler.CloudwatchLogGroupTagsCache.get_cache_from_s3"
-    )
-    def test_awslogs_handler_rds_postgresql(
-        self,
-        mock_get_s3_cache,
-        mock_forward_metrics,
-        mock_write_cache,
-        mock_acquire_lock,
-        mock_release_lock,
-        mock_cache_get,
-    ):
-        os.environ["DD_FETCH_LAMBDA_TAGS"] = "True"
-        os.environ["DD_FETCH_LOG_GROUP_TAGS"] = "True"
-        mock_acquire_lock.return_value = True
-        mock_cache_get.return_value = ["test_tag_key:test_tag_value"]
-        mock_get_s3_cache.return_value = (
-            {},
-            1000,
-        )
-
+    def test_awslogs_handler_rds_postgresql(self):
         event = {
             "awslogs": {
                 "data": base64.b64encode(
@@ -93,42 +63,19 @@ class TestAWSLogsHandler(unittest.TestCase):
         }
         context = None
         metadata = {"ddsource": "postgresql", "ddtags": "env:dev"}
-
-        verify_as_json(list(awslogs_handler(event, context, metadata)))
-        verify_as_json(metadata, options=NamerFactory.with_parameters("metadata"))
-
-    @patch("steps.handlers.awslogs_handler.CloudwatchLogGroupTagsCache.get")
-    @patch("steps.handlers.awslogs_handler.StepFunctionsTagsCache.get")
-    @patch(
-        "steps.handlers.awslogs_handler.StepFunctionsTagsCache.release_s3_cache_lock"
-    )
-    @patch(
-        "steps.handlers.awslogs_handler.StepFunctionsTagsCache.acquire_s3_cache_lock"
-    )
-    @patch("steps.handlers.awslogs_handler.StepFunctionsTagsCache.write_cache_to_s3")
-    @patch("caching.base_tags_cache.send_forwarder_internal_metrics")
-    @patch("steps.handlers.awslogs_handler.StepFunctionsTagsCache.get_cache_from_s3")
-    def test_awslogs_handler_step_functions_tags_added_properly(
-        self,
-        mock_get_s3_cache,
-        mock_forward_metrics,
-        mock_write_cache,
-        mock_acquire_lock,
-        mock_release_lock,
-        mock_step_functions_cache_get,
-        mock_cw_log_group_cache_get,
-    ):
-        os.environ["DD_FETCH_LAMBDA_TAGS"] = "True"
-        os.environ["DD_FETCH_LOG_GROUP_TAGS"] = "True"
-        os.environ["DD_FETCH_STEP_FUNCTIONS_TAGS"] = "True"
-        mock_acquire_lock.return_value = True
-        mock_step_functions_cache_get.return_value = ["test_tag_key:test_tag_value"]
-        mock_cw_log_group_cache_get.return_value = []
-        mock_get_s3_cache.return_value = (
-            {},
-            1000,
+        cache_layer = CacheLayer()
+        cache_layer.cloudwatch_log_group_cache.get = MagicMock(
+            return_value=["test_tag_key:test_tag_value"]
         )
 
+        verify_as_json(list(awslogs_handler(event, context, metadata, cache_layer)))
+        verify_as_json(metadata, options=NamerFactory.with_parameters("metadata"))
+
+    @patch("caching.cloudwatch_log_group_cache.send_forwarder_internal_metrics")
+    def test_awslogs_handler_step_functions_tags_added_properly(
+        self,
+        mock_forward_metrics,
+    ):
         event = {
             "awslogs": {
                 "data": base64.b64encode(
@@ -158,8 +105,13 @@ class TestAWSLogsHandler(unittest.TestCase):
         }
         context = None
         metadata = {"ddsource": "postgresql", "ddtags": "env:dev"}
+        mock_forward_metrics.side_effect = MagicMock()
+        cache_layer = CacheLayer()
+        cache_layer.step_functions_cache.get = MagicMock(
+            return_value=["test_tag_key:test_tag_value"]
+        )
 
-        verify_as_json(list(awslogs_handler(event, context, metadata)))
+        verify_as_json(list(awslogs_handler(event, context, metadata, cache_layer)))
         verify_as_json(metadata, options=NamerFactory.with_parameters("metadata"))
 
     def test_process_lambda_logs(self):

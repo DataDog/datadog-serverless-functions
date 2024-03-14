@@ -8,6 +8,7 @@ import os
 import boto3
 import logging
 import requests
+from hashlib import sha1
 from datadog_lambda.wrapper import datadog_lambda_wrapper
 from datadog import api
 from enhanced_lambda_metrics import parse_and_submit_enhanced_metrics
@@ -15,6 +16,7 @@ from steps.parsing import parse
 from steps.enrichment import enrich
 from steps.transformation import transform
 from steps.splitting import split
+from caching.cache_layer import CacheLayer
 from forwarders import (
     forward_metrics,
     forward_traces,
@@ -56,6 +58,8 @@ api._api_key = DD_API_KEY
 api._api_host = DD_API_URL
 api._cacert = not DD_SKIP_SSL_VALIDATION
 
+cache_layer = CacheLayer()
+
 
 def datadog_forwarder(event, context):
     """The actual lambda function entry point"""
@@ -66,8 +70,14 @@ def datadog_forwarder(event, context):
     if DD_ADDITIONAL_TARGET_LAMBDAS:
         invoke_additional_target_lambdas(event)
 
-    parsed = parse(event, context)
-    enriched = enrich(parsed)
+    # set the prefix for cache layer
+    if not cache_layer.prefix:
+        function_arn = context.invoked_function_arn.lower()
+        prefix = sha1(function_arn.encode("UTF-8")).hexdigest()
+        cache_layer.set_prefix(prefix)
+
+    parsed = parse(event, context, cache_layer)
+    enriched = enrich(parsed, cache_layer)
     transformed = transform(enriched)
     metrics, logs, trace_payloads = split(transformed)
 
@@ -79,7 +89,7 @@ def datadog_forwarder(event, context):
     if len(trace_payloads) > 0:
         forward_traces(trace_payloads)
 
-    parse_and_submit_enhanced_metrics(logs)
+    parse_and_submit_enhanced_metrics(logs, cache_layer)
 
 
 def invoke_additional_target_lambdas(event):

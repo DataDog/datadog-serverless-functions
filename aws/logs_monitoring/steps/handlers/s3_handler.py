@@ -8,7 +8,6 @@ from io import BufferedReader, BytesIO
 
 import boto3
 import botocore
-from caching.s3_tags_cache import S3TagsCache
 from settings import (
     CN_STRING,
     DD_HOST,
@@ -35,14 +34,13 @@ if DD_MULTILINE_LOG_REGEX_PATTERN:
     MULTILINE_REGEX_START_PATTERN = re.compile(
         "^{}".format(DD_MULTILINE_LOG_REGEX_PATTERN)
     )
-s3_tags_cache = S3TagsCache()
 
 logger = logging.getLogger()
 logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
 
 
 # Handle S3 events
-def s3_handler(event, context, metadata):
+def s3_handler(event, context, metadata, cache_layer):
     # Get the S3 client
     s3 = get_s3_client()
     # if this is a S3 event carried in a SNS message, extract it and override the event
@@ -58,7 +56,7 @@ def s3_handler(event, context, metadata):
     # Get the ARN of the service and set it as the hostname
     set_host(context, metadata, bucket, key, source)
     # Add S3 bucket tags
-    add_s3_tags_from_cache(metadata, bucket)
+    add_s3_tags_from_cache(metadata, bucket, cache_layer)
     # Extract S3 object
     data = extract_data(s3, bucket, key)
 
@@ -86,13 +84,13 @@ def get_s3_client():
     return s3
 
 
-def add_s3_tags_from_cache(metadata, bucket):
+def add_s3_tags_from_cache(metadata, bucket, cache_layer):
     bucket_arn = get_s3_arn(bucket)
 
     if metadata.get(DD_HOST, "") == bucket_arn:
         return
 
-    s3_tags = s3_tags_cache.get(bucket_arn)
+    s3_tags = cache_layer.get_s3_tags_cache().get(bucket_arn)
     if len(s3_tags) > 0:
         metadata[DD_CUSTOM_TAGS] = (
             ",".join(s3_tags)
