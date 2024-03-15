@@ -138,6 +138,10 @@ If you can't install the Forwarder using the provided CloudFormation template, y
 
 If you encounter issues upgrading to the latest version, check the Troubleshooting section.
 
+### Upgrade an older version to +3.106.0
+Starting version 3.106.0 Lambda function has been updated to add a prefix to cache filenames stored in the S3 bucket configured in `DD_S3_BUCKET_NAME`.  
+This allows to use the same bucket to store cache files from several functions. 
+
 ### Upgrade an older version to +3.99.0
 
 Since version 3.99.0 the Lambda function has been updated to require **Python 3.11**. If upgrading an older forwarder installation to +3.99.0 or above, ensure the AWS Lambda function is configured to use Python 3.11
