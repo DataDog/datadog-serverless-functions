@@ -101,7 +101,7 @@ def get_enriched_lambda_log_tags(log_event, cache_layer):
     """Retrieves extra tags from lambda, either read from the function arn, or by fetching lambda tags from the function itself.
 
     Args:
-        log (dict<str, str | dict | int>): a log parsed from the event in the split method
+        log_event (dict<str, str | dict | int>): a log parsed from the event in the split method
     """
     # Note that this arn attribute has been lowercased already
     log_function_arn = log_event.get("lambda", {}).get("arn")

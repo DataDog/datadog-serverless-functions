@@ -118,8 +118,8 @@ class TestS3CloudwatchParsing(unittest.TestCase):
             }
         }
         cache_layer = CacheLayer("")
-        cache_layer.s3_tags_cache.get = MagicMock(return_value=[])
-        cache_layer.lambda_cache.get = MagicMock(return_value=[])
+        cache_layer._s3_tags_cache.get = MagicMock(return_value=[])
+        cache_layer._lambda_cache.get = MagicMock(return_value=[])
 
         result = parse({"Records": [payload]}, context, cache_layer)
 

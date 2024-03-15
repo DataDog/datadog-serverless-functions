@@ -64,7 +64,7 @@ class TestAWSLogsHandler(unittest.TestCase):
         context = None
         metadata = {"ddsource": "postgresql", "ddtags": "env:dev"}
         cache_layer = CacheLayer("")
-        cache_layer.cloudwatch_log_group_cache.get = MagicMock(
+        cache_layer._cloudwatch_log_group_cache.get = MagicMock(
             return_value=["test_tag_key:test_tag_value"]
         )
 
@@ -107,7 +107,7 @@ class TestAWSLogsHandler(unittest.TestCase):
         metadata = {"ddsource": "postgresql", "ddtags": "env:dev"}
         mock_forward_metrics.side_effect = MagicMock()
         cache_layer = CacheLayer("")
-        cache_layer.step_functions_cache.get = MagicMock(
+        cache_layer._step_functions_cache.get = MagicMock(
             return_value=["test_tag_key:test_tag_value"]
         )
 
