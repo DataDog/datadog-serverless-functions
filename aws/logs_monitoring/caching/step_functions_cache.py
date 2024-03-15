@@ -1,6 +1,5 @@
 import os
 from botocore.exceptions import ClientError
-
 from caching.base_tags_cache import BaseTagsCache
 from caching.common import (
     sanitize_aws_tag_string,
@@ -15,8 +14,12 @@ from settings import (
 
 
 class StepFunctionsTagsCache(BaseTagsCache):
-    CACHE_FILENAME = DD_S3_STEP_FUNCTIONS_CACHE_FILENAME
-    CACHE_LOCK_FILENAME = DD_S3_STEP_FUNCTIONS_CACHE_LOCK_FILENAME
+    def __init__(self, prefix):
+        super().__init__(
+            prefix,
+            DD_S3_STEP_FUNCTIONS_CACHE_FILENAME,
+            DD_S3_STEP_FUNCTIONS_CACHE_LOCK_FILENAME,
+        )
 
     def should_fetch_tags(self):
         return os.environ.get("DD_FETCH_STEP_FUNCTIONS_TAGS", "false").lower() == "true"

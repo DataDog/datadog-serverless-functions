@@ -5,19 +5,11 @@ from caching.lambda_cache import LambdaTagsCache
 
 
 class CacheLayer:
-    def __init__(self):
-        self.cloudwatch_log_group_cache = CloudwatchLogGroupTagsCache()
-        self.s3_tags_cache = S3TagsCache()
-        self.step_functions_cache = StepFunctionsTagsCache()
-        self.lambda_cache = LambdaTagsCache()
-        self.prefix = None
-
-    def set_prefix(self, prefix):
-        self.prefix = prefix
-        self.cloudwatch_log_group_cache.set_cache_prefix(prefix)
-        self.s3_tags_cache.set_cache_prefix(prefix)
-        self.step_functions_cache.set_cache_prefix(prefix)
-        self.lambda_cache.set_cache_prefix(prefix)
+    def __init__(self, prefix):
+        self.cloudwatch_log_group_cache = CloudwatchLogGroupTagsCache(prefix)
+        self.s3_tags_cache = S3TagsCache(prefix)
+        self.step_functions_cache = StepFunctionsTagsCache(prefix)
+        self.lambda_cache = LambdaTagsCache(prefix)
 
     def get_cloudwatch_log_group_tags_cache(self):
         return self.cloudwatch_log_group_cache

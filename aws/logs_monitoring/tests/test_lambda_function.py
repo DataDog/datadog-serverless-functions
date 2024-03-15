@@ -72,7 +72,7 @@ class TestInvokeAdditionalTargetLambdas(unittest.TestCase):
 
 class TestLambdaFunctionEndToEnd(unittest.TestCase):
     def test_datadog_forwarder(self):
-        cache_layer = CacheLayer()
+        cache_layer = CacheLayer("")
         cache_layer.cloudwatch_log_group_cache.get = MagicMock(return_value=[])
         cache_layer.lambda_cache.get = MagicMock(
             return_value=[
@@ -138,7 +138,7 @@ class TestLambdaFunctionEndToEnd(unittest.TestCase):
     def test_setting_service_tag_from_log_group_cache(self):
         reload(sys.modules["settings"])
         reload(sys.modules["steps.parsing"])
-        cache_layer = CacheLayer()
+        cache_layer = CacheLayer("")
         cache_layer.cloudwatch_log_group_cache.get = MagicMock(
             return_value=["service:log_group_service"]
         )
@@ -161,7 +161,7 @@ class TestLambdaFunctionEndToEnd(unittest.TestCase):
     def test_service_override_from_dd_tags(self):
         reload(sys.modules["settings"])
         reload(sys.modules["steps.parsing"])
-        cache_layer = CacheLayer()
+        cache_layer = CacheLayer("")
         cache_layer.cloudwatch_log_group_cache.get = MagicMock(
             return_value=["service:log_group_service"]
         )
@@ -186,7 +186,7 @@ class TestLambdaFunctionEndToEnd(unittest.TestCase):
     def test_overrding_service_tag_from_lambda_cache(
         self, mock_lambda_send_metrics, mock_cw_send_metrics, mock_base_send_metrics
     ):
-        cache_layer = CacheLayer()
+        cache_layer = CacheLayer("")
         cache_layer.lambda_cache.get = MagicMock(
             return_value=["service:lambda_service"]
         )
@@ -206,7 +206,7 @@ class TestLambdaFunctionEndToEnd(unittest.TestCase):
             self.assertEqual(log["service"], "lambda_service")
 
     def test_overrding_service_tag_from_lambda_cache_when_dd_tags_is_set(self):
-        cache_layer = CacheLayer()
+        cache_layer = CacheLayer("")
         cache_layer.lambda_cache.get = MagicMock(
             return_value=["service:lambda_service"]
         )
@@ -229,7 +229,7 @@ class TestLambdaFunctionEndToEnd(unittest.TestCase):
     @patch("steps.handlers.s3_handler.extract_data")
     def test_s3_tags_not_added_to_metadata(self, mock_extract_data, mock_get_s3_client):
         mock_get_s3_client.side_effect = MagicMock()
-        cache_layer = CacheLayer()
+        cache_layer = CacheLayer("")
         cache_layer.s3_tags_cache.get = MagicMock(return_value=["s3_tag:tag_value"])
         context = Context()
         event = {
@@ -258,7 +258,7 @@ class TestLambdaFunctionEndToEnd(unittest.TestCase):
         mock_parse_service_arn,
     ):
         mock_get_s3_client.side_effect = MagicMock()
-        cache_layer = CacheLayer()
+        cache_layer = CacheLayer("")
         cache_layer.s3_tags_cache.get = MagicMock(return_value=["s3_tag:tag_value"])
         context = Context()
         event = {

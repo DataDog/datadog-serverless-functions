@@ -31,6 +31,7 @@ from settings import (
     DD_ADDITIONAL_TARGET_LAMBDAS,
 )
 
+
 logger = logging.getLogger()
 logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
 
@@ -58,7 +59,7 @@ api._api_key = DD_API_KEY
 api._api_host = DD_API_URL
 api._cacert = not DD_SKIP_SSL_VALIDATION
 
-cache_layer = CacheLayer()
+cache_layer = None
 
 
 def datadog_forwarder(event, context):
@@ -70,11 +71,7 @@ def datadog_forwarder(event, context):
     if DD_ADDITIONAL_TARGET_LAMBDAS:
         invoke_additional_target_lambdas(event)
 
-    # set the prefix for cache layer
-    if not cache_layer.prefix:
-        function_arn = context.invoked_function_arn.lower()
-        prefix = sha1(function_arn.encode("UTF-8")).hexdigest()
-        cache_layer.set_prefix(prefix)
+    init_cache_layer(context)
 
     parsed = parse(event, context, cache_layer)
     enriched = enrich(parsed, cache_layer)
@@ -90,6 +87,20 @@ def datadog_forwarder(event, context):
         forward_traces(trace_payloads)
 
     parse_and_submit_enhanced_metrics(logs, cache_layer)
+
+
+def init_cache_layer(context):
+    global cache_layer
+    if cache_layer is None:
+        # set the prefix for cache layer
+        try:
+            if not cache_layer:
+                function_arn = context.invoked_function_arn.lower()
+                prefix = sha1(function_arn.encode("UTF-8")).hexdigest()
+                cache_layer = CacheLayer(prefix)
+        except Exception as e:
+            logger.exception(f"Failed to create cache layer due to {e}")
+            raise
 
 
 def invoke_additional_target_lambdas(event):

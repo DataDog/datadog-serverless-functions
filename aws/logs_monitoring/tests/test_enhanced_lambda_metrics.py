@@ -89,7 +89,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
         self.assertEqual(len(create_out_of_memory_enhanced_metric(success_message)), 0)
 
     def test_generate_enhanced_lambda_metrics(self):
-        tags_cache = LambdaTagsCache()
+        tags_cache = LambdaTagsCache("")
         tags_cache.get = MagicMock(return_value=[])
 
         logs_input = {
@@ -115,7 +115,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
     def test_generate_enhanced_lambda_metrics_with_tags(
         self,
     ):
-        tags_cache = LambdaTagsCache()
+        tags_cache = LambdaTagsCache("")
         tags_cache.get = MagicMock(
             return_value=["team:metrics", "monitor:datadog", "env:prod", "creator:swf"]
         )
@@ -141,7 +141,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
         verify_as_json(generated_metrics)
 
     def test_generate_enhanced_lambda_metrics_once_with_missing_arn(self):
-        tags_cache = LambdaTagsCache()
+        tags_cache = LambdaTagsCache("")
         tags_cache.get = MagicMock(return_value=[])
 
         logs_input = {
@@ -171,7 +171,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
     @patch("caching.base_tags_cache.send_forwarder_internal_metrics")
     @patch("caching.lambda_cache.send_forwarder_internal_metrics")
     def test_generate_enhanced_lambda_metrics_refresh_s3_cache(self, mock1, mock2):
-        tags_cache = LambdaTagsCache()
+        tags_cache = LambdaTagsCache("")
         tags_cache.get_cache_from_s3 = MagicMock(return_value=({}, 1000))
         tags_cache.acquire_s3_cache_lock = MagicMock()
         tags_cache.release_s3_cache_lock = MagicMock()
@@ -228,7 +228,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
         paginator = mock.MagicMock()
         paginator.paginate.return_value = [{"ResourceTagMappingList": []}]
         mock_get_resources_paginator.return_value = paginator
-        tags_cache = LambdaTagsCache()
+        tags_cache = LambdaTagsCache("")
 
         logs_input = {
             "message": "REPORT RequestId: fe1467d6-1458-4e20-8e40-9aaa4be7a0f4\tDuration: 3470.65 ms\tBilled Duration: 3500 ms\tMemory Size: 128 MB\tMax Memory Used: 89 MB\t\nXRAY TraceId: 1-5d8bba5a-dc2932496a65bab91d2d42d4\tSegmentId: 5ff79d2a06b82ad6\tSampled: true\t\n",
@@ -274,7 +274,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
             },
             time(),
         )
-        tags_cache = LambdaTagsCache()
+        tags_cache = LambdaTagsCache("")
 
         logs_input = {
             "message": "2020-06-09T15:02:26.150Z 7c9567b5-107b-4a6c-8798-0157ac21db52 Task timed out after 3.00 seconds\n\n",
@@ -313,7 +313,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
             },
             time(),
         )
-        tags_cache = LambdaTagsCache()
+        tags_cache = LambdaTagsCache("")
 
         logs_input = {
             "message": "2020-06-09T15:02:26.150Z 7c9567b5-107b-4a6c-8798-0157ac21db52 FATAL ERROR: CALL_AND_RETRY_LAST Allocation failed - JavaScript heap out of memory\n\n",

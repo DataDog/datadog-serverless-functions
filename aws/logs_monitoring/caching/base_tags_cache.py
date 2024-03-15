@@ -14,42 +14,44 @@ from caching.common import get_last_modified_time, send_forwarder_internal_metri
 
 JITTER_MIN = 1
 JITTER_MAX = 100
-
 DD_TAGS_CACHE_TTL_SECONDS = DD_TAGS_CACHE_TTL_SECONDS + randint(JITTER_MIN, JITTER_MAX)
-s3_client = boto3.resource("s3")
-logger = logging.getLogger()
-logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
 
 
 class BaseTagsCache(object):
-    CACHE_PREFIX = None
-    CACHE_FILENAME = None
-    CACHE_LOCK_FILENAME = None
-
-    def __init__(self, tags_ttl_seconds=DD_TAGS_CACHE_TTL_SECONDS):
+    def __init__(
+        self,
+        prefix,
+        cache_filename,
+        cache_lock_filename,
+        tags_ttl_seconds=DD_TAGS_CACHE_TTL_SECONDS,
+    ):
         self.tags_ttl_seconds = tags_ttl_seconds
         self.tags_by_id = {}
         self.last_tags_fetch_time = 0
-        self.logger = logger
+        self.cache_prefix = prefix
+        self.cache_filename = cache_filename
+        self.cache_lock_filename = cache_lock_filename
+        self.logger = logging.getLogger()
+        self.logger.setLevel(
+            logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper())
+        )
         self.resource_tagging_client = boto3.client("resourcegroupstaggingapi")
+        self.s3_client = boto3.resource("s3")
 
     def get_resources_paginator(self):
         return self.resource_tagging_client.get_paginator("get_resources")
 
     def get_cache_name_with_prefix(self):
-        return f"{self.CACHE_PREFIX}_{self.CACHE_FILENAME}"
+        return f"{self.cache_prefix}_{self.cache_filename}"
 
     def get_cache_lock_with_prefix(self):
-        return f"{self.CACHE_PREFIX}_{self.CACHE_LOCK_FILENAME}"
-
-    def set_cache_prefix(self, prefix):
-        self.CACHE_PREFIX = prefix
+        return f"{self.cache_prefix}_{self.cache_lock_filename}"
 
     def write_cache_to_s3(self, data):
         """Writes tags cache to s3"""
         try:
             self.logger.debug("Trying to write data to s3: {}".format(data))
-            s3_object = s3_client.Object(
+            s3_object = self.s3_client.Object(
                 DD_S3_BUCKET_NAME, self.get_cache_name_with_prefix()
             )
             s3_object.put(Body=(bytes(json.dumps(data).encode("UTF-8"))))
@@ -59,7 +61,7 @@ class BaseTagsCache(object):
 
     def acquire_s3_cache_lock(self):
         """Acquire cache lock"""
-        cache_lock_object = s3_client.Object(
+        cache_lock_object = self.s3_client.Object(
             DD_S3_BUCKET_NAME, self.get_cache_lock_with_prefix()
         )
         try:
@@ -86,7 +88,7 @@ class BaseTagsCache(object):
     def release_s3_cache_lock(self):
         """Release cache lock"""
         try:
-            cache_lock_object = s3_client.Object(
+            cache_lock_object = self.s3_client.Object(
                 DD_S3_BUCKET_NAME, self.get_cache_lock_with_prefix()
             )
             cache_lock_object.delete()
@@ -99,7 +101,7 @@ class BaseTagsCache(object):
     def get_cache_from_s3(self):
         """Retrieves tags cache from s3 and returns the body along with
         the last modified datetime for the cache"""
-        cache_object = s3_client.Object(
+        cache_object = self.s3_client.Object(
             DD_S3_BUCKET_NAME, self.get_cache_name_with_prefix()
         )
         try:
@@ -123,7 +125,7 @@ class BaseTagsCache(object):
         if not self.should_fetch_tags():
             self.logger.debug(
                 "Not fetching custom tags because the env variable for the cache {} is not set to true".format(
-                    self.CACHE_FILENAME
+                    self.cache_filename
                 )
             )
             return
