@@ -5,7 +5,6 @@ import unittest
 import json
 import gzip
 import base64
-from time import time
 from botocore.exceptions import ClientError
 from approvaltests.approvals import verify_as_json, Options
 from approvaltests.scrubbers import create_regex_scrubber
@@ -31,6 +30,7 @@ from steps.enrichment import enrich
 from steps.transformation import transform
 from steps.splitting import split
 from steps.parsing import parse, parse_event_type
+from steps.enums import AwsEventType
 
 env_patch.stop()
 
@@ -70,23 +70,16 @@ class TestInvokeAdditionalTargetLambdas(unittest.TestCase):
 
 
 class TestLambdaFunctionEndToEnd(unittest.TestCase):
+    @patch("caching.cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.get")
     @patch("enhanced_lambda_metrics.LambdaTagsCache.get")
-    @patch(
-        "caching.cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.get_cache_from_s3"
-    )
     def test_datadog_forwarder(self, mock_get_lambda_tags, mock_get_s3_cache):
-        mock_get_lambda_tags.return_value = (
-            {
-                "arn:aws:lambda:sa-east-1:601427279990:function:inferred-spans-python-dev-initsender": [
-                    "team:metrics",
-                    "monitor:datadog",
-                    "env:prod",
-                    "creator:swf",
-                    "service:hello",
-                ]
-            },
-            time(),
-        )
+        mock_get_lambda_tags.return_value = [
+            "team:metrics",
+            "monitor:datadog",
+            "env:prod",
+            "creator:swf",
+            "service:hello",
+        ]
         mock_get_s3_cache.return_value = []
         context = Context()
         input_data = self._get_input_data()
@@ -96,7 +89,7 @@ class TestLambdaFunctionEndToEnd(unittest.TestCase):
         os.environ["DD_FETCH_LAMBDA_TAGS"] = "True"
 
         event_type = parse_event_type(event)
-        self.assertEqual(event_type, "awslogs")
+        self.assertEqual(event_type, AwsEventType.AWSLOGS)
 
         normalized_events = parse(event, context)
         enriched_events = enrich(normalized_events)
@@ -145,7 +138,7 @@ class TestLambdaFunctionEndToEnd(unittest.TestCase):
     @patch("caching.cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.get")
     @patch("caching.lambda_cache.LambdaTagsCache.get")
     def test_setting_service_tag_from_log_group_cache(
-        self, cw_logs_tags_get, lambda_tags_get
+        self, lambda_tags_get, cw_logs_tags_get
     ):
         reload(sys.modules["settings"])
         reload(sys.modules["steps.parsing"])
@@ -186,13 +179,13 @@ class TestLambdaFunctionEndToEnd(unittest.TestCase):
         for log in logs:
             self.assertEqual(log["service"], "dd_tag_service")
 
-    @patch("caching.lambda_cache.LambdaTagsCache.get")
+    @patch.dict(os.environ, {"DD_FETCH_LAMBDA_TAGS": "true "}, clear=True)
     @patch("caching.cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.get")
+    @patch("caching.lambda_cache.LambdaTagsCache.get")
     def test_overrding_service_tag_from_lambda_cache(
         self, lambda_tags_get, cw_logs_tags_get
     ):
         lambda_tags_get.return_value = ["service:lambda_service"]
-        cw_logs_tags_get.return_value = ["service:log_group_service"]
 
         context = Context()
         input_data = self._get_input_data()
@@ -210,13 +203,12 @@ class TestLambdaFunctionEndToEnd(unittest.TestCase):
             self.assertEqual(log["service"], "lambda_service")
 
     @patch.dict(os.environ, {"DD_TAGS": "service:dd_tag_service"}, clear=True)
-    @patch("caching.lambda_cache.LambdaTagsCache.get")
     @patch("caching.cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.get")
+    @patch("caching.lambda_cache.LambdaTagsCache.get")
     def test_overrding_service_tag_from_lambda_cache_when_dd_tags_is_set(
         self, lambda_tags_get, cw_logs_tags_get
     ):
         lambda_tags_get.return_value = ["service:lambda_service"]
-        cw_logs_tags_get.return_value = ["service:log_group_service"]
 
         context = Context()
         input_data = self._get_input_data()
