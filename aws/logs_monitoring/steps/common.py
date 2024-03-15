@@ -51,33 +51,17 @@ def find_cloudwatch_source(log_group):
             return str(prefix.event_source)
 
     # directly look for the source in the log group
-    for source in [
-        str(AwsEventSource.NETWORKFIREWALL),
-        str(AwsEventSource.ROUTE53),
-        str(AwsEventSource.VPC),
-        str(AwsEventSource.FARGATE),
-        str(AwsEventSource.CLOUDTRAIL),
-        str(AwsEventSource.MSK),
-        str(AwsEventSource.ELASTICSEARCH),
-        str(AwsEventSource.TRANSITGATEWAY),
-        str(AwsEventSource.VERIFIED_ACCESS),
-        str(AwsEventSource.BEDROCK),
-        str(AwsEventSource.CLOUDFRONT),
-    ]:
-        if source in log_group:
-            return source
+    for source in AwsEventSource.cloudwatch_sources():
+        if str(source) in log_group:
+            return str(source)
 
     return str(AwsEventSource.CLOUDWATCH)
 
 
 def find_rds_source(log_group):
-    for engine in [
-        str(AwsEventSource.MARIADB),
-        str(AwsEventSource.MYSQL),
-        str(AwsEventSource.POSTGRESQL),
-    ]:
-        if engine in log_group:
-            return engine
+    for engine in AwsEventSource.rds_sources():
+        if str(engine) in log_group:
+            return str(engine)
 
     return str(AwsEventSource.RDS)
 

@@ -45,6 +45,26 @@ class AwsEventSource(Enum):
     def __str__(self):
         return f"{self.value}"
 
+    @staticmethod
+    def cloudwatch_sources():
+        return [
+            AwsEventSource.NETWORKFIREWALL,
+            AwsEventSource.ROUTE53,
+            AwsEventSource.VPC,
+            AwsEventSource.FARGATE,
+            AwsEventSource.CLOUDTRAIL,
+            AwsEventSource.MSK,
+            AwsEventSource.ELASTICSEARCH,
+            AwsEventSource.TRANSITGATEWAY,
+            AwsEventSource.VERIFIED_ACCESS,
+            AwsEventSource.BEDROCK,
+            AwsEventSource.CLOUDFRONT,
+        ]
+
+    @staticmethod
+    def rds_sources():
+        return [AwsEventSource.MARIADB, AwsEventSource.MYSQL, AwsEventSource.POSTGRESQL]
+
 
 class AwsS3EventSourceKeyword(Enum):
     def __init__(self, string, event_source):
