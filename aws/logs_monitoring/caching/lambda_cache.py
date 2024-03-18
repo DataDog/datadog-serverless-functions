@@ -1,6 +1,5 @@
 import os
 from botocore.exceptions import ClientError
-
 from caching.base_tags_cache import BaseTagsCache
 from caching.common import (
     send_forwarder_internal_metrics,
@@ -14,8 +13,8 @@ from settings import (
 
 
 class LambdaTagsCache(BaseTagsCache):
-    CACHE_FILENAME = DD_S3_CACHE_FILENAME
-    CACHE_LOCK_FILENAME = DD_S3_CACHE_LOCK_FILENAME
+    def __init__(self, prefix):
+        super().__init__(prefix, DD_S3_CACHE_FILENAME, DD_S3_CACHE_LOCK_FILENAME)
 
     def should_fetch_tags(self):
         return os.environ.get("DD_FETCH_LAMBDA_TAGS", "false").lower() == "true"

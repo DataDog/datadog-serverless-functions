@@ -31,6 +31,7 @@ from steps.transformation import transform
 from steps.splitting import split
 from steps.parsing import parse, parse_event_type
 from steps.enums import AwsEventType
+from caching.cache_layer import CacheLayer
 
 env_patch.stop()
 
@@ -70,29 +71,30 @@ class TestInvokeAdditionalTargetLambdas(unittest.TestCase):
 
 
 class TestLambdaFunctionEndToEnd(unittest.TestCase):
-    @patch("caching.cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.get")
-    @patch("enhanced_lambda_metrics.LambdaTagsCache.get")
-    def test_datadog_forwarder(self, mock_get_lambda_tags, mock_get_s3_cache):
-        mock_get_lambda_tags.return_value = [
-            "team:metrics",
-            "monitor:datadog",
-            "env:prod",
-            "creator:swf",
-            "service:hello",
-        ]
-        mock_get_s3_cache.return_value = []
+    def test_datadog_forwarder(self):
+        cache_layer = CacheLayer("")
+        cache_layer._cloudwatch_log_group_cache.get = MagicMock(return_value=[])
+        cache_layer._lambda_cache.get = MagicMock(
+            return_value=[
+                "team:metrics",
+                "monitor:datadog",
+                "env:prod",
+                "creator:swf",
+                "service:hello",
+            ]
+        )
+
         context = Context()
         input_data = self._get_input_data()
         event = {
             "awslogs": {"data": self._create_cloudwatch_log_event_from_data(input_data)}
         }
-        os.environ["DD_FETCH_LAMBDA_TAGS"] = "True"
 
         event_type = parse_event_type(event)
         self.assertEqual(event_type, AwsEventType.AWSLOGS)
 
-        normalized_events = parse(event, context)
-        enriched_events = enrich(normalized_events)
+        normalized_events = parse(event, context, cache_layer)
+        enriched_events = enrich(normalized_events, cache_layer)
         transformed_events = transform(enriched_events)
 
         scrubber = create_regex_scrubber(
@@ -133,24 +135,21 @@ class TestLambdaFunctionEndToEnd(unittest.TestCase):
         assert "creator" not in inferred_span["meta"]
         assert "service" not in inferred_span["meta"]
 
-        del os.environ["DD_FETCH_LAMBDA_TAGS"]
-
-    @patch("caching.cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.get")
-    @patch("caching.lambda_cache.LambdaTagsCache.get")
-    def test_setting_service_tag_from_log_group_cache(
-        self, lambda_tags_get, cw_logs_tags_get
-    ):
+    def test_setting_service_tag_from_log_group_cache(self):
         reload(sys.modules["settings"])
         reload(sys.modules["steps.parsing"])
-        cw_logs_tags_get.return_value = ["service:log_group_service"]
+        cache_layer = CacheLayer("")
+        cache_layer._cloudwatch_log_group_cache.get = MagicMock(
+            return_value=["service:log_group_service"]
+        )
         context = Context()
         input_data = self._get_input_data()
         event = {
             "awslogs": {"data": self._create_cloudwatch_log_event_from_data(input_data)}
         }
 
-        normalized_events = parse(event, context)
-        enriched_events = enrich(normalized_events)
+        normalized_events = parse(event, context, cache_layer)
+        enriched_events = enrich(normalized_events, cache_layer)
         transformed_events = transform(enriched_events)
 
         _, logs, _ = split(transformed_events)
@@ -158,20 +157,22 @@ class TestLambdaFunctionEndToEnd(unittest.TestCase):
         for log in logs:
             self.assertEqual(log["service"], "log_group_service")
 
-    @patch.dict(os.environ, {"DD_TAGS": "service:dd_tag_service"}, clear=True)
-    @patch("caching.cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.get")
-    def test_service_override_from_dd_tags(self, cw_logs_tags_get):
+    @patch.dict(os.environ, {"DD_TAGS": "service:dd_tag_service"})
+    def test_service_override_from_dd_tags(self):
         reload(sys.modules["settings"])
         reload(sys.modules["steps.parsing"])
-        cw_logs_tags_get.return_value = ["service:log_group_service"]
+        cache_layer = CacheLayer("")
+        cache_layer._cloudwatch_log_group_cache.get = MagicMock(
+            return_value=["service:log_group_service"]
+        )
         context = Context()
         input_data = self._get_input_data()
         event = {
             "awslogs": {"data": self._create_cloudwatch_log_event_from_data(input_data)}
         }
 
-        normalized_events = parse(event, context)
-        enriched_events = enrich(normalized_events)
+        normalized_events = parse(event, context, cache_layer)
+        enriched_events = enrich(normalized_events, cache_layer)
         transformed_events = transform(enriched_events)
 
         _, logs, _ = split(transformed_events)
@@ -179,22 +180,24 @@ class TestLambdaFunctionEndToEnd(unittest.TestCase):
         for log in logs:
             self.assertEqual(log["service"], "dd_tag_service")
 
-    @patch.dict(os.environ, {"DD_FETCH_LAMBDA_TAGS": "true "}, clear=True)
-    @patch("caching.cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.get")
-    @patch("caching.lambda_cache.LambdaTagsCache.get")
+    @patch("caching.base_tags_cache.send_forwarder_internal_metrics")
+    @patch("caching.cloudwatch_log_group_cache.send_forwarder_internal_metrics")
+    @patch("caching.lambda_cache.send_forwarder_internal_metrics")
     def test_overrding_service_tag_from_lambda_cache(
-        self, lambda_tags_get, cw_logs_tags_get
+        self, mock_lambda_send_metrics, mock_cw_send_metrics, mock_base_send_metrics
     ):
-        lambda_tags_get.return_value = ["service:lambda_service"]
-
+        cache_layer = CacheLayer("")
+        cache_layer._lambda_cache.get = MagicMock(
+            return_value=["service:lambda_service"]
+        )
         context = Context()
         input_data = self._get_input_data()
         event = {
             "awslogs": {"data": self._create_cloudwatch_log_event_from_data(input_data)}
         }
 
-        normalized_events = parse(event, context)
-        enriched_events = enrich(normalized_events)
+        normalized_events = parse(event, context, cache_layer)
+        enriched_events = enrich(normalized_events, cache_layer)
         transformed_events = transform(enriched_events)
 
         _, logs, _ = split(transformed_events)
@@ -202,22 +205,19 @@ class TestLambdaFunctionEndToEnd(unittest.TestCase):
         for log in logs:
             self.assertEqual(log["service"], "lambda_service")
 
-    @patch.dict(os.environ, {"DD_TAGS": "service:dd_tag_service"}, clear=True)
-    @patch("caching.cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.get")
-    @patch("caching.lambda_cache.LambdaTagsCache.get")
-    def test_overrding_service_tag_from_lambda_cache_when_dd_tags_is_set(
-        self, lambda_tags_get, cw_logs_tags_get
-    ):
-        lambda_tags_get.return_value = ["service:lambda_service"]
-
+    def test_overrding_service_tag_from_lambda_cache_when_dd_tags_is_set(self):
+        cache_layer = CacheLayer("")
+        cache_layer._lambda_cache.get = MagicMock(
+            return_value=["service:lambda_service"]
+        )
+        cache_layer._cloudwatch_log_group_cache = MagicMock()
         context = Context()
         input_data = self._get_input_data()
         event = {
             "awslogs": {"data": self._create_cloudwatch_log_event_from_data(input_data)}
         }
-
-        normalized_events = parse(event, context)
-        enriched_events = enrich(normalized_events)
+        normalized_events = parse(event, context, cache_layer)
+        enriched_events = enrich(normalized_events, cache_layer)
         transformed_events = transform(enriched_events)
 
         _, logs, _ = split(transformed_events)
@@ -225,14 +225,12 @@ class TestLambdaFunctionEndToEnd(unittest.TestCase):
         for log in logs:
             self.assertEqual(log["service"], "lambda_service")
 
-    @patch("caching.s3_tags_cache.S3TagsCache.get")
     @patch("steps.handlers.s3_handler.get_s3_client")
     @patch("steps.handlers.s3_handler.extract_data")
-    def test_s3_tags_not_added_to_metadata(
-        self, mock_extract_data, mock_get_s3_client, mock_s3_tags_get
-    ):
+    def test_s3_tags_not_added_to_metadata(self, mock_extract_data, mock_get_s3_client):
         mock_get_s3_client.side_effect = MagicMock()
-        mock_s3_tags_get.return_value = ["s3_tag:tag_value"]
+        cache_layer = CacheLayer("")
+        cache_layer._s3_tags_cache.get = MagicMock(return_value=["s3_tag:tag_value"])
         context = Context()
         event = {
             "Records": [
@@ -246,23 +244,22 @@ class TestLambdaFunctionEndToEnd(unittest.TestCase):
         }
         mock_extract_data.return_value = bytes(json.dumps(event), encoding="utf-8")
 
-        normalized_events = parse(event, context)
+        normalized_events = parse(event, context, cache_layer)
 
         assert "s3_tag:tag_value" not in normalized_events[0]["ddtags"]
 
     @patch("steps.handlers.s3_handler.parse_service_arn")
-    @patch("caching.s3_tags_cache.S3TagsCache.get")
     @patch("steps.handlers.s3_handler.get_s3_client")
     @patch("steps.handlers.s3_handler.extract_data")
     def test_s3_tags_added_to_metadata(
         self,
         mock_extract_data,
         mock_get_s3_client,
-        mock_s3_tags_get,
         mock_parse_service_arn,
     ):
         mock_get_s3_client.side_effect = MagicMock()
-        mock_s3_tags_get.return_value = ["s3_tag:tag_value"]
+        cache_layer = CacheLayer("")
+        cache_layer._s3_tags_cache.get = MagicMock(return_value=["s3_tag:tag_value"])
         context = Context()
         event = {
             "Records": [
@@ -277,7 +274,7 @@ class TestLambdaFunctionEndToEnd(unittest.TestCase):
         mock_extract_data.return_value = bytes(json.dumps(event), encoding="utf-8")
         mock_parse_service_arn.return_value = ""
 
-        normalized_events = parse(event, context)
+        normalized_events = parse(event, context, cache_layer)
 
         assert "s3_tag:tag_value" in normalized_events[0]["ddtags"]
 

@@ -9,8 +9,11 @@ from settings import (
 
 
 class CloudwatchLogGroupTagsCache(BaseTagsCache):
-    CACHE_FILENAME = DD_S3_LOG_GROUP_CACHE_FILENAME
-    CACHE_LOCK_FILENAME = DD_S3_LOG_GROUP_CACHE_LOCK_FILENAME
+    def __init__(self, prefix):
+        super().__init__(
+            prefix, DD_S3_LOG_GROUP_CACHE_FILENAME, DD_S3_LOG_GROUP_CACHE_LOCK_FILENAME
+        )
+        self.cloudwatch_logs_client = boto3.client("logs")
 
     def should_fetch_tags(self):
         return os.environ.get("DD_FETCH_LOG_GROUP_TAGS", "false").lower() == "true"
@@ -69,11 +72,10 @@ class CloudwatchLogGroupTagsCache(BaseTagsCache):
         return log_group_tags
 
     def _get_log_group_tags(self, log_group):
-        cloudwatch_logs_client = boto3.client("logs")
         response = None
         try:
             send_forwarder_internal_metrics("list_tags_log_group_api_call")
-            response = cloudwatch_logs_client.list_tags_log_group(
+            response = self.cloudwatch_logs_client.list_tags_log_group(
                 logGroupName=log_group
             )
         except Exception as e:

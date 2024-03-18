@@ -138,6 +138,10 @@ If you can't install the Forwarder using the provided CloudFormation template, y
 
 If you encounter issues upgrading to the latest version, check the Troubleshooting section.
 
+### Upgrade an older version to +3.106.0
+Starting version 3.106.0 Lambda function has been updated to add a prefix to cache filenames stored in the S3 bucket configured in `DD_S3_BUCKET_NAME`.  
+This allows to use the same bucket to store cache files from several functions. 
+
 ### Upgrade an older version to +3.99.0
 
 Since version 3.99.0 the Lambda function has been updated to require **Python 3.11**. If upgrading an older forwarder installation to +3.99.0 or above, ensure the AWS Lambda function is configured to use Python 3.11
@@ -203,6 +207,14 @@ If you still couldn't figure out, please create a ticket for [Datadog Support][1
 
 ### JSON-formatted logs are not appearing in Datadog
 If your logs contain an attribute that Datadog parses as a timestamp, you need to make sure that the timestamp is both current and in the correct format. See [Log Date Remapper][24] to learn about which attributes are parsed as timestamps and how to make sure that the timestamp is valid.
+
+### Issue creating S3 triggers
+In case you encounter the following error when creating S3 triggers, we recommend considering following a fanout architecture proposed by AWS [in this article](https://aws.amazon.com/blogs/compute/fanout-s3-event-notifications-to-multiple-endpoints/)
+
+```
+An error occurred when creating the trigger: Configuration is ambiguously defined. Cannot have overlapping suffixes in two rules if the prefixes are overlapping for the same event type.
+```
+
 
 ## Contributing
 

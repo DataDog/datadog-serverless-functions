@@ -39,7 +39,7 @@ logger = logging.getLogger()
 logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
 
 
-def parse(event, context):
+def parse(event, context, cache_layer):
     """Parse Lambda input to normalized events"""
     metadata = generate_metadata(context)
     event_type = AwsEventType.UNKNOWN
@@ -50,9 +50,9 @@ def parse(event, context):
             logger.debug(f"Parsed event type: {event_type}")
         match event_type:
             case AwsEventType.S3:
-                events = s3_handler(event, context, metadata)
+                events = s3_handler(event, context, metadata, cache_layer)
             case AwsEventType.AWSLOGS:
-                events = awslogs_handler(event, context, metadata)
+                events = awslogs_handler(event, context, metadata, cache_layer)
             case AwsEventType.EVENTS:
                 events = cwevent_handler(event, metadata)
             case AwsEventType.SNS:

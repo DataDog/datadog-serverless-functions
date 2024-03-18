@@ -12,8 +12,10 @@ from settings import (
 
 
 class S3TagsCache(BaseTagsCache):
-    CACHE_FILENAME = DD_S3_TAGS_CACHE_FILENAME
-    CACHE_LOCK_FILENAME = DD_S3_TAGS_CACHE_LOCK_FILENAME
+    def __init__(self, prefix):
+        super().__init__(
+            prefix, DD_S3_TAGS_CACHE_FILENAME, DD_S3_TAGS_CACHE_LOCK_FILENAME
+        )
 
     def should_fetch_tags(self):
         return True
