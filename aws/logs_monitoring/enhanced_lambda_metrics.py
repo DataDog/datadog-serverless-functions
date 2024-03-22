@@ -7,6 +7,7 @@ import logging
 import re
 import datetime
 from time import time
+from settings import DD_ENHANCED_METRICS
 
 ENHANCED_METRICS_NAMESPACE_PREFIX = "aws.lambda.enhanced"
 
@@ -143,8 +144,8 @@ def parse_and_submit_enhanced_metrics(logs, cache_layer):
         logs (dict<str, str | dict | int>[]): the logs parsed from the event in the split method
             See docstring below for an example.
     """
-    # If the Lambda layer is not present we can't submit enhanced metrics
-    if not DD_SUBMIT_ENHANCED_METRICS:
+    # If forwarding metrics is off or the Lambda layer is not present we can't submit enhanced metrics
+    if not (DD_ENHANCED_METRICS and DD_SUBMIT_ENHANCED_METRICS):
         return
 
     for log in logs:

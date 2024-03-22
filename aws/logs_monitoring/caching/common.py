@@ -7,6 +7,7 @@ from telemetry import (
     DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX,
     get_forwarder_telemetry_tags,
 )
+from settings import DD_ENHANCED_METRICS
 
 logger = logging.getLogger()
 logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
@@ -29,6 +30,9 @@ FixInit = re.compile(r"^[_\d]*", re.UNICODE).sub
 
 
 def send_forwarder_internal_metrics(name, additional_tags=[]):
+    if not (DD_ENHANCED_METRICS and DD_SUBMIT_ENHANCED_METRICS):
+        return
+
     """Send forwarder's internal metrics to DD"""
     lambda_stats.distribution(
         "{}.{}".format(DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX, name),
