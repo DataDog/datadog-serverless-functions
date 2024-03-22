@@ -1,7 +1,8 @@
 import os
 import boto3
 from caching.base_tags_cache import BaseTagsCache
-from caching.common import sanitize_aws_tag_string, send_forwarder_internal_metrics
+from caching.common import sanitize_aws_tag_string
+from telemetry import send_forwarder_internal_metrics
 from settings import (
     DD_S3_LOG_GROUP_CACHE_FILENAME,
     DD_S3_LOG_GROUP_CACHE_LOCK_FILENAME,

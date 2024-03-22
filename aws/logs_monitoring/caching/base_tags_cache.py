@@ -10,7 +10,8 @@ from settings import (
     DD_TAGS_CACHE_TTL_SECONDS,
     DD_S3_CACHE_LOCK_TTL_SECONDS,
 )
-from caching.common import get_last_modified_time, send_forwarder_internal_metrics
+from caching.common import get_last_modified_time
+from telemetry import send_forwarder_internal_metrics
 
 JITTER_MIN = 1
 JITTER_MAX = 100

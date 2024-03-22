@@ -7,7 +7,6 @@ import sys
 from unittest.mock import patch, MagicMock
 from approvaltests.approvals import verify_as_json
 from approvaltests.namer import NamerFactory
-from caching.cache_layer import CacheLayer
 
 sys.modules["trace_forwarder.connection"] = MagicMock()
 sys.modules["datadog_lambda.wrapper"] = MagicMock()
@@ -30,6 +29,7 @@ from steps.handlers.awslogs_handler import (
     get_lower_cased_lambda_function_name,
 )
 from steps.handlers.aws_attributes import AwsAttributes
+from caching.cache_layer import CacheLayer
 
 env_patch.stop()
 

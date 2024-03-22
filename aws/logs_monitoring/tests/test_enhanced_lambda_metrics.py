@@ -297,7 +297,7 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
         del os.environ["DD_FETCH_LAMBDA_TAGS"]
 
     @patch("caching.lambda_cache.send_forwarder_internal_metrics")
-    @patch("caching.common.send_forwarder_internal_metrics")
+    @patch("telemetry.send_forwarder_internal_metrics")
     @patch("caching.lambda_cache.LambdaTagsCache.get_cache_from_s3")
     def test_generate_enhanced_lambda_metrics_out_of_memory(
         self, mock_get_s3_cache, mock_forward_metrics, mock_base_forward_metrics

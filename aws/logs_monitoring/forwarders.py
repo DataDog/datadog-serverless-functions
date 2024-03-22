@@ -2,11 +2,7 @@ import logging
 import json
 import os
 
-from telemetry import (
-    DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX,
-    get_forwarder_telemetry_tags,
-)
-from datadog_lambda.metric import lambda_stats
+from telemetry import send_event_metric, send_log_metric
 from trace_forwarder.connection import TraceConnection
 from logs.logs import (
     DatadogScrubber,
@@ -65,11 +61,7 @@ def forward_logs(logs):
                 if logger.isEnabledFor(logging.DEBUG):
                     logger.debug(f"Forwarded log batch: {json.dumps(batch)}")
 
-    lambda_stats.distribution(
-        "{}.logs_forwarded".format(DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX),
-        len(logs_to_forward),
-        tags=get_forwarder_telemetry_tags(),
-    )
+    send_event_metric("logs_forwarded", len(logs_to_forward))
 
 
 def forward_metrics(metrics):
@@ -82,20 +74,14 @@ def forward_metrics(metrics):
 
     for metric in metrics:
         try:
-            lambda_stats.distribution(
-                metric["m"], metric["v"], timestamp=metric["e"], tags=metric["t"]
-            )
+            send_log_metric(metric)
         except Exception:
             logger.exception(f"Exception while forwarding metric {json.dumps(metric)}")
         else:
             if logger.isEnabledFor(logging.DEBUG):
                 logger.debug(f"Forwarded metric: {json.dumps(metric)}")
 
-    lambda_stats.distribution(
-        "{}.metrics_forwarded".format(DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX),
-        len(metrics),
-        tags=get_forwarder_telemetry_tags(),
-    )
+    send_event_metric("metrics_forwarded", len(metrics))
 
 
 def forward_traces(trace_payloads):
@@ -112,8 +98,4 @@ def forward_traces(trace_payloads):
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug(f"Forwarded traces: {json.dumps(trace_payloads)}")
 
-    lambda_stats.distribution(
-        "{}.traces_forwarded".format(DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX),
-        len(trace_payloads),
-        tags=get_forwarder_telemetry_tags(),
-    )
+    send_event_metric("traces_forwarded", len(trace_payloads))
