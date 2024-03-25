@@ -4,11 +4,11 @@ from steps.common import (
     parse_event_source,
     get_service_from_tags_and_remove_duplicates,
 )
+from steps.enums import AwsEventSource
 from settings import (
     DD_CUSTOM_TAGS,
     DD_SOURCE,
 )
-from steps.enums import AwsEventSource
 
 
 class TestParseEventSource(unittest.TestCase):

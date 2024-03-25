@@ -1,9 +1,7 @@
 from botocore.exceptions import ClientError
 from caching.base_tags_cache import BaseTagsCache
-from caching.common import (
-    send_forwarder_internal_metrics,
-    parse_get_resources_response_for_tags_by_arn,
-)
+from caching.common import parse_get_resources_response_for_tags_by_arn
+from telemetry import send_forwarder_internal_metrics
 from settings import (
     DD_S3_TAGS_CACHE_FILENAME,
     DD_S3_TAGS_CACHE_LOCK_FILENAME,

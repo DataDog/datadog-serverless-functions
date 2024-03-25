@@ -3,38 +3,15 @@ import datetime
 import logging
 import re
 from collections import defaultdict
-from telemetry import (
-    DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX,
-    get_forwarder_telemetry_tags,
-)
 
 logger = logging.getLogger()
 logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
 
-try:
-    from datadog_lambda.metric import lambda_stats
-
-    DD_SUBMIT_ENHANCED_METRICS = True
-except ImportError:
-    logger.debug(
-        "Could not import from the Datadog Lambda layer so enhanced metrics won't be submitted. "
-        "Add the Datadog Lambda layer to this function to submit enhanced metrics."
-    )
-    DD_SUBMIT_ENHANCED_METRICS = False
 
 _other_chars = r"\w:\-\.\/"
 Sanitize = re.compile(r"[^%s]" % _other_chars, re.UNICODE).sub
 Dedupe = re.compile(r"_+", re.UNICODE).sub
 FixInit = re.compile(r"^[_\d]*", re.UNICODE).sub
-
-
-def send_forwarder_internal_metrics(name, additional_tags=[]):
-    """Send forwarder's internal metrics to DD"""
-    lambda_stats.distribution(
-        "{}.{}".format(DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX, name),
-        1,
-        tags=get_forwarder_telemetry_tags() + additional_tags,
-    )
 
 
 def get_last_modified_time(s3_file):

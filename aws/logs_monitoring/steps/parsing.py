@@ -7,12 +7,7 @@ import json
 import os
 import itertools
 import logging
-from datadog_lambda.metric import lambda_stats
-from telemetry import (
-    DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX,
-    get_forwarder_telemetry_tags,
-    set_forwarder_telemetry_tags,
-)
+from telemetry import set_forwarder_telemetry_tags, send_event_metric
 from steps.handlers.awslogs_handler import awslogs_handler
 from steps.handlers.s3_handler import s3_handler
 from steps.common import (
@@ -182,10 +177,6 @@ def normalize_events(events, metadata):
             continue
 
     """Submit count of total events"""
-    lambda_stats.distribution(
-        "{}.incoming_events".format(DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX),
-        events_counter,
-        tags=get_forwarder_telemetry_tags(),
-    )
+    send_event_metric("incoming_events", events_counter)
 
     return normalized
