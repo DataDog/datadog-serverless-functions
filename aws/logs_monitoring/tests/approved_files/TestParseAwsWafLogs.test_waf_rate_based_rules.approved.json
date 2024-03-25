@@ -1,0 +1,19 @@
+{
+    "ddsource": "waf",
+    "message": {
+        "rateBasedRuleList": {
+            "no-rate-limit": {
+                "limitKey": "IP",
+                "limitValue": "195.154.122.189",
+                "maxRateAllowed": 300,
+                "rateBasedRuleId": "arn:aws:wafv2:ap-southeast-2:068133125972_MANAGED:regional/ipset/0f94bd8b-0fa5-4865-81ce-d11a60051fb4_fef50279-8b9a-4062-b733-88ecd1cfd889_IPV4/fef50279-8b9a-4062-b733-88ecd1cfd889"
+            },
+            "tf-rate-limit-5-min": {
+                "limitKey": "IP",
+                "limitValue": "195.154.122.189",
+                "maxRateAllowed": 300,
+                "rateBasedRuleId": "arn:aws:wafv2:ap-southeast-2:068133125972_MANAGED:regional/ipset/0f94bd8b-0fa5-4865-81ce-d11a60051fb4_fef50279-8b9a-4062-b733-88ecd1cfd889_IPV4/fef50279-8b9a-4062-b733-88ecd1cfd889"
+            }
+        }
+    }
+}

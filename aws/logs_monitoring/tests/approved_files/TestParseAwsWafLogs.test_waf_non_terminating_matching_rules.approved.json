@@ -1,0 +1,13 @@
+{
+    "ddsource": "waf",
+    "message": {
+        "nonTerminatingMatchingRules": {
+            "nonterminating1": {
+                "action": "COUNT"
+            },
+            "nonterminating2": {
+                "action": "COUNT"
+            }
+        }
+    }
+}

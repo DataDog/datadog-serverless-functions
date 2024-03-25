@@ -1,7 +1,7 @@
 service: forwarder-tests-external-lambda
 provider:
   name: aws
-  runtime: python2.7
+  runtime: python3.10
 
 functions:
   ironmaiden:

@@ -18,7 +18,9 @@ Resources:
       Policies:
         KMSDecryptPolicy:
           KeyId: !Ref KMSKeyId
-      Runtime: python3.7
+      Runtime: python3.11
+      Architectures:
+        - arm64
       Timeout: 10
       KmsKeyArn:
         !Sub

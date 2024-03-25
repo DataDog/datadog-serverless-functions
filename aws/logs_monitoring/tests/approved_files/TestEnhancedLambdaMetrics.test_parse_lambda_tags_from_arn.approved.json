@@ -1,0 +1,6 @@
+[
+    "region:us-east-1",
+    "account_id:1234597598159",
+    "aws_account:1234597598159",
+    "functionname:swf-hello-test"
+]

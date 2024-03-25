@@ -1,0 +1,17 @@
+[
+    {
+        "name": "aws.lambda.enhanced.timeouts",
+        "tags": [
+            "region:us-east-1",
+            "account_id:0",
+            "aws_account:0",
+            "functionname:cloudwatch-event",
+            "team:metrics",
+            "monitor:datadog",
+            "env:prod",
+            "creator:swf"
+        ],
+        "timestamp": 1591714946151,
+        "value": 1.0
+    }
+]

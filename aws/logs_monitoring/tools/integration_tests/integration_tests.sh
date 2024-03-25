@@ -7,7 +7,8 @@
 
 set -e
 
-PYTHON_VERSION="python3.8"
+PYTHON_VERSION="python3.11"
+PYTHON_IMAGE="python:3.11"
 SKIP_FORWARDER_BUILD=false
 UPDATE_SNAPSHOTS=false
 LOG_LEVEL=info
@@ -39,9 +40,10 @@ do
 
 		# -v or --python-version
 		# The version of the Python Lambda runtime to use
-		# Must be 3.7 or 3.8
+		# Must be 3.9 or 3.10
 		-v=*|--python-version=*)
 		PYTHON_VERSION="python${arg#*=}"
+		PYTHON_IMAGE="python:${arg#*=}"
 		shift
 		;;
 
@@ -63,7 +65,7 @@ do
 		# Run additionalLambda tests
 
 		# Requires AWS credentials
-		# Use aws-vault exec sandbox-account-admin -- ./integration_tests.sh
+		# Use aws-vault exec sso-sandbox-account-admin -- ./integration_tests.sh
 		-a|--additional-lambda)
 		ADDITIONAL_LAMBDA=true
 		shift
@@ -78,8 +80,8 @@ do
 	esac
 done
 
-if [ $PYTHON_VERSION != "python3.7" ] && [ $PYTHON_VERSION != "python3.8" ]; then
-    echo "Must use either Python 3.7 or 3.8"
+if [ $PYTHON_VERSION != "python3.10" ] && [ $PYTHON_VERSION != "python3.11" ]; then
+    echo "Must use either Python 3.10 or 3.11"
     exit 1
 fi
 
@@ -148,16 +150,18 @@ fi
 
 cd $INTEGRATION_TESTS_DIR
 
+
 # Build Docker image of Forwarder for tests
-echo "Building Docker Image for Forwarder"
+echo "Building Docker Image for Forwarder with tag datadog-log-forwarder:$PYTHON_VERSION"
 docker buildx build --platform linux/amd64 --file "${INTEGRATION_TESTS_DIR}/forwarder/Dockerfile" -t "datadog-log-forwarder:$PYTHON_VERSION" ../../.forwarder --no-cache \
-    --build-arg forwarder='aws-dd-forwarder-0.0.0' \
-    --build-arg image="lambci/lambda:${PYTHON_VERSION}"
+--build-arg forwarder='aws-dd-forwarder-0.0.0' \
+--build-arg image="mlupin/docker-lambda:${PYTHON_VERSION}-x86_64"
 
 echo "Running integration tests for ${PYTHON_VERSION}"
 LOG_LEVEL=${LOG_LEVEL} \
 UPDATE_SNAPSHOTS=${UPDATE_SNAPSHOTS} \
 PYTHON_RUNTIME=${PYTHON_VERSION} \
+PYTHON_BASE=${PYTHON_IMAGE} \
 EXTERNAL_LAMBDAS=${EXTERNAL_LAMBDAS} \
 DD_S3_BUCKET_NAME=${DD_S3_BUCKET_NAME} \
 AWS_ACCOUNT_ID=${AWS_ACCOUNT_ID} \

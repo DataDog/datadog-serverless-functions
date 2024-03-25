@@ -1,0 +1,6 @@
+{
+    "ddsource": "stepfunction",
+    "ddtags": "env:dev,test_tag_key:test_tag_value",
+    "host": "/aws/vendedlogs/states/logs-to-traces-sequential-Logs",
+    "service": "stepfunction"
+}

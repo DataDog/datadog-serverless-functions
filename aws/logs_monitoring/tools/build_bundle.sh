@@ -22,7 +22,7 @@ else
     VERSION=$1
 fi
 
-PYTHON_VERSION="${PYTHON_VERSION:-3.8}"
+PYTHON_VERSION="${PYTHON_VERSION:-3.11}"
 FORWARDER_PREFIX="aws-dd-forwarder"
 FORWARDER_DIR="../.forwarder"
 
@@ -42,7 +42,7 @@ function docker_build_zip {
     temp_dir=$(mktemp -d)
 
     docker buildx build --platform linux/amd64 --file "${DIR}/Dockerfile_bundle" -t "datadog-bundle:$1" .. --no-cache \
-        --build-arg runtime=$1
+        --build-arg runtime=$PYTHON_VERSION
 
     # Run the image by runtime tag, tar its generated `python` directory to sdout,
     # then extract it to a temp directory.
