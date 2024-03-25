@@ -107,10 +107,8 @@ def _forward_traces(trace_payloads):
     try:
         trace_connection.send_traces(trace_payloads)
     except Exception:
-        logger.exception(
-            f"Exception while forwarding traces {json.dumps(trace_payloads)}"
-        )
-    else:
+        logger.exception(f"Exception while forwarding traces")
+    finally:
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug(f"Forwarded traces: {json.dumps(trace_payloads)}")
         send_event_metric("traces_forwarded", len(trace_payloads))
