@@ -338,7 +338,7 @@ class EventhubLogHandler {
                         if (typeof splitRecord === 'string') {
                             try {
                                 splitRecord = JSON.parse(splitRecord);
-                            } catch (err) { }
+                            } catch (err) {}
                         }
                         var formattedSplitRecord = {};
                         var temp = formattedSplitRecord;
@@ -644,7 +644,7 @@ class EventhubLogHandler {
     }
 }
 
-module.exports = async function (context, eventHubMessages) {
+module.exports = async function(context, eventHubMessages) {
     if (!DD_API_KEY || DD_API_KEY === '<DATADOG_API_KEY>') {
         context.log.error(
             'You must configure your API key before starting this function (see ## Parameters section)'
