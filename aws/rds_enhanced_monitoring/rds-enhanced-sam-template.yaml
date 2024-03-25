@@ -18,10 +18,11 @@ Resources:
       Policies:
         KMSDecryptPolicy:
           KeyId: !Ref KMSKeyId
-      Runtime: python3.7
+      Architectures:
+        - arm64
+      Runtime: python3.11
       Timeout: 10
       KmsKeyArn:
         !Sub
           - 'arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key/${keyId}'
           - {keyId: !Ref KMSKeyId}
-    Type: AWS::Serverless::Function

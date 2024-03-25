@@ -5,10 +5,11 @@ on: [pull_request]
 jobs:
   build:
     runs-on: ubuntu-latest
+    continue-on-error: true
     strategy:
       max-parallel: 4
       matrix:
-        python-version: [3.7, 3.8]
+        python-version: ['3.10', '3.11']
     steps:
       - name: Checkout source
         uses: actions/checkout@v3

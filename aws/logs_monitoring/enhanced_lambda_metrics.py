@@ -2,14 +2,11 @@
 # under the Apache License Version 2.0.
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2021 Datadog, Inc.
-
+import os
 import logging
 import re
 import datetime
-
 from time import time
-
-from lambda_cache import LambdaTagsCache
 
 ENHANCED_METRICS_NAMESPACE_PREFIX = "aws.lambda.enhanced"
 
@@ -71,7 +68,7 @@ METRIC_ADJUSTMENT_FACTORS = {
 }
 
 logger = logging.getLogger()
-
+logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
 
 try:
     from datadog_lambda.metric import lambda_stats
@@ -83,10 +80,6 @@ except ImportError:
         "Add the Datadog Lambda layer to this function to submit enhanced metrics."
     )
     DD_SUBMIT_ENHANCED_METRICS = False
-
-# Store the cache in the global scope so that it will be reused as long as
-# the log forwarder Lambda container is running
-account_lambda_custom_tags_cache = LambdaTagsCache()
 
 
 class DatadogMetricPoint(object):
@@ -143,7 +136,7 @@ def get_last_modified_time(s3_file):
     return last_modified_unix_time
 
 
-def parse_and_submit_enhanced_metrics(logs):
+def parse_and_submit_enhanced_metrics(logs, cache_layer):
     """Parses enhanced metrics from logs and submits them to DD with tags
 
     Args:
@@ -157,7 +150,7 @@ def parse_and_submit_enhanced_metrics(logs):
     for log in logs:
         try:
             enhanced_metrics = generate_enhanced_lambda_metrics(
-                log, account_lambda_custom_tags_cache
+                log, cache_layer.get_lambda_tags_cache()
             )
             for enhanced_metric in enhanced_metrics:
                 enhanced_metric.submit_to_dd()
@@ -334,25 +327,6 @@ def calculate_estimated_cost(billed_duration_ms, memory_allocated):
     gb_seconds = (billed_duration_ms / 1000.0) * (memory_allocated / 1024.0)
 
     return BASE_LAMBDA_INVOCATION_PRICE + gb_seconds * LAMBDA_PRICE_PER_GB_SECOND
-
-
-def get_enriched_lambda_log_tags(log_event):
-    """Retrieves extra tags from lambda, either read from the function arn, or by fetching lambda tags from the function itself.
-
-    Args:
-        log (dict<str, str | dict | int>): a log parsed from the event in the split method
-    """
-    # Note that this arn attribute has been lowercased already
-    log_function_arn = log_event.get("lambda", {}).get("arn")
-
-    if not log_function_arn:
-        return []
-    tags_from_arn = parse_lambda_tags_from_arn(log_function_arn)
-    lambda_custom_tags = account_lambda_custom_tags_cache.get(log_function_arn)
-
-    # Combine and dedup tags
-    tags = list(set(tags_from_arn + lambda_custom_tags))
-    return tags
 
 
 def create_timeout_enhanced_metric(log_line):

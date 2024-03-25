@@ -42,7 +42,7 @@ Datadog recommends using [CloudFormation](#cloudformation) to automatically inst
 
 If you had previously enabled your AWS Integration using the [following CloudFormation template][102] from your AWS integration page in Datadog, your account may already be provisioned with a Datadog Lambda Forwarder function if you decided to include it. In that case, you will only need to install the Datadog Lambda in additional AWS regions in your account where you wish to export logs.  
 
-**Note:** The code block of the Datadog Lambda Forwarder function is empty, as the logic is implemented through a Lambda layer.
+**Note**: The Datadog Lambda Forwarder function code block is expected to be empty, as the logic is implemented through a Lambda layer.
 
 [101]: https://docs.datadoghq.com/logs/guide/send-aws-services-logs-with-the-datadog-lambda-function/#set-up-triggers
 [102]: https://github.com/DataDog/cloudformation-template/tree/master/aws
@@ -93,14 +93,14 @@ resource "aws_cloudformation_stack" "datadog_forwarder" {
   capabilities = ["CAPABILITY_IAM", "CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND"]
   parameters   = {
     DdApiKeySecretArn  = "REPLACE ME WITH THE SECRETS ARN",
-    DdSite             = "{{< region-param key="dd_site" code="true" >}}",
+    DdSite             = "<SITE>",
     FunctionName       = "datadog-forwarder"
   }
   template_url = "https://datadog-cloudformation-template.s3.amazonaws.com/aws/forwarder/latest.yaml"
 }
 ```
 
-**Note**: Ensure that the `DdSite` parameter matches your [Datadog site][104]. Your Datadog site is {{< region-param key="dd_site" code="true" >}}.
+**Note**: Ensure that the `DdSite` parameter matches your [Datadog site][104]. Select your site on the right side of this page. Replace `<SITE>` in the above sample configuration with {{< region-param key="dd_site" code="true" >}}.
 
 [101]: https://www.terraform.io/docs/providers/aws/r/cloudformation_stack
 [102]: https://app.datadoghq.com/organization-settings/api-keys
@@ -114,7 +114,7 @@ resource "aws_cloudformation_stack" "datadog_forwarder" {
 
 If you can't install the Forwarder using the provided CloudFormation template, you can install the Forwarder manually following the steps below. Feel free to open an issue or pull request to let us know if there is anything we can improve to make the template work for you.
 
-1. Create a Python 3.8 Lambda function using `aws-dd-forwarder-<VERSION>.zip` from the latest [releases][101].
+1. Create a Python 3.10 Lambda function using `aws-dd-forwarder-<VERSION>.zip` from the latest [releases][101].
 2. Save your [Datadog API key][102] in AWS Secrets Manager, set environment variable `DD_API_KEY_SECRET_ARN` with the secret ARN on the Lambda function, and add the `secretsmanager:GetSecretValue` permission to the Lambda execution role.
 3. If you need to forward logs from S3 buckets, add the `s3:GetObject` permission to the Lambda execution role.
 4. Set the environment variable `DD_ENHANCED_METRICS` to `false` on the Forwarder. This stops the Forwarder from generating enhanced metrics itself, but it will still forward custom metrics from other lambdas.
@@ -133,8 +133,26 @@ If you can't install the Forwarder using the provided CloudFormation template, y
 ### Upgrade to a new version
 
 1. Find the [datadog-forwarder (if you didn't rename it)][5] CloudFormation stack. If you installed the Forwarder as part of the [Datadog AWS integration stack][6], make sure to update the nested Forwarder stack instead of the root stack.
-2. Find the actual Forwarder Lambda function from the CloudFormation stack's "Resources" tab, navigate to its configuration page. Note down the value of the tag `dd_forwarder_version`, such as `3.3.0`, in case you run into issues with the new version and need to rollback.
-3. Update the stack using template `https://datadog-cloudformation-template.s3.amazonaws.com/aws/forwarder/latest.yaml`. You can also replace `latest` with a specific version, such as `3.0.2.yaml`, if needed. Make sure to review the changesets before applying the update.
+2. Find the actual Forwarder Lambda function from the CloudFormation stack's "Resources" tab, navigate to its configuration page. Note down the value of the tag `dd_forwarder_version`, such as `3.73.0`, in case you run into issues with the new version and need to rollback.
+3. Update the stack using template `https://datadog-cloudformation-template.s3.amazonaws.com/aws/forwarder/latest.yaml`. You can also replace `latest` with a specific version, such as `3.73.0.yaml`, if needed. Make sure to review the changesets before applying the update.
+
+If you encounter issues upgrading to the latest version, check the Troubleshooting section.
+
+### Upgrade an older version to +3.106.0
+Starting version 3.106.0 Lambda function has been updated to add a prefix to cache filenames stored in the S3 bucket configured in `DD_S3_BUCKET_NAME`.  
+This allows to use the same bucket to store cache files from several functions. 
+
+### Upgrade an older version to +3.99.0
+
+Since version 3.99.0 the Lambda function has been updated to require **Python 3.11**. If upgrading an older forwarder installation to +3.99.0 or above, ensure the AWS Lambda function is configured to use Python 3.11
+
+### Upgrade an older version to +3.98.0
+
+Since version 3.98.0 the Lambda function has been updated to require **Python 3.10**. If upgrading an older forwarder installation to 3.98.0 or above, ensure the AWS Lambda function is configured to use Python 3.10
+
+### Upgrade an older version to +3.74.0
+
+Since version 3.74.0 the Lambda function has been updated to require **Python 3.9**. If upgrading an older forwarder installation to 3.74.0 or above, ensure the AWS Lambda function is configured to use Python 3.9
 
 ### Upgrade an older version to +3.49.0
 
@@ -175,11 +193,28 @@ Datadog recommends adjusting your Forwarder settings through CloudFormation rath
 
 Don't forget to check if the issue has already been fixed in the recent [releases][9].
 
+### Logging
+
 Set the environment variable `DD_LOG_LEVEL` to `debug` on the Forwarder Lambda function to enable detailed logging temporarily (don't forget to remove it). The debugging logs should be able to show you the exact event payload the Lambda function receives and the data (log, metric or trace) payload that is sent to Datadog.
 
 You can also add additional logging or code for deeper investigation. Find instructions for building Forwarder code with local changes from the [contributing](#contributing) section.
 
+### Issue updating the forwarder
+
+Manually updating the `.zip` code of the Forwarder may cause conflicts with Cloudformation updates for Forwarder installations where the code is packaged in a Lambda layer (default installation choice from version `3.33.0`) and cause invocation errors. In this case, updating the stack through Cloudformation to the latest available twice in a row (first with `InstallAsLayer` set to `false`, and then to `true`) should solve the issue as it will remove any `.zip` remnants and install the latest layer available.
+
 If you still couldn't figure out, please create a ticket for [Datadog Support][10] with a copy of debugging logs.
+
+### JSON-formatted logs are not appearing in Datadog
+If your logs contain an attribute that Datadog parses as a timestamp, you need to make sure that the timestamp is both current and in the correct format. See [Log Date Remapper][24] to learn about which attributes are parsed as timestamps and how to make sure that the timestamp is valid.
+
+### Issue creating S3 triggers
+In case you encounter the following error when creating S3 triggers, we recommend considering following a fanout architecture proposed by AWS [in this article](https://aws.amazon.com/blogs/compute/fanout-s3-event-notifications-to-multiple-endpoints/)
+
+```
+An error occurred when creating the trigger: Configuration is ambiguously defined. Cannot have overlapping suffixes in two rules if the prefixes are overlapping for the same event type.
+```
+
 
 ## Contributing
 
@@ -545,3 +580,4 @@ Additional helpful documentation, links, and articles:
 [21]: https://docs.datadoghq.com/logs/processing/pipelines/
 [22]: https://docs.datadoghq.com/agent/guide/private-link/
 [23]: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/transform-aws-serverless.html
+[24]: https://docs.datadoghq.com/logs/log_configuration/processors/?tab=ui#log-date-remapper

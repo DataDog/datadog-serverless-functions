@@ -11,6 +11,7 @@ import botocore.config
 import logging
 
 logger = logging.getLogger()
+logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
 
 
 def get_env_var(envvar, default, boolean=False):
@@ -207,7 +208,19 @@ elif "DD_KMS_API_KEY" in os.environ:
         CiphertextBlob=base64.b64decode(ENCRYPTED)
     )["Plaintext"]
     if type(DD_API_KEY) is bytes:
-        DD_API_KEY = DD_API_KEY.decode("utf-8")
+        # If the CiphertextBlob was encrypted with AWS CLI, we
+        # need to re-encode this in base64
+        try:
+            DD_API_KEY = DD_API_KEY.decode("utf-8")
+        except UnicodeDecodeError as e:
+            print(
+                "INFO DD_KMS_API_KEY: Could not decode key in utf-8, encoding in b64. Exception:",
+                e,
+            )
+            DD_API_KEY = base64.b64encode(DD_API_KEY)
+            DD_API_KEY = DD_API_KEY.decode("utf-8")
+        except Exception as e:
+            print("ERROR DD_KMS_API_KEY Unknown exception decoding key:", e)
 elif "DD_API_KEY" in os.environ:
     logger.debug("Fetching the Datadog API key from environment variable DD_API_KEY")
     DD_API_KEY = os.environ["DD_API_KEY"]
@@ -225,7 +238,18 @@ DD_SOURCE = "ddsource"
 DD_CUSTOM_TAGS = "ddtags"
 DD_SERVICE = "service"
 DD_HOST = "host"
-DD_FORWARDER_VERSION = "3.73.0"
+DD_FORWARDER_VERSION = "3.106.0"
+
+# CONST STRINGS
+AWS_STRING = "aws"
+FUNCTIONVERSION_STRING = "function_version"
+INVOKEDFUNCTIONARN_STRING = "invoked_function_arn"
+SOURCECATEGORY_STRING = "ddsourcecategory"
+FORWARDERNAME_STRING = "forwardername"
+FORWARDERMEMSIZE_STRING = "forwarder_memorysize"
+FORWARDERVERSION_STRING = "forwarder_version"
+GOV_STRING = "gov"
+CN_STRING = "cn"
 
 # Additional target lambda invoked async with event data
 DD_ADDITIONAL_TARGET_LAMBDAS = get_env_var("DD_ADDITIONAL_TARGET_LAMBDAS", default=None)
@@ -238,6 +262,11 @@ DD_S3_LOG_GROUP_CACHE_FILENAME = "log-group-cache.json"
 DD_S3_LOG_GROUP_CACHE_LOCK_FILENAME = "log-group-cache.lock"
 DD_S3_STEP_FUNCTIONS_CACHE_FILENAME = "step-functions-cache.json"
 DD_S3_STEP_FUNCTIONS_CACHE_LOCK_FILENAME = "step-functions-cache.lock"
+DD_S3_TAGS_CACHE_FILENAME = "s3-cache.json"
+DD_S3_TAGS_CACHE_LOCK_FILENAME = "s3-cache.lock"
 
 DD_TAGS_CACHE_TTL_SECONDS = int(get_env_var("DD_TAGS_CACHE_TTL_SECONDS", default=300))
 DD_S3_CACHE_LOCK_TTL_SECONDS = 60
+GET_RESOURCES_LAMBDA_FILTER = "lambda"
+GET_RESOURCES_STEP_FUNCTIONS_FILTER = "states"
+GET_RESOURCES_S3_FILTER = "s3:bucket"

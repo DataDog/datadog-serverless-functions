@@ -5,7 +5,7 @@
 
 var https = require('https');
 
-const VERSION = '0.5.8';
+const VERSION = '1.0.2';
 
 const STRING = 'string'; // example: 'some message'
 const STRING_ARRAY = 'string-array'; // example: ['one message', 'two message', ...]
@@ -15,7 +15,6 @@ const BUFFER_ARRAY = 'buffer-array'; // example: [<Buffer obj>, <Buffer obj>]
 const JSON_STRING = 'json-string'; // example: '{"key": "value"}'
 const JSON_STRING_ARRAY = 'json-string-array'; // example: ['{"records": [{}, {}]}'] or ['{"key": "value"}']
 const INVALID = 'invalid';
-
 const JSON_TYPE = 'json';
 const STRING_TYPE = 'string';
 
@@ -28,9 +27,21 @@ const DD_TAGS = process.env.DD_TAGS || ''; // Replace '' by your comma-separated
 const DD_SERVICE = process.env.DD_SERVICE || 'azure';
 const DD_SOURCE = process.env.DD_SOURCE || 'azure';
 const DD_SOURCE_CATEGORY = process.env.DD_SOURCE_CATEGORY || 'azure';
+const DD_PARSE_DEFENDER_LOGS = process.env.DD_PARSE_DEFENDER_LOGS; // Boolean whether to enable special parsing of Defender for Cloud logs. Set to 'false' to disable 
 
 const MAX_RETRIES = 4; // max number of times to retry a single http request
 const RETRY_INTERVAL = 250; // amount of time (milliseconds) to wait before retrying request, doubles after every retry
+
+// constants relating to Defender for Cloud logs
+const MSFT_DEFENDER_FOR_CLOUD = 'Microsoft Defender for Cloud';
+const AZURE_SECURITY_CENTER = 'Azure Security Center';
+const SECURITY_ASSESSMENTS = 'Microsoft.Security/assessments';
+const SECURITY_SUB_ASSESSMENTS = 'Microsoft.Security/assessments/subAssessments';
+const SECURITY_COMPLIANCE_ASSESSMENTS = 'Microsoft.Security/regulatoryComplianceStandards/regulatoryComplianceControls/regulatoryComplianceAssessments';
+const SECURITY_SCORES = 'Microsoft.Security/secureScores';
+const SECURITY_SCORE_CONTROLS = 'Microsoft.Security/secureScores/secureScoreControls';
+const DEFENDER_FOR_CLOUD_PRODUCTS = [MSFT_DEFENDER_FOR_CLOUD, AZURE_SECURITY_CENTER];
+const DEFENDER_FOR_CLOUD_RESOURCE_TYPES = [SECURITY_ASSESSMENTS, SECURITY_SUB_ASSESSMENTS, SECURITY_COMPLIANCE_ASSESSMENTS, SECURITY_SCORES, SECURITY_SCORE_CONTROLS];
 
 /*
 To scrub PII from your logs, uncomment the applicable configs below. If you'd like to scrub more than just
@@ -73,6 +84,15 @@ function getLogSplittingConfig() {
     } catch {
         return DD_LOG_SPLITTING_CONFIG;
     }
+}
+
+function shouldParseDefenderForCloudLogs() {
+    // Default to true if the env variable is not set, is null, etc
+    if (typeof DD_PARSE_DEFENDER_LOGS !== 'string') {
+        return true;
+    }
+    const parse_defender_logs = DD_PARSE_DEFENDER_LOGS.toLowerCase();
+    return !(parse_defender_logs === 'false' || parse_defender_logs === 'f');
 }
 
 class ScrubberRule {
@@ -267,9 +287,8 @@ class EventhubLogHandler {
 
     findSplitRecords(record, fields) {
         var tempRecord = record;
-        for (var i = 0; i < fields.length; i++) {
+        for (const fieldName in fields) {
             // loop through the fields to find the one we want to split
-            var fieldName = fields[i];
             if (
                 tempRecord[fieldName] === undefined ||
                 tempRecord[fieldName] === null
@@ -478,18 +497,19 @@ class EventhubLogHandler {
         }
     }
 
+    createDDTags(tags) {
+        const forwarderNameTag =  'forwardername:' + this.context.executionContext.functionName;
+        const fowarderVersionTag = 'forwarderversion:' + VERSION;
+        var ddTags = tags.concat([DD_TAGS, forwarderNameTag, fowarderVersionTag]);
+        return ddTags.filter(Boolean).join(',');
+    }
+
     addTagsToJsonLog(record) {
-        var metadata = this.extractMetadataFromResource(record);
+        var [metadata, record] = this.extractMetadataFromLog(record);
         record['ddsource'] = metadata.source || DD_SOURCE;
         record['ddsourcecategory'] = DD_SOURCE_CATEGORY;
-        record['service'] = DD_SERVICE;
-        record['ddtags'] = metadata.tags
-            .concat([
-                DD_TAGS,
-                'forwardername:' + this.context.executionContext.functionName
-            ])
-            .filter(Boolean)
-            .join(',');
+        record['service'] = metadata.service || DD_SERVICE;
+        record['ddtags'] = this.createDDTags(metadata.tags);
         return record;
     }
 
@@ -498,16 +518,16 @@ class EventhubLogHandler {
         return this.addTagsToJsonLog(jsonLog);
     }
 
-    createResourceIdArray(record) {
-        // Convert the resource ID in the record to an array, handling beginning/ending slashes
-        var resourceId = record.resourceId.toLowerCase().split('/');
-        if (resourceId[0] === '') {
-            resourceId = resourceId.slice(1);
+    createResourceIdArray(resourceId) {
+        // Convert a valid resource ID to an array, handling beginning/ending slashes
+        var resourceIdArray = resourceId.toLowerCase().split('/');
+        if (resourceIdArray[0] === '') {
+            resourceIdArray = resourceIdArray.slice(1);
         }
-        if (resourceId[resourceId.length - 1] === '') {
-            resourceId.pop();
+        if (resourceIdArray[resourceIdArray.length - 1] === '') {
+            resourceIdArray.pop();
         }
-        return resourceId;
+        return resourceIdArray;
     }
 
     isSource(resourceIdPart) {
@@ -519,16 +539,29 @@ class EventhubLogHandler {
         return sourceType.replace('microsoft.', 'azure.');
     }
 
-    extractMetadataFromResource(record) {
-        var metadata = { tags: [], source: '' };
-        if (
-            record.resourceId === undefined ||
-            typeof record.resourceId !== 'string'
-        ) {
+    getResourceId(record) {
+        // Most logs have resourceId, but some logs have ResourceId instead
+        var id = record.resourceId || record.ResourceId;
+        if (typeof id !== 'string') {
+            return null;
+        }
+        return id;
+    }
+
+    extractMetadataFromLog(record) {
+        if (shouldParseDefenderForCloudLogs() && this.isDefenderForCloudLog(record)) {
+            return this.extractMetadataFromDefenderLog(record);
+        }
+        return [this.extractMetadataFromStandardLog(record), record];
+    }
+
+    extractMetadataFromStandardLog(record) {
+        var metadata = { tags: [], source: '', service: '' };
+        var resourceId = this.getResourceId(record);
+        if (resourceId === null || resourceId === '') {
             return metadata;
         }
-
-        var resourceId = this.createResourceIdArray(record);
+        resourceId = this.createResourceIdArray(resourceId);
 
         if (resourceId[0] === 'subscriptions') {
             if (resourceId.length > 1) {
@@ -566,6 +599,48 @@ class EventhubLogHandler {
             }
         }
         return metadata;
+    }
+
+    getDefenderForCloudLogType(record) {
+        return record.type || record.Type;
+    }
+
+    isDefenderForCloudLog(record) {
+        const productName = record.ProductName;
+        const type = this.getDefenderForCloudLogType(record);
+        return DEFENDER_FOR_CLOUD_PRODUCTS.includes(productName) || DEFENDER_FOR_CLOUD_RESOURCE_TYPES.includes(type);
+    }
+
+    removeWhitespaceFromKeys(obj) {
+        // remove whitespace from the keys of an object and capitalizes the letter that follows
+        var newObj = {};
+        for (const [key, value] of Object.entries(obj)) {
+            // regex looks for word boundaries and captures the alpha character that follows
+            const new_key = key.replace(/\b\w/g, c=> c.toUpperCase()).replaceAll(' ', '');
+            newObj[new_key] = value;
+        }
+        return newObj;
+    }
+
+    extractMetadataFromDefenderLog(record) {
+        var metadata = { tags: [], source: 'microsoft-defender-for-cloud', service: '' };
+        const productName = record.ProductName;
+        const type = this.getDefenderForCloudLogType(record);
+
+        if (DEFENDER_FOR_CLOUD_PRODUCTS.includes(productName)) {
+            metadata.service = 'SecurityAlerts';
+            const extendedProperties = record.ExtendedProperties || {};
+            record.ExtendedProperties = this.removeWhitespaceFromKeys(extendedProperties);
+        } else if ([SECURITY_ASSESSMENTS, SECURITY_COMPLIANCE_ASSESSMENTS].includes(type)) {
+            metadata.service = 'SecurityRecommendations';
+        } else if (type === SECURITY_SUB_ASSESSMENTS) {
+            metadata.service = 'SecurityFindings';
+        } else if ([SECURITY_SCORES, SECURITY_SCORE_CONTROLS].includes(type)) {
+            metadata.service = 'SecureScore';
+        } else {
+            metadata.service = 'microsoft-defender-for-cloud'
+        }
+        return [metadata, record];
     }
 }
 

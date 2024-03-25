@@ -18,4 +18,4 @@ fi
 
 echo "FORWARDER_VERSION=$FORWARDER_VERSION"
 
-LAYER_VERSION=$LAYER_VERSION FORWARDER_VERSION=$FORWARDER_VERSION aws-vault exec sandbox-account-admin -- ./tools/publish_layers.sh
+LAYER_VERSION=$LAYER_VERSION FORWARDER_VERSION=$FORWARDER_VERSION aws-vault exec sso-sandbox-account-admin -- ./tools/publish_layers.sh

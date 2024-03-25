@@ -1,0 +1,91 @@
+([]*pb.TracePayload) (len=1) {
+ (*pb.TracePayload)({
+  HostName: (string) "",
+  Env: (string) (len=7) "testing",
+  Traces: ([]*pb.APITrace) (len=1) {
+   (*pb.APITrace)({
+    TraceID: (uint64) 15312868622108368121,
+    Spans: ([]*pb.Span) (len=3) {
+     (*pb.Span)({
+      Service: (string) (len=10) "aws.lambda",
+      Name: (string) (len=10) "aws.lambda",
+      Resource: (string) (len=12) "span-env-tag",
+      TraceID: (uint64) 15312868622108368121,
+      SpanID: (uint64) 7382472988963899907,
+      ParentID: (uint64) 0,
+      Start: (int64) 1688673307300342800,
+      Duration: (int64) 824010,
+      Error: (int32) 0,
+      Meta: (map[string]string) (len=15) {
+       (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
+       (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
+       (string) (len=8) "_dd.p.dm": (string) (len=2) "-0",
+       (string) (len=10) "cold_start": (string) (len=5) "false",
+       (string) (len=11) "customer.id": (string) (len=6) "123456",
+       (string) (len=14) "datadog_lambda": (string) (len=6) "4.68.0",
+       (string) (len=8) "dd_trace": (string) (len=5) "1.7.5",
+       (string) (len=3) "env": (string) (len=7) "testing",
+       (string) (len=12) "function_arn": (string) (len=59) "arn:aws:lambda:sa-east-1:601427279990:function:span-env-tag",
+       (string) (len=16) "function_version": (string) (len=7) "$LATEST",
+       (string) (len=12) "functionname": (string) (len=12) "span-env-tag",
+       (string) (len=10) "request_id": (string) (len=36) "ee57944a-e9dd-4fa2-ad06-6b3df3d343ee",
+       (string) (len=14) "resource_names": (string) (len=12) "span-env-tag",
+       (string) (len=10) "runtime-id": (string) (len=32) "dc08a941c30e4d77bdfb38130b4c21d6",
+       (string) (len=9) "span.name": (string) (len=10) "aws.lambda"
+      },
+      Metrics: (map[string]float64) (len=8) {
+       (string) (len=13) "_dd.agent_psr": (float64) 1,
+       (string) (len=13) "_dd.top_level": (float64) 1,
+       (string) (len=21) "_sampling_priority_v1": (float64) 1,
+       (string) (len=58) "_sublayers.duration.by_service.sublayer_service:aws.lambda": (float64) 824010,
+       (string) (len=52) "_sublayers.duration.by_type.sublayer_type:serverless": (float64) 767807,
+       (string) (len=21) "_sublayers.span_count": (float64) 3,
+       (string) (len=10) "_top_level": (float64) 1,
+       (string) (len=10) "process_id": (float64) 8
+      },
+      Type: (string) (len=10) "serverless"
+     }),
+     (*pb.Span)({
+      Service: (string) (len=10) "aws.lambda",
+      Name: (string) (len=11) "hello.world",
+      Resource: (string) (len=11) "hello.world",
+      TraceID: (uint64) 15312868622108368121,
+      SpanID: (uint64) 16095772332540954531,
+      ParentID: (uint64) 7382472988963899907,
+      Start: (int64) 1688673307300530000,
+      Duration: (int64) 33430,
+      Error: (int32) 0,
+      Meta: (map[string]string) (len=3) {
+       (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
+       (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
+       (string) (len=3) "env": (string) (len=7) "testing"
+      },
+      Metrics: (map[string]float64) <nil>,
+      Type: (string) ""
+     }),
+     (*pb.Span)({
+      Service: (string) (len=10) "aws.lambda",
+      Name: (string) (len=27) "lambda_function.get_message",
+      Resource: (string) (len=27) "lambda_function.get_message",
+      TraceID: (uint64) 15312868622108368121,
+      SpanID: (uint64) 6540310802011865674,
+      ParentID: (uint64) 7382472988963899907,
+      Start: (int64) 1688673307300920600,
+      Duration: (int64) 22773,
+      Error: (int32) 0,
+      Meta: (map[string]string) (len=3) {
+       (string) (len=17) "_dd.compute_stats": (string) (len=1) "1",
+       (string) (len=10) "_dd.origin": (string) (len=6) "lambda",
+       (string) (len=3) "env": (string) (len=7) "testing"
+      },
+      Metrics: (map[string]float64) <nil>,
+      Type: (string) ""
+     })
+    },
+    StartTime: (int64) 1688673307300342800,
+    EndTime: (int64) 0
+   })
+  },
+  Transactions: ([]*pb.Span) <nil>
+ })
+}

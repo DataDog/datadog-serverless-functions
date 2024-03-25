@@ -1,0 +1,28 @@
+[
+    {
+        "ddsource": "securityhub",
+        "detail": {
+            "finding": {
+                "myattribute": "somevalue",
+                "resources": {
+                    "AwsEc2SecurityGroup": {
+                        "Region": "us-east-1"
+                    }
+                }
+            }
+        }
+    },
+    {
+        "ddsource": "securityhub",
+        "detail": {
+            "finding": {
+                "myattribute": "somevalue",
+                "resources": {
+                    "AwsEc2SecurityGroup": {
+                        "Region": "us-east-1"
+                    }
+                }
+            }
+        }
+    }
+]
