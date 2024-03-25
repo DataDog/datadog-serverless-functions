@@ -314,7 +314,6 @@ class EventhubLogHandler {
             // normalize the host field. Azure EventHub sends it as "Host".
             if (originalRecord.Host) {
                 originalRecord.host = originalRecord.Host;
-                delete originalRecord.Host;
             }
             var source = originalRecord['ddsource'];
             var config = this.logSplittingConfig[source];
