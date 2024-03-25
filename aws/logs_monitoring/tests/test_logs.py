@@ -1,8 +1,9 @@
 import unittest
 import os
 
-from logs.logs import DatadogScrubber, DatadogBatcher
-from logs.logs_helpers import filter_logs
+from logs.datadog_scrubber import DatadogScrubber
+from logs.datadog_batcher import DatadogBatcher
+from logs.helpers import filter_logs
 from settings import ScrubbingRuleConfig, SCRUBBING_RULE_CONFIGS, get_env_var
 
 
