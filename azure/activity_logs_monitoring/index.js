@@ -5,7 +5,7 @@
 
 var https = require('https');
 
-const VERSION = '1.0.1';
+const VERSION = '1.0.2';
 
 const STRING = 'string'; // example: 'some message'
 const STRING_ARRAY = 'string-array'; // example: ['one message', 'two message', ...]
@@ -311,6 +311,10 @@ class EventhubLogHandler {
     formatLog(messageType, record) {
         if (messageType == JSON_TYPE) {
             var originalRecord = this.addTagsToJsonLog(record);
+            // normalize the host field. Azure EventHub sends it as "Host".
+            if (originalRecord.Host) {
+                originalRecord.host = originalRecord.Host;
+            }
             var source = originalRecord['ddsource'];
             var config = this.logSplittingConfig[source];
             if (config !== undefined) {
