@@ -478,6 +478,8 @@ Resources:
 
       MemorySize:
         Ref: MemorySize
+      Architectures:
+        - arm64
       Runtime: python3.11
       Timeout:
         Ref: Timeout
