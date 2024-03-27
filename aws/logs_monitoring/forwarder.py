@@ -70,16 +70,17 @@ def _forward_logs(logs):
         )
 
     with DatadogClient(cli) as client:
-        for batch in batcher.batch(logs_to_forward):
-            try:
+        try:
+            for batch in batcher.batch(logs_to_forward):
                 client.send(batch)
-            except Exception:
-                logger.exception("Exception while forwarding log batch")
-            finally:
                 if logger.isEnabledFor(logging.DEBUG):
                     logger.debug(f"Forwarded log batch: {json.dumps(batch)}")
-
-    send_event_metric("logs_forwarded", len(logs_to_forward))
+        except Exception:
+            logger.exception(
+                f"Exception while forwarding log batch {json.dumps(batch)}"
+            )
+        else:
+            send_event_metric("logs_forwarded", len(logs_to_forward))
 
 
 def _forward_metrics(metrics):
@@ -89,29 +90,27 @@ def _forward_metrics(metrics):
     """
     if logger.isEnabledFor(logging.DEBUG):
         logger.debug(f"Forwarding {len(metrics)} metrics")
-
-    for metric in metrics:
-        try:
+    try:
+        for metric in metrics:
             send_log_metric(metric)
-        except Exception:
-            logger.exception("Exception while forwarding metrics")
-        finally:
             if logger.isEnabledFor(logging.DEBUG):
                 logger.debug(f"Forwarded metric: {json.dumps(metric)}")
-
-    send_event_metric("metrics_forwarded", len(metrics))
+    except Exception:
+        logger.exception(f"Exception while forwarding metric {json.dumps(metric)}")
+    else:
+        send_event_metric("metrics_forwarded", len(metrics))
 
 
 def _forward_traces(trace_payloads):
     if logger.isEnabledFor(logging.DEBUG):
         logger.debug(f"Forwarding {len(trace_payloads)} traces")
-
     try:
         trace_connection.send_traces(trace_payloads)
     except Exception:
-        logger.exception("Exception while forwarding traces")
-    finally:
+        logger.exception(
+            f"Exception while forwarding traces {json.dumps(trace_payloads)}"
+        )
+    else:
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug(f"Forwarded traces: {json.dumps(trace_payloads)}")
-
-    send_event_metric("traces_forwarded", len(trace_payloads))
+        send_event_metric("traces_forwarded", len(trace_payloads))
