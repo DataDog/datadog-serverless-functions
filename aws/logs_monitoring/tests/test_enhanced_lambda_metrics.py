@@ -200,7 +200,6 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
         tags_cache.get_cache_from_s3.assert_called_once()
         tags_cache.build_tags_cache.assert_called_once()
         tags_cache.write_cache_to_s3.assert_called_once()
-        # assert mock_forward_metrics.call_count == 1
         del os.environ["DD_FETCH_LAMBDA_TAGS"]
 
     @patch("caching.lambda_cache.LambdaTagsCache.release_s3_cache_lock")

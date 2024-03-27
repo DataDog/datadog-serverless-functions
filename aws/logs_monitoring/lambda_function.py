@@ -17,14 +17,9 @@ from steps.enrichment import enrich
 from steps.transformation import transform
 from steps.splitting import split
 from caching.cache_layer import CacheLayer
-from forwarders import (
-    forward_metrics,
-    forward_traces,
-    forward_logs,
-)
+from forwarder import forward
 from settings import (
     DD_API_KEY,
-    DD_FORWARD_LOG,
     DD_SKIP_SSL_VALIDATION,
     DD_API_URL,
     DD_FORWARDER_VERSION,
@@ -78,14 +73,7 @@ def datadog_forwarder(event, context):
     transformed = transform(enriched)
     metrics, logs, trace_payloads = split(transformed)
 
-    if DD_FORWARD_LOG:
-        forward_logs(logs)
-
-    forward_metrics(metrics)
-
-    if len(trace_payloads) > 0:
-        forward_traces(trace_payloads)
-
+    forward(logs, metrics, trace_payloads)
     parse_and_submit_enhanced_metrics(logs, cache_layer)
 
 

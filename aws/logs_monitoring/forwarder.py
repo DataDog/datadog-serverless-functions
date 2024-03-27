@@ -1,17 +1,21 @@
+# Unless explicitly stated otherwise all files in this repository are licensed
+# under the Apache License Version 2.0.
+# This product includes software developed at Datadog (https://www.datadoghq.com/).
+# Copyright 2021 Datadog, Inc.
+
+
 import logging
 import json
 import os
 
 from telemetry import send_event_metric, send_log_metric
 from trace_forwarder.connection import TraceConnection
-from logs.logs import (
-    DatadogScrubber,
-    DatadogBatcher,
-    DatadogClient,
-    DatadogHTTPClient,
-    DatadogTCPClient,
-)
-from logs.logs_helpers import filter_logs
+from logs.datadog_http_client import DatadogHTTPClient
+from logs.datadog_batcher import DatadogBatcher
+from logs.datadog_client import DatadogClient
+from logs.datadog_tcp_client import DatadogTCPClient
+from logs.datadog_scrubber import DatadogScrubber
+from logs.helpers import filter_logs
 from settings import (
     DD_API_KEY,
     DD_USE_TCP,
@@ -19,10 +23,11 @@ from settings import (
     DD_SKIP_SSL_VALIDATION,
     DD_URL,
     DD_PORT,
+    DD_TRACE_INTAKE_URL,
+    DD_FORWARD_LOG,
     SCRUBBING_RULE_CONFIGS,
     INCLUDE_AT_MATCH,
     EXCLUDE_AT_MATCH,
-    DD_TRACE_INTAKE_URL,
 )
 
 logger = logging.getLogger()
@@ -32,7 +37,20 @@ trace_connection = TraceConnection(
 )
 
 
-def forward_logs(logs):
+def forward(logs, metrics, traces):
+    """
+    Forward logs, metrics, and traces to Datadog in a background thread.
+    """
+    if DD_FORWARD_LOG:
+        _forward_logs(logs)
+
+    _forward_metrics(metrics)
+
+    if len(traces) > 0:
+        _forward_traces(traces)
+
+
+def _forward_logs(logs):
     """Forward logs to Datadog"""
     if logger.isEnabledFor(logging.DEBUG):
         logger.debug(f"Forwarding {len(logs)} logs")
@@ -56,15 +74,15 @@ def forward_logs(logs):
             try:
                 client.send(batch)
             except Exception:
-                logger.exception(f"Exception while forwarding log batch {batch}")
-            else:
+                logger.exception("Exception while forwarding log batch")
+            finally:
                 if logger.isEnabledFor(logging.DEBUG):
                     logger.debug(f"Forwarded log batch: {json.dumps(batch)}")
 
     send_event_metric("logs_forwarded", len(logs_to_forward))
 
 
-def forward_metrics(metrics):
+def _forward_metrics(metrics):
     """
     Forward custom metrics submitted via logs to Datadog in a background thread
     using `lambda_stats` that is provided by the Datadog Python Lambda Layer.
@@ -76,25 +94,23 @@ def forward_metrics(metrics):
         try:
             send_log_metric(metric)
         except Exception:
-            logger.exception(f"Exception while forwarding metric {json.dumps(metric)}")
-        else:
+            logger.exception("Exception while forwarding metrics")
+        finally:
             if logger.isEnabledFor(logging.DEBUG):
                 logger.debug(f"Forwarded metric: {json.dumps(metric)}")
 
     send_event_metric("metrics_forwarded", len(metrics))
 
 
-def forward_traces(trace_payloads):
+def _forward_traces(trace_payloads):
     if logger.isEnabledFor(logging.DEBUG):
         logger.debug(f"Forwarding {len(trace_payloads)} traces")
 
     try:
         trace_connection.send_traces(trace_payloads)
     except Exception:
-        logger.exception(
-            f"Exception while forwarding traces {json.dumps(trace_payloads)}"
-        )
-    else:
+        logger.exception("Exception while forwarding traces")
+    finally:
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug(f"Forwarded traces: {json.dumps(trace_payloads)}")
 
