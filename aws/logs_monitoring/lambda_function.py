@@ -17,7 +17,7 @@ from steps.enrichment import enrich
 from steps.transformation import transform
 from steps.splitting import split
 from caching.cache_layer import CacheLayer
-from forwarder import forward
+from forwarder import Forwarder
 from settings import (
     DD_API_KEY,
     DD_SKIP_SSL_VALIDATION,
@@ -55,6 +55,7 @@ api._api_host = DD_API_URL
 api._cacert = not DD_SKIP_SSL_VALIDATION
 
 cache_layer = None
+forwarder = None
 
 
 def datadog_forwarder(event, context):
@@ -66,29 +67,42 @@ def datadog_forwarder(event, context):
     if DD_ADDITIONAL_TARGET_LAMBDAS:
         invoke_additional_target_lambdas(event)
 
-    init_cache_layer(context)
+    function_prefix = get_function_arn_digest(context)
+    init_cache_layer(function_prefix)
+    init_forwarder(function_prefix)
 
     parsed = parse(event, context, cache_layer)
     enriched = enrich(parsed, cache_layer)
     transformed = transform(enriched)
     metrics, logs, trace_payloads = split(transformed)
 
-    forward(logs, metrics, trace_payloads)
+    forwarder.forward(logs, metrics, trace_payloads)
     parse_and_submit_enhanced_metrics(logs, cache_layer)
+    forwarder.retry()
 
 
-def init_cache_layer(context):
+def init_cache_layer(function_prefix):
     global cache_layer
     if cache_layer is None:
         # set the prefix for cache layer
         try:
-            if not cache_layer:
-                function_arn = context.invoked_function_arn.lower()
-                prefix = sha1(function_arn.encode("UTF-8")).hexdigest()
-                cache_layer = CacheLayer(prefix)
+            if cache_layer is None:
+                cache_layer = CacheLayer(function_prefix)
         except Exception as e:
             logger.exception(f"Failed to create cache layer due to {e}")
             raise
+
+
+def init_forwarder(function_prefix):
+    global forwarder
+    if forwarder is None:
+        forwarder = Forwarder(function_prefix)
+
+
+def get_function_arn_digest(context):
+    function_arn = context.invoked_function_arn.lower()
+    prefix = sha1(function_arn.encode("UTF-8")).hexdigest()
+    return prefix
 
 
 def invoke_additional_target_lambdas(event):
