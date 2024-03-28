@@ -44,12 +44,13 @@ def s3_handler(event, context, metadata, cache_layer):
     # Get the S3 client
     s3 = get_s3_client()
     # if this is a S3 event carried in a SNS message, extract it and override the event
-    first_record = event.get("Records")[0]
-    if sns := first_record.get("Sns"):
-        event = json.loads(sns.get("Message"))
+    if "Sns" in event.get("Records")[0]:
+        event = json.loads(event.get("Records")[0].get("Sns").get("Message"))
     # Get the object from the event and show its content type
-    bucket = first_record.get("s3").get("bucket").get("name")
-    key = urllib.parse.unquote_plus(first_record.get("s3").get("object").get("key"))
+    bucket = event.get("Records")[0].get("s3").get("bucket").get("name")
+    key = urllib.parse.unquote_plus(
+        event.get("Records")[0].get("s3").get("object").get("key")
+    )
     source = set_source(event, metadata, bucket, key)
     # Add Service tag
     add_service_tag(metadata)

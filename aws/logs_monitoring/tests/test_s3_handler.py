@@ -1,7 +1,9 @@
 import gzip
 import unittest
+from unittest.mock import MagicMock, patch
 from approvaltests.combination_approvals import verify_all_combinations
 from steps.handlers.s3_handler import (
+    s3_handler,
     parse_service_arn,
     get_partition_from_region,
     get_structured_lines_for_s3_handler,
@@ -9,6 +11,12 @@ from steps.handlers.s3_handler import (
 
 
 class TestS3EventsHandler(unittest.TestCase):
+    class Context:
+        function_version = 0
+        invoked_function_arn = "invoked_function_arn"
+        function_name = "function_name"
+        memory_limit_in_mb = "10"
+
     def parse_lines(self, data, key, source):
         bucket = "my-bucket"
         gzip_data = gzip.compress(bytes(data, "utf-8"))
@@ -58,6 +66,65 @@ class TestS3EventsHandler(unittest.TestCase):
         self.assertEqual(get_partition_from_region("us-gov-west-1"), "aws-us-gov")
         self.assertEqual(get_partition_from_region("cn-north-1"), "aws-cn")
         self.assertEqual(get_partition_from_region(None), "aws")
+
+    @patch("steps.handlers.s3_handler.extract_data")
+    @patch("steps.handlers.s3_handler.get_s3_client")
+    def test_s3_handler(self, mock_s3_client, extract_data):
+        event = {
+            "Records": [
+                {
+                    "s3": {
+                        "bucket": {"name": "my-bucket"},
+                        "object": {"key": "my-key"},
+                    }
+                }
+            ]
+        }
+        context = self.Context()
+        metadata = {"ddtags": ""}
+        extract_data.side_effect = [("data".encode("utf-8"))]
+        cache_layer = MagicMock()
+        structured_lines = list(s3_handler(event, context, metadata, cache_layer))
+        self.assertEqual(
+            structured_lines,
+            [
+                {
+                    "aws": {"s3": {"bucket": "my-bucket", "key": "my-key"}},
+                    "message": "data",
+                }
+            ],
+        )
+        self.assertEqual(metadata["ddsource"], "s3")
+        self.assertEqual(metadata["host"], "arn:aws:s3:::my-bucket")
+
+    @patch("steps.handlers.s3_handler.extract_data")
+    @patch("steps.handlers.s3_handler.get_s3_client")
+    def test_s3_handler_with_sns(self, mock_s3_client, extract_data):
+        event = {
+            "Records": [
+                {
+                    "Sns": {
+                        "Message": '{"Records": [{"s3": {"bucket": {"name": "my-bucket"}, "object": {"key": "sns-my-key"}}}]}'
+                    }
+                }
+            ]
+        }
+        context = self.Context()
+        metadata = {"ddtags": ""}
+        extract_data.side_effect = [("data".encode("utf-8"))]
+        cache_layer = MagicMock()
+        structured_lines = list(s3_handler(event, context, metadata, cache_layer))
+        self.assertEqual(
+            structured_lines,
+            [
+                {
+                    "aws": {"s3": {"bucket": "my-bucket", "key": "sns-my-key"}},
+                    "message": "data",
+                }
+            ],
+        )
+        self.assertEqual(metadata["ddsource"], "s3")
+        self.assertEqual(metadata["host"], "arn:aws:s3:::my-bucket")
 
 
 class TestParseServiceArn(unittest.TestCase):
