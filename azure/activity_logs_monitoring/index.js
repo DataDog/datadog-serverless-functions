@@ -31,7 +31,7 @@ const DD_PARSE_DEFENDER_LOGS = process.env.DD_PARSE_DEFENDER_LOGS; // Boolean wh
 
 const MAX_RETRIES = 4; // max number of times to retry a single http request
 const RETRY_INTERVAL = 250; // amount of time (milliseconds) to wait before retrying request, doubles after every retry
-const MAX_SOCKETS = Number(process.env.MAX_SOCKETS || 128); // max number of sockets to use for http requests
+const MAX_SOCKETS = Number(process.env.MAX_SOCKETS || 1024); // max number of sockets to use for http requests
 https.globalAgent.maxSockets = MAX_SOCKETS;
 
 // constants relating to Defender for Cloud logs
