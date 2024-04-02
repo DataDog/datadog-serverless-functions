@@ -1,0 +1,30 @@
+{
+    "ddsource": "waf",
+    "message": {
+        "ruleGroupList": {
+            "AWS#AWSManagedRulesSQLiRuleSet": {
+                "excludedRules": {
+                    "GenericRFI_BODY": {
+                        "exclusionType": "EXCLUDED_AS_COUNT"
+                    },
+                    "second_exclude": {
+                        "exclusionType": "EXCLUDED_AS_COUNT"
+                    }
+                },
+                "nonTerminatingMatchingRules": {
+                    "first_nonterminating": {
+                        "exclusionType": "REGULAR"
+                    },
+                    "second_nonterminating": {
+                        "exclusionType": "REGULAR"
+                    }
+                },
+                "terminatingRule": {
+                    "SQLi_QUERYARGUMENTS": {
+                        "action": "BLOCK"
+                    }
+                }
+            }
+        }
+    }
+}

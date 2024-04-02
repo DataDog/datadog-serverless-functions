@@ -22,9 +22,9 @@ env_patch = patch.dict(
     },
 )
 env_patch.start()
-
 import lambda_function
-import parsing
+from steps.parsing import parse
+from caching.cache_layer import CacheLayer
 
 env_patch.stop()
 
@@ -88,26 +88,24 @@ test_data = {
 }
 
 
-def test_data_gzipped() -> io.BytesIO:
-    return io.BytesIO(
-        gzip.compress(json.dumps(copy.deepcopy(test_data)).encode("utf-8"))
-    )
-
-
 class TestS3CloudwatchParsing(unittest.TestCase):
     def setUp(self):
         self.maxDiff = 9000
 
-    @patch("base_tags_cache.boto3")
-    @patch("parsing.boto3")
+    def get_test_data_gzipped(self) -> io.BytesIO:
+        return io.BytesIO(
+            gzip.compress(json.dumps(copy.deepcopy(test_data)).encode("utf-8"))
+        )
+
+    @patch("caching.base_tags_cache.boto3")
+    @patch("steps.handlers.s3_handler.boto3")
     @patch("lambda_function.boto3")
     def test_s3_cloudtrail_pasing_and_enrichment(
         self, lambda_boto3, parsing_boto3, cache_boto3
     ):
         context = Context()
-
         boto3 = parsing_boto3.client()
-        boto3.get_object.return_value = {"Body": test_data_gzipped()}
+        boto3.get_object.return_value = {"Body": self.get_test_data_gzipped()}
 
         payload = {
             "s3": {
@@ -119,8 +117,11 @@ class TestS3CloudwatchParsing(unittest.TestCase):
                 },
             }
         }
+        cache_layer = CacheLayer("")
+        cache_layer._s3_tags_cache.get = MagicMock(return_value=[])
+        cache_layer._lambda_cache.get = MagicMock(return_value=[])
 
-        result = parsing.parse({"Records": [payload]}, context)
+        result = parse({"Records": [payload]}, context, cache_layer)
 
         expected = copy.deepcopy([test_data["Records"][0]])
         expected[0].update(
@@ -146,7 +147,7 @@ class TestS3CloudwatchParsing(unittest.TestCase):
         self.assertEqual(expected[0], result[0])
 
         expected[0]["host"] = "i-08014e4f62ccf762d"
-        self.assertEqual(expected[0], lambda_function.enrich(result)[0])
+        self.assertEqual(expected[0], lambda_function.enrich(result, cache_layer)[0])
 
 
 if __name__ == "__main__":

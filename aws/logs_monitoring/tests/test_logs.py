@@ -1,7 +1,9 @@
 import unittest
 import os
 
-from logs import DatadogScrubber, filter_logs
+from logs.datadog_scrubber import DatadogScrubber
+from logs.datadog_batcher import DatadogBatcher
+from logs.helpers import filter_logs
 from settings import ScrubbingRuleConfig, SCRUBBING_RULE_CONFIGS, get_env_var
 
 
@@ -33,6 +35,23 @@ class TestScrubLogs(unittest.TestCase):
         payload = scrubber.scrub("abcdef日本語efgかきくけこhij")
         self.assertEqual(payload, "abcdefxxxxxefgxxxxxhij")
         os.environ.pop("DD_SCRUBBING_RULE", None)
+
+
+class TestDatadogBatcher(unittest.TestCase):
+    def test_batch(self):
+        batcher = DatadogBatcher(256, 512, 1)
+        logs = [
+            "a" * 100,
+            "b" * 100,
+            "c" * 100,
+            "d" * 100,
+        ]
+        batches = list(batcher.batch(logs))
+        self.assertEqual(len(batches), 4)
+
+        batcher = DatadogBatcher(256, 512, 2)
+        batches = list(batcher.batch(logs))
+        self.assertEqual(len(batches), 2)
 
 
 class TestFilterLogs(unittest.TestCase):
@@ -80,3 +99,7 @@ class TestFilterLogs(unittest.TestCase):
     def test_no_filtering_rules(self):
         filtered_logs = filter_logs(self.example_logs)
         self.assertEqual(filtered_logs, self.example_logs)
+
+
+if __name__ == "__main__":
+    unittest.main()

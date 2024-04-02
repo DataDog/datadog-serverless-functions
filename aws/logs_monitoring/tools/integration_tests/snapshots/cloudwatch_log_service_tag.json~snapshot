@@ -1,0 +1,112 @@
+{
+  "events": [
+    {
+      "data": [
+        {
+          "aws": {
+            "awslogs": {
+              "logGroup": "testLogGroup",
+              "logStream": "testLogStream",
+              "owner": "123456789123"
+            },
+            "function_version": "$LATEST",
+            "invoked_function_arn": "arn:aws:lambda:us-east-1:0000000000:function:test"
+          },
+          "ddsource": "cloudwatch",
+          "ddsourcecategory": "aws",
+          "ddtags": "forwardername:test,forwarder_memorysize:1536,forwarder_version:<redacted from snapshot>,service:myservice",
+          "host": "testLogGroup",
+          "id": "eventId1",
+          "message": "{\"message\": \"hello world\"}",
+          "service": "myservice",
+          "timestamp": 1440442987000
+        }
+      ],
+      "headers": {
+        "Accept": "*/*",
+        "Accept-Encoding": "gzip, deflate",
+        "Connection": "keep-alive",
+        "Content-Length": "<redacted from snapshot>",
+        "Content-type": "application/json",
+        "DD-API-KEY": "abcdefghijklmnopqrstuvwxyz012345",
+        "DD-EVP-ORIGIN": "aws_forwarder",
+        "DD-EVP-ORIGIN-VERSION": "<redacted from snapshot>",
+        "Host": "recorder:8080",
+        "User-Agent": "<redacted from snapshot>",
+        "traceparent": "00-0000000000000000433534434534ef0d-91ed514f1e5c03b2-01",
+        "tracestate": "dd=s:2",
+        "x-datadog-parent-id": "<redacted from snapshot>",
+        "x-datadog-sampling-priority": "2",
+        "x-datadog-trace-id": "4842834437835386637"
+      },
+      "path": "/api/v2/logs",
+      "verb": "POST"
+    },
+    {
+      "data": {
+        "series": [
+          {
+            "device": null,
+            "host": null,
+            "interval": 10,
+            "metric": "aws.dd_forwarder.incoming_events",
+            "points": "<redacted from snapshot>",
+            "tags": [
+              "forwardername:test",
+              "forwarder_memorysize:1536",
+              "forwarder_version:<redacted from snapshot>",
+              "event_type:awslogs"
+            ],
+            "type": "distribution"
+          },
+          {
+            "device": null,
+            "host": null,
+            "interval": 10,
+            "metric": "aws.dd_forwarder.logs_forwarded",
+            "points": "<redacted from snapshot>",
+            "tags": [
+              "forwardername:test",
+              "forwarder_memorysize:1536",
+              "forwarder_version:<redacted from snapshot>",
+              "event_type:awslogs"
+            ],
+            "type": "distribution"
+          },
+          {
+            "device": null,
+            "host": null,
+            "interval": 10,
+            "metric": "aws.dd_forwarder.metrics_forwarded",
+            "points": "<redacted from snapshot>",
+            "tags": [
+              "forwardername:test",
+              "forwarder_memorysize:1536",
+              "forwarder_version:<redacted from snapshot>",
+              "event_type:awslogs"
+            ],
+            "type": "distribution"
+          }
+        ]
+      },
+      "headers": {
+        "Accept": "*/*",
+        "Accept-Encoding": "gzip, deflate",
+        "Connection": "keep-alive",
+        "Content-Encoding": "deflate",
+        "Content-Length": "<redacted from snapshot>",
+        "Content-Type": "application/json",
+        "DD-API-KEY": "abcdefghijklmnopqrstuvwxyz012345",
+        "Host": "recorder:8080",
+        "User-Agent": "<redacted from snapshot>",
+        "traceparent": "00-0000000000000000433534434534ef0d-91ed514f1e5c03b2-01",
+        "tracestate": "dd=s:2",
+        "x-datadog-parent-id": "<redacted from snapshot>",
+        "x-datadog-sampling-priority": "2",
+        "x-datadog-trace-id": "4842834437835386637"
+      },
+      "path": "/api/v1/distribution_points",
+      "verb": "POST"
+    }
+  ]
+}

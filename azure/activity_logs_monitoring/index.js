@@ -5,7 +5,7 @@
 
 var https = require('https');
 
-const VERSION = '1.0.1';
+const VERSION = '1.0.2';
 
 const STRING = 'string'; // example: 'some message'
 const STRING_ARRAY = 'string-array'; // example: ['one message', 'two message', ...]
@@ -31,6 +31,23 @@ const DD_PARSE_DEFENDER_LOGS = process.env.DD_PARSE_DEFENDER_LOGS; // Boolean wh
 
 const MAX_RETRIES = 4; // max number of times to retry a single http request
 const RETRY_INTERVAL = 250; // amount of time (milliseconds) to wait before retrying request, doubles after every retry
+
+/* 
+The MAX_SOCKETS setting is to help prevent intermittent outbound connection errors due to SNAT port exhaustion.
+The default pre-allocated amount from Azure is 128. We have set it here to 1024 to avoid 
+degrading customers who have different Azure App Service plans that may have higher limits.
+
+For more information, see these resources:
+https://learn.microsoft.com/en-us/azure/app-service/troubleshoot-intermittent-outbound-connection-errors#cause
+https://learn.microsoft.com/en-us/azure/azure-functions/manage-connections?tabs=javascript#connection-limit
+https://azure.microsoft.com/en-us/blog/azure-load-balancer-to-become-more-efficient/
+
+*/
+const MAX_SOCKETS = Number(process.env.MAX_SOCKETS || 1024); // max number of sockets to use for http requests
+const KEEP_ALIVE_AGENT = new https.Agent({ 
+    keepAlive: true,
+    maxSockets: MAX_SOCKETS,
+});
 
 // constants relating to Defender for Cloud logs
 const MSFT_DEFENDER_FOR_CLOUD = 'Microsoft Defender for Cloud';
@@ -163,7 +180,8 @@ class HTTPClient {
                 'DD-API-KEY': DD_API_KEY,
                 'DD-EVP-ORIGIN': 'azure'
             },
-            timeout: DD_REQUEST_TIMEOUT_MS
+            timeout: DD_REQUEST_TIMEOUT_MS,
+            agent: KEEP_ALIVE_AGENT
         };
         this.scrubber = new Scrubber(this.context, SCRUBBER_RULE_CONFIGS);
         this.batcher = new Batcher(
@@ -311,6 +329,10 @@ class EventhubLogHandler {
     formatLog(messageType, record) {
         if (messageType == JSON_TYPE) {
             var originalRecord = this.addTagsToJsonLog(record);
+            // normalize the host field. Azure EventHub sends it as "Host".
+            if (originalRecord.Host) {
+                originalRecord.host = originalRecord.Host;
+            }
             var source = originalRecord['ddsource'];
             var config = this.logSplittingConfig[source];
             if (config !== undefined) {

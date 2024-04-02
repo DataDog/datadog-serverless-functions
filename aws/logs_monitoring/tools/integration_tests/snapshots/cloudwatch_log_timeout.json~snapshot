@@ -102,6 +102,8 @@
         "DD-EVP-ORIGIN-VERSION": "<redacted from snapshot>",
         "Host": "recorder:8080",
         "User-Agent": "<redacted from snapshot>",
+        "traceparent": "00-0000000000000000433534434534ef0d-91ed514f1e5c03b2-01",
+        "tracestate": "dd=s:2",
         "x-datadog-parent-id": "<redacted from snapshot>",
         "x-datadog-sampling-priority": "2",
         "x-datadog-trace-id": "4842834437835386637"
@@ -177,13 +179,16 @@
         "Content-Encoding": "deflate",
         "Content-Length": "<redacted from snapshot>",
         "Content-Type": "application/json",
+        "DD-API-KEY": "abcdefghijklmnopqrstuvwxyz012345",
         "Host": "recorder:8080",
         "User-Agent": "<redacted from snapshot>",
+        "traceparent": "00-0000000000000000433534434534ef0d-91ed514f1e5c03b2-01",
+        "tracestate": "dd=s:2",
         "x-datadog-parent-id": "<redacted from snapshot>",
         "x-datadog-sampling-priority": "2",
         "x-datadog-trace-id": "4842834437835386637"
       },
-      "path": "/api/v1/distribution_points?api_key=abcdefghijklmnopqrstuvwxyz012345",
+      "path": "/api/v1/distribution_points",
       "verb": "POST"
     }
   ]
