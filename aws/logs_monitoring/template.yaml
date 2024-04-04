@@ -229,6 +229,10 @@ Parameters:
     Type: String
     Default: ""
     Description: The name of the forwarder bucket to create. If not provided, AWS will generate a unique name.
+  DdForwarderBucketsAccessLogsTarget:
+    Type: String
+    Default: ""
+    Description: (Optional) The name of the S3 bucket to store access logs. Leave empty if access logging is not needed.
 Conditions:
   IsAWSChina:
     Fn::Equals:
@@ -418,6 +422,7 @@ Conditions:
       - Fn::Equals:
           - Ref: ReservedConcurrency
           - ""
+  ShouldUseAccessLogBucket: !Not [!Equals [!Ref DdForwarderBucketsAccessLogsTarget, ""]]
 Rules:
   MustSetDdApiKey:
     Assertions:
@@ -832,6 +837,13 @@ Resources:
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
+      LoggingConfiguration:
+        !If
+          - ShouldUseAccessLogBucket
+          - 
+            DestinationBucketName: !Ref DdForwarderBucketsAccessLogsTarget
+            LogFilePrefix: "datadog-forwarder/"
+          - !Ref "AWS::NoValue"   
   ForwarderBucketPolicy:
     Type: "AWS::S3::BucketPolicy"
     Properties:
