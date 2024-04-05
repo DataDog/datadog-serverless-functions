@@ -268,7 +268,7 @@
                 "type": "Microsoft.Common.CheckBox",
                 "label": "Automute",
                 "toolTip": "Whether or not to use automute for hosts",
-                "defaultValue": "true"
+                "defaultValue": true
               },
               {
                 "name": "custom_metrics_enabled",
@@ -296,7 +296,7 @@
                 "type": "Microsoft.Common.CheckBox",
                 "label": "Enable Resource Collection",
                 "toolTip": "When enabled, Datadog collects metadata and configuration info from cloud resources (compute instances, databases, load balancers, etc.) in your Azure environment.",
-                "defaultValue": "true"
+                "defaultValue": true
               },
               {
                 "name": "cspm_enabled",
