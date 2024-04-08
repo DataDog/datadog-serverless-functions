@@ -229,6 +229,13 @@ Parameters:
     Type: String
     Default: ""
     Description: The name of the forwarder bucket to create. If not provided, AWS will generate a unique name.
+  DdStoreFailedEvents:
+    Type: String
+    Default: false
+    AllowedValues:
+      - true
+      - false
+    Description: Set to true to enable the forwarder to store events that failed to send to Datadog.
   DdForwarderExistingBucketName:
     Type: String
     Default: ""
@@ -553,6 +560,8 @@ Resources:
               - SetDdPort
               - Ref: DdPort
               - Ref: AWS::NoValue
+          DD_STORE_FAILED_EVENTS:
+            Ref: DdStoreFailedEvents
           REDACT_IP:
             Fn::If:
               - SetRedactIp
@@ -709,6 +718,17 @@ Resources:
                 Effect: Allow
               # Get the actual log content from the s3 bucket based on the received s3 event.
               # Use PermissionsBoundaryArn to limit (allow/deny) access if needed.
+              - Action:
+                  - s3:ListBucket
+                Resource:
+                  - Fn::If:
+                    - CreateS3Bucket
+                    - Fn::GetAtt: ForwarderBucket.Arn
+                    - Fn::Sub: "arn:aws:s3:::${DdForwarderExistingBucketName}"
+                Condition:
+                  StringLike:
+                    s3:prefix: "retry/*"
+                Effect: Allow
               - Action:
                   - s3:GetObject
                 Resource: "*"
@@ -1121,6 +1141,7 @@ Metadata:
           - AdditionalTargetLambdaArns
           - DdForwarderExistingBucketName
           - DdForwarderBucketName
+          - DdStoreFailedEvents
     ParameterLabels:
       DdApiKey:
         default: "DdApiKey *"
