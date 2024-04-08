@@ -32,7 +32,7 @@ from settings import (
     SCRUBBING_RULE_CONFIGS,
     INCLUDE_AT_MATCH,
     EXCLUDE_AT_MATCH,
-    RETRY_INTERVAL_SECONDS,
+    DD_RETRY_INTERVAL_SECONDS,
 )
 
 logger = logging.getLogger()
@@ -45,7 +45,7 @@ class Forwarder(object):
             DD_TRACE_INTAKE_URL, DD_API_KEY, DD_SKIP_SSL_VALIDATION
         )
         self.storage = Storage(function_prefix)
-        self.retry_interval_seconds = RETRY_INTERVAL_SECONDS + randint(1, 100)
+        self.retry_interval_seconds = DD_RETRY_INTERVAL_SECONDS + randint(1, 100)
 
     def forward(self, logs, metrics, traces):
         """

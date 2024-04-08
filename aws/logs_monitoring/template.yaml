@@ -433,6 +433,10 @@ Conditions:
       - Fn::Equals:
           - Ref: ReservedConcurrency
           - ""
+  SetDdRetryEvents:
+    Fn::Equals:
+      - Ref: DdRetryEvents
+      - true
 Rules:
   MustSetDdApiKey:
     Assertions:
@@ -562,6 +566,11 @@ Resources:
               - Ref: AWS::NoValue
           DD_RETRY_EVENTS:
             Ref: DdRetryEvents
+          DD_RETRY_INTERVAL_SECONDS:
+            Fn::If:
+              - SetDdRetryEvents
+              - 3600
+              - Ref: AWS::NoValue
           REDACT_IP:
             Fn::If:
               - SetRedactIp
