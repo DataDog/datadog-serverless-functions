@@ -273,7 +273,6 @@ GET_RESOURCES_S3_FILTER = "s3:bucket"
 
 
 # Retyer
-DD_RETRY_PATH = "retry"
-DD_RETRY_INTERVAL_SECONDS = int(get_env_var("DD_RETRY_INTERVAL_SECONDS", default=3600))
-DD_RETRY_EVENTS = get_env_var("DD_RETRY_EVENTS", "false", boolean=True)
-DD_RETRY_TAG = "retry"
+DD_RETRY_PATH = "failed_events"
+DD_RETRY_KEYWORD = "retry"
+DD_STORE_FAILED_EVENTS = get_env_var("DD_STORE_FAILED_EVENTS", "false", boolean=True)

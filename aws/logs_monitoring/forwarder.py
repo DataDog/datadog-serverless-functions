@@ -7,7 +7,6 @@
 import logging
 import json
 import os
-from random import randint
 
 from telemetry import send_event_metric, send_log_metric
 from trace_forwarder.connection import TraceConnection
@@ -28,11 +27,10 @@ from settings import (
     DD_PORT,
     DD_TRACE_INTAKE_URL,
     DD_FORWARD_LOG,
-    DD_RETRY_EVENTS,
+    DD_STORE_FAILED_EVENTS,
     SCRUBBING_RULE_CONFIGS,
     INCLUDE_AT_MATCH,
     EXCLUDE_AT_MATCH,
-    DD_RETRY_INTERVAL_SECONDS,
 )
 
 logger = logging.getLogger()
@@ -45,7 +43,6 @@ class Forwarder(object):
             DD_TRACE_INTAKE_URL, DD_API_KEY, DD_SKIP_SSL_VALIDATION
         )
         self.storage = Storage(function_prefix)
-        self.retry_interval_seconds = DD_RETRY_INTERVAL_SECONDS + randint(1, 100)
 
     def forward(self, logs, metrics, traces):
         """
@@ -60,18 +57,10 @@ class Forwarder(object):
         """
         Retry forwarding logs, metrics, and traces to Datadog.
         """
-        if not DD_RETRY_EVENTS:
-            return
-
         for prefix in RetryPrefix:
             self._retry_prefix(prefix)
 
     def _retry_prefix(self, prefix):
-        if not self._can_retry(prefix):
-            if logger.isEnabledFor(logging.DEBUG):
-                logger.debug(f"Cannot retry {prefix} data")
-            return
-
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug(f"Retrying {prefix} data")
 
@@ -87,9 +76,6 @@ class Forwarder(object):
                     self._forward_metrics(d, key=k)
                 case RetryPrefix.TRACES:
                     self._forward_traces(d, key=k)
-
-    def _can_retry(self, prefix):
-        return self.storage.get_lock(prefix, self.retry_interval_seconds)
 
     def _forward_logs(self, logs, key=None):
         """Forward logs to Datadog"""
@@ -130,7 +116,7 @@ class Forwarder(object):
                     if key:
                         self.storage.delete_data(key)
 
-        if DD_RETRY_EVENTS and len(failed_logs) > 0 and not key:
+        if DD_STORE_FAILED_EVENTS and len(failed_logs) > 0 and not key:
             self.storage.store_data(RetryPrefix.LOGS, failed_logs)
 
         send_event_metric("logs_forwarded", len(logs_to_forward) - len(failed_logs))
@@ -158,7 +144,7 @@ class Forwarder(object):
                 if key:
                     self.storage.delete_data(key)
 
-        if DD_RETRY_EVENTS and len(failed_metrics) > 0 and not key:
+        if DD_STORE_FAILED_EVENTS and len(failed_metrics) > 0 and not key:
             self.storage.store_data(RetryPrefix.METRICS, failed_metrics)
 
         send_event_metric("metrics_forwarded", len(metrics) - len(failed_metrics))
@@ -177,7 +163,7 @@ class Forwarder(object):
             logger.exception(
                 f"Exception while forwarding traces {serialized_trace_paylods}"
             )
-            if DD_RETRY_EVENTS and not key:
+            if DD_STORE_FAILED_EVENTS and not key:
                 self.storage.store_data(RetryPrefix.TRACES, traces)
         else:
             if logger.isEnabledFor(logging.DEBUG):

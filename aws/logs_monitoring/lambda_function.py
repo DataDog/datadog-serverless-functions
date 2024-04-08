@@ -24,6 +24,7 @@ from settings import (
     DD_API_URL,
     DD_FORWARDER_VERSION,
     DD_ADDITIONAL_TARGET_LAMBDAS,
+    DD_RETRY_KEYWORD,
 )
 
 
@@ -78,7 +79,14 @@ def datadog_forwarder(event, context):
 
     forwarder.forward(logs, metrics, trace_payloads)
     parse_and_submit_enhanced_metrics(logs, cache_layer)
-    forwarder.retry()
+
+    try:
+        if bool(event.get(DD_RETRY_KEYWORD, False)) is True:
+            forwarder.retry()
+    except Exception as e:
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug(f"Failed to retry forwarding {e}")
+        pass
 
 
 def init_cache_layer(function_prefix):
