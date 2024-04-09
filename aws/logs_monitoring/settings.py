@@ -153,6 +153,10 @@ if DD_USE_PRIVATE_LINK:
     DD_API_URL = "https://pvtlink.api.datadoghq.com"
     DD_TRACE_INTAKE_URL = "https://trace-pvtlink.agent.datadoghq.com"
 
+## @param DD_SUBMIT_ENHANCED_METRICS - boolean - optional - default: true
+## Set this variable to `False` to disable enhanced metrics for other lambda functions.
+#
+DD_SUBMIT_ENHANCED_METRICS_ENV = get_env_var("DD_SUBMIT_ENHANCED_METRICS", "true", boolean=True)
 
 class ScrubbingRuleConfig(object):
     def __init__(self, name, pattern, placeholder):

@@ -7,6 +7,7 @@ import logging
 import re
 import datetime
 from time import time
+from settings import DD_SUBMIT_ENHANCED_METRICS_ENV
 
 ENHANCED_METRICS_NAMESPACE_PREFIX = "aws.lambda.enhanced"
 
@@ -145,6 +146,10 @@ def parse_and_submit_enhanced_metrics(logs, cache_layer):
     """
     # If the Lambda layer is not present we can't submit enhanced metrics
     if not DD_SUBMIT_ENHANCED_METRICS:
+        return
+    
+    # force disable submit enhanced metrics from envionment varaible DD_SUBMIT_ENHANCED_METRICS
+    if not DD_SUBMIT_ENHANCED_METRICS_ENV:
         return
 
     for log in logs:
