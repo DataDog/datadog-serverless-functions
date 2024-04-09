@@ -160,6 +160,7 @@ DD_SUBMIT_ENHANCED_METRICS_ENV = get_env_var(
     "DD_SUBMIT_ENHANCED_METRICS", "true", boolean=True
 )
 
+
 class ScrubbingRuleConfig(object):
     def __init__(self, name, pattern, placeholder):
         self.name = name
