@@ -147,7 +147,7 @@ def parse_and_submit_enhanced_metrics(logs, cache_layer):
     # If the Lambda layer is not present we can't submit enhanced metrics
     if not DD_SUBMIT_ENHANCED_METRICS:
         return
-    
+
     # force disable submit enhanced metrics by setting envionment varaible DD_SUBMIT_ENHANCED_METRICS
     if not DD_SUBMIT_ENHANCED_METRICS_ENV:
         return
