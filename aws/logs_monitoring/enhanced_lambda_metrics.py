@@ -148,7 +148,7 @@ def parse_and_submit_enhanced_metrics(logs, cache_layer):
     if not DD_SUBMIT_ENHANCED_METRICS:
         return
     
-    # force disable submit enhanced metrics from envionment varaible DD_SUBMIT_ENHANCED_METRICS
+    # force disable submit enhanced metrics by setting envionment varaible DD_SUBMIT_ENHANCED_METRICS
     if not DD_SUBMIT_ENHANCED_METRICS_ENV:
         return
 
