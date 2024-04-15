@@ -629,7 +629,7 @@ describe('HTTPClient', function () {
     describe('#sendAll', function () {
         it('should log any errors that occur when sending logs', async function () {
             const err = new Error('some error in the API');
-            httpClient.sendWithRetry = sinon.stub().rejects(err);
+            httpClient.send = sinon.stub().rejects(err);
             httpClient.batcher.batch = sinon.stub().returns([{ batch: 'batch1' }, { batch: 'batch2' }]);
             await httpClient.sendAll([]); // we mock out the batcher so this argument doesnt matter
             assert.equal(clientContext.log.error.callCount, 2);
