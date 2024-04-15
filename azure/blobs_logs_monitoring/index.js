@@ -4,7 +4,7 @@
 // Copyright 2021 Datadog, Inc.
 var https = require('https');
 
-const VERSION = '1.0.0';
+const VERSION = '1.0.1';
 
 const STRING = 'string'; // example: 'some message'
 const STRING_ARRAY = 'string-array'; // example: ['one message', 'two message', ...]
