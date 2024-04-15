@@ -617,13 +617,13 @@ describe('Batching', function() {
 });
 
 describe('HTTPClient', function() {
-    let context;
+    let clientContext;
     let httpClient;
     beforeEach(function() {
-        context = fakeContext();
-        context.log.error = sinon.spy();
-        context.log.warn = sinon.spy();
-        httpClient = new client.HTTPClient(context);
+        clientContext = fakeContext();
+        clientContext.log.error = sinon.spy();
+        clientContext.log.warn = sinon.spy();
+        httpClient = new client.HTTPClient(clientContext);
     });
 
     describe('#sendAll', function() {
@@ -632,8 +632,8 @@ describe('HTTPClient', function() {
             httpClient.sendWithRetry = sinon.stub().rejects(err);
             httpClient.batcher.batch = sinon.stub().returns([{ batch: 'batch1' }, { batch: 'batch2' }]);
             await httpClient.sendAll([]); // we mock out the batcher so this argument doesnt matter
-            assert.equal(context.log.error.callCount, 2);
-            assert(context.log.error.calledWith(err));
+            assert.equal(clientContext.log.error.callCount, 2);
+            assert(clientContext.log.error.calledWith(err));
         });
     })
 });
