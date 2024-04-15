@@ -4,7 +4,7 @@
 // Copyright 2021 Datadog, Inc.
 var https = require('https');
 
-const VERSION = '1.0.0';
+const VERSION = '1.0.1';
 
 const STRING = 'string'; // example: 'some message'
 const STRING_ARRAY = 'string-array'; // example: ['one message', 'two message', ...]
@@ -154,7 +154,7 @@ class HTTPClient {
             promises.push(this.sendWithRetry(batches[i]));
         }
         return await Promise.all(
-            promises.map(p => p.catch(e => context.log.error(e)))
+            promises.map(p => p.catch(e => this.context.log.error(e)))
         );
     }
 
@@ -590,6 +590,7 @@ module.exports.forTests = {
     Scrubber,
     ScrubberRule,
     Batcher,
+    HTTPClient,
     constants: {
         STRING,
         STRING_ARRAY,

@@ -615,3 +615,25 @@ describe('Batching', function() {
         });
     });
 });
+
+describe('HTTPClient', function () {
+    let clientContext;
+    let httpClient;
+    beforeEach(function () {
+        clientContext = fakeContext();
+        clientContext.log.error = sinon.spy();
+        clientContext.log.warn = sinon.spy();
+        httpClient = new client.HTTPClient(clientContext);
+    });
+
+    describe('#sendAll', function () {
+        it('should log any errors that occur when sending logs', async function () {
+            const err = new Error('some error in the API');
+            httpClient.send = sinon.stub().rejects(err);
+            httpClient.batcher.batch = sinon.stub().returns([{ batch: 'batch1' }, { batch: 'batch2' }]);
+            await httpClient.sendAll([]); // we mock out the batcher so this argument doesnt matter
+            assert.equal(clientContext.log.error.callCount, 2);
+            assert(clientContext.log.error.calledWith(err));
+        });
+    })
+});

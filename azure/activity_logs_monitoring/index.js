@@ -689,6 +689,7 @@ module.exports.forTests = {
     Scrubber,
     ScrubberRule,
     Batcher,
+    HTTPClient,
     constants: {
         STRING,
         STRING_ARRAY,
