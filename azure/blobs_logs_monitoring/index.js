@@ -154,7 +154,7 @@ class HTTPClient {
             promises.push(this.sendWithRetry(batches[i]));
         }
         return await Promise.all(
-            promises.map(p => p.catch(e => context.log.error(e)))
+            promises.map(p => p.catch(e => this.context.log.error(e)))
         );
     }
 
