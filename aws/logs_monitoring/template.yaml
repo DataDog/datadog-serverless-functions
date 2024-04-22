@@ -3,8 +3,8 @@ Description: Pushes logs, metrics and traces from AWS to Datadog.
 Mappings:
   Constants:
     DdForwarder:
-      Version: 3.106.0
-      LayerVersion: 47
+      Version: 3.108.0
+      LayerVersion: 48
 Parameters:
   DdApiKey:
     Type: String
@@ -229,6 +229,17 @@ Parameters:
     Type: String
     Default: ""
     Description: The name of the forwarder bucket to create. If not provided, AWS will generate a unique name.
+  DdStoreFailedEvents:
+    Type: String
+    Default: false
+    AllowedValues:
+      - true
+      - false
+    Description: Set to true to enable the forwarder to store events that failed to send to Datadog.
+  DdForwarderExistingBucketName:
+    Type: String
+    Default: ""
+    Description: The name of an existing s3 bucket to use. If not provided, a new bucket will be created.
 Conditions:
   IsAWSChina:
     Fn::Equals:
@@ -335,14 +346,18 @@ Conditions:
     Fn::Equals:
       - Ref: DdFetchStepFunctionsTags
       - true
-  CreateS3BucketForTags:
-    Fn::Or:
+  CreateS3Bucket:
+    Fn::And:
+      - Fn::Or:
+        - Fn::Equals:
+            - Ref: DdFetchLogGroupTags
+            - true
+        - Fn::Equals:
+            - Ref: DdFetchLambdaTags
+            - true
       - Fn::Equals:
-          - Ref: DdFetchLogGroupTags
-          - true
-      - Fn::Equals:
-          - Ref: DdFetchLambdaTags
-          - true
+          - Ref: DdForwarderExistingBucketName
+          - ""
   SetDdUsePrivateLink:
     Fn::Equals:
       - Ref: DdUsePrivateLink
@@ -466,7 +481,11 @@ Resources:
       Code:
         Fn::If:
           - UseZipCopier
-          - S3Bucket: !Ref ForwarderBucket
+          - S3Bucket:
+              Fn::If:
+                - CreateS3Bucket
+                - Ref: ForwarderBucket
+                - Ref: DdForwarderExistingBucketName
             S3Key:
               Fn::Sub:
                 - "aws-dd-forwarder-${DdForwarderVersion}.zip"
@@ -494,9 +513,9 @@ Resources:
               - Ref: DdApiKeySecretArn
           DD_S3_BUCKET_NAME:
             Fn::If:
-              - CreateS3BucketForTags
+              - CreateS3Bucket
               - Ref: ForwarderBucket
-              - Ref: AWS::NoValue
+              - Ref: DdForwarderExistingBucketName
           DD_SITE:
             Ref: DdSite
           DD_TAGS:
@@ -541,6 +560,8 @@ Resources:
               - SetDdPort
               - Ref: DdPort
               - Ref: AWS::NoValue
+          DD_STORE_FAILED_EVENTS:
+            Ref: DdStoreFailedEvents
           REDACT_IP:
             Fn::If:
               - SetRedactIp
@@ -687,13 +708,27 @@ Resources:
                   - s3:DeleteObject
                   - s3:ListBucket
                 Resource:
-                  - Fn::Join:
-                      - "/"
-                      - - Fn::GetAtt: ForwarderBucket.Arn
-                        - "*"
+                  - Fn::If:
+                    - CreateS3Bucket
+                    - Fn::Join:
+                        - "/"
+                        - - Fn::GetAtt: ForwarderBucket.Arn
+                          - "*"
+                    - Fn::Sub: "arn:aws:s3:::${DdForwarderExistingBucketName}/*"
                 Effect: Allow
               # Get the actual log content from the s3 bucket based on the received s3 event.
               # Use PermissionsBoundaryArn to limit (allow/deny) access if needed.
+              - Action:
+                  - s3:ListBucket
+                Resource:
+                  - Fn::If:
+                    - CreateS3Bucket
+                    - Fn::GetAtt: ForwarderBucket.Arn
+                    - Fn::Sub: "arn:aws:s3:::${DdForwarderExistingBucketName}"
+                Condition:
+                  StringLike:
+                    s3:prefix: "retry/*"
+                Effect: Allow
               - Action:
                   - s3:GetObject
                 Resource: "*"
@@ -817,6 +852,7 @@ Resources:
   # A s3 bucket used by the Forwarder as a datastore
   ForwarderBucket:
     Type: AWS::S3::Bucket
+    Condition: CreateS3Bucket 
     Properties:
       BucketName:
         Fn::If:
@@ -834,6 +870,7 @@ Resources:
         RestrictPublicBuckets: true
   ForwarderBucketPolicy:
     Type: "AWS::S3::BucketPolicy"
+    Condition: CreateS3Bucket
     Properties:
       Bucket: !Ref ForwarderBucket
       PolicyDocument:
@@ -855,7 +892,11 @@ Resources:
     Condition: UseZipCopier
     Properties:
       ServiceToken: !GetAtt "ForwarderZipCopier.Arn"
-      DestZipsBucket: !Ref "ForwarderBucket"
+      DestZipsBucket:
+        Fn::If:
+          - CreateS3Bucket
+          - Ref: ForwarderBucket
+          - Ref: DdForwarderExistingBucketName
       SourceZipUrl:
         Fn::If:
           - SetSourceZipUrl
@@ -981,15 +1022,21 @@ Resources:
                   - s3:PutObject
                   - s3:DeleteObject
                 Resource:
-                  - Fn::Join:
-                      - "/"
-                      - - Fn::GetAtt: "ForwarderBucket.Arn"
-                        - "*"
+                  - Fn::If:
+                    - CreateS3Bucket
+                    - Fn::Join:
+                        - "/"
+                        - - Fn::GetAtt: "ForwarderBucket.Arn"
+                          - "*"
+                    - Fn::Sub: "arn:aws:s3:::${DdForwarderExistingBucketName}/*"
               - Effect: Allow
                 Action:
                   - s3:ListBucket
                 Resource:
-                  - Fn::GetAtt: "ForwarderBucket.Arn"
+                  - Fn::If:
+                    - CreateS3Bucket
+                    - Fn::GetAtt: "ForwarderBucket.Arn"
+                    - Fn::Sub: "arn:aws:s3:::${DdForwarderExistingBucketName}"
               - !If
                 - SetS3SourceZip
                 - Effect: Allow
@@ -1022,7 +1069,10 @@ Outputs:
   ForwarderBucketName:
     Description: Name of the S3 bucket used by the Forwarder
     Value:
-      Ref: ForwarderBucket
+      Fn::If:
+        - CreateS3Bucket
+        - Ref: ForwarderBucket
+        - Ref: DdForwarderExistingBucketName
     Export:
       Name:
         Fn::Sub: ${AWS::StackName}-ForwarderBucketName
@@ -1089,7 +1139,9 @@ Metadata:
           - DdApiUrl
           - DdTraceIntakeUrl
           - AdditionalTargetLambdaArns
+          - DdForwarderExistingBucketName
           - DdForwarderBucketName
+          - DdStoreFailedEvents
     ParameterLabels:
       DdApiKey:
         default: "DdApiKey *"

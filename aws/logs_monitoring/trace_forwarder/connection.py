@@ -3,7 +3,6 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2021 Datadog, Inc.
 from ctypes import cdll, Structure, c_char_p, c_int
-import json
 import os
 
 
@@ -27,8 +26,7 @@ class TraceConnection:
             insecure_skip_verify,
         )
 
-    def send_traces(self, trace_payloads):
-        serialized_trace_paylods = json.dumps(trace_payloads)
+    def send_traces(self, serialized_trace_paylods):
         had_error = (
             self.lib.ForwardTraces(make_go_string(serialized_trace_paylods)) != 0
         )
