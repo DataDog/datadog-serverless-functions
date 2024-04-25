@@ -852,7 +852,7 @@ Resources:
   # A s3 bucket used by the Forwarder as a datastore
   ForwarderBucket:
     Type: AWS::S3::Bucket
-    Condition: CreateS3Bucket 
+    Condition: CreateS3Bucket
     Properties:
       BucketName:
         Fn::If:
@@ -868,6 +868,13 @@ Resources:
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
+      LifecycleConfiguration:
+       Rules:
+       - Id: delete-incomplete-mpu-7days
+         Prefix: ''
+         AbortIncompleteMultipartUpload:
+           DaysAfterInitiation: 7
+         Status: Enabled
   ForwarderBucketPolicy:
     Type: "AWS::S3::BucketPolicy"
     Condition: CreateS3Bucket
