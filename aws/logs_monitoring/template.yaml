@@ -832,6 +832,13 @@ Resources:
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
+      LifecycleConfiguration:
+       Rules:
+       - Id: delete-incomplete-mpu-7days
+         Prefix: ''
+         AbortIncompleteMultipartUpload:
+           DaysAfterInitiation: 7
+         Status: Enabled
   ForwarderBucketPolicy:
     Type: "AWS::S3::BucketPolicy"
     Properties:
