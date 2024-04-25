@@ -33,7 +33,7 @@ class StepFunctionsTagsCache(BaseTagsCache):
         """
         tags_fetch_success = False
         tags_by_arn_cache = {}
-        get_resources_paginator = self.get_resources_paginator
+        get_resources_paginator = self.get_resources_paginator()
 
         try:
             for page in get_resources_paginator.paginate(
