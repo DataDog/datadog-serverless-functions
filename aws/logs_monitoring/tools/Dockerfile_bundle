@@ -6,7 +6,8 @@ RUN mkdir build
 WORKDIR /build
 
 COPY . .
-RUN pip install . -t .
+
+RUN pip install -r requirements.txt -t .
 
 # Remove *.pyc files
 RUN find . -name \*.pyc -delete

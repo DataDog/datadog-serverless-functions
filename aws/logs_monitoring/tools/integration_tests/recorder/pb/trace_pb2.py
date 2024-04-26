@@ -25,7 +25,7 @@ APITrace = _reflection.GeneratedProtocolMessageType(
     (_message.Message,),
     {
         "DESCRIPTOR": _APITRACE,
-        "__module__": "trace_pb2"
+        "__module__": "trace_pb2",
         # @@protoc_insertion_point(class_scope:pb.APITrace)
     },
 )
