@@ -2,3 +2,4 @@
 !**.py
 !template.yaml
 !trace_forwarder/bin
+!requirements.txt

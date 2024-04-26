@@ -30,7 +30,7 @@ Span = _reflection.GeneratedProtocolMessageType(
             (_message.Message,),
             {
                 "DESCRIPTOR": _SPAN_METAENTRY,
-                "__module__": "span_pb2"
+                "__module__": "span_pb2",
                 # @@protoc_insertion_point(class_scope:pb.Span.MetaEntry)
             },
         ),
@@ -39,12 +39,12 @@ Span = _reflection.GeneratedProtocolMessageType(
             (_message.Message,),
             {
                 "DESCRIPTOR": _SPAN_METRICSENTRY,
-                "__module__": "span_pb2"
+                "__module__": "span_pb2",
                 # @@protoc_insertion_point(class_scope:pb.Span.MetricsEntry)
             },
         ),
         "DESCRIPTOR": _SPAN,
-        "__module__": "span_pb2"
+        "__module__": "span_pb2",
         # @@protoc_insertion_point(class_scope:pb.Span)
     },
 )
