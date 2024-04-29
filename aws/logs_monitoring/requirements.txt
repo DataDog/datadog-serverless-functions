@@ -10,7 +10,7 @@ ddtrace==2.6.5
 deprecated
 envier
 exceptiongroup
-idna
+idna==3.7
 importlib-metadata
 opentelemetry-api
 protobuf
