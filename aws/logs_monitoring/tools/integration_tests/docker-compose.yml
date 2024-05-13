@@ -44,6 +44,7 @@ services:
       DD_FETCH_LAMBDA_TAGS: "true"
       DD_FETCH_LOG_GROUP_TAGS: "true"
       DD_FETCH_STEP_FUNCTIONS_TAGS: "false"  # intentionally set false to allow integration test for step function logs to run without hitting aws
+      DD_STORE_FAILED_EVENTS: "false"
     expose:
       - 9001
     depends_on:

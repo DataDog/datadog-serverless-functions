@@ -26,7 +26,7 @@ TracePayload = _reflection.GeneratedProtocolMessageType(
     (_message.Message,),
     {
         "DESCRIPTOR": _TRACEPAYLOAD,
-        "__module__": "trace_payload_pb2"
+        "__module__": "trace_payload_pb2",
         # @@protoc_insertion_point(class_scope:pb.TracePayload)
     },
 )

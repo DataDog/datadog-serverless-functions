@@ -342,7 +342,7 @@ class Stats(object):
         creds = urlencode(datadog_keys)
         data = json.dumps(metrics_dict).encode("ascii")
         url = "%s?%s" % (
-            datadog_keys.get("api_host", "https://app.%s/api/v1/series" % DD_SITE),
+            datadog_keys.get("api_host", "https://api.%s/api/v1/series" % DD_SITE),
             creds,
         )
         req = Request(url, data, {"Content-Type": "application/json"})
