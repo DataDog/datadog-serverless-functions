@@ -2,12 +2,8 @@ import gzip
 import unittest
 from unittest.mock import MagicMock, patch
 from approvaltests.combination_approvals import verify_all_combinations
-from steps.handlers.s3_handler import (
-    s3_handler,
-    parse_service_arn,
-    get_partition_from_region,
-    get_structured_lines_for_s3_handler,
-)
+from steps.handlers.s3_handler import S3EventHandler, S3EventDataStore
+from caching.cache_layer import CacheLayer
 
 
 class TestS3EventsHandler(unittest.TestCase):
@@ -17,14 +13,23 @@ class TestS3EventsHandler(unittest.TestCase):
         function_name = "function_name"
         memory_limit_in_mb = "10"
 
+    def __init__(self, methodName: str = "runTest") -> None:
+        super().__init__(methodName)
+        self.s3_handler = S3EventHandler(self.Context(), {"ddtags": ""}, MagicMock())
+
     def parse_lines(self, data, key, source):
         bucket = "my-bucket"
         gzip_data = gzip.compress(bytes(data, "utf-8"))
 
-        return [
-            l
-            for l in get_structured_lines_for_s3_handler(gzip_data, bucket, key, source)
-        ]
+        data_store = S3EventDataStore()
+        data_store.data = gzip_data
+        data_store.bucket = bucket
+        data_store.key = key
+        data_store.source = source
+
+        self.s3_handler.data_store = data_store
+
+        return [l for l in self.s3_handler._get_structured_lines_for_s3_handler()]
 
     def test_get_structured_lines_waf(self):
         key = "mykey"
@@ -62,14 +67,16 @@ class TestS3EventsHandler(unittest.TestCase):
         )
 
     def test_get_partition_from_region(self):
-        self.assertEqual(get_partition_from_region("us-east-1"), "aws")
-        self.assertEqual(get_partition_from_region("us-gov-west-1"), "aws-us-gov")
-        self.assertEqual(get_partition_from_region("cn-north-1"), "aws-cn")
-        self.assertEqual(get_partition_from_region(None), "aws")
+        self.assertEqual(self.s3_handler._get_partition_from_region("us-east-1"), "aws")
+        self.assertEqual(
+            self.s3_handler._get_partition_from_region("us-gov-west-1"), "aws-us-gov"
+        )
+        self.assertEqual(
+            self.s3_handler._get_partition_from_region("cn-north-1"), "aws-cn"
+        )
+        self.assertEqual(self.s3_handler._get_partition_from_region(None), "aws")
 
-    @patch("steps.handlers.s3_handler.extract_data")
-    @patch("steps.handlers.s3_handler.get_s3_client")
-    def test_s3_handler(self, mock_s3_client, extract_data):
+    def test_s3_handler(self):
         event = {
             "Records": [
                 {
@@ -80,11 +87,9 @@ class TestS3EventsHandler(unittest.TestCase):
                 }
             ]
         }
-        context = self.Context()
-        metadata = {"ddtags": ""}
-        extract_data.side_effect = [("data".encode("utf-8"))]
-        cache_layer = MagicMock()
-        structured_lines = list(s3_handler(event, context, metadata, cache_layer))
+        self.s3_handler._extract_data = MagicMock()
+        self.s3_handler.data_store.data = "data".encode("utf-8")
+        structured_lines = list(self.s3_handler.handle(event))
         self.assertEqual(
             structured_lines,
             [
@@ -94,12 +99,10 @@ class TestS3EventsHandler(unittest.TestCase):
                 }
             ],
         )
-        self.assertEqual(metadata["ddsource"], "s3")
-        self.assertEqual(metadata["host"], "arn:aws:s3:::my-bucket")
+        self.assertEqual(self.s3_handler.metadata["ddsource"], "s3")
+        self.assertEqual(self.s3_handler.metadata["host"], "arn:aws:s3:::my-bucket")
 
-    @patch("steps.handlers.s3_handler.extract_data")
-    @patch("steps.handlers.s3_handler.get_s3_client")
-    def test_s3_handler_with_sns(self, mock_s3_client, extract_data):
+    def test_s3_handler_with_sns(self):
         event = {
             "Records": [
                 {
@@ -109,11 +112,9 @@ class TestS3EventsHandler(unittest.TestCase):
                 }
             ]
         }
-        context = self.Context()
-        metadata = {"ddtags": ""}
-        extract_data.side_effect = [("data".encode("utf-8"))]
-        cache_layer = MagicMock()
-        structured_lines = list(s3_handler(event, context, metadata, cache_layer))
+        self.s3_handler.data_store.data = "data".encode("utf-8")
+        self.s3_handler._extract_data = MagicMock()
+        structured_lines = list(self.s3_handler.handle(event))
         self.assertEqual(
             structured_lines,
             [
@@ -123,65 +124,97 @@ class TestS3EventsHandler(unittest.TestCase):
                 }
             ],
         )
-        self.assertEqual(metadata["ddsource"], "s3")
-        self.assertEqual(metadata["host"], "arn:aws:s3:::my-bucket")
+        self.assertEqual(self.s3_handler.metadata["ddsource"], "s3")
+        self.assertEqual(self.s3_handler.metadata["host"], "arn:aws:s3:::my-bucket")
 
+    @patch("steps.handlers.s3_handler.S3EventHandler._get_s3_client")
+    def test_s3_tags_not_added_to_metadata(self, mock_get_s3_client):
+        mock_get_s3_client.side_effect = MagicMock()
+        cache_layer = CacheLayer("")
+        cache_layer._s3_tags_cache.get = MagicMock(return_value=["s3_tag:tag_value"])
+        self.s3_handler.cache_layer = cache_layer
+        event = {
+            "Records": [
+                {
+                    "s3": {
+                        "bucket": {"name": "mybucket"},
+                        "object": {"key": "mykey"},
+                    }
+                }
+            ]
+        }
 
-class TestParseServiceArn(unittest.TestCase):
+        _ = list(self.s3_handler.handle(event))
+
+        assert "s3_tag:tag_value" not in self.s3_handler.metadata["ddtags"]
+
+    @patch("caching.cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.__init__")
+    @patch("steps.handlers.s3_handler.S3EventHandler._parse_service_arn")
+    @patch("steps.handlers.s3_handler.S3EventHandler._get_s3_client")
+    def test_s3_tags_added_to_metadata(
+        self,
+        mock_get_s3_client,
+        mock_parse_service_arn,
+        mock_cache_init,
+    ):
+        mock_get_s3_client.side_effect = MagicMock()
+        mock_cache_init.return_value = None
+        cache_layer = CacheLayer("")
+        cache_layer._s3_tags_cache.get = MagicMock(return_value=["s3_tag:tag_value"])
+        self.s3_handler.cache_layer = cache_layer
+        event = {
+            "Records": [
+                {
+                    "s3": {
+                        "bucket": {"name": "mybucket"},
+                        "object": {"key": "mykey"},
+                    }
+                }
+            ]
+        }
+
+        mock_parse_service_arn.return_value = ""
+        _ = list(self.s3_handler.handle(event))
+
+        assert "s3_tag:tag_value" in self.s3_handler.metadata["ddtags"]
+
     def test_elb_s3_key_invalid(self):
+        self.s3_handler.metadata["ddsource"] = "elb"
+        self.s3_handler.key = "123456789123/elasticloadbalancing/us-east-1/2022/02/08/123456789123_elasticloadbalancing_us-east-1_app.my-alb-name.123456789aabcdef_20220208T1127Z_10.0.0.2_1abcdef2.log.gz"
         self.assertEqual(
-            parse_service_arn(
-                "elb",
-                "123456789123/elasticloadbalancing/us-east-1/2022/02/08/123456789123_elasticloadbalancing_us-east-1_app.my-alb-name.123456789aabcdef_20220208T1127Z_10.0.0.2_1abcdef2.log.gz",
-                None,
-                None,
-            ),
+            self.s3_handler._parse_service_arn(),
             None,
         )
 
     def test_elb_s3_key_no_prefix(self):
+        self.s3_handler.data_store.source = "elb"
+        self.s3_handler.data_store.key = "AWSLogs/123456789123/elasticloadbalancing/us-east-1/2022/02/08/123456789123_elasticloadbalancing_us-east-1_app.my-alb-name.123456789aabcdef_20220208T1127Z_10.0.0.2_1abcdef2.log.gz"
         self.assertEqual(
-            parse_service_arn(
-                "elb",
-                "AWSLogs/123456789123/elasticloadbalancing/us-east-1/2022/02/08/123456789123_elasticloadbalancing_us-east-1_app.my-alb-name.123456789aabcdef_20220208T1127Z_10.0.0.2_1abcdef2.log.gz",
-                None,
-                None,
-            ),
+            self.s3_handler._parse_service_arn(),
             "arn:aws:elasticloadbalancing:us-east-1:123456789123:loadbalancer/app/my-alb-name/123456789aabcdef",
         )
 
     def test_elb_s3_key_single_prefix(self):
+        self.s3_handler.data_store.source = "elb"
+        self.s3_handler.data_store.key = "elasticloadbalancing/AWSLogs/123456789123/elasticloadbalancing/us-east-1/2022/02/08/123456789123_elasticloadbalancing_us-east-1_app.my-alb-name.123456789aabcdef_20220208T1127Z_10.0.0.2_1abcdef2.log.gz"
         self.assertEqual(
-            parse_service_arn(
-                "elb",
-                "elasticloadbalancing/AWSLogs/123456789123/elasticloadbalancing/us-east-1/2022/02/08/123456789123_elasticloadbalancing_us-east-1_app.my-alb-name.123456789aabcdef_20220208T1127Z_10.0.0.2_1abcdef2.log.gz",
-                None,
-                None,
-            ),
+            self.s3_handler._parse_service_arn(),
             "arn:aws:elasticloadbalancing:us-east-1:123456789123:loadbalancer/app/my-alb-name/123456789aabcdef",
         )
 
     def test_elb_s3_key_multi_prefix(self):
+        self.s3_handler.data_store.source = "elb"
+        self.s3_handler.data_store.key = "elasticloadbalancing/my-alb-name/AWSLogs/123456789123/elasticloadbalancing/us-east-1/2022/02/08/123456789123_elasticloadbalancing_us-east-1_app.my-alb-name.123456789aabcdef_20220208T1127Z_10.0.0.2_1abcdef2.log.gz"
         self.assertEqual(
-            parse_service_arn(
-                "elb",
-                "elasticloadbalancing/my-alb-name/AWSLogs/123456789123/elasticloadbalancing/us-east-1/2022/02/08/123456789123_elasticloadbalancing_us-east-1_app.my-alb-name.123456789aabcdef_20220208T1127Z_10.0.0.2_1abcdef2.log.gz",
-                None,
-                None,
-            ),
+            self.s3_handler._parse_service_arn(),
             "arn:aws:elasticloadbalancing:us-east-1:123456789123:loadbalancer/app/my-alb-name/123456789aabcdef",
         )
 
     def test_elb_s3_key_multi_prefix_gov(self):
+        self.s3_handler.data_store.source = "elb"
+        self.s3_handler.data_store.key = "elb/my-alb-name/AWSLogs/123456789123/elasticloadbalancing/us-gov-east-1/2022/02/08/123456789123_elasticloadbalancing_us-gov-east-1_app.my-alb-name.123456789aabcdef_20220208T1127Z_10.0.0.2_1abcdef2.log.gz"
         self.assertEqual(
-            parse_service_arn(
-                "elb",
-                "elasticloadbalancing/my-alb-name/AWSLogs/123456789123/elasticloadbalancing/us-gov-east-1/2022/02/08"
-                "/123456789123_elasticloadbalancing_us-gov-east-1_app.my-alb-name.123456789aabcdef_20220208T1127Z_10"
-                ".0.0.2_1abcdef2.log.gz",
-                None,
-                None,
-            ),
+            self.s3_handler._parse_service_arn(),
             "arn:aws-us-gov:elasticloadbalancing:us-gov-east-1:123456789123:loadbalancer/app/my-alb-name"
             "/123456789aabcdef",
         )
