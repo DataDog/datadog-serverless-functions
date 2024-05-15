@@ -258,12 +258,12 @@ DD_S3_BUCKET_NAME = get_env_var("DD_S3_BUCKET_NAME", default=None)
 # These default cache names remain unchanged so we can get existing cache data for these
 DD_S3_CACHE_FILENAME = "cache.json"
 DD_S3_CACHE_LOCK_FILENAME = "cache.lock"
-DD_S3_LOG_GROUP_CACHE_FILENAME = "log-group-cache.json"
-DD_S3_LOG_GROUP_CACHE_LOCK_FILENAME = "log-group-cache.lock"
 DD_S3_STEP_FUNCTIONS_CACHE_FILENAME = "step-functions-cache.json"
 DD_S3_STEP_FUNCTIONS_CACHE_LOCK_FILENAME = "step-functions-cache.lock"
 DD_S3_TAGS_CACHE_FILENAME = "s3-cache.json"
 DD_S3_TAGS_CACHE_LOCK_FILENAME = "s3-cache.lock"
+
+DD_S3_LOG_GROUP_CACHE_DIRNAME = "log-group-cache"
 
 DD_TAGS_CACHE_TTL_SECONDS = int(get_env_var("DD_TAGS_CACHE_TTL_SECONDS", default=300))
 DD_S3_CACHE_LOCK_TTL_SECONDS = 60
