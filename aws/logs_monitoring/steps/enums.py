@@ -94,6 +94,8 @@ class AwsS3EventSourceKeyword(Enum):
     # e.g. 2020/10/02/21/aws-waf-logs-testing-1-2020-10-02-21-25-30-x123x-x456x or AWSLogs/123456779121/WAFLogs/us-east-1/xxxxxx-waf/2022/10/11/14/10/123456779121_waflogs_us-east-1_xxxxx-waf_20221011T1410Z_12756524.log.gz
     WAF_0 = ("aws-waf-logs", AwsEventSource.WAF)
     WAF_1 = ("waflogs", AwsEventSource.WAF)
+    # e.q AWSLogs/123456779121/GuardDuty/eu-west-1/2024/03/21/ed8bb84e-a534-3a98-9da9-16c4784eaf8a.jsonl.gz
+    GUARDDUTY = ("guardduty",  AwsEventSource.GUARDDUTY)
 
     def __str__(self):
         return f"{self.string}"
