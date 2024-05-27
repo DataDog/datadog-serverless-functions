@@ -91,6 +91,7 @@ class CloudwatchLogGroupTagsCache:
         if log_group_tags_struct and not self._is_expired(
             log_group_tags_struct.get("last_modified", None)
         ):
+            send_forwarder_internal_metrics("loggroup_local_cache_hit")
             return log_group_tags_struct.get("tags", [])
 
         # then, check cache file, update and return
@@ -103,6 +104,7 @@ class CloudwatchLogGroupTagsCache:
                 "tags": log_group_tags,
                 "last_modified": time(),
             }
+            send_forwarder_internal_metrics("loggroup_s3_cache_hit")
             return log_group_tags
 
         # finally, make an api call, update and return
@@ -123,7 +125,7 @@ class CloudwatchLogGroupTagsCache:
             tags_cache = json.loads(response.get("Body").read().decode("utf-8"))
             last_modified_unix_time = int(response.get("LastModified").timestamp())
         except Exception:
-            send_forwarder_internal_metrics("s3_cache_fetch_failure")
+            send_forwarder_internal_metrics("loggroup_cache_fetch_failure")
             self.logger.exception(
                 "Failed to get log group tags from cache", exc_info=True
             )
@@ -140,7 +142,7 @@ class CloudwatchLogGroupTagsCache:
                 Body=(bytes(json.dumps(tags).encode("UTF-8"))),
             )
         except Exception:
-            send_forwarder_internal_metrics("s3_cache_write_failure")
+            send_forwarder_internal_metrics("loggroup_cache_write_failure")
             self.logger.exception(
                 "Failed to update log group tags cache", exc_info=True
             )

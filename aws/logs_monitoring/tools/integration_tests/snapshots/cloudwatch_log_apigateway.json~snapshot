@@ -93,7 +93,7 @@
             "device": null,
             "host": null,
             "interval": 10,
-            "metric": "aws.dd_forwarder.s3_cache_fetch_failure",
+            "metric": "aws.dd_forwarder.loggroup_cache_fetch_failure",
             "points": "<redacted from snapshot>",
             "tags": [
               "forwardername:test",
@@ -121,7 +121,7 @@
             "device": null,
             "host": null,
             "interval": 10,
-            "metric": "aws.dd_forwarder.s3_cache_write_failure",
+            "metric": "aws.dd_forwarder.loggroup_cache_write_failure",
             "points": "<redacted from snapshot>",
             "tags": [
               "forwardername:test",
