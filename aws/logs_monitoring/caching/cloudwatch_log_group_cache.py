@@ -16,7 +16,10 @@ from telemetry import send_forwarder_internal_metrics
 
 
 class CloudwatchLogGroupTagsCache:
-    def __init__(self, prefix):
+    def __init__(
+        self,
+        prefix,
+    ):
         self.cache_dirname = DD_S3_LOG_GROUP_CACHE_DIRNAME
         self.cache_ttl_seconds = DD_TAGS_CACHE_TTL_SECONDS
         self.bucket_name = DD_S3_BUCKET_NAME
@@ -37,7 +40,7 @@ class CloudwatchLogGroupTagsCache:
         if self._should_fetch_tags():
             self._build_tags_cache()
 
-    def get(self, log_group):
+    def get(self, log_group_arn):
         """Get the tags for the Cloudwatch Log Group from the cache
 
         Will refetch the tags if they are out of date, or a log group is encountered
@@ -57,7 +60,7 @@ class CloudwatchLogGroupTagsCache:
             )
             return []
 
-        return self._fetch_log_group_tags(log_group)
+        return self._fetch_log_group_tags(log_group_arn)
 
     def _should_fetch_tags(self):
         return os.environ.get("DD_FETCH_LOG_GROUP_TAGS", "false").lower() == "true"
@@ -85,9 +88,9 @@ class CloudwatchLogGroupTagsCache:
         except Exception:
             self.logger.exception("failed to build log group tags cache", exc_info=True)
 
-    def _fetch_log_group_tags(self, log_group):
+    def _fetch_log_group_tags(self, log_group_arn):
         # first, check in-memory cache
-        log_group_tags_struct = self.tags_by_log_group.get(log_group, None)
+        log_group_tags_struct = self.tags_by_log_group.get(log_group_arn, None)
         if log_group_tags_struct and not self._is_expired(
             log_group_tags_struct.get("last_modified", None)
         ):
@@ -95,12 +98,12 @@ class CloudwatchLogGroupTagsCache:
             return log_group_tags_struct.get("tags", [])
 
         # then, check cache file, update and return
-        cache_file_name = self._get_cache_file_name(log_group)
+        cache_file_name = self._get_cache_file_name(log_group_arn)
         log_group_tags, last_modified = self._get_log_group_tags_from_cache(
             cache_file_name
         )
         if log_group_tags and not self._is_expired(last_modified):
-            self.tags_by_log_group[log_group] = {
+            self.tags_by_log_group[log_group_arn] = {
                 "tags": log_group_tags,
                 "last_modified": time(),
             }
@@ -108,9 +111,9 @@ class CloudwatchLogGroupTagsCache:
             return log_group_tags
 
         # finally, make an api call, update and return
-        log_group_tags = self._get_log_group_tags(log_group) or []
-        self._update_log_group_tags_cache(log_group, log_group_tags)
-        self.tags_by_log_group[log_group] = {
+        log_group_tags = self._get_log_group_tags(log_group_arn) or []
+        self._update_log_group_tags_cache(log_group_arn, log_group_tags)
+        self.tags_by_log_group[log_group_arn] = {
             "tags": log_group_tags,
             "last_modified": time(),
         }
@@ -157,19 +160,19 @@ class CloudwatchLogGroupTagsCache:
         )
         return time() > earliest_time_to_refetch_tags
 
-    def _get_cache_file_name(self, log_group):
-        log_group_name = log_group.replace("/", "_")
+    def _get_cache_file_name(self, log_group_arn):
+        log_group_name = log_group_arn.replace("/", "_").replace(":", "_")
         return f"{self._get_cache_file_prefix()}/{log_group_name}.json"
 
     def _get_cache_file_prefix(self):
         return f"{self.cache_dirname}/{self.cache_prefix}"
 
-    def _get_log_group_tags(self, log_group):
+    def _get_log_group_tags(self, log_group_arn):
         response = None
         try:
             send_forwarder_internal_metrics("list_tags_log_group_api_call")
-            response = self.cloudwatch_logs_client.list_tags_log_group(
-                logGroupName=log_group
+            response = self.cloudwatch_logs_client.list_tags_for_resource(
+                resourceArn=log_group_arn
             )
         except Exception:
             self.logger.exception("Failed to get log group tags", exc_info=True)

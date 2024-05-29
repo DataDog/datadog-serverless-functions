@@ -778,7 +778,7 @@ Resources:
               - Fn::If:
                   - SetDdFetchLogGroupTags
                   - Action:
-                      - logs:ListTagsLogGroup
+                      - logs:ListTagsForResource
                     Resource: "*"
                     Effect: Allow
                   - Ref: AWS::NoValue
