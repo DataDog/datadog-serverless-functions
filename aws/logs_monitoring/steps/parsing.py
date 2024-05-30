@@ -54,7 +54,7 @@ def parse(event, context, cache_layer):
             case AwsEventType.SNS:
                 events = sns_handler(event, metadata)
             case AwsEventType.KINESIS:
-                events = kinesis_awslogs_handler(event, context, metadata)
+                events = kinesis_awslogs_handler(event, context, metadata, cache_layer)
             case _:
                 events = ["Parsing: Unsupported event type"]
     except Exception as e:
@@ -154,12 +154,12 @@ def sns_handler(event, metadata):
 
 
 # Handle CloudWatch logs from Kinesis
-def kinesis_awslogs_handler(event, context, metadata):
+def kinesis_awslogs_handler(event, context, metadata, cache_layer):
     def reformat_record(record):
         return {"awslogs": {"data": record["kinesis"]["data"]}}
 
     return itertools.chain.from_iterable(
-        awslogs_handler(reformat_record(r), context, metadata) for r in event["Records"]
+        awslogs_handler(reformat_record(r), context, metadata, cache_layer) for r in event["Records"]
     )
 
 
