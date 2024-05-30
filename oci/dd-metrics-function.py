@@ -147,4 +147,3 @@ def handler(ctx: context.InvokeContext, data: io.BytesIO = None) -> response.Res
         response_data=json.dumps({"result": result}),
         headers={"Content-Type": "application/json"},
     )
-
