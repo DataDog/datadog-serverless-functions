@@ -1,47 +1,46 @@
+import json
+import logging
 import os
+from random import randint
+from time import time
+
 import boto3
-from caching.base_tags_cache import BaseTagsCache
+from botocore.config import Config
 from caching.common import sanitize_aws_tag_string
-from telemetry import send_forwarder_internal_metrics
 from settings import (
-    DD_S3_LOG_GROUP_CACHE_FILENAME,
-    DD_S3_LOG_GROUP_CACHE_LOCK_FILENAME,
+    DD_S3_BUCKET_NAME,
+    DD_S3_LOG_GROUP_CACHE_DIRNAME,
+    DD_TAGS_CACHE_TTL_SECONDS,
 )
+from telemetry import send_forwarder_internal_metrics
 
 
-class CloudwatchLogGroupTagsCache(BaseTagsCache):
-    def __init__(self, prefix):
-        super().__init__(
-            prefix, DD_S3_LOG_GROUP_CACHE_FILENAME, DD_S3_LOG_GROUP_CACHE_LOCK_FILENAME
+class CloudwatchLogGroupTagsCache:
+    def __init__(
+        self,
+        prefix,
+    ):
+        self.cache_dirname = DD_S3_LOG_GROUP_CACHE_DIRNAME
+        self.cache_ttl_seconds = DD_TAGS_CACHE_TTL_SECONDS
+        self.bucket_name = DD_S3_BUCKET_NAME
+        self.cache_prefix = prefix
+        self.tags_by_log_group = {}
+        # We need to use the standard retry mode for the Cloudwatch Logs client that defaults to 3 retries
+        self.cloudwatch_logs_client = boto3.client(
+            "logs", config=Config(retries={"mode": "standard"})
         )
-        self.cloudwatch_logs_client = boto3.client("logs")
+        self.s3_client = boto3.client("s3")
 
-    def should_fetch_tags(self):
-        return os.environ.get("DD_FETCH_LOG_GROUP_TAGS", "false").lower() == "true"
-
-    def build_tags_cache(self):
-        """Makes API calls to GetResources to get the live tags of the account's Lambda functions
-
-        Returns an empty dict instead of fetching custom tags if the tag fetch env variable is not set to true
-
-        Returns:
-            tags_by_arn_cache (dict<str, str[]>): each Lambda's tags in a dict keyed by ARN
-        """
-        new_tags = {}
-        for log_group in self.tags_by_id.keys():
-            log_group_tags = self._get_log_group_tags(log_group)
-            # If we didn't get back log group tags we'll use the locally cached ones if they exist
-            # This avoids losing tags on a failed api call
-            if log_group_tags is None:
-                log_group_tags = self.tags_by_id.get(log_group, [])
-            new_tags[log_group] = log_group_tags
-
-        self.logger.debug(
-            "All tags in Cloudwatch Log Groups refresh: {}".format(new_tags)
+        self.logger = logging.getLogger()
+        self.logger.setLevel(
+            logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper())
         )
-        return True, new_tags
 
-    def get(self, log_group):
+        # Initialize the cache
+        if self._should_fetch_tags():
+            self._build_tags_cache()
+
+    def get(self, log_group_arn):
         """Get the tags for the Cloudwatch Log Group from the cache
 
         Will refetch the tags if they are out of date, or a log group is encountered
@@ -53,34 +52,130 @@ class CloudwatchLogGroupTagsCache(BaseTagsCache):
         Returns:
             log_group_tags (str[]): the list of "key:value" Datadog tag strings
         """
-        if self._is_expired():
-            send_forwarder_internal_metrics("cw_log_group_tags_cache_expired")
-            self.logger.debug("Local cache expired, fetching cache from S3")
-            self._refresh()
+        # If the custom tag fetch env var is not set to true do not fetch tags
+        if not self._should_fetch_tags():
+            self.logger.debug(
+                "Not fetching custom tags because the env variable DD_FETCH_LOG_GROUP_TAGS is "
+                "not set to true"
+            )
+            return []
 
-        log_group_tags = self.tags_by_id.get(log_group, None)
-        if log_group_tags is None:
-            # If the custom tag fetch env var is not set to true do not fetch
-            if not self.should_fetch_tags():
-                self.logger.debug(
-                    "Not fetching custom tags because the env variable DD_FETCH_LOG_GROUP_TAGS is "
-                    "not set to true"
+        return self._fetch_log_group_tags(log_group_arn)
+
+    def _should_fetch_tags(self):
+        return os.environ.get("DD_FETCH_LOG_GROUP_TAGS", "false").lower() == "true"
+
+    def _build_tags_cache(self):
+        try:
+            prefix = self._get_cache_file_prefix()
+            response = self.s3_client.list_objects_v2(
+                Bucket=DD_S3_BUCKET_NAME, Prefix=prefix
+            )
+            cache_files = [content["Key"] for content in response.get("Contents", [])]
+            for cache_file in cache_files:
+                log_group_tags, last_modified = self._get_log_group_tags_from_cache(
+                    cache_file
                 )
-                return []
-            log_group_tags = self._get_log_group_tags(log_group) or []
-            self.tags_by_id[log_group] = log_group_tags
+                if log_group_tags and not self._is_expired(last_modified):
+                    log_group = cache_file.split("/")[-1].split(".")[0]
+                    self.tags_by_log_group[log_group] = {
+                        "tags": log_group_tags,
+                        "last_modified": last_modified,
+                    }
+            self.logger.debug(
+                f"loggroup_tags_cache initialized successfully {self.tags_by_log_group}"
+            )
+        except Exception:
+            self.logger.exception("failed to build log group tags cache", exc_info=True)
+
+    def _fetch_log_group_tags(self, log_group_arn):
+        # first, check in-memory cache
+        log_group_tags_struct = self.tags_by_log_group.get(log_group_arn, None)
+        if log_group_tags_struct and not self._is_expired(
+            log_group_tags_struct.get("last_modified", None)
+        ):
+            send_forwarder_internal_metrics("loggroup_local_cache_hit")
+            return log_group_tags_struct.get("tags", [])
+
+        # then, check cache file, update and return
+        cache_file_name = self._get_cache_file_name(log_group_arn)
+        log_group_tags, last_modified = self._get_log_group_tags_from_cache(
+            cache_file_name
+        )
+        if log_group_tags and not self._is_expired(last_modified):
+            self.tags_by_log_group[log_group_arn] = {
+                "tags": log_group_tags,
+                "last_modified": time(),
+            }
+            send_forwarder_internal_metrics("loggroup_s3_cache_hit")
+            return log_group_tags
+
+        # finally, make an api call, update and return
+        log_group_tags = self._get_log_group_tags(log_group_arn) or []
+        self._update_log_group_tags_cache(log_group_arn, log_group_tags)
+        self.tags_by_log_group[log_group_arn] = {
+            "tags": log_group_tags,
+            "last_modified": time(),
+        }
 
         return log_group_tags
 
-    def _get_log_group_tags(self, log_group):
+    def _get_log_group_tags_from_cache(self, cache_file_name):
+        try:
+            response = self.s3_client.get_object(
+                Bucket=self.bucket_name, Key=cache_file_name
+            )
+            tags_cache = json.loads(response.get("Body").read().decode("utf-8"))
+            last_modified_unix_time = int(response.get("LastModified").timestamp())
+        except Exception:
+            send_forwarder_internal_metrics("loggroup_cache_fetch_failure")
+            self.logger.exception(
+                "Failed to get log group tags from cache", exc_info=True
+            )
+            return None, -1
+
+        return tags_cache, last_modified_unix_time
+
+    def _update_log_group_tags_cache(self, log_group, tags):
+        cache_file_name = self._get_cache_file_name(log_group)
+        try:
+            self.s3_client.put_object(
+                Bucket=self.bucket_name,
+                Key=cache_file_name,
+                Body=(bytes(json.dumps(tags).encode("UTF-8"))),
+            )
+        except Exception:
+            send_forwarder_internal_metrics("loggroup_cache_write_failure")
+            self.logger.exception(
+                "Failed to update log group tags cache", exc_info=True
+            )
+
+    def _is_expired(self, last_modified):
+        if not last_modified:
+            return True
+
+        # add a random number of seconds to avoid having all tags refetched at the same time
+        earliest_time_to_refetch_tags = (
+            last_modified + self.cache_ttl_seconds + randint(1, 100)
+        )
+        return time() > earliest_time_to_refetch_tags
+
+    def _get_cache_file_name(self, log_group_arn):
+        log_group_name = log_group_arn.replace("/", "_").replace(":", "_")
+        return f"{self._get_cache_file_prefix()}/{log_group_name}.json"
+
+    def _get_cache_file_prefix(self):
+        return f"{self.cache_dirname}/{self.cache_prefix}"
+
+    def _get_log_group_tags(self, log_group_arn):
         response = None
         try:
             send_forwarder_internal_metrics("list_tags_log_group_api_call")
-            response = self.cloudwatch_logs_client.list_tags_log_group(
-                logGroupName=log_group
+            response = self.cloudwatch_logs_client.list_tags_for_resource(
+                resourceArn=log_group_arn
             )
-        except Exception as e:
-            self.logger.exception(f"Failed to get log group tags due to {e}")
+        except Exception:
+            self.logger.exception("Failed to get log group tags", exc_info=True)
         formatted_tags = None
         if response is not None:
             formatted_tags = [

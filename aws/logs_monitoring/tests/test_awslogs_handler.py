@@ -35,7 +35,8 @@ env_patch.stop()
 
 
 class TestAWSLogsHandler(unittest.TestCase):
-    def test_awslogs_handler_rds_postgresql(self):
+    @patch("caching.cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.__init__")
+    def test_awslogs_handler_rds_postgresql(self, mock_cache_init):
         event = {
             "awslogs": {
                 "data": base64.b64encode(
@@ -63,6 +64,7 @@ class TestAWSLogsHandler(unittest.TestCase):
         }
         context = None
         metadata = {"ddsource": "postgresql", "ddtags": "env:dev"}
+        mock_cache_init.return_value = None
         cache_layer = CacheLayer("")
         cache_layer._cloudwatch_log_group_cache.get = MagicMock(
             return_value=["test_tag_key:test_tag_value"]
@@ -71,10 +73,12 @@ class TestAWSLogsHandler(unittest.TestCase):
         verify_as_json(list(awslogs_handler(event, context, metadata, cache_layer)))
         verify_as_json(metadata, options=NamerFactory.with_parameters("metadata"))
 
+    @patch("caching.cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.__init__")
     @patch("caching.cloudwatch_log_group_cache.send_forwarder_internal_metrics")
     def test_awslogs_handler_step_functions_tags_added_properly(
         self,
         mock_forward_metrics,
+        mock_cache_init,
     ):
         event = {
             "awslogs": {
@@ -106,10 +110,12 @@ class TestAWSLogsHandler(unittest.TestCase):
         context = None
         metadata = {"ddsource": "postgresql", "ddtags": "env:dev"}
         mock_forward_metrics.side_effect = MagicMock()
+        mock_cache_init.return_value = None
         cache_layer = CacheLayer("")
         cache_layer._step_functions_cache.get = MagicMock(
             return_value=["test_tag_key:test_tag_value"]
         )
+        cache_layer._cloudwatch_log_group_cache.get = MagicMock()
 
         verify_as_json(list(awslogs_handler(event, context, metadata, cache_layer)))
         verify_as_json(metadata, options=NamerFactory.with_parameters("metadata"))

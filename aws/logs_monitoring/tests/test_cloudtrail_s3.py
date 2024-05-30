@@ -97,11 +97,12 @@ class TestS3CloudwatchParsing(unittest.TestCase):
             gzip.compress(json.dumps(copy.deepcopy(test_data)).encode("utf-8"))
         )
 
+    @patch("caching.cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.__init__")
     @patch("caching.base_tags_cache.boto3")
     @patch("steps.handlers.s3_handler.boto3")
     @patch("lambda_function.boto3")
     def test_s3_cloudtrail_pasing_and_enrichment(
-        self, lambda_boto3, parsing_boto3, cache_boto3
+        self, lambda_boto3, parsing_boto3, cache_boto3, mock_cache_init
     ):
         context = Context()
         boto3 = parsing_boto3.client()
@@ -117,6 +118,7 @@ class TestS3CloudwatchParsing(unittest.TestCase):
                 },
             }
         }
+        mock_cache_init.return_value = None
         cache_layer = CacheLayer("")
         cache_layer._s3_tags_cache.get = MagicMock(return_value=[])
         cache_layer._lambda_cache.get = MagicMock(return_value=[])

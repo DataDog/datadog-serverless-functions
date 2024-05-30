@@ -3,8 +3,8 @@ Description: Pushes logs, metrics and traces from AWS to Datadog.
 Mappings:
   Constants:
     DdForwarder:
-      Version: 3.108.0
-      LayerVersion: 48
+      Version: 3.114.0
+      LayerVersion: 53
 Parameters:
   DdApiKey:
     Type: String
@@ -438,6 +438,13 @@ Conditions:
           - Ref: ReservedConcurrency
           - ""
   ShouldUseAccessLogBucket: !Not [!Equals [!Ref DdForwarderBucketsAccessLogsTarget, ""]]          
+  SetForwarderBucket:
+    Fn::Or:
+      - Condition: CreateS3Bucket
+      - Fn::Not:
+          - Fn::Equals:
+              - Ref: DdForwarderExistingBucketName
+              - ""
 Rules:
   MustSetDdApiKey:
     Assertions:
@@ -566,7 +573,10 @@ Resources:
               - Ref: DdPort
               - Ref: AWS::NoValue
           DD_STORE_FAILED_EVENTS:
-            Ref: DdStoreFailedEvents
+            Fn::If:
+              - SetForwarderBucket
+              - Ref: DdStoreFailedEvents
+              - Ref: AWS::NoValue
           REDACT_IP:
             Fn::If:
               - SetRedactIp
@@ -707,33 +717,41 @@ Resources:
             Version: "2012-10-17"
             Statement:
               # Access the s3 bucket that is used by the forwarder as a datastore
-              - Action:
-                  - s3:GetObject
-                  - s3:PutObject
-                  - s3:DeleteObject
-                  - s3:ListBucket
-                Resource:
-                  - Fn::If:
-                    - CreateS3Bucket
-                    - Fn::Join:
-                        - "/"
-                        - - Fn::GetAtt: ForwarderBucket.Arn
-                          - "*"
-                    - Fn::Sub: "arn:aws:s3:::${DdForwarderExistingBucketName}/*"
-                Effect: Allow
+              - Fn::If:
+                  - SetForwarderBucket
+                  - Action:
+                      - s3:GetObject
+                      - s3:PutObject
+                      - s3:DeleteObject
+                      - s3:ListBucket
+                    Resource:
+                      - Fn::If:
+                        - CreateS3Bucket
+                        - Fn::Join:
+                            - "/"
+                            - - Fn::GetAtt: ForwarderBucket.Arn
+                              - "*"
+                        - Fn::Sub: "arn:aws:s3:::${DdForwarderExistingBucketName}/*"
+                    Effect: Allow
+                  - Ref: AWS::NoValue
               # Get the actual log content from the s3 bucket based on the received s3 event.
               # Use PermissionsBoundaryArn to limit (allow/deny) access if needed.
-              - Action:
-                  - s3:ListBucket
-                Resource:
-                  - Fn::If:
-                    - CreateS3Bucket
-                    - Fn::GetAtt: ForwarderBucket.Arn
-                    - Fn::Sub: "arn:aws:s3:::${DdForwarderExistingBucketName}"
-                Condition:
-                  StringLike:
-                    s3:prefix: "retry/*"
-                Effect: Allow
+              - Fn::If:
+                  - SetForwarderBucket            
+                  - Action:
+                      - s3:ListBucket
+                    Resource:
+                      - Fn::If:
+                        - CreateS3Bucket
+                        - Fn::GetAtt: ForwarderBucket.Arn
+                        - Fn::Sub: "arn:aws:s3:::${DdForwarderExistingBucketName}"
+                    Condition:
+                      StringLike:
+                        s3:prefix:
+                          - "retry/*"
+                          - "log-group-cache/*"
+                    Effect: Allow
+                  - Ref: AWS::NoValue
               - Action:
                   - s3:GetObject
                 Resource: "*"
@@ -765,7 +783,7 @@ Resources:
               - Fn::If:
                   - SetDdFetchLogGroupTags
                   - Action:
-                      - logs:ListTagsLogGroup
+                      - logs:ListTagsForResource
                     Resource: "*"
                     Effect: Allow
                   - Ref: AWS::NoValue
@@ -880,6 +898,13 @@ Resources:
             DestinationBucketName: !Ref DdForwarderBucketsAccessLogsTarget
             LogFilePrefix: "datadog-forwarder/"
           - !Ref "AWS::NoValue"        
+      LifecycleConfiguration:
+       Rules:
+       - Id: delete-incomplete-mpu-7days
+         Prefix: ''
+         AbortIncompleteMultipartUpload:
+           DaysAfterInitiation: 7
+         Status: Enabled        
   ForwarderBucketPolicy:
     Type: "AWS::S3::BucketPolicy"
     Condition: CreateS3Bucket
@@ -1079,6 +1104,7 @@ Outputs:
         Fn::Sub: ${AWS::StackName}-ApiKeySecretArn
     Condition: CreateDdApiKeySecret
   ForwarderBucketName:
+    Condition: SetForwarderBucket
     Description: Name of the S3 bucket used by the Forwarder
     Value:
       Fn::If:

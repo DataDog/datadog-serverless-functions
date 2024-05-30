@@ -40,6 +40,8 @@ def awslogs_handler(event, context, metadata, cache_layer):
         logs.get("logEvents"),
         logs.get("owner"),
     )
+    # Set account and region from lambda function ARN
+    set_account_region(context, aws_attributes)
     # Set the source on the logs
     set_source(event, metadata, aws_attributes)
     # Add custom tags from cache
@@ -74,6 +76,15 @@ def extract_logs(event):
     return json.loads(data)
 
 
+def set_account_region(context, aws_attributes):
+    try:
+        aws_attributes.set_account_region(context.invoked_function_arn)
+    except Exception as e:
+        logger.error(
+            "Unable to set account and region from lambda function ARN: %s" % e
+        )
+
+
 def set_source(event, metadata, aws_attributes):
     log_group = aws_attributes.get_log_group()
     log_stream = aws_attributes.get_log_stream()
@@ -96,8 +107,10 @@ def set_source(event, metadata, aws_attributes):
 
 
 def add_cloudwatch_tags_from_cache(metadata, aws_attributes, cache_layer):
-    log_group = aws_attributes.get_log_group()
-    formatted_tags = cache_layer.get_cloudwatch_log_group_tags_cache().get(log_group)
+    log_group_arn = aws_attributes.get_log_group_arn()
+    formatted_tags = cache_layer.get_cloudwatch_log_group_tags_cache().get(
+        log_group_arn
+    )
     if len(formatted_tags) > 0:
         metadata[DD_CUSTOM_TAGS] = (
             ",".join(formatted_tags)
@@ -222,11 +235,11 @@ def process_lambda_logs(aws_attributes, context, metadata):
     if len(arn_parts) > 0:
         arn_prefix = arn_parts[0]
         # Rebuild the arn with the lowercased function name
-        lower_cased_lambda__arn = (
+        lower_cased_lambda_arn = (
             arn_prefix + "function:" + lower_cased_lambda_function_name
         )
         # Add the lowe_rcased arn as a log attribute
-        aws_attributes.set_lambda_arn(lower_cased_lambda__arn)
+        aws_attributes.set_lambda_arn(lower_cased_lambda_arn)
         env_tag_exists = (
             metadata[DD_CUSTOM_TAGS].startswith("env:")
             or ",env:" in metadata[DD_CUSTOM_TAGS]

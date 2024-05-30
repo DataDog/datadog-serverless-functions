@@ -8,6 +8,8 @@ class AwsAttributes:
         self.log_events = log_events
         self.owner = owner
         self.lambda_arn = None
+        self.account = None
+        self.region = None
 
     def to_dict(self):
         awslogs = {
@@ -27,6 +29,9 @@ class AwsAttributes:
     def get_log_group(self):
         return self.log_group
 
+    def get_log_group_arn(self):
+        return f"arn:aws:logs:{self.region}:{self.account}:log-group:{self.log_group}"
+
     def get_log_stream(self):
         return self.log_stream
 
@@ -38,3 +43,11 @@ class AwsAttributes:
 
     def set_lambda_arn(self, arn):
         self.lambda_arn = arn
+
+    def set_account_region(self, arn):
+        try:
+            parts = arn.split(":")
+            self.account = parts[4]
+            self.region = parts[3]
+        except Exception:
+            raise Exception("Failed to parse account and region from ARN")

@@ -20,253 +20,294 @@ from settings import (
 from steps.enums import AwsEventSource, AwsS3EventSourceKeyword
 from steps.common import add_service_tag, is_cloudtrail, merge_dicts, parse_event_source
 
-if DD_MULTILINE_LOG_REGEX_PATTERN:
-    try:
-        MULTILINE_REGEX = re.compile(
-            "[\n\r\f]+(?={})".format(DD_MULTILINE_LOG_REGEX_PATTERN)
+
+class S3EventDataStore:
+    def __init__(self):
+        self.bucket = None
+        self.key = None
+        self.source = None
+        self.data = None
+        self.cloudtrail_bucket = False
+
+
+class S3EventHandler:
+    def __init__(self, context, metadata, cache_layer):
+        self.logger = logging.getLogger()
+        self.logger.setLevel(
+            logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper())
         )
-    except Exception:
-        raise Exception(
-            "could not compile multiline regex with pattern: {}".format(
-                DD_MULTILINE_LOG_REGEX_PATTERN
-            )
+        self.context = context
+        self.metadata = metadata
+        self.cache_layer = cache_layer
+        self.multiline_regex_start_pattern = (
+            re.compile("^{}".format(DD_MULTILINE_LOG_REGEX_PATTERN))
+            if DD_MULTILINE_LOG_REGEX_PATTERN
+            else None
         )
-    MULTILINE_REGEX_START_PATTERN = re.compile(
-        "^{}".format(DD_MULTILINE_LOG_REGEX_PATTERN)
-    )
+        # a private data store for event attributes
+        self.data_store = S3EventDataStore()
 
-logger = logging.getLogger()
-logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
+    def handle(self, event):
+        event = self._extract_event(event)
+        self._set_source(event)
+        add_service_tag(self.metadata)
+        self._set_host()
+        self._add_s3_tags_from_cache()
+        self._extract_data()
+        yield from self._get_structured_lines_for_s3_handler()
 
-
-# Handle S3 events
-def s3_handler(event, context, metadata, cache_layer):
-    # Get the S3 client
-    s3 = get_s3_client()
-    # if this is a S3 event carried in a SNS message, extract it and override the event
-    if "Sns" in event.get("Records")[0]:
-        event = json.loads(event.get("Records")[0].get("Sns").get("Message"))
-    # Get the object from the event and show its content type
-    bucket = event.get("Records")[0].get("s3").get("bucket").get("name")
-    key = urllib.parse.unquote_plus(
-        event.get("Records")[0].get("s3").get("object").get("key")
-    )
-    source = set_source(event, metadata, bucket, key)
-    # Add Service tag
-    add_service_tag(metadata)
-    # Get the ARN of the service and set it as the hostname
-    set_host(context, metadata, bucket, key, source)
-    # Add S3 bucket tags
-    add_s3_tags_from_cache(metadata, bucket, cache_layer)
-    # Extract S3 object
-    data = extract_data(s3, bucket, key)
-
-    yield from get_structured_lines_for_s3_handler(data, bucket, key, source)
-
-
-def extract_data(s3, bucket, key):
-    response = s3.get_object(Bucket=bucket, Key=key)
-    body = response.get("Body")
-    data = body.read()
-    return data
-
-
-def get_s3_client():
-    # Need to use path style to access s3 via VPC Endpoints
-    # https://github.com/gford1000-aws/lambda_s3_access_using_vpc_endpoint#boto3-specific-notes
-    if DD_USE_VPC:
-        s3 = boto3.client(
-            "s3",
-            os.environ["AWS_REGION"],
-            config=botocore.config.Config(s3={"addressing_style": "path"}),
-        )
-    else:
-        s3 = boto3.client("s3")
-    return s3
-
-
-def add_s3_tags_from_cache(metadata, bucket, cache_layer):
-    bucket_arn = get_s3_arn(bucket)
-
-    if metadata.get(DD_HOST, "") == bucket_arn:
-        return
-
-    s3_tags = cache_layer.get_s3_tags_cache().get(bucket_arn)
-    if len(s3_tags) > 0:
-        metadata[DD_CUSTOM_TAGS] = (
-            ",".join(s3_tags)
-            if not metadata[DD_CUSTOM_TAGS]
-            else metadata[DD_CUSTOM_TAGS] + "," + ",".join(s3_tags)
+    def _extract_event(self, event):
+        # if this is a S3 event carried in a SNS message, extract it and override the event
+        if "Sns" in event.get("Records")[0]:
+            event = json.loads(event.get("Records")[0].get("Sns").get("Message"))
+        # Get the object from the event and show its content type
+        bucket = event.get("Records")[0].get("s3").get("bucket").get("name")
+        key = urllib.parse.unquote_plus(
+            event.get("Records")[0].get("s3").get("object").get("key")
         )
 
+        self.data_store.bucket = bucket
+        self.data_store.key = key
 
-def set_source(event, metadata, bucket, key):
-    source = parse_event_source(event, key)
-    if str(AwsS3EventSourceKeyword.TRANSITAGATEWAY) in bucket:
-        source = AwsEventSource.TRANSITGATEWAY
-    metadata[DD_SOURCE] = source
+        return event
 
-    return source
+    def _set_source(self, event):
+        self.data_store.source = parse_event_source(event, self.data_store.key)
+        if str(AwsS3EventSourceKeyword.TRANSITAGATEWAY) in self.data_store.bucket:
+            self.data_store.source = AwsEventSource.TRANSITGATEWAY
+        self.metadata[DD_SOURCE] = self.data_store.source
 
+    def _set_host(self):
+        hostname = self._parse_service_arn()
+        if hostname:
+            self.metadata[DD_HOST] = hostname
 
-def set_host(context, metadata, bucket, key, source):
-    hostname = parse_service_arn(source, key, bucket, context)
-    if hostname:
-        metadata[DD_HOST] = hostname
+    def _parse_service_arn(self):
+        src = AwsEventSource._value2member_map_.get(self.data_store.source)
+        match src:
+            case AwsEventSource.ELB:
+                return self._handle_elb_source()
+            case AwsEventSource.S3:
+                # For S3 access logs we use the bucket name to rebuild the arn
+                return self._get_s3_arn()
+            case AwsEventSource.CLOUDFRONT:
+                return self._handle_cloudfront_source()
+            case AwsEventSource.REDSHIFT:
+                return self._handle_redshift_source()
 
+    def _get_s3_arn(self):
+        if not self.data_store.bucket:
+            return None
+        return "arn:aws:s3:::{}".format(self.data_store.bucket)
 
-def get_structured_lines_for_s3_handler(data, bucket, key, source):
-    # Decompress data that has a .gz extension or magic header http://www.onicos.com/staff/iz/formats/gzip.html
-    if key[-3:] == ".gz" or data[:2] == b"\x1f\x8b":
-        with gzip.GzipFile(fileobj=BytesIO(data)) as decompress_stream:
-            # Reading line by line avoid a bug where gzip would take a very long time (>5min) for
-            # file around 60MB gzipped
-            data = b"".join(BufferedReader(decompress_stream))
+    def _handle_elb_source(self):
+        # For ELB logs we parse the filename to extract parameters in order to rebuild the ARN
+        # 1. We extract the region from the filename
+        # 2. We extract the loadbalancer name and replace the "." by "/" to match the ARN format
+        # 3. We extract the id of the loadbalancer
+        # 4. We build the arn
+        idsplit = self.data_store.key.split("/")
+        if not idsplit:
+            self.logger.debug("Invalid service ARN, unable to parse ELB ARN")
+            return None
 
-    is_cloudtrail_bucket = False
-    if is_cloudtrail(str(key)):
-        try:
-            cloud_trail = json.loads(data)
-            if cloud_trail.get("Records") is not None:
-                # only parse as a cloudtrail bucket if we have a Records field to parse
-                is_cloudtrail_bucket = True
-                for event in cloud_trail.get("Records"):
-                    # Create structured object and send it
-                    structured_line = merge_dicts(
-                        event, {"aws": {"s3": {"bucket": bucket, "key": key}}}
-                    )
-                    yield structured_line
-        except Exception as e:
-            logger.debug("Unable to parse cloudtrail log: %s" % e)
-
-    if not is_cloudtrail_bucket:
-        # Check if using multiline log regex pattern
-        # and determine whether line or pattern separated logs
-        data = data.decode("utf-8", errors="ignore")
-        if DD_MULTILINE_LOG_REGEX_PATTERN and MULTILINE_REGEX_START_PATTERN.match(data):
-            split_data = MULTILINE_REGEX_START_PATTERN.split(data)
+        # If there is a prefix on the S3 bucket, remove the prefix before splitting the key
+        if idsplit[0] != "AWSLogs":
+            try:
+                idsplit = idsplit[idsplit.index("AWSLogs") :]
+                keysplit = "/".join(idsplit).split("_")
+            except ValueError:
+                self.logger.debug("Invalid S3 key, doesn't contain AWSLogs")
+                return None
+        # If no prefix, split the key
         else:
-            if DD_MULTILINE_LOG_REGEX_PATTERN:
-                logger.debug(
-                    "DD_MULTILINE_LOG_REGEX_PATTERN %s did not match start of file, splitting by line",
-                    DD_MULTILINE_LOG_REGEX_PATTERN,
-                )
-            if source == str(AwsEventSource.WAF):
-                # WAF logs are \n separated
-                split_data = [d for d in data.split("\n") if d != ""]
-            else:
-                split_data = data.splitlines()
+            keysplit = self.data_store.key.split("_")
 
-        # Send lines to Datadog
-        for line in split_data:
-            # Create structured object and send it
-            structured_line = {
-                "aws": {"s3": {"bucket": bucket, "key": key}},
-                "message": line,
-            }
-            yield structured_line
+        if len(keysplit) <= 3:
+            return None
 
-
-def parse_service_arn(source, key, bucket, context):
-    src = AwsEventSource._value2member_map_.get(source)
-    match src:
-        case AwsEventSource.ELB:
-            return handle_elb_source(key)
-        case AwsEventSource.S3:
-            # For S3 access logs we use the bucket name to rebuild the arn
-            return get_s3_arn(bucket) if bucket else None
-        case AwsEventSource.CLOUDFRONT:
-            return handle_cloudfront_source(context, key)
-        case AwsEventSource.REDSHIFT:
-            return handle_redshift_source(key)
-
-    return
-
-
-def handle_elb_source(key):
-    # For ELB logs we parse the filename to extract parameters in order to rebuild the ARN
-    # 1. We extract the region from the filename
-    # 2. We extract the loadbalancer name and replace the "." by "/" to match the ARN format
-    # 3. We extract the id of the loadbalancer
-    # 4. We build the arn
-    idsplit = key.split("/")
-    if not idsplit:
-        logger.debug("Invalid service ARN, unable to parse ELB ARN")
-        return
-    # If there is a prefix on the S3 bucket, remove the prefix before splitting the key
-    if idsplit[0] != "AWSLogs":
-        try:
-            idsplit = idsplit[idsplit.index("AWSLogs") :]
-            keysplit = "/".join(idsplit).split("_")
-        except ValueError:
-            logger.debug("Invalid S3 key, doesn't contain AWSLogs")
-            return
-    # If no prefix, split the key
-    else:
-        keysplit = key.split("_")
-    if len(keysplit) > 3:
         region = keysplit[2].lower()
         name = keysplit[3]
         elbname = name.replace(".", "/")
-        if len(idsplit) > 1:
-            idvalue = idsplit[1]
-            partition = get_partition_from_region(region)
-            return "arn:{}:elasticloadbalancing:{}:{}:loadbalancer/{}".format(
-                partition, region, idvalue, elbname
-            )
 
+        if len(idsplit) <= 1:
+            return None
 
-def handle_cloudfront_source(context, key):
-    # For Cloudfront logs we need to get the account and distribution id from the lambda arn and the filename
-    # 1. We extract the cloudfront id  from the filename
-    # 2. We extract the AWS account id from the lambda arn
-    namesplit = key.split("/")
-    if len(namesplit) > 0:
+        idvalue = idsplit[1]
+        partition = self._get_partition_from_region(region)
+        return "arn:{}:elasticloadbalancing:{}:{}:loadbalancer/{}".format(
+            partition, region, idvalue, elbname
+        )
+
+    def _get_partition_from_region(self, region):
+        partition = "aws"
+        if region:
+            if GOV_STRING in region:
+                partition = "aws-us-gov"
+            elif CN_STRING in region:
+                partition = "aws-cn"
+        return partition
+
+    def _handle_cloudfront_source(self):
+        # For Cloudfront logs we need to get the account and distribution id from the lambda arn and the filename
+        # 1. We extract the cloudfront id  from the filename
+        # 2. We extract the AWS account id from the lambda arn
+        namesplit = self.data_store.key.split("/")
+        if len(namesplit) == 0:
+            return None
+
         filename = namesplit[len(namesplit) - 1]
         # (distribution-ID.YYYY-MM-DD-HH.unique-ID.gz)
         filenamesplit = filename.split(".")
-        if len(filenamesplit) > 3:
-            distributionID = filenamesplit[len(filenamesplit) - 4].lower()
-            arn = context.invoked_function_arn
-            arnsplit = arn.split(":")
-            if len(arnsplit) == 7:
-                awsaccountID = arnsplit[4].lower()
-                return "arn:aws:cloudfront::{}:distribution/{}".format(
-                    awsaccountID, distributionID
-                )
 
+        if len(filenamesplit) <= 3:
+            return None
 
-def handle_redshift_source(key):
-    # For redshift logs we leverage the filename to extract the relevant information
-    # 1. We extract the region from the filename
-    # 2. We extract the account-id from the filename
-    # 3. We extract the name of the cluster
-    # 4. We build the arn: arn:aws:redshift:region:account-id:cluster:cluster-name
-    namesplit = key.split("/")
-    if len(namesplit) == 8:
+        distributionID = filenamesplit[len(filenamesplit) - 4].lower()
+        arn = self.context.invoked_function_arn
+        arnsplit = arn.split(":")
+
+        if len(arnsplit) != 7:
+            return None
+
+        awsaccountID = arnsplit[4].lower()
+        return "arn:aws:cloudfront::{}:distribution/{}".format(
+            awsaccountID, distributionID
+        )
+
+    def _handle_redshift_source(self):
+        # For redshift logs we leverage the filename to extract the relevant information
+        # 1. We extract the region from the filename
+        # 2. We extract the account-id from the filename
+        # 3. We extract the name of the cluster
+        # 4. We build the arn: arn:aws:redshift:region:account-id:cluster:cluster-name
+        namesplit = self.data_store.key.split("/")
+        if len(namesplit) != 8:
+            return None
+
         region = namesplit[3].lower()
         accountID = namesplit[1].lower()
         filename = namesplit[7]
         filesplit = filename.split("_")
-        if len(filesplit) == 6:
-            clustername = filesplit[3]
-            return "arn:{}:redshift:{}:{}:cluster:{}:".format(
-                get_partition_from_region(region),
-                region,
-                accountID,
-                clustername,
+
+        if len(filesplit) != 6:
+            return None
+
+        clustername = filesplit[3]
+        return "arn:{}:redshift:{}:{}:cluster:{}:".format(
+            self._get_partition_from_region(region),
+            region,
+            accountID,
+            clustername,
+        )
+
+    def _add_s3_tags_from_cache(self):
+        bucket_arn = self._get_s3_arn()
+
+        if self.metadata.get(DD_HOST, "") == bucket_arn:
+            return
+
+        s3_tags = self.cache_layer.get_s3_tags_cache().get(bucket_arn)
+        if len(s3_tags) > 0:
+            self.metadata[DD_CUSTOM_TAGS] = (
+                ",".join(s3_tags)
+                if not self.metadata[DD_CUSTOM_TAGS]
+                else self.metadata[DD_CUSTOM_TAGS] + "," + ",".join(s3_tags)
             )
 
+    def _extract_data(self):
+        s3_client = self._get_s3_client()
+        response = s3_client.get_object(
+            Bucket=self.data_store.bucket, Key=self.data_store.key
+        )
+        body = response.get("Body")
+        self.data_store.data = body.read()
 
-def get_partition_from_region(region):
-    partition = "aws"
-    if region:
-        if GOV_STRING in region:
-            partition = "aws-us-gov"
-        elif CN_STRING in region:
-            partition = "aws-cn"
-    return partition
+    def _get_s3_client(self):
+        # Need to use path style to access s3 via VPC Endpoints
+        # https://github.com/gford1000-aws/lambda_s3_access_using_vpc_endpoint#boto3-specific-notes
+        if DD_USE_VPC:
+            s3 = boto3.client(
+                "s3",
+                os.environ["AWS_REGION"],
+                config=botocore.config.Config(s3={"addressing_style": "path"}),
+            )
+        else:
+            s3 = boto3.client("s3")
+        return s3
 
+    def _get_structured_lines_for_s3_handler(self):
+        self._decompress_data()
+        if is_cloudtrail(self.data_store.key):
+            yield from self._extract_cloudtrail_logs()
+        if not self.data_store.cloudtrail_bucket:
+            yield from self._extract_other_logs()
 
-def get_s3_arn(bucket):
-    return "arn:aws:s3:::{}".format(bucket)
+    def _decompress_data(self):
+        # Decompress data that has a .gz extension or magic header http://www.onicos.com/staff/iz/formats/gzip.html
+        if self.data_store.key[-3:] == ".gz" or self.data_store.data[:2] == b"\x1f\x8b":
+            with gzip.GzipFile(
+                fileobj=BytesIO(self.data_store.data)
+            ) as decompress_stream:
+                # Reading line by line avoid a bug where gzip would take a very long time (>5min) for
+                # file around 60MB gzipped
+                self.data_store.data = b"".join(BufferedReader(decompress_stream))
+
+    def _extract_cloudtrail_logs(self):
+        try:
+            cloudtrail_data = json.loads(self.data_store.data)
+            if cloudtrail_data.get("Records", None) is None:
+                return
+
+            self.data_store.cloudtrail_bucket = True
+            # only parse as a cloudtrail bucket if we have a Records field to parse
+            for event in cloudtrail_data.get("Records"):
+                # Create structured object and send it
+                structured_line = merge_dicts(
+                    event,
+                    {
+                        "aws": {
+                            "s3": {
+                                "bucket": self.data_store.bucket,
+                                "key": self.data_store.key,
+                            }
+                        }
+                    },
+                )
+                yield structured_line
+        except Exception as e:
+            self.logger.debug("Unable to parse cloudtrail log: %s" % e)
+
+    def _extract_other_logs(self):
+        # Check if using multiline log regex pattern
+        # and determine whether line or pattern separated logs
+        self.data_store.data = self.data_store.data.decode("utf-8", errors="ignore")
+        if self.multiline_regex_start_pattern:
+            if self.multiline_regex_start_pattern.match(self.data_store.data):
+                self.data_store.data = self.multiline_regex_start_pattern.split(
+                    self.data_store.data
+                )
+            else:
+                self.logger.debug(
+                    "DD_MULTILINE_LOG_REGEX_PATTERN %s did not match start of file, splitting by line",
+                    DD_MULTILINE_LOG_REGEX_PATTERN,
+                )
+        else:
+            if self.data_store.source == str(AwsEventSource.WAF):
+                # WAF logs are \n separated
+                self.data_store.data = [
+                    d for d in self.data_store.data.split("\n") if d != ""
+                ]
+            else:
+                self.data_store.data = self.data_store.data.splitlines()
+
+        # Send lines to Datadog
+        for line in self.data_store.data:
+            # Create structured object and send it
+            structured_line = {
+                "aws": {
+                    "s3": {"bucket": self.data_store.bucket, "key": self.data_store.key}
+                },
+                "message": line,
+            }
+            yield structured_line

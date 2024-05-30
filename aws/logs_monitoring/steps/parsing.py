@@ -9,7 +9,7 @@ import itertools
 import logging
 from telemetry import set_forwarder_telemetry_tags, send_event_metric
 from steps.handlers.awslogs_handler import awslogs_handler
-from steps.handlers.s3_handler import s3_handler
+from steps.handlers.s3_handler import S3EventHandler
 from steps.common import (
     merge_dicts,
     get_service_from_tags_and_remove_duplicates,
@@ -45,7 +45,8 @@ def parse(event, context, cache_layer):
             logger.debug(f"Parsed event type: {event_type}")
         match event_type:
             case AwsEventType.S3:
-                events = s3_handler(event, context, metadata, cache_layer)
+                s3_handler = S3EventHandler(context, metadata, cache_layer)
+                events = s3_handler.handle(event)
             case AwsEventType.AWSLOGS:
                 events = awslogs_handler(event, context, metadata, cache_layer)
             case AwsEventType.EVENTS:
@@ -53,7 +54,7 @@ def parse(event, context, cache_layer):
             case AwsEventType.SNS:
                 events = sns_handler(event, metadata)
             case AwsEventType.KINESIS:
-                events = kinesis_awslogs_handler(event, context, metadata)
+                events = kinesis_awslogs_handler(event, context, metadata, cache_layer)
             case _:
                 events = ["Parsing: Unsupported event type"]
     except Exception as e:
@@ -153,12 +154,13 @@ def sns_handler(event, metadata):
 
 
 # Handle CloudWatch logs from Kinesis
-def kinesis_awslogs_handler(event, context, metadata):
+def kinesis_awslogs_handler(event, context, metadata, cache_layer):
     def reformat_record(record):
         return {"awslogs": {"data": record["kinesis"]["data"]}}
 
     return itertools.chain.from_iterable(
-        awslogs_handler(reformat_record(r), context, metadata) for r in event["Records"]
+        awslogs_handler(reformat_record(r), context, metadata, cache_layer)
+        for r in event["Records"]
     )
 
 
