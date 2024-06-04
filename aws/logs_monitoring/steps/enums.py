@@ -71,6 +71,10 @@ class AwsS3EventSourceKeyword(Enum):
         self.string = string
         self.event_source = event_source
 
+    # e.g. 2020/10/02/21/aws-waf-logs-testing-1-2020-10-02-21-25-30-x123x-x456x or AWSLogs/123456779121/WAFLogs/us-east-1/xxxxxx-waf/2022/10/11/14/10/123456779121_waflogs_us-east-1_xxxxx-waf_20221011T1410Z_12756524.log.gz
+    WAF_0 = ("aws-waf-logs", AwsEventSource.WAF)
+    WAF_1 = ("waflogs", AwsEventSource.WAF)
+
     BEDROCK = ("bedrock", AwsEventSource.BEDROCK)
     # e.g. carbon-black-cloud-forwarder/alerts/org_key=*****/year=2021/month=7/day=19/hour=18/minute=15/second=41/8436e850-7e78-40e4-b3cd-6ebbc854d0a2.jsonl.gz
     CARBONBLACK = ("carbon-black", AwsEventSource.CARBONBLACK)
@@ -91,9 +95,6 @@ class AwsS3EventSourceKeyword(Enum):
     VERIFIED_ACCESS = ("verified-access", AwsEventSource.VERIFIED_ACCESS)
     # e.g. AWSLogs/123456779121/vpcflowlogs/us-east-1/2020/10/02/123456779121_vpcflowlogs_us-east-1_fl-xxxxx.log.gz
     VPC = ("vpcflowlogs", AwsEventSource.VPC)
-    # e.g. 2020/10/02/21/aws-waf-logs-testing-1-2020-10-02-21-25-30-x123x-x456x or AWSLogs/123456779121/WAFLogs/us-east-1/xxxxxx-waf/2022/10/11/14/10/123456779121_waflogs_us-east-1_xxxxx-waf_20221011T1410Z_12756524.log.gz
-    WAF_0 = ("aws-waf-logs", AwsEventSource.WAF)
-    WAF_1 = ("waflogs", AwsEventSource.WAF)
 
     def __str__(self):
         return f"{self.string}"
