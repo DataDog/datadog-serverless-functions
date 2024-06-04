@@ -219,6 +219,48 @@ class TestS3EventsHandler(unittest.TestCase):
             "/123456789aabcdef",
         )
 
+    def test_set_source_waf_cloudfront(self):
+        self.s3_handler.data_store.key = (
+            "AWSLogs/123456779121/WAFLogs/cloudfront/this/is/a/prio/test.log.gz"
+        )
+        self.s3_handler.data_store.bucket = "my-bucket"
+        self.s3_handler._set_source(
+            {
+                "Records": [
+                    {
+                        "s3": {
+                            "bucket": {"name": "my-bucket"},
+                            "object": {"key": self.s3_handler.data_store.key},
+                        }
+                    }
+                ]
+            }
+        )
+        self.assertEqual(
+            self.s3_handler.data_store.source,
+            "waf",
+        )
+
+    def test_set_source_cloudfront(self):
+        self.s3_handler.data_store.key = "AWSLogs/123456779121/CloudFront/us-east-1/2020/10/02/21/123456779121_CloudFront_us-east-1_20201002T2100Z_abcdef.log.gz"
+        self.s3_handler.data_store.bucket = "my-bucket"
+        self.s3_handler._set_source(
+            {
+                "Records": [
+                    {
+                        "s3": {
+                            "bucket": {"name": "my-bucket"},
+                            "object": {"key": self.s3_handler.data_store.key},
+                        }
+                    }
+                ]
+            }
+        )
+        self.assertEqual(
+            self.s3_handler.data_store.source,
+            "cloudfront",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
