@@ -432,7 +432,7 @@ To test different patterns against your logs, turn on [debug logs](#troubleshoot
 `SourceZipUrl`
 : Do not change unless you know what you are doing. Override the default location of the function source code.
 
-`PermissionBoundaryArn`
+`PermissionsBoundaryArn`
 : ARN for the Permissions Boundary Policy.
 
 `DdUsePrivateLink` (DEPRECATED)
