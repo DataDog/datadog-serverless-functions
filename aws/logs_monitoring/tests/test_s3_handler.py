@@ -1,9 +1,10 @@
 import gzip
 import unittest
 from unittest.mock import MagicMock, patch
+
 from approvaltests.combination_approvals import verify_all_combinations
-from steps.handlers.s3_handler import S3EventHandler, S3EventDataStore
 from caching.cache_layer import CacheLayer
+from steps.handlers.s3_handler import S3EventDataStore, S3EventHandler
 
 
 class TestS3EventsHandler(unittest.TestCase):
@@ -29,7 +30,7 @@ class TestS3EventsHandler(unittest.TestCase):
 
         self.s3_handler.data_store = data_store
 
-        return [l for l in self.s3_handler._get_structured_lines_for_s3_handler()]
+        return [line for line in self.s3_handler._get_structured_lines_for_s3_handler()]
 
     def test_get_structured_lines_waf(self):
         key = "mykey"
@@ -39,12 +40,17 @@ class TestS3EventsHandler(unittest.TestCase):
             [
                 [
                     '{"timestamp": 12345, "key1": "value1", "key2":"value2"}\n',
+                    '{"timestamp": 12345, "key1": "value1", "key2":"value2"}\r\n{"timestamp": 67890, "key1": "value2", "key2":"value3"}\r\n',
+                    '{"timestamp": 12345, "key1": "value1", "key2":"value1"}\n{"timestamp": 67890, "key1": "value2", "key2":"value3"}\r{"timestamp": 123456, "key1": "value3", "key2":"value3"}\r\n{"timestamp": 678901, "key1": "value4", "key2":"value4"}',
                     '{"timestamp": 12345, "key1": "value1", "key2":"value2"}\n{"timestamp": 789760, "key1": "value1", "key3":"value4"}\n',
                     '{"timestamp": 12345, "key1": "value1", "key2":"value2" "key3": {"key5" : "value5"}}\r{"timestamp": 12345, "key1": "value1"}\n',
                     '{"timestamp": 12345, "key1": "value1", "key2":"value2" "key3": {"key5" : "value5"}}\f{"timestamp": 12345, "key1": "value1"}\n',
                     '{"timestamp": 12345, "key1": "value1", "key2":"value2" "key3": {"key5" : "value5"}}\u00A0{"timestamp": 12345, "key1": "value1"}\n',
-                    "",
+                    '{"timestamp":1234, "injection":"/Ð²Ð¸ÐºÑÐ¾ÑÐ¸Ñ+Ð²Ð»Ð°ÑÐ¾Ð²Ð°/about"}',
+                    '{"timestamp":1234, "should_not_be_splitted":"\v"}',
+                    '{"timestamp":1234, "should_be_splitted":"\u000D\u000Acontinue"}',
                     "\n",
+                    "\r\n",
                 ]
             ],
         )
