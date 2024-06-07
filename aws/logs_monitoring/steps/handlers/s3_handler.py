@@ -307,8 +307,8 @@ class S3EventHandler:
             # https://docs.python.org/3/library/stdtypes.html#str.splitlines
             # https://docs.python.org/3/library/stdtypes.html#bytes.splitlines
             for line in self.data_store.data.splitlines():
-                line = line.decode("utf-8", errors="ignore")
-                if len(line.strip()) == 0:
+                line = line.decode("utf-8", errors="ignore").strip()
+                if len(line) == 0:
                     continue
 
                 yield self._format_event(line)
