@@ -1,8 +1,11 @@
-import logging
-import json
 import copy
+import json
+import logging
 import os
+
 from settings import DD_SOURCE
+
+from steps.enums import AwsEventSource
 
 logger = logging.getLogger()
 logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
@@ -87,7 +90,7 @@ def parse_aws_waf_logs(event):
         except json.JSONDecodeError:
             logger.debug("Argument provided for waf parser is not valid JSON")
             return event
-    if event.get(DD_SOURCE) != "waf":
+    if event.get(DD_SOURCE) != str(AwsEventSource.WAF):
         return event
 
     event_copy = copy.deepcopy(event)
@@ -97,7 +100,9 @@ def parse_aws_waf_logs(event):
         try:
             message = json.loads(message)
         except json.JSONDecodeError:
-            logger.debug("Failed to decode waf message")
+            logger.debug(
+                "Failed to decode waf message, first bytes were `%s`", message[:8192]
+            )
             return event
 
     headers = message.get("httpRequest", {}).get("headers")

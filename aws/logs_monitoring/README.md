@@ -1,7 +1,7 @@
 ---
 title: Datadog Forwarder
 kind: documentation
-dependencies: 
+dependencies:
   - "https://github.com/DataDog/datadog-serverless-functions/blob/master/aws/logs_monitoring/README.md"
 aliases:
   - /serverless/troubleshooting/installing_the_forwarder/
@@ -40,7 +40,7 @@ Datadog recommends using [CloudFormation](#cloudformation) to automatically inst
 5. [Set up triggers to the installed Forwarder][101].
 6. Repeat the steps above in another region if you operate in multiple AWS regions.
 
-If you had previously enabled your AWS Integration using the [following CloudFormation template][102] from your AWS integration page in Datadog, your account may already be provisioned with a Datadog Lambda Forwarder function if you decided to include it. In that case, you will only need to install the Datadog Lambda in additional AWS regions in your account where you wish to export logs.  
+If you had previously enabled your AWS Integration using the [following CloudFormation template][102] from your AWS integration page in Datadog, your account may already be provisioned with a Datadog Lambda Forwarder function if you decided to include it. In that case, you will only need to install the Datadog Lambda in additional AWS regions in your account where you wish to export logs.
 
 **Note**: The Datadog Lambda Forwarder function code block is expected to be empty, as the logic is implemented through a Lambda layer.
 
@@ -58,7 +58,7 @@ Datadog recommends creating separate Terraform configurations:
 
 - Use the first one to store the [Datadog API key][102] in the AWS Secrets Manager, and note down the secrets ARN from the output of apply.
 - Then, create a configuration for the forwarder and supply the secrets ARN through the `DdApiKeySecretArn` parameter.
-- Finally, create a configuration to [set up triggers on the Forwarder][103]. 
+- Finally, create a configuration to [set up triggers on the Forwarder][103].
 
 By separating the configurations of the API key and the forwarder, you do not have to provide the Datadog API key when updating the forwarder. To update or upgrade the forwarder in the future, apply the forwarder configuration again.
 
@@ -121,12 +121,11 @@ If you can't install the Forwarder using the provided CloudFormation template, y
 5. Some AWS accounts are configured such that triggers will not automatically create resource-based policies allowing Cloudwatch log groups to invoke the forwarder. Reference the [CloudWatchLogPermissions][103] to see which permissions are required for the forwarder to be invoked by Cloudwatch Log Events.
 6. [Configure triggers][104].
 7. Create an S3 bucket, and set environment variable `DD_S3_BUCKET_NAME` to the bucket name. Also provide `s3:GetObject`, `s3:PutObject`, `s3:ListBucket`, and `s3:DeleteObject` permissions on this bucket to the Lambda execution role. This bucket is used to store the different tags cache i.e. Lambda, S3, Step Function and Log Group. Additionally, this bucket will be used to store unforwarded events incase of forwarding exceptions.
-8. Set environment variable `DD_STORE_FAILED_EVENTS` to `true` to enable the forwarder to also store event data in the S3 bucket. In case of exceptions when sending logs, metrics or traces to intake, the forwarder will store relevant data in the S3 bucket. On custom invocations i.e. on receiving an event with the `retry` keyword set to a non empty string (which can be manually triggered - see below), the forwarder will retry sending the stored events. When successful it will clear up the storage in the bucket. 
+8. Set environment variable `DD_STORE_FAILED_EVENTS` to `true` to enable the forwarder to also store event data in the S3 bucket. In case of exceptions when sending logs, metrics or traces to intake, the forwarder will store relevant data in the S3 bucket. On custom invocations i.e. on receiving an event with the `retry` keyword set to a non empty string (which can be manually triggered - see below), the forwarder will retry sending the stored events. When successful it will clear up the storage in the bucket.
 
-```bash 
+```bash
 aws lambda invoke --function-name <function-name> --payload '{"retry":"true"}' out
 ```
-
 
 [101]: https://github.com/DataDog/datadog-serverless-functions/releases
 [102]: https://app.datadoghq.com/organization-settings/api-keys
@@ -145,9 +144,11 @@ aws lambda invoke --function-name <function-name> --payload '{"retry":"true"}' o
 If you encounter issues upgrading to the latest version, check the Troubleshooting section.
 
 ### Upgrade an older version to +3.107.0
-Starting version 3.107.0 a new feature is added to enable Lambda function to store unforwarded events incase of exceptions on the intake point. If the feature is enabled using `DD_STORE_FAILED_EVENTS` env var, failing events will be stored under a defined dir in the same S3 bucket used to store tags cache. The same bucket can be used to store logs from several Lambda functions under unique subdirs.  
+
+Starting version 3.107.0 a new feature is added to enable Lambda function to store unforwarded events incase of exceptions on the intake point. If the feature is enabled using `DD_STORE_FAILED_EVENTS` env var, failing events will be stored under a defined dir in the same S3 bucket used to store tags cache. The same bucket can be used to store logs from several Lambda functions under unique subdirs.
 
 ### Upgrade an older version to +3.106.0
+
 Starting version 3.106.0 Lambda function has been updated to add a prefix to cache filenames stored in the S3 bucket configured in `DD_S3_BUCKET_NAME`. This allows to use the same bucket to store cache files from several functions.  
 Additionally, starting this version, the forwarder will attach custom S3 bucket tags by default to all logs exported to S3. For example, if a service is configured to send logs to a destiantion S3 bucket, the forwarder will add the bucket's tags to the logs while pulling and forwarding the logs.
 
@@ -215,15 +216,16 @@ Manually updating the `.zip` code of the Forwarder may cause conflicts with Clou
 If you still couldn't figure out, please create a ticket for [Datadog Support][10] with a copy of debugging logs.
 
 ### JSON-formatted logs are not appearing in Datadog
+
 If your logs contain an attribute that Datadog parses as a timestamp, you need to make sure that the timestamp is both current and in the correct format. See [Log Date Remapper][24] to learn about which attributes are parsed as timestamps and how to make sure that the timestamp is valid.
 
 ### Issue creating S3 triggers
+
 In case you encounter the following error when creating S3 triggers, we recommend considering following a fanout architecture proposed by AWS [in this article](https://aws.amazon.com/blogs/compute/fanout-s3-event-notifications-to-multiple-endpoints/)
 
 ```
 An error occurred when creating the trigger: Configuration is ambiguously defined. Cannot have overlapping suffixes in two rules if the prefixes are overlapping for the same event type.
 ```
-
 
 ## Contributing
 
@@ -245,7 +247,7 @@ We love pull requests. Here's a quick guide.
    ```bash
    # Upload in the AWS Lambda console if you don't have AWS CLI
    aws lambda update-function-code \
-       --region <AWS_REGION>
+       --region <AWS_REGION> \
        --function-name <FORWARDER_NAME> \
        --zip-file fileb://.forwarder/aws-dd-forwarder-<SEMANTIC_VERSION>.zip
    ```
@@ -290,7 +292,7 @@ You can run the Forwarder in a VPC private subnet and send data to Datadog over 
 
 The `DdUsePrivateLink` option has been deprecated since [v3.41.0][16]. This option was previously used to instruct the Forwarder to use a special set of PrivateLink endpoints for data intake: `pvtlink.api.{{< region-param key="dd_site" code="true" >}}`, `api-pvtlink.logs.{{< region-param key="dd_site" code="true" >}}`, and `trace-pvtlink.agent.{{< region-param key="dd_site" code="true" >}}`. Since v3.41.0, the Forwarder can send data over PrivateLink to Datadog using the regular DNS names of intake endpoints: `api.{{< region-param key="dd_site" code="true" >}}`, `http-intake.logs.{{< region-param key="dd_site" code="true" >}}`, and `trace.agent.{{< region-param key="dd_site" code="true" >}}`. Therefore, the `DdUsePrivateLink` option is no longer needed.
 
-If you have an older deployment of the Forwarder with `DdUsePrivateLink` set to `true`, then you may find mismatches between your configured PrivateLink endpoints and the [ones documented in Datadog][14], which is expected. Although the older PrivateLink endpoints were removed from that doc, they remain to function. When upgrading the Forwarder, there is no change required, that is, you can keep `DdUsePrivateLink` enabled and continue to use the older endpoints. 
+If you have an older deployment of the Forwarder with `DdUsePrivateLink` set to `true`, then you may find mismatches between your configured PrivateLink endpoints and the [ones documented in Datadog][14], which is expected. Although the older PrivateLink endpoints were removed from that doc, they remain to function. When upgrading the Forwarder, there is no change required, that is, you can keep `DdUsePrivateLink` enabled and continue to use the older endpoints.
 
 However, if you are interested in switching to the new endpoints, you need to follow the updated instructions above to:
 
@@ -308,13 +310,13 @@ If you must deploy the Forwarder to a VPC without direct public internet access,
 4. Ensure the `DdFetchLambdaTags` option is disabled, because AWS VPC does not yet offer an endpoint for the Resource Groups Tagging API.
 5. If you are using HAProxy or NGINX:
 
-  - Set `DdApiUrl` to `http://<proxy_host>:3834` or `https://<proxy_host>:3834`.
-  - Set `DdTraceIntakeUrl` to `http://<proxy_host>:3835` or `https://<proxy_host>:3835`.
-  - Set `DdUrl` to `<proxy_host>` and `DdPort` to `3837`.
+- Set `DdApiUrl` to `http://<proxy_host>:3834` or `https://<proxy_host>:3834`.
+- Set `DdTraceIntakeUrl` to `http://<proxy_host>:3835` or `https://<proxy_host>:3835`.
+- Set `DdUrl` to `<proxy_host>` and `DdPort` to `3837`.
 
-  Otherwise, if you are using Web Proxy:
+Otherwise, if you are using Web Proxy:
 
-  - Set `DdHttpProxyURL` to your proxy endpoint, for example: `http://<proxy_host>:<port>`, or, if your proxy has a username and password, `http://<username>:<password>@<proxy_host>:<port>`.
+- Set `DdHttpProxyURL` to your proxy endpoint, for example: `http://<proxy_host>:<port>`, or, if your proxy has a username and password, `http://<username>:<password>@<proxy_host>:<port>`.
 
 7. Set `DdNoSsl` to `true` if connecting to the proxy using `http`.
 8. Set `DdSkipSslValidation` to `true` if connecting to the proxy using `https` with a self-signed certificate.
@@ -419,7 +421,7 @@ Filtering rules are applied to the full JSON-formatted log, including any metada
 
 Some examples of regular expressions that can be used for log filtering:
 
-- Include (or exclude) Lambda platform logs: `"(START|END) RequestId:\s`. The preceding `"` is needed to match the start of the log message, which is in a JSON blob (`{"message": "START RequestId...."}`). Datadog recommends keeping the `REPORT` logs, as they are used to populate the invocations list in the serverless function views. 
+- Include (or exclude) Lambda platform logs: `"(START|END) RequestId:\s`. The preceding `"` is needed to match the start of the log message, which is in a JSON blob (`{"message": "START RequestId...."}`). Datadog recommends keeping the `REPORT` logs, as they are used to populate the invocations list in the serverless function views.
 - Include CloudTrail error messages only: `errorMessage`.
 - Include only logs containing an HTTP 4XX or 5XX error code: `\b[4|5][0-9][0-9]\b`.
 - Include only CloudWatch logs where the `message` field contains a specific JSON key/value pair: `\"awsRegion\":\"us-east-1\"`.

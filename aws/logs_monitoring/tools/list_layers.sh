@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Unless explicitly stated otherwise all files in this repository are licensed
 # under the Apache License Version 2.0.
@@ -16,53 +16,51 @@ LAYERS_MISSING_REGIONS=()
 
 # Check region arg
 if [ -z "$2" ]; then
-    >&2 echo "Region parameter not specified, running for all available regions."
-    REGIONS=$AVAILABLE_REGIONS
+        >&2 echo "Region parameter not specified, running for all available regions."
+        REGIONS=$AVAILABLE_REGIONS
 else
 
-    >&2 echo "Region parameter specified: $2"
-    if [[ ! "$AVAILABLE_REGIONS" == *"$2"* ]]; then
-        >&2 echo "Could not find $2 in available regions:" $AVAILABLE_REGIONS
-        >&2 echo ""
-        >&2 echo "EXITING SCRIPT."
-        exit 1
-    fi
-    REGIONS=($2)
+        >&2 echo "Region parameter specified: $2"
+        if [[ $AVAILABLE_REGIONS != *"$2"* ]]; then
+                >&2 echo "Could not find $2 in available regions:" $AVAILABLE_REGIONS
+                >&2 echo ""
+                >&2 echo "EXITING SCRIPT."
+                exit 1
+        fi
+        REGIONS=($2)
 fi
 
 # Check region arg
 if [ -z "$1" ]; then
-    >&2 echo "Layer parameter not specified, running for all layers "
-    LAYERS=("${LAYER_NAMES[@]}")
+        >&2 echo "Layer parameter not specified, running for all layers "
+        LAYERS=("${LAYER_NAMES[@]}")
 else
-    >&2 echo "Layer parameter specified: $1"
-    if [[ ! " ${LAYER_NAMES[@]} " =~ " ${1} " ]]; then
-        >&2 echo "Could not find $1 in layers: ${LAYER_NAMES[@]}"
-        >&2 echo ""
-        >&2 echo "EXITING SCRIPT."
-        return 1
-    fi
-    LAYERS=($1)
+        >&2 echo "Layer parameter specified: $1"
+        if [[ ! " ${LAYER_NAMES[@]} " =~ " ${1} " ]]; then
+                >&2 echo "Could not find $1 in layers: ${LAYER_NAMES[@]}"
+                >&2 echo ""
+                >&2 echo "EXITING SCRIPT."
+                return 1
+        fi
+        LAYERS=($1)
 fi
 
-for region in $REGIONS
-do
-    for layer_name in "${LAYERS[@]}"
-    do
-        last_layer_arn=$(aws lambda list-layer-versions --layer-name $layer_name --region $region | jq -r ".LayerVersions | .[0] |  .LayerVersionArn")
-        if [ "$last_layer_arn" == "null" ]; then
-            >&2 echo "No layer found for $region, $layer_name"
-            if [[ ! " ${LAYERS_MISSING_REGIONS[@]} " =~ " ${region} " ]]; then
-                LAYERS_MISSING_REGIONS+=( $region )
-            fi
-        else
-            echo $last_layer_arn
-        fi
-    done
+for region in $REGIONS; do
+        for layer_name in "${LAYERS[@]}"; do
+                last_layer_arn=$(aws lambda list-layer-versions --layer-name $layer_name --region $region | jq -r ".LayerVersions | .[0] |  .LayerVersionArn")
+                if [ "$last_layer_arn" == "null" ]; then
+                        >&2 echo "No layer found for $region, $layer_name"
+                        if [[ ! " ${LAYERS_MISSING_REGIONS[@]} " =~ " ${region} " ]]; then
+                                LAYERS_MISSING_REGIONS+=($region)
+                        fi
+                else
+                        echo $last_layer_arn
+                fi
+        done
 done
 
 if [ ${#LAYERS_MISSING_REGIONS[@]} -gt 0 ]; then
-    echo "WARNING: Following regions missing layers: ${LAYERS_MISSING_REGIONS[@]}"
-    echo "Please run ./add_new_region.sh <new_region> to add layers to the missing regions" 
-    exit 1
+        echo "WARNING: Following regions missing layers: ${LAYERS_MISSING_REGIONS[@]}"
+        echo "Please run ./add_new_region.sh <new_region> to add layers to the missing regions"
+        exit 1
 fi

@@ -10,15 +10,15 @@ import boto3
 import botocore
 from settings import (
     CN_STRING,
-    DD_HOST,
     DD_CUSTOM_TAGS,
+    DD_HOST,
     DD_MULTILINE_LOG_REGEX_PATTERN,
     DD_SOURCE,
     DD_USE_VPC,
     GOV_STRING,
 )
-from steps.enums import AwsEventSource, AwsS3EventSourceKeyword
 from steps.common import add_service_tag, is_cloudtrail, merge_dicts, parse_event_source
+from steps.enums import AwsEventSource, AwsS3EventSourceKeyword
 
 
 class S3EventDataStore:
@@ -238,8 +238,10 @@ class S3EventHandler:
 
     def _get_structured_lines_for_s3_handler(self):
         self._decompress_data()
+
         if is_cloudtrail(self.data_store.key):
             yield from self._extract_cloudtrail_logs()
+
         if not self.data_store.cloudtrail_bucket:
             yield from self._extract_other_logs()
 
@@ -281,8 +283,10 @@ class S3EventHandler:
     def _extract_other_logs(self):
         # Check if using multiline log regex pattern
         # and determine whether line or pattern separated logs
-        self.data_store.data = self.data_store.data.decode("utf-8", errors="ignore")
         if self.multiline_regex_start_pattern:
+            # We'll do string manipulation, so decode bytes into utf-8 first
+            self.data_store.data = self.data_store.data.decode("utf-8", errors="ignore")
+
             if self.multiline_regex_start_pattern.match(self.data_store.data):
                 self.data_store.data = self.multiline_regex_start_pattern.split(
                     self.data_store.data
@@ -292,22 +296,30 @@ class S3EventHandler:
                     "DD_MULTILINE_LOG_REGEX_PATTERN %s did not match start of file, splitting by line",
                     DD_MULTILINE_LOG_REGEX_PATTERN,
                 )
-        else:
-            if self.data_store.source == str(AwsEventSource.WAF):
-                # WAF logs are \n separated
-                self.data_store.data = [
-                    d for d in self.data_store.data.split("\n") if d != ""
-                ]
-            else:
-                self.data_store.data = self.data_store.data.splitlines()
 
-        # Send lines to Datadog
-        for line in self.data_store.data:
-            # Create structured object and send it
-            structured_line = {
-                "aws": {
-                    "s3": {"bucket": self.data_store.bucket, "key": self.data_store.key}
-                },
-                "message": line,
-            }
-            yield structured_line
+            for line in self.data_store.data:
+                yield self._format_event(line)
+
+        else:
+            # Using bytes instead of utf-8 string give us universal splitlines (\r\n)
+            # rather than extended set of line separators of the string
+            #
+            # https://docs.python.org/3/library/stdtypes.html#str.splitlines
+            # https://docs.python.org/3/library/stdtypes.html#bytes.splitlines
+            for line in self.data_store.data.splitlines():
+                line = line.decode("utf-8", errors="ignore").strip()
+                if len(line) == 0:
+                    continue
+
+                yield self._format_event(line)
+
+    def _format_event(self, line):
+        return {
+            "aws": {
+                "s3": {
+                    "bucket": self.data_store.bucket,
+                    "key": self.data_store.key,
+                }
+            },
+            "message": line,
+        }
