@@ -75,6 +75,8 @@ class AwsS3EventSourceKeyword(Enum):
     WAF_0 = ("aws-waf-logs", AwsEventSource.WAF)
     WAF_1 = ("waflogs", AwsEventSource.WAF)
 
+    # e.g. 2024/06/12/08/amazon-apigateway-<firehose-ds-name>-2-2024-06-12-08-45-12-796e56c0-7fdf-47b7-9268-38b875bb62d2
+    APIGATEWAY = ("amazon-apigateway", AwsEventSource.APIGATEWAY)
     BEDROCK = ("bedrock", AwsEventSource.BEDROCK)
     # e.g. carbon-black-cloud-forwarder/alerts/org_key=*****/year=2021/month=7/day=19/hour=18/minute=15/second=41/8436e850-7e78-40e4-b3cd-6ebbc854d0a2.jsonl.gz
     CARBONBLACK = ("carbon-black", AwsEventSource.CARBONBLACK)
