@@ -22,12 +22,7 @@ env_patch = patch.dict(
     },
 )
 env_patch.start()
-from steps.handlers.awslogs_handler import (
-    awslogs_handler,
-    process_lambda_logs,
-    get_state_machine_arn,
-    get_lower_cased_lambda_function_name,
-)
+from steps.handlers.awslogs_handler import AwsLogsHandler
 from steps.handlers.aws_attributes import AwsAttributes
 from caching.cache_layer import CacheLayer
 
@@ -70,7 +65,8 @@ class TestAWSLogsHandler(unittest.TestCase):
             return_value=["test_tag_key:test_tag_value"]
         )
 
-        verify_as_json(list(awslogs_handler(event, context, metadata, cache_layer)))
+        awslogs_handler = AwsLogsHandler(context, metadata, cache_layer)
+        verify_as_json(list(awslogs_handler.handle(event)))
         verify_as_json(metadata, options=NamerFactory.with_parameters("metadata"))
 
     @patch("caching.cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.__init__")
@@ -117,7 +113,8 @@ class TestAWSLogsHandler(unittest.TestCase):
         )
         cache_layer._cloudwatch_log_group_cache.get = MagicMock()
 
-        verify_as_json(list(awslogs_handler(event, context, metadata, cache_layer)))
+        awslogs_handler = AwsLogsHandler(context, metadata, cache_layer)
+        verify_as_json(list(awslogs_handler.handle(event)))
         verify_as_json(metadata, options=NamerFactory.with_parameters("metadata"))
 
     def test_process_lambda_logs(self):
@@ -135,8 +132,11 @@ class TestAWSLogsHandler(unittest.TestCase):
             stepfunction_loggroup.get("owner"),
         )
         context = None
-        process_lambda_logs(aws_attributes, context, metadata)
-        self.assertEqual(metadata, {"ddsource": "postgresql", "ddtags": ""})
+        aws_handler = AwsLogsHandler(context, metadata, CacheLayer(""))
+        aws_handler.aws_attributes = aws_attributes
+
+        aws_handler.process_lambda_logs()
+        self.assertEqual(aws_handler.metadata, {"ddsource": "postgresql", "ddtags": ""})
 
         # Lambda log
         lambda_default_loggroup = {
@@ -153,7 +153,10 @@ class TestAWSLogsHandler(unittest.TestCase):
         )
         context = MagicMock()
         context.invoked_function_arn = "arn:aws:lambda:sa-east-1:601427279990:function:inferred-spans-python-dev-initsender"
-        process_lambda_logs(aws_attributes, context, metadata)
+
+        aws_handler = AwsLogsHandler(context, metadata, CacheLayer(""))
+        aws_handler.aws_attributes = aws_attributes
+        aws_handler.process_lambda_logs()
         self.assertEqual(
             metadata,
             {
@@ -168,7 +171,8 @@ class TestAWSLogsHandler(unittest.TestCase):
 
         # env not set
         metadata = {"ddsource": "postgresql", "ddtags": ""}
-        process_lambda_logs(aws_attributes, context, metadata)
+        aws_handler.metadata = metadata
+        aws_handler.process_lambda_logs()
         self.assertEqual(
             metadata,
             {
@@ -179,75 +183,104 @@ class TestAWSLogsHandler(unittest.TestCase):
 
 
 class TestLambdaCustomizedLogGroup(unittest.TestCase):
+    def setUp(self):
+        self.aws_handler = AwsLogsHandler(None, None, None)
+
     def test_get_lower_cased_lambda_function_name(self):
         self.assertEqual(True, True)
         # Non Lambda log
-        stepfunction_loggroup = {
-            "messageType": "DATA_MESSAGE",
-            "logGroup": "/aws/vendedlogs/states/logs-to-traces-sequential-Logs",
-            "logStream": "states/logs-to-traces-sequential/2022-11-10-15-50/7851b2d9",
-            "logEvents": [],
-        }
+        self.aws_handler.aws_attributes = AwsAttributes(
+            "/aws/vendedlogs/states/logs-to-traces-sequential-Logs",
+            "states/logs-to-traces-sequential/2022-11-10-15-50/7851b2d9",
+            [],
+        )
         self.assertEqual(
-            get_lower_cased_lambda_function_name(
-                stepfunction_loggroup["logStream"], stepfunction_loggroup["logGroup"]
-            ),
+            self.aws_handler.get_lower_cased_lambda_function_name(),
             None,
         )
-        lambda_default_loggroup = {
-            "messageType": "DATA_MESSAGE",
-            "logGroup": "/aws/lambda/test-lambda-default-log-group",
-            "logStream": "2023/11/06/[$LATEST]b25b1f977b3e416faa45a00f427e7acb",
-            "logEvents": [],
-        }
+
+        self.aws_handler.aws_attributes = AwsAttributes(
+            "/aws/lambda/test-lambda-default-log-group",
+            "2023/11/06/[$LATEST]b25b1f977b3e416faa45a00f427e7acb",
+            [],
+        )
         self.assertEqual(
-            get_lower_cased_lambda_function_name(
-                lambda_default_loggroup["logStream"],
-                lambda_default_loggroup["logGroup"],
-            ),
+            self.aws_handler.get_lower_cased_lambda_function_name(),
             "test-lambda-default-log-group",
         )
-        lambda_customized_loggroup = {
-            "messageType": "DATA_MESSAGE",
-            "logGroup": "customizeLambdaGrop",
-            "logStream": "2023/11/06/test-customized-log-group1[$LATEST]13e304cba4b9446eb7ef082a00038990",
-            "logEvents": [],
-        }
+
+        self.aws_handler.aws_attributes = AwsAttributes(
+            "customizeLambdaGrop",
+            "2023/11/06/test-customized-log-group1[$LATEST]13e304cba4b9446eb7ef082a00038990",
+            [],
+        )
         self.assertEqual(
-            get_lower_cased_lambda_function_name(
-                lambda_customized_loggroup["logStream"],
-                lambda_customized_loggroup["logGroup"],
-            ),
+            self.aws_handler.get_lower_cased_lambda_function_name(),
             "test-customized-log-group1",
         )
 
 
 class TestParsingStepFunctionLogs(unittest.TestCase):
+    def setUp(self):
+        self.aws_handler = AwsLogsHandler(None, None, None)
+
     def test_get_state_machine_arn(self):
-        invalid_sf_log_message = {"no_execution_arn": "xxxx/yyy"}
-        self.assertEqual(get_state_machine_arn(invalid_sf_log_message), "")
+        self.aws_handler.aws_attributes = AwsAttributes(
+            log_events=[
+                {
+                    "message": json.dumps({"no_execution_arn": "xxxx/yyy"}),
+                }
+            ]
+        )
 
-        normal_sf_log_message = {
-            "execution_arn": "arn:aws:states:sa-east-1:425362996713:express:my-Various-States:7f653fda-c79a-430b-91e2-3f97eb87cabb:862e5d40-a457-4ca2-a3c1-78485bd94d3f"
-        }
+        self.assertEqual(self.aws_handler.get_state_machine_arn(), "")
+
+        self.aws_handler.aws_attributes = AwsAttributes(
+            log_events=[
+                {
+                    "message": json.dumps(
+                        {
+                            "execution_arn": "arn:aws:states:sa-east-1:425362996713:express:my-Various-States:7f653fda-c79a-430b-91e2-3f97eb87cabb:862e5d40-a457-4ca2-a3c1-78485bd94d3f"
+                        }
+                    ),
+                }
+            ]
+        )
         self.assertEqual(
-            get_state_machine_arn(normal_sf_log_message),
+            self.aws_handler.get_state_machine_arn(),
             "arn:aws:states:sa-east-1:425362996713:stateMachine:my-Various-States",
         )
 
-        forward_slash_sf_log_message = {
-            "execution_arn": "arn:aws:states:sa-east-1:425362996713:express:my-Various-States/7f653fda-c79a-430b-91e2-3f97eb87cabb:862e5d40-a457-4ca2-a3c1-78485bd94d3f"
-        }
+        self.aws_handler.aws_attributes = AwsAttributes(
+            log_events=[
+                {
+                    "message": json.dumps(
+                        {
+                            "execution_arn": "arn:aws:states:sa-east-1:425362996713:express:my-Various-States/7f653fda-c79a-430b-91e2-3f97eb87cabb:862e5d40-a457-4ca2-a3c1-78485bd94d3f"
+                        }
+                    )
+                }
+            ]
+        )
+
         self.assertEqual(
-            get_state_machine_arn(forward_slash_sf_log_message),
+            self.aws_handler.get_state_machine_arn(),
             "arn:aws:states:sa-east-1:425362996713:stateMachine:my-Various-States",
         )
 
-        back_slash_sf_log_message = {
-            "execution_arn": "arn:aws:states:sa-east-1:425362996713:express:my-Various-States\\7f653fda-c79a-430b-91e2-3f97eb87cabb:862e5d40-a457-4ca2-a3c1-78485bd94d3f"
-        }
+        self.aws_handler.aws_attributes = AwsAttributes(
+            log_events=[
+                {
+                    "message": json.dumps(
+                        {
+                            "execution_arn": "arn:aws:states:sa-east-1:425362996713:express:my-Various-States\\7f653fda-c79a-430b-91e2-3f97eb87cabb:862e5d40-a457-4ca2-a3c1-78485bd94d3f"
+                        }
+                    )
+                }
+            ]
+        )
         self.assertEqual(
-            get_state_machine_arn(back_slash_sf_log_message),
+            self.aws_handler.get_state_machine_arn(),
             "arn:aws:states:sa-east-1:425362996713:stateMachine:my-Various-States",
         )
 

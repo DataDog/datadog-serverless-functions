@@ -8,7 +8,7 @@ import os
 import itertools
 import logging
 from telemetry import set_forwarder_telemetry_tags, send_event_metric
-from steps.handlers.awslogs_handler import awslogs_handler
+from steps.handlers.awslogs_handler import AwsLogsHandler
 from steps.handlers.s3_handler import S3EventHandler
 from steps.common import (
     merge_dicts,
@@ -48,7 +48,8 @@ def parse(event, context, cache_layer):
                 s3_handler = S3EventHandler(context, metadata, cache_layer)
                 events = s3_handler.handle(event)
             case AwsEventType.AWSLOGS:
-                events = awslogs_handler(event, context, metadata, cache_layer)
+                aws_handler = AwsLogsHandler(context, metadata, cache_layer)
+                events = aws_handler.handle(event)
             case AwsEventType.EVENTS:
                 events = cwevent_handler(event, metadata)
             case AwsEventType.SNS:
