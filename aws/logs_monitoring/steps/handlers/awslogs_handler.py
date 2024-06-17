@@ -70,7 +70,9 @@ class AwsLogsHandler:
         for log in logs["logEvents"]:
             yield merge_dicts(log, self.aws_attributes.to_dict())
 
-    def extract_logs(slef, event):
+
+    @staticmethod
+    def extract_logs(event):
         with gzip.GzipFile(
             fileobj=BytesIO(base64.b64decode(event["awslogs"]["data"]))
         ) as decompress_stream:

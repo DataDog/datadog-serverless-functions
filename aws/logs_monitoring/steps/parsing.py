@@ -159,9 +159,9 @@ def kinesis_awslogs_handler(event, context, metadata, cache_layer):
     def reformat_record(record):
         return {"awslogs": {"data": record["kinesis"]["data"]}}
 
+    awslogs_handler = AwsLogsHandler(context, metadata, cache_layer)
     return itertools.chain.from_iterable(
-        awslogs_handler(reformat_record(r), context, metadata, cache_layer)
-        for r in event["Records"]
+        awslogs_handler.handle(reformat_record(r)) for r in event["Records"]
     )
 
 
