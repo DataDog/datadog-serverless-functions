@@ -70,7 +70,6 @@ class AwsLogsHandler:
         for log in logs["logEvents"]:
             yield merge_dicts(log, self.aws_attributes.to_dict())
 
-
     @staticmethod
     def extract_logs(event):
         with gzip.GzipFile(
