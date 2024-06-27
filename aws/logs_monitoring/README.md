@@ -395,6 +395,9 @@ SSL encrypted TCP connection, set this parameter to true.
 `DdFetchLogGroupTags`
 : Let the forwarder fetch Log Group tags using ListTagsLogGroup and apply them to logs, metrics, and traces. If set to true, permission `logs:ListTagsLogGroup` will be automatically added to the Lambda execution IAM role.
 
+`DdFetchStepFunctionsTags`
+: Let the Forwarder fetch Step Functions tags using GetResources API calls and apply them to traces (if Step Functions tracing is enabled). If set to true, permission `tag:GetResources` will be automatically added to the Lambda execution IAM role.
+
 ### Log scrubbing (optional)
 
 `RedactIp`
