@@ -1,6 +1,5 @@
 ---
 title: Datadog Forwarder
-kind: documentation
 dependencies:
   - "https://github.com/DataDog/datadog-serverless-functions/blob/master/aws/logs_monitoring/README.md"
 aliases:
