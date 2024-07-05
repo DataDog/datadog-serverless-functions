@@ -99,6 +99,13 @@
                 "description": "Whether or not to use custom metrics"
             }
         },
+        "excluded_resource_providers": {
+            "type": "array",
+            "defaultValue": [],
+            "metadata": {
+                "description": "List of Microsoft Resource Provider names to be excluded from metrics collection."
+            }
+        },
         "datadogSite": {
             "type": "String",
             "defaultValue": "datadoghq.com",
@@ -214,6 +221,10 @@
                         "value": "[parameters('custom_metrics_enabled')]"
                     },
                     {
+                        "name": "excluded_resource_providers",
+                        "value": "[parameters('excluded_resource_providers')]"
+                    },
+                    {
                         "name": "datadogSite",
                         "value": "[parameters('datadogSite')]"
                     },
@@ -231,7 +242,7 @@
                 "containerSettings": {},
                 "cleanupPreference": "Always",
                 "azPowerShellVersion": "8.1",
-                "scriptContent": "Invoke-WebRequest -SkipCertificateCheck -ContentType \"application/json\" -Method Post -Uri \"https://api.$Env:datadogSite/api/v1/integration/azure\" -Headers @{\"Accept\"=\"application/json\"; \"DD-APPLICATION-KEY\"=$Env:datadogApplicationKey; \"DD-API-KEY\"=$Env:datadogApiKey} -Body (@{\"automute\"=[bool]::Parse($Env:automute); \"resource_collection_enabled\"=[bool]::Parse($Env:resource_collection_enabled); \"cspm_enabled\"=[bool]::Parse($Env:cspm_enabled); \"custom_metrics_enabled\"=[bool]::Parse($Env:custom_metrics_enabled); \"client_id\"=$Env:clientId; \"client_secret\"=$Env:clientSecret; \"tenant_name\"=$Env:tenantName; \"source\"=$Env:source; \"subscription_count\"=[int]::Parse($Env:subscription_count)} | ConvertTo-Json )"
+                "scriptContent": "Invoke-WebRequest -SkipCertificateCheck -ContentType \"application/json\" -Method Post -Uri \"https://api.$Env:datadogSite/api/v1/integration/azure\" -Headers @{\"Accept\"=\"application/json\"; \"DD-APPLICATION-KEY\"=$Env:datadogApplicationKey; \"DD-API-KEY\"=$Env:datadogApiKey} -Body (@{\"automute\"=[bool]::Parse($Env:automute); \"resource_collection_enabled\"=[bool]::Parse($Env:resource_collection_enabled); \"cspm_enabled\"=[bool]::Parse($Env:cspm_enabled); \"custom_metrics_enabled\"=[bool]::Parse($Env:custom_metrics_enabled); \"client_id\"=$Env:clientId; \"client_secret\"=$Env:clientSecret; \"tenant_name\"=$Env:tenantName; \"source\"=$Env:source; \"subscription_count\"=[int]::Parse($Env:subscription_count); \"metrics_config\"=@{ \"excluded_resource_providers\" = $Env:excluded_resource_providers}} | ConvertTo-Json )"
             }
         },
         {
