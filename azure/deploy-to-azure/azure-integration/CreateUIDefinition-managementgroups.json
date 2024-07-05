@@ -280,8 +280,8 @@
                 "name": "excluded_resource_providers",
                 "type": "Microsoft.Common.TextBox",
                 "label": "Excluded Resource Providers",
-                "defaultValue": "",
-                "toolTip": "Comma-separated list of Microsoft Resource Provider names to be excluded from metrics collection.",
+                "defaultValue": "[Microsoft.<ResourceProvider> eg Microsoft.Network, Microsoft.CDN]",
+                "toolTip": "Comma-separated and case insensitive list of Microsoft Resource Provider names disabled for metric collection. eg: Microsoft.Network, Microsoft.CDN to be excluded from metrics collection.",
                 "constraints": {
                   "required": false
                 },
@@ -291,7 +291,7 @@
             "visible": true
           },
           {
-            "name": "resource,Collection",
+            "name": "resourceCollection",
             "type": "Microsoft.Common.Section",
             "label": "Resource Collection",
             "elements": [
@@ -347,7 +347,9 @@
       "custom_metrics_enabled": "[steps('datadogConfig').metrics.custom_metrics_enabled]",
       "resource_collection_enabled": "[steps('datadogConfig').resourceCollection.resource_collection_enabled]",
       "cspm_enabled": "[and(steps('datadogConfig').resourceCollection.cspm_enabled, steps('datadogConfig').resourceCollection.resource_collection_enabled)]",
-      "excluded_resource_providers": "[steps('datadogConfig').metrics.excluded_resource_providers]"
+      "metric_config": {
+        "excluded_resource_providers": "[steps('datadogConfig').metrics.excluded_resource_providers]"
+      }
     }
   }
 }
