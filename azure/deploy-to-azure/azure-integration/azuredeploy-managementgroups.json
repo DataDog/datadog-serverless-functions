@@ -101,7 +101,7 @@
             }
         },
         "excluded_resource_providers": {
-            "type": "array",
+            "type": "String",
             "defaultValue": "[Microsoft.<ResourceProvider> eg Microsoft.Network, Microsoft.CDN]",
             "metadata": {
                 "description": "Comma-separated and case insensitive list of Microsoft Resource Provider names disabled for metric collection. eg: Microsoft.Network, Microsoft.CDN to be excluded from metrics collection."
@@ -247,7 +247,7 @@
                             "type": "bool"
                         },
                         "excluded_resource_providers": {
-                            "type": "array"
+                            "type": "string"
                         },
                         "datadogSite": {
                             "type": "String"
