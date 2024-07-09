@@ -296,6 +296,7 @@ class S3EventHandler:
                     "DD_MULTILINE_LOG_REGEX_PATTERN %s did not match start of file, splitting by line",
                     DD_MULTILINE_LOG_REGEX_PATTERN,
                 )
+                self.data_store.data = self.data_store.data.splitlines()
 
             for line in self.data_store.data:
                 yield self._format_event(line)
