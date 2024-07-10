@@ -26,6 +26,15 @@ variable "function_image_path" {
   default     = ""
   description = "The full path of the function image. The image should be present in the container registry for the region"
 }
+variable "function_app_shape" {
+  type        = string
+  default     = "GENERIC_ARM"
+  description = "The shape of the function application. The docker image should be built accordingly. Use ARM if using Oracle Resource managaer stack"
+  validation {
+    condition     = contains(["GENERIC_ARM", "GENERIC_X86", "GENERIC_X86_ARM"], var.function_app_shape)
+    error_message = "Valid values are: GENERIC_ARM, GENERIC_X86, GENERIC_X86_ARM."
+  }
+}
 
 variable "datadog_environment" {
   type        = string

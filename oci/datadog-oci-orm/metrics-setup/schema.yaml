@@ -23,6 +23,7 @@ variableGroups:
       - ${function_subnet_id}
   - title: "Function settings"
     variables:
+      - ${function_app_shape}
       - ${function_image_path}
       - ${oci_docker_username}
       - ${oci_docker_password}
@@ -78,10 +79,22 @@ variables:
       - ocimetrics-intake.ap1.datadoghq.com
       - ocimetrics-intake.ddog-gov.com
     allowMultiple: false
+
+  # Function setup
+  function_app_shape:
+    title: Function Application shape
+    type: enum
+    description: The shape of the function application. The docker image should be built accordingly. Use GENERIC_ARM if using Oracle Resource managaer stack.
+    required: true
+    enum:
+      - GENERIC_ARM
+      - GENERIC_X86
+      - GENERIC_X86_ARM
+    default: GENERIC_ARM
   function_image_path:
     title: Function Image Path
     type: string
-    description: The full path of the function image. The image should be present in the container registry for the region.
+    description: The full path of the function image. The image should be present in the container registry for the region and be compatible with the function application shape.
     required: false
   oci_docker_username:
     title: OCI Docker registry user name
