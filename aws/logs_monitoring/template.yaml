@@ -46,7 +46,7 @@ Parameters:
     ConstraintDescription: ReservedConcurrency must be an integer number
     Default: ""
     Description: >-
-      Reserved concurrency for the Datadog Forwarder Lambda function. If empty, use unreserved account concurrency. 
+      Reserved concurrency for the Datadog Forwarder Lambda function. If empty, use unreserved account concurrency.
       We recommend using at least 10 reserved concurrency, but default to 0 as you may need to increase your limits for this.
       If using unreserved account concurrency you may limit other lambda functions in your environment.
   LogRetentionInDays:
@@ -723,7 +723,6 @@ Resources:
                       - s3:GetObject
                       - s3:PutObject
                       - s3:DeleteObject
-                      - s3:ListBucket
                     Resource:
                       - Fn::If:
                         - CreateS3Bucket
@@ -737,7 +736,7 @@ Resources:
               # Get the actual log content from the s3 bucket based on the received s3 event.
               # Use PermissionsBoundaryArn to limit (allow/deny) access if needed.
               - Fn::If:
-                  - SetForwarderBucket            
+                  - SetForwarderBucket
                   - Action:
                       - s3:ListBucket
                     Resource:
@@ -875,7 +874,7 @@ Resources:
   # A s3 bucket used by the Forwarder as a datastore
   ForwarderBucket:
     Type: AWS::S3::Bucket
-    Condition: CreateS3Bucket 
+    Condition: CreateS3Bucket
     Properties:
       BucketName:
         Fn::If:
@@ -904,7 +903,7 @@ Resources:
          Prefix: ''
          AbortIncompleteMultipartUpload:
            DaysAfterInitiation: 7
-         Status: Enabled        
+         Status: Enabled
   ForwarderBucketPolicy:
     Type: "AWS::S3::BucketPolicy"
     Condition: CreateS3Bucket
