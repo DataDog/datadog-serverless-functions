@@ -8,14 +8,6 @@ output "tenancy_object_storage_namespace" {
   value = local.ocir_namespace
 }
 
-output "compartment_name" {
-  value = oci_identity_compartment.datadog-compartment.name
-}
-
-output "compartment_OCID" {
-  value = oci_identity_compartment.datadog-compartment.id
-}
-
 output "vcn_network_details" {
   depends_on  = [module.vcn]
   description = "Output of the created network infra"

@@ -1,6 +1,6 @@
 locals {
   # Names for the network infra
-  vcn_name        = "${var.datadog_compartment}-vcn"
+  vcn_name        = "${var.resource_name_prefix}-vcn"
   nat_gateway     = "${local.vcn_name}-natgateway"
   service_gateway = "${local.vcn_name}-servicegateway"
   subnet          = "${local.vcn_name}-private-subnet"
@@ -8,7 +8,7 @@ locals {
 
 locals {
   # Names for the service connector
-  connector_name = "${var.datadog_compartment}-connector"
+  connector_name = "${var.resource_name_prefix}-connector"
 }
 
 locals {
@@ -33,7 +33,7 @@ locals {
   # OCI docker repository
   oci_docker_repository = "${local.oci_region_key}.ocir.io/${local.ocir_namespace}"
   oci_docker_host       = "${local.oci_region_key}.ocir.io"
-  ocir_repo_name        = "datadog-functions"
+  ocir_repo_name        = "${var.resource_name_prefix}-functions"
   function_name         = "datadog-function-metrics"
   docker_image_path     = "${local.oci_docker_repository}/${local.ocir_repo_name}/${local.function_name}:latest"
   # custom_image_path     = "${local.oci_region_key}.ocir.io/${var.function_image_path}"

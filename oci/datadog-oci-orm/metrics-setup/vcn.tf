@@ -3,7 +3,7 @@ module "vcn" {
   source                   = "oracle-terraform-modules/vcn/oci"
   version                  = "3.6.0"
   count                    = var.create_vcn ? 1 : 0
-  compartment_id           = oci_identity_compartment.datadog-compartment.id
+  compartment_id           = var.compartment_ocid
   defined_tags             = {}
   freeform_tags            = local.freeform_tags
   vcn_cidrs                = ["10.0.0.0/16"]

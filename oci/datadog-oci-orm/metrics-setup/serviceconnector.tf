@@ -1,7 +1,7 @@
 resource "oci_sch_service_connector" "metrics_service_connector" {
   depends_on = [oci_functions_function.metrics_function]
   #Required
-  compartment_id = oci_identity_compartment.datadog-compartment.id
+  compartment_id = var.compartment_ocid
   display_name   = local.connector_name
   source {
     #Required
@@ -41,6 +41,4 @@ resource "oci_sch_service_connector" "metrics_service_connector" {
   defined_tags  = {}
   description   = "Terraform created connector hub to distribute metrics"
   freeform_tags = local.freeform_tags
-  state         = "INACTIVE"
-
 }
