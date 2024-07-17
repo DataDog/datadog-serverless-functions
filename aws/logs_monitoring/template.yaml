@@ -829,8 +829,8 @@ Resources:
       Principal:
         Fn::If:
           - IsAWSChina
-          - !Sub "logs.${AWS::Region}.amazonaws.com.cn"
-          - !Sub "logs.${AWS::Region}.amazonaws.com"
+          - !Sub "logs.amazonaws.com.cn"
+          - !Sub "logs.amazonaws.com"
       SourceAccount: !Ref "AWS::AccountId"
   S3Permission:
     Type: AWS::Lambda::Permission
