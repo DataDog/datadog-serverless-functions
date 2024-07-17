@@ -29,11 +29,12 @@ variableGroups:
       - ${oci_docker_password}
 
 variables:
-  datadog_compartment:
+  resource_name_prefix:
     type: string
-    title: Compartment Name
-    description: The name of the compartment that will be created for the resource.
+    title: Resource prefix
+    description: The prefix for the name of all of the resources.
     required: true
+    default: datadog-metrics
   create_vcn:
     title: Create VCN
     description: Optional variable to create virtual network for the setup. Otherwise, choose an existing subnet from VCN

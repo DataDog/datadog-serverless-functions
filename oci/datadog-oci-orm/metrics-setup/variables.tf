@@ -1,6 +1,6 @@
-variable "datadog_compartment" {
+variable "resource_name_prefix" {
   type        = string
-  description = "The name of the compartment created to hold all of the resources"
+  description = "The prefix for the name of all of the resources"
   default     = "datadog-metrics"
 }
 

@@ -1,6 +1,6 @@
 resource "oci_functions_application" "metrics_function_app" {
   depends_on     = [data.oci_core_subnet.input_subnet]
-  compartment_id = oci_identity_compartment.datadog-compartment.id
+  compartment_id = var.compartment_ocid
   config = {
     "DD_API_KEY"     = var.datadog_api_key
     "DD_COMPRESS"    = "true"
@@ -10,7 +10,7 @@ resource "oci_functions_application" "metrics_function_app" {
     "TENANCY_OCID"   = var.tenancy_ocid
   }
   defined_tags  = {}
-  display_name  = "${var.datadog_compartment}-function-app"
+  display_name  = "${var.resource_name_prefix}-function-app"
   freeform_tags = local.freeform_tags
   network_security_group_ids = [
   ]
