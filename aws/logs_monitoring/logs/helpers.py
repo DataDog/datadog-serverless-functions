@@ -10,8 +10,9 @@ import logging
 import os
 import re
 
-from logs.exceptions import ScrubbingException
 from settings import DD_CUSTOM_TAGS, DD_RETRY_KEYWORD
+
+from logs.exceptions import ScrubbingException
 
 logger = logging.getLogger()
 logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
@@ -36,8 +37,6 @@ def filter_logs(logs, include_pattern=None, exclude_pattern=None):
 
     for log in logs:
         try:
-            logger.debug(log)
-
             if exclude_regex is not None and re.search(exclude_regex, log):
                 logger.debug("Exclude pattern matched, excluding log event")
                 continue
