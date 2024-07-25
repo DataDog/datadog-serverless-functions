@@ -170,7 +170,7 @@ publish_layer() {
         --version-number "${version_nbr}" \
         --statement-id "release-$version_nbr" \
         --action "lambda:GetLayerVersion" --principal "*" \
-        --region "${region}"
+        --region "${region}" >/dev/null
 
     echo "${version_nbr}"
 }
