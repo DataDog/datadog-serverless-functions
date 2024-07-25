@@ -4,13 +4,13 @@
 # Copyright 2021 Datadog, Inc.
 
 
-import logging
-import re
 import gzip
-import os
 import json
-from logs.exceptions import ScrubbingException
+import logging
+import os
+import re
 
+from logs.exceptions import ScrubbingException
 from settings import DD_CUSTOM_TAGS, DD_RETRY_KEYWORD
 
 logger = logging.getLogger()
@@ -24,28 +24,30 @@ def filter_logs(logs, include_pattern=None, exclude_pattern=None):
     """
     if include_pattern is None and exclude_pattern is None:
         return logs
+
+    logger.debug(f"Applying exclude pattern: {exclude_pattern}")
+    exclude_regex = compileRegex("EXCLUDE_AT_MATCH", exclude_pattern)
+
+    logger.debug(f"Applying include pattern: {include_pattern}")
+    include_regex = compileRegex("INCLUDE_AT_MATCH", include_pattern)
+
     # Add logs that should be sent to logs_to_send
     logs_to_send = []
+
     for log in logs:
-        if exclude_pattern is not None or include_pattern is not None:
-            logger.debug("Filtering log event:")
-            logger.debug(log)
         try:
-            if exclude_pattern is not None:
-                # if an exclude match is found, do not add log to logs_to_send
-                logger.debug(f"Applying exclude pattern: {exclude_pattern}")
-                exclude_regex = compileRegex("EXCLUDE_AT_MATCH", exclude_pattern)
-                if re.search(exclude_regex, log):
-                    logger.debug("Exclude pattern matched, excluding log event")
-                    continue
-            if include_pattern is not None:
-                # if no include match is found, do not add log to logs_to_send
-                logger.debug(f"Applying include pattern: {include_pattern}")
-                include_regex = compileRegex("INCLUDE_AT_MATCH", include_pattern)
-                if not re.search(include_regex, log):
-                    logger.debug("Include pattern did not match, excluding log event")
-                    continue
+            logger.debug(log)
+
+            if exclude_regex is not None and re.search(exclude_regex, log):
+                logger.debug("Exclude pattern matched, excluding log event")
+                continue
+
+            if include_regex is not None and not re.search(include_regex, log):
+                logger.debug("Include pattern did not match, excluding log event")
+                continue
+
             logs_to_send.append(log)
+
         except ScrubbingException:
             raise Exception("could not filter the payload")
 
@@ -64,20 +66,22 @@ def compress_logs(batch, level):
 
 
 def compileRegex(rule, pattern):
-    if pattern is not None:
-        if pattern == "":
-            # If pattern is an empty string, raise exception
-            raise Exception(
-                "No pattern provided:\nAdd pattern or remove {} environment variable".format(
-                    rule
-                )
+    if pattern is None:
+        return
+
+    if pattern == "":
+        # If pattern is an empty string, raise exception
+        raise Exception(
+            "No pattern provided:\nAdd pattern or remove {} environment variable".format(
+                rule
             )
-        try:
-            return re.compile(pattern)
-        except Exception:
-            raise Exception(
-                "could not compile {} regex with pattern: {}".format(rule, pattern)
-            )
+        )
+    try:
+        return re.compile(pattern)
+    except Exception:
+        raise Exception(
+            "could not compile {} regex with pattern: {}".format(rule, pattern)
+        )
 
 
 def add_retry_tag(log):
