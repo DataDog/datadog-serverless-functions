@@ -17,10 +17,10 @@ rm -rf ./bin
 # between different python runtimes.
 
 if [[ $(docker image ls | grep -c datadog-go-layer) -lt 1 ]]; then
-        docker buildx build --platform linux/amd64 -t datadog-go-layer . --no-cache --build-arg runtime=python:3.7
+    docker buildx build --platform linux/amd64 -t datadog-go-layer . --no-cache --build-arg "runtime=python:3.7"
 fi
 
 id=$(docker create --platform linux/amd64 datadog-go-layer)
-docker cp $id:/go/src/github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring/trace_forwarder/bin .
-docker rm -v $id
+docker cp "${id}:/go/src/github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring/trace_forwarder/bin" .
+docker rm -v "${id}"
 echo "Done creating archive bin"
