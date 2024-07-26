@@ -46,9 +46,7 @@ Parameters:
     ConstraintDescription: ReservedConcurrency must be an integer number
     Default: ""
     Description: >-
-      Reserved concurrency for the Datadog Forwarder Lambda function. If empty, use unreserved account concurrency.
-      We recommend using at least 10 reserved concurrency, but default to 0 as you may need to increase your limits for this.
-      If using unreserved account concurrency you may limit other lambda functions in your environment.
+      Reserved concurrency for the Datadog Forwarder Lambda function. If empty, use unreserved account concurrency. We recommend using at least 10 reserved concurrency, but default to 0 as you may need to increase your limits for this. If using unreserved account concurrency you may limit other lambda functions in your environment.
   LogRetentionInDays:
     Type: Number
     Default: 90
@@ -232,7 +230,7 @@ Parameters:
   DdForwarderBucketsAccessLogsTarget:
     Type: String
     Default: ""
-    Description: (Optional) The name of the S3 bucket to store access logs. Leave empty if access logging is not needed.    
+    Description: (Optional) The name of the S3 bucket to store access logs. Leave empty if access logging is not needed.
   DdStoreFailedEvents:
     Type: String
     Default: false
@@ -353,12 +351,12 @@ Conditions:
   CreateS3Bucket:
     Fn::And:
       - Fn::Or:
-        - Fn::Equals:
-            - Ref: DdFetchLogGroupTags
-            - true
-        - Fn::Equals:
-            - Ref: DdFetchLambdaTags
-            - true
+          - Fn::Equals:
+              - Ref: DdFetchLogGroupTags
+              - true
+          - Fn::Equals:
+              - Ref: DdFetchLambdaTags
+              - true
       - Fn::Equals:
           - Ref: DdForwarderExistingBucketName
           - ""
@@ -437,7 +435,7 @@ Conditions:
       - Fn::Equals:
           - Ref: ReservedConcurrency
           - ""
-  ShouldUseAccessLogBucket: !Not [!Equals [!Ref DdForwarderBucketsAccessLogsTarget, ""]]          
+  ShouldUseAccessLogBucket: !Not [!Equals [!Ref DdForwarderBucketsAccessLogsTarget, ""]]
   SetForwarderBucket:
     Fn::Or:
       - Condition: CreateS3Bucket
@@ -489,7 +487,6 @@ Resources:
                       - layer
                       - Datadog-Forwarder
                       - Fn::FindInMap: [Constants, DdForwarder, LayerVersion]
-
       Code:
         Fn::If:
           - UseZipCopier
@@ -501,12 +498,8 @@ Resources:
             S3Key:
               Fn::Sub:
                 - "aws-dd-forwarder-${DdForwarderVersion}.zip"
-                - {
-                    DdForwarderVersion:
-                      !FindInMap [Constants, DdForwarder, Version],
-                  }
+                - {DdForwarderVersion: !FindInMap [Constants, DdForwarder, Version]}
           - ZipFile: " "
-
       MemorySize:
         Ref: MemorySize
       Runtime: python3.11
@@ -690,7 +683,6 @@ Resources:
           - SecurityGroupIds: !Ref VPCSecurityGroupIds
             SubnetIds: !Ref VPCSubnetIds
           - Ref: AWS::NoValue
-
   ForwarderRole:
     Type: AWS::IAM::Role
     Properties:
@@ -725,12 +717,12 @@ Resources:
                       - s3:DeleteObject
                     Resource:
                       - Fn::If:
-                        - CreateS3Bucket
-                        - Fn::Join:
-                            - "/"
-                            - - Fn::GetAtt: ForwarderBucket.Arn
-                              - "*"
-                        - Fn::Sub: "arn:aws:s3:::${DdForwarderExistingBucketName}/*"
+                          - CreateS3Bucket
+                          - Fn::Join:
+                              - "/"
+                              - - Fn::GetAtt: ForwarderBucket.Arn
+                                - "*"
+                          - Fn::Sub: "arn:aws:s3:::${DdForwarderExistingBucketName}/*"
                     Effect: Allow
                   - Ref: AWS::NoValue
               # Get the actual log content from the s3 bucket based on the received s3 event.
@@ -741,9 +733,9 @@ Resources:
                       - s3:ListBucket
                     Resource:
                       - Fn::If:
-                        - CreateS3Bucket
-                        - Fn::GetAtt: ForwarderBucket.Arn
-                        - Fn::Sub: "arn:aws:s3:::${DdForwarderExistingBucketName}"
+                          - CreateS3Bucket
+                          - Fn::GetAtt: ForwarderBucket.Arn
+                          - Fn::Sub: "arn:aws:s3:::${DdForwarderExistingBucketName}"
                     Condition:
                       StringLike:
                         s3:prefix:
@@ -820,7 +812,6 @@ Resources:
               - DdForwarder
               - Version
           Key: dd_forwarder_version
-
   CloudWatchLogsPermission:
     Type: AWS::Lambda::Permission
     Properties:
@@ -890,20 +881,18 @@ Resources:
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
-      LoggingConfiguration:
-        !If
-          - ShouldUseAccessLogBucket
-          -
-            DestinationBucketName: !Ref DdForwarderBucketsAccessLogsTarget
-            LogFilePrefix: "datadog-forwarder/"
-          - !Ref "AWS::NoValue"        
+      LoggingConfiguration: !If
+        - ShouldUseAccessLogBucket
+        - DestinationBucketName: !Ref DdForwarderBucketsAccessLogsTarget
+          LogFilePrefix: "datadog-forwarder/"
+        - !Ref "AWS::NoValue"
       LifecycleConfiguration:
-       Rules:
-       - Id: delete-incomplete-mpu-7days
-         Prefix: ''
-         AbortIncompleteMultipartUpload:
-           DaysAfterInitiation: 7
-         Status: Enabled
+        Rules:
+          - Id: delete-incomplete-mpu-7days
+            Prefix: ""
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 7
+            Status: Enabled
   ForwarderBucketPolicy:
     Type: "AWS::S3::BucketPolicy"
     Condition: CreateS3Bucket
@@ -939,10 +928,7 @@ Resources:
           - !Ref SourceZipUrl
           - Fn::Sub:
               - "https://github.com/DataDog/datadog-serverless-functions/releases/download/aws-dd-forwarder-${DdForwarderVersion}/aws-dd-forwarder-${DdForwarderVersion}.zip"
-              - {
-                  DdForwarderVersion:
-                    !FindInMap [Constants, DdForwarder, Version],
-                }
+              - {DdForwarderVersion: !FindInMap [Constants, DdForwarder, Version]}
   # The Forwarder's source code is too big to fit the inline code size limit for CloudFormation. In most of AWS
   # partitions and regions, the Forwarder is able to load its source code from a Lambda layer attached to it.
   # In places where Datadog can't/doesn't yet publish Lambda layers, use another Lambda to copy the source code
@@ -1059,20 +1045,20 @@ Resources:
                   - s3:DeleteObject
                 Resource:
                   - Fn::If:
-                    - CreateS3Bucket
-                    - Fn::Join:
-                        - "/"
-                        - - Fn::GetAtt: "ForwarderBucket.Arn"
-                          - "*"
-                    - Fn::Sub: "arn:aws:s3:::${DdForwarderExistingBucketName}/*"
+                      - CreateS3Bucket
+                      - Fn::Join:
+                          - "/"
+                          - - Fn::GetAtt: "ForwarderBucket.Arn"
+                            - "*"
+                      - Fn::Sub: "arn:aws:s3:::${DdForwarderExistingBucketName}/*"
               - Effect: Allow
                 Action:
                   - s3:ListBucket
                 Resource:
                   - Fn::If:
-                    - CreateS3Bucket
-                    - Fn::GetAtt: "ForwarderBucket.Arn"
-                    - Fn::Sub: "arn:aws:s3:::${DdForwarderExistingBucketName}"
+                      - CreateS3Bucket
+                      - Fn::GetAtt: "ForwarderBucket.Arn"
+                      - Fn::Sub: "arn:aws:s3:::${DdForwarderExistingBucketName}"
               - !If
                 - SetS3SourceZip
                 - Effect: Allow
