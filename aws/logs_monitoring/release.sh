@@ -192,7 +192,7 @@ prod_release() {
     yq --inplace ".Mappings.Constants.DdForwarder.Version |= \"${FORWARDER_VERSION}\"" "template.yaml"
     yq --inplace ".Mappings.Constants.DdForwarder.LayerVersion |= \"${LAYER_VERSION}\"" "template.yaml"
 
-    if git diff --quiet; then
+    if ! git diff --quiet; then
         log_info "Committing version number change..."
         git add "settings.py" "template.yaml"
         git commit --signoff --message "ci(release): Update version from ${CURRENT_VERSION} to ${FORWARDER_VERSION}"
