@@ -1,11 +1,12 @@
 # Datadog Trace Forwarder
 
-Shared libary for submitting traces to trace intake. 
+Shared libary for submitting traces to trace intake.
 Features include:
- * Tools for building AWS Lambda Layer from library
- * Trace obfuscation, (using logic from datadog-agent)
- * Submits Stats/Transcations for traces
- * Python bindings
+
+-   Tools for building AWS Lambda Layer from library
+-   Trace obfuscation, (using logic from datadog-agent)
+-   Submits Stats/Transcations for traces
+-   Python bindings
 
 ```python
 from trace_forwarder.connection import TraceConnection
@@ -42,9 +43,9 @@ conn.send("""
 
 ## Requirements
 
-* dep
-* go 1.12 or higher
-* docker
+-   dep
+-   go 1.12 or higher
+-   docker
 
 ## Building Go Binary
 
@@ -57,25 +58,4 @@ Output is saved to bin, and the shared library will be compatible with your loca
 
 ```bash
 ./scripts/build_linux_go_bin.sh
-```
-
-## Lambda Layer
-### Building Lambda Layer
-
-You can build the lambda layer with the following command
-
-```bash
-./scripts/build_layers.sh
-```
-
-### Publishing to staging
-
-```bash
-./scripts/publish_staging.sh
-```
-
-### Publishing to prod
-
-```bash
-./scripts/publish_prod.sh
 ```

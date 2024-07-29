@@ -178,14 +178,12 @@ prod_release() {
     log_info "You are about to\n\t- bump the version from ${CURRENT_VERSION} to ${FORWARDER_VERSION}\n\t- create lambda layer version ${LAYER_VERSION}\n\t- create a release of aws-dd-forwarder-${FORWARDER_VERSION} on GitHub\n\t- upload the template.yaml to s3://${BUCKET}/aws/forwarder/${FORWARDER_VERSION}.yaml\n"
 
     # Confirm to proceed
-    if user_confirm "Continue"; then
+    if ! user_confirm "Continue"; then
         log_error "Aborting..."
     fi
 
     # Get the latest code
     git pull origin master
-    GIT_COMMIT="$(git rev-parse --short HEAD)"
-    log_info "Using ${GIT_COMMIT} commit as the release target..."
 
     log_info "Bumping the version number to ${FORWARDER_VERSION}..."
     perl -pi -e "s/DD_FORWARDER_VERSION = \"[0-9\.]+/DD_FORWARDER_VERSION = \"${FORWARDER_VERSION}/g" "settings.py"
@@ -194,8 +192,16 @@ prod_release() {
     yq --inplace ".Mappings.Constants.DdForwarder.Version |= \"${FORWARDER_VERSION}\"" "template.yaml"
     yq --inplace ".Mappings.Constants.DdForwarder.LayerVersion |= \"${LAYER_VERSION}\"" "template.yaml"
 
-    # Confirm to proceed
-    if [[ ! -e ${BUNDLE_PATH} ]] || user_confirm "Bundle already exists. Do you want to use it" "true"; then
+    if git diff --quiet; then
+        log_info "Committing version number change..."
+        git add "settings.py" "template.yaml"
+        git commit --signoff --message "ci(release): Update version from ${CURRENT_VERSION} to ${FORWARDER_VERSION}"
+    fi
+
+    GIT_COMMIT="$(git rev-parse --short HEAD)"
+    log_info "Using ${GIT_COMMIT} commit as the release target..."
+
+    if [[ ! -e ${BUNDLE_PATH} ]] || ! user_confirm "Bundle already exists. Do you want to use it" "true"; then
         log_info "Building the Forwarder bundle..."
         ./tools/build_bundle.sh "${FORWARDER_VERSION}"
 
