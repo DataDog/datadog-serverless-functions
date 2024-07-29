@@ -48,7 +48,7 @@ aws-vault exec sso-govcloud-us1-fed-engineering -- aws sts get-caller-identity
 aws-vault exec sso-prod-engineering -- aws sts get-caller-identity
 
 log_info "Publishing layers to GovCloud AWS regions"
-LAYER_VERSION="${LAYER_VERSION}" FORWARDER_VERSION"=${FORWARDER_VERSION}" aws-vault exec sso-govcloud-us1-fed-engineering -- ./tools/publish_layers.sh
+LAYER_VERSION="${LAYER_VERSION}" FORWARDER_VERSION="${FORWARDER_VERSION}" aws-vault exec sso-govcloud-us1-fed-engineering -- ./tools/publish_layers.sh
 
 log_info "Publishing layers to commercial AWS regions"
-LAYER_VERSION="${LAYER_VERSION}" FORWARDER_VERSION"=${FORWARDER_VERSION}" aws-vault exec sso-prod-engineering -- ./tools/publish_layers.sh
+LAYER_VERSION="${LAYER_VERSION}" FORWARDER_VERSION="${FORWARDER_VERSION}" aws-vault exec sso-prod-engineering -- ./tools/publish_layers.sh
