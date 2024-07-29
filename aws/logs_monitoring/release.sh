@@ -212,9 +212,7 @@ prod_release() {
     log_info "Uploading layers..."
     ./tools/publish_prod.sh "${LAYER_VERSION}" "${FORWARDER_VERSION}"
 
-    log_info "Committing version number change..."
-    git add "settings.py" "template.yaml"
-    git commit --signoff --message "ci(release): Update version from ${CURRENT_VERSION} to ${FORWARDER_VERSION}"
+    log_info "Pushing version number change..."
     git push origin master
 
     # Create a GitHub release
@@ -266,4 +264,5 @@ log_success "Forwarder release process complete!"
 
 if [[ ${ACCOUNT} == "prod" ]]; then
     log_info "Don't forget to add release notes in GitHub!"
+    log_info "\thttps://github.com/DataDog/datadog-serverless-functions/releases"
 fi
