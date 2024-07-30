@@ -26,6 +26,7 @@ def enrich(events, cache_layer, context=None):
 
     Args:
         events (dict[]): the list of event dicts we want to enrich
+        context (LambdaContext): optionally used to fetch this function's tags
     """
     for event in events:
         add_metadata_to_lambda_log(event, cache_layer, context)
@@ -48,6 +49,7 @@ def add_metadata_to_lambda_log(event, cache_layer, context):
 
     Args:
         event (dict): the event we are adding Lambda metadata to
+        context (LambdaContext): used to fetch tags for setting step function tracing behavior
     """
     lambda_log_metadata = event.get("lambda", {})
     lambda_log_arn = lambda_log_metadata.get("arn")
@@ -94,18 +96,34 @@ def add_metadata_to_lambda_log(event, cache_layer, context):
 
     # Set tracing behavior for all step functions
     if context:
-        client = boto3.client('lambda')
-        response = client.list_tags(Resource=context.function_name)
-        lambda_tags = response.get('Tags', {})
-        trace_enabled = lambda_tags.get(DD_STEP_FUNCTION_TRACE_ENABLED, False)
-
-        tags += [f"{DD_STEP_FUNCTION_TRACE_ENABLED}:{trace_enabled}"]
+        tags += get_step_function_tracing_tags(context)
 
     # Dedup tags, so we don't end up with functionname twice
     tags = list(set(tags))
     tags.sort()  # Keep order deterministic
 
     event[DD_CUSTOM_TAGS] = ",".join([event[DD_CUSTOM_TAGS]] + tags)
+
+
+def get_step_function_tracing_tags(context):
+    """Fetch and add the `dd_step_function_trace_enabled` tag which can enable/disable tracing for step functions at the
+    forwarder level.
+
+    Saves the tag as an environment variable to avoid fetching the tag everytime.
+
+    Args:
+        context (LambdaContext): used to fetch the tag we need
+    """
+    trace_enabled = os.environ.get(DD_STEP_FUNCTION_TRACE_ENABLED, "")
+    if not trace_enabled:
+        client = boto3.client("lambda")
+        response = client.list_tags(Resource=context.function_name)
+        lambda_tags = response.get("Tags", {})
+
+        trace_enabled = lambda_tags.get(DD_STEP_FUNCTION_TRACE_ENABLED, "false")
+        os.environ[DD_STEP_FUNCTION_TRACE_ENABLED] = trace_enabled
+
+    return [f"{DD_STEP_FUNCTION_TRACE_ENABLED}:{trace_enabled}"]
 
 
 def get_enriched_lambda_log_tags(log_event, cache_layer):
