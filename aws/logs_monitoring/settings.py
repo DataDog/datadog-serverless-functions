@@ -250,6 +250,7 @@ FORWARDERMEMSIZE_STRING = "forwarder_memorysize"
 FORWARDERVERSION_STRING = "forwarder_version"
 GOV_STRING = "gov"
 CN_STRING = "cn"
+DD_STEP_FUNCTION_TRACE_ENABLED = "dd_step_function_trace_enabled"
 
 # Additional target lambda invoked async with event data
 DD_ADDITIONAL_TARGET_LAMBDAS = get_env_var("DD_ADDITIONAL_TARGET_LAMBDAS", default=None)

@@ -1,3 +1,4 @@
+import boto3
 import logging
 import json
 import os
@@ -7,6 +8,7 @@ from settings import (
     DD_SERVICE,
     DD_HOST,
     DD_CUSTOM_TAGS,
+    DD_STEP_FUNCTION_TRACE_ENABLED,
 )
 from enhanced_lambda_metrics import parse_lambda_tags_from_arn
 from steps.enums import AwsEventSource
@@ -19,14 +21,14 @@ logger = logging.getLogger()
 logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
 
 
-def enrich(events, cache_layer):
+def enrich(events, cache_layer, context=None):
     """Adds event-specific tags and attributes to each event
 
     Args:
         events (dict[]): the list of event dicts we want to enrich
     """
     for event in events:
-        add_metadata_to_lambda_log(event, cache_layer)
+        add_metadata_to_lambda_log(event, cache_layer, context)
         extract_ddtags_from_message(event)
         extract_host_from_cloudtrails(event)
         extract_host_from_guardduty(event)
@@ -35,7 +37,7 @@ def enrich(events, cache_layer):
     return events
 
 
-def add_metadata_to_lambda_log(event, cache_layer):
+def add_metadata_to_lambda_log(event, cache_layer, context):
     """Mutate log dict to add tags, host, and service metadata
 
     * tags for functionname, aws_account, region
@@ -89,6 +91,15 @@ def add_metadata_to_lambda_log(event, cache_layer):
         event[DD_CUSTOM_TAGS] = event[DD_CUSTOM_TAGS].replace("env:none", "")
 
     tags += custom_lambda_tags
+
+    # Set tracing behavior for all step functions
+    if context:
+        client = boto3.client('lambda')
+        response = client.list_tags(Resource=context.function_name)
+        lambda_tags = response.get('Tags', {})
+        trace_enabled = lambda_tags.get(DD_STEP_FUNCTION_TRACE_ENABLED, False)
+
+        tags += [f"{DD_STEP_FUNCTION_TRACE_ENABLED}:{trace_enabled}"]
 
     # Dedup tags, so we don't end up with functionname twice
     tags = list(set(tags))
