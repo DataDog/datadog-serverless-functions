@@ -198,7 +198,7 @@ prod_release() {
         git commit --signoff --message "ci(release): Update version from ${CURRENT_VERSION} to ${FORWARDER_VERSION}"
     fi
 
-    GIT_COMMIT="$(git rev-parse --short HEAD)"
+    GIT_COMMIT="$(git rev-parse HEAD)"
     log_info "Using ${GIT_COMMIT} commit as the release target..."
 
     if [[ ! -e ${BUNDLE_PATH} ]] || ! user_confirm "Bundle already exists. Do you want to use it" "true"; then
@@ -216,7 +216,7 @@ prod_release() {
     git push origin master
 
     # Create a GitHub release
-    log_info "Releasing aws-dd-forwarder-${FORWARDER_VERSION} to GitHub..."
+    log_info "Releasing aws-dd-forwarder-${FORWARDER_VERSION}, targetting commit ${GIT_COMMIT}, to GitHub..."
     hub release create -a "${BUNDLE_PATH}" -m "aws-dd-forwarder-${FORWARDER_VERSION}" -t "${GIT_COMMIT}" "aws-dd-forwarder-${FORWARDER_VERSION}"
 
     # Set vars for use in the installation test
