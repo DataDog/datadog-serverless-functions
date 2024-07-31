@@ -163,11 +163,11 @@ Parameters:
     Description: Set to false to disable log forwarding, while continuing to forward other observability data, such as metrics and traces from Lambda functions.
   DdStepFunctionTraceEnabled:
     Type: String
-    Default: true
+    Default: false
     AllowedValues:
       - true
       - false
-    Description: Set to false to disable log to trace conversion for Step Functions, while continuing to forward logs.
+    Description: Set to true to enable log to trace conversion for Step Functions.
   DdUseCompression:
     Type: String
     Default: true
