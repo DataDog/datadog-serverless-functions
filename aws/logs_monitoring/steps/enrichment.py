@@ -21,15 +21,14 @@ logger = logging.getLogger()
 logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
 
 
-def enrich(events, cache_layer, context=None):
+def enrich(events, cache_layer):
     """Adds event-specific tags and attributes to each event
 
     Args:
         events (dict[]): the list of event dicts we want to enrich
-        context (LambdaContext): optionally used to fetch this function's tags
     """
     for event in events:
-        add_metadata_to_lambda_log(event, cache_layer, context)
+        add_metadata_to_lambda_log(event, cache_layer)
         extract_ddtags_from_message(event)
         extract_host_from_cloudtrails(event)
         extract_host_from_guardduty(event)
@@ -38,7 +37,7 @@ def enrich(events, cache_layer, context=None):
     return events
 
 
-def add_metadata_to_lambda_log(event, cache_layer, context):
+def add_metadata_to_lambda_log(event, cache_layer):
     """Mutate log dict to add tags, host, and service metadata
 
     * tags for functionname, aws_account, region
@@ -49,7 +48,6 @@ def add_metadata_to_lambda_log(event, cache_layer, context):
 
     Args:
         event (dict): the event we are adding Lambda metadata to
-        context (LambdaContext): used to fetch tags for setting step function tracing behavior
     """
     lambda_log_metadata = event.get("lambda", {})
     lambda_log_arn = lambda_log_metadata.get("arn")

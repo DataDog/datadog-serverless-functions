@@ -73,7 +73,7 @@ def datadog_forwarder(event, context):
     init_forwarder(function_prefix)
 
     parsed = parse(event, context, cache_layer)
-    enriched = enrich(parsed, cache_layer, context)
+    enriched = enrich(parsed, cache_layer)
     transformed = transform(enriched)
     metrics, logs, trace_payloads = split(transformed)
 
