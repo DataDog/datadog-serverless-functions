@@ -388,18 +388,6 @@ SSL encrypted TCP connection, set this parameter to true.
 `DdForwardLog`
 : Set to false to disable log forwarding, while continuing to forward other observability data, such as metrics and traces from Lambda functions.
 
-`DdStepFunctionTraceEnabled`
-: Set to false to disable log to trace conversion for Step Functions, while continuing to forward logs.
-
-`DdFetchLambdaTags`
-: Let the Forwarder fetch Lambda tags using GetResources API calls and apply them to logs, metrics, and traces. If set to true, permission `tag:GetResources` will be automatically added to the Lambda execution IAM role.
-
-`DdFetchLogGroupTags`
-: Let the forwarder fetch Log Group tags using ListTagsLogGroup and apply them to logs, metrics, and traces. If set to true, permission `logs:ListTagsLogGroup` will be automatically added to the Lambda execution IAM role.
-
-`DdFetchStepFunctionsTags`
-: Let the Forwarder fetch Step Functions tags using GetResources API calls and apply them to logs and traces (if Step Functions tracing is enabled). If set to true, permission `tag:GetResources` will be automatically added to the Lambda execution IAM role.
-
 ### Log scrubbing (optional)
 
 `RedactIp`
@@ -435,6 +423,18 @@ Some examples of regular expressions that can be used for log filtering:
 To test different patterns against your logs, turn on [debug logs](#troubleshooting).
 
 ### Advanced (optional)
+
+`DdFetchLambdaTags`
+: Let the Forwarder fetch Lambda tags using GetResources API calls and apply them to logs, metrics, and traces. If set to true, permission `tag:GetResources` will be automatically added to the Lambda execution IAM role.
+
+`DdFetchLogGroupTags`
+: Let the forwarder fetch Log Group tags using ListTagsLogGroup and apply them to logs, metrics, and traces. If set to true, permission `logs:ListTagsLogGroup` will be automatically added to the Lambda execution IAM role.
+
+`DdFetchStepFunctionsTags`
+: Let the Forwarder fetch Step Functions tags using GetResources API calls and apply them to logs and traces (if Step Functions tracing is enabled). If set to true, permission `tag:GetResources` will be automatically added to the Lambda execution IAM role.
+
+`DdStepFunctionTraceEnabled`
+: Set to false to disable log to trace conversion for Step Functions, while continuing to forward logs.
 
 `SourceZipUrl`
 : Do not change unless you know what you are doing. Override the default location of the function source code.

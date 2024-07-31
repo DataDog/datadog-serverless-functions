@@ -1146,7 +1146,6 @@ Metadata:
           - DdCompressionLevel
           - DdMaxWorkers
           - DdForwardLog
-          - DdStepFunctionTraceEnabled
       - Label:
           default: Log Scrubbing (Optional)
         Parameters:
@@ -1165,6 +1164,7 @@ Metadata:
           - DdFetchLambdaTags
           - DdFetchLogGroupTags
           - DdFetchStepFunctionsTags
+          - DdStepFunctionTraceEnabled
           - TagsCacheTTLSeconds
           - SourceZipUrl
           - InstallAsLayer
