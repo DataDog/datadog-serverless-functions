@@ -148,7 +148,7 @@ Starting version 3.107.0 a new feature is added to enable Lambda function to sto
 
 ### Upgrade an older version to +3.106.0
 
-Starting version 3.106.0 Lambda function has been updated to add a prefix to cache filenames stored in the S3 bucket configured in `DD_S3_BUCKET_NAME`. This allows to use the same bucket to store cache files from several functions.  
+Starting version 3.106.0 Lambda function has been updated to add a prefix to cache filenames stored in the S3 bucket configured in `DD_S3_BUCKET_NAME`. This allows to use the same bucket to store cache files from several functions.
 Additionally, starting this version, the forwarder will attach custom S3 bucket tags by default to all logs exported to S3. For example, if a service is configured to send logs to a destiantion S3 bucket, the forwarder will add the bucket's tags to the logs while pulling and forwarding the logs.
 
 ### Upgrade an older version to +3.99.0
@@ -387,6 +387,9 @@ SSL encrypted TCP connection, set this parameter to true.
 
 `DdForwardLog`
 : Set to false to disable log forwarding, while continuing to forward other observability data, such as metrics and traces from Lambda functions.
+
+`DdStepFunctionTraceEnabled`
+: Set to false to disable log to trace conversion for Step Functions, while continuing to forward logs.
 
 `DdFetchLambdaTags`
 : Let the Forwarder fetch Lambda tags using GetResources API calls and apply them to logs, metrics, and traces. If set to true, permission `tag:GetResources` will be automatically added to the Lambda execution IAM role.

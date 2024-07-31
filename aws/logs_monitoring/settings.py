@@ -58,6 +58,11 @@ DD_API_KEY = "<YOUR_DATADOG_API_KEY>"
 #
 DD_FORWARD_LOG = get_env_var("DD_FORWARD_LOG", "true", boolean=True)
 
+## @param DD_STEP_FUNCTION_TRACE_ENABLED - boolean - optional - default: true
+## Set this variable to `False` to disable log to trace conversion for Step Functions, while continuing to forward logs.
+#
+DD_STEP_FUNCTION_TRACE_ENABLED = get_env_var("DD_STEP_FUNCTION_TRACE_ENABLED", default="true", boolean=True)
+
 ## @param DD_USE_TCP - boolean - optional -default: false
 ## Change this value to `true` to send your logs and metrics using the TCP network client
 ## By default, it uses the HTTP client.
@@ -250,7 +255,6 @@ FORWARDERMEMSIZE_STRING = "forwarder_memorysize"
 FORWARDERVERSION_STRING = "forwarder_version"
 GOV_STRING = "gov"
 CN_STRING = "cn"
-DD_STEP_FUNCTION_TRACE_ENABLED = "dd_step_function_trace_enabled"
 
 # Additional target lambda invoked async with event data
 DD_ADDITIONAL_TARGET_LAMBDAS = get_env_var("DD_ADDITIONAL_TARGET_LAMBDAS", default=None)
