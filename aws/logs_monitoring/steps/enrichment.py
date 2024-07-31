@@ -33,6 +33,10 @@ def enrich(events, cache_layer):
         extract_host_from_guardduty(event)
         extract_host_from_route53(event)
 
+        # Set tracing behavior for all step functions
+        if DD_STEP_FUNCTION_TRACE_ENABLED:
+            event[DD_CUSTOM_TAGS] = ",".join([event[DD_CUSTOM_TAGS]] + ["dd_step_function_trace_enabled:true"])
+
     return events
 
 
@@ -90,10 +94,6 @@ def add_metadata_to_lambda_log(event, cache_layer):
         event[DD_CUSTOM_TAGS] = event[DD_CUSTOM_TAGS].replace("env:none", "")
 
     tags += custom_lambda_tags
-
-    # Set tracing behavior for all step functions
-    if DD_STEP_FUNCTION_TRACE_ENABLED:
-        tags += ["dd_step_function_trace_enabled:true"]
 
     # Dedup tags, so we don't end up with functionname twice
     tags = list(set(tags))
