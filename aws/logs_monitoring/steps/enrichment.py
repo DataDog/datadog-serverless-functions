@@ -35,7 +35,9 @@ def enrich(events, cache_layer):
 
         # Set tracing behavior for all step functions
         if DD_STEP_FUNCTION_TRACE_ENABLED:
-            event[DD_CUSTOM_TAGS] = ",".join([event[DD_CUSTOM_TAGS]] + ["dd_step_function_trace_enabled:true"])
+            event[DD_CUSTOM_TAGS] = ",".join(
+                [event[DD_CUSTOM_TAGS]] + ["dd_step_function_trace_enabled:true"]
+            )
 
     return events
 
