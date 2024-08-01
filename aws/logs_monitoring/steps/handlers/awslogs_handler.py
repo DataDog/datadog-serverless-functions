@@ -184,10 +184,10 @@ class AwsLogsHandler:
                 + ",".join(formatted_stepfunctions_tags)
             )
 
-        if os.environ.get("DD_STEP_FUNCTION_TRACE_ENABLED", "false").lower() == "true":
+        if os.environ.get("DD_STEP_FUNCTIONS_TRACE_ENABLED", "false").lower() == "true":
             self.metadata[DD_CUSTOM_TAGS] = ",".join(
                 [self.metadata.get(DD_CUSTOM_TAGS, [])]
-                + ["dd_step_function_trace_enabled:true"]
+                + ["dd_step_functions_trace_enabled:true"]
             )
 
     def handle_verified_access_source(self):

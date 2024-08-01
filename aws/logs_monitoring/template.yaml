@@ -161,7 +161,7 @@ Parameters:
       - true
       - false
     Description: Set to false to disable log forwarding, while continuing to forward other observability data, such as metrics and traces from Lambda functions.
-  DdStepFunctionTraceEnabled:
+  DdStepFunctionsTraceEnabled:
     Type: String
     Default: false
     AllowedValues:
@@ -398,9 +398,9 @@ Conditions:
     Fn::Equals:
       - Ref: DdForwardLog
       - false
-  SetDdStepFunctionTraceEnabled:
+  SetDdStepFunctionsTraceEnabled:
     Fn::Equals:
-      - Ref: DdStepFunctionTraceEnabled
+      - Ref: DdStepFunctionsTraceEnabled
       - true
   SetDdUseCompression:
     Fn::Equals:
@@ -626,10 +626,10 @@ Resources:
               - SetDdForwardLog
               - Ref: DdForwardLog
               - Ref: AWS::NoValue
-          DD_STEP_FUNCTION_TRACE_ENABLED:
+          DD_STEP_FUNCTIONS_TRACE_ENABLED:
             Fn::If:
-              - SetDdStepFunctionTraceEnabled
-              - Ref: DdStepFunctionTraceEnabled
+              - SetDdStepFunctionsTraceEnabled
+              - Ref: DdStepFunctionsTraceEnabled
               - Ref: AWS::NoValue
           DD_USE_COMPRESSION:
             Fn::If:
@@ -1164,7 +1164,7 @@ Metadata:
           - DdFetchLambdaTags
           - DdFetchLogGroupTags
           - DdFetchStepFunctionsTags
-          - DdStepFunctionTraceEnabled
+          - DdStepFunctionsTraceEnabled
           - TagsCacheTTLSeconds
           - SourceZipUrl
           - InstallAsLayer
