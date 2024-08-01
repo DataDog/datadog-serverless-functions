@@ -7,7 +7,6 @@ from settings import (
     DD_SERVICE,
     DD_HOST,
     DD_CUSTOM_TAGS,
-    DD_STEP_FUNCTION_TRACE_ENABLED,
 )
 from enhanced_lambda_metrics import parse_lambda_tags_from_arn
 from steps.enums import AwsEventSource
@@ -32,12 +31,6 @@ def enrich(events, cache_layer):
         extract_host_from_cloudtrails(event)
         extract_host_from_guardduty(event)
         extract_host_from_route53(event)
-
-        # Set tracing behavior for all step functions
-        if DD_STEP_FUNCTION_TRACE_ENABLED:
-            event[DD_CUSTOM_TAGS] = ",".join(
-                [event[DD_CUSTOM_TAGS]] + ["dd_step_function_trace_enabled:true"]
-            )
 
     return events
 

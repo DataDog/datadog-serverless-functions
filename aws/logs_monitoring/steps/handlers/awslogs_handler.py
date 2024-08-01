@@ -21,6 +21,7 @@ from settings import (
     DD_SOURCE,
     DD_HOST,
     DD_CUSTOM_TAGS,
+    DD_STEP_FUNCTION_TRACE_ENABLED,
 )
 
 RDS_REGEX = re.compile("/aws/rds/(instance|cluster)/(?P<host>[^/]+)/(?P<name>[^/]+)")
@@ -182,6 +183,12 @@ class AwsLogsHandler:
                 else self.metadata[DD_CUSTOM_TAGS]
                 + ","
                 + ",".join(formatted_stepfunctions_tags)
+            )
+
+        if DD_STEP_FUNCTION_TRACE_ENABLED:
+            self.metadata[DD_CUSTOM_TAGS] = ",".join(
+                [self.metadata.get(DD_CUSTOM_TAGS, [])]
+                + ["dd_step_function_trace_enabled:true"]
             )
 
     def handle_verified_access_source(self):
