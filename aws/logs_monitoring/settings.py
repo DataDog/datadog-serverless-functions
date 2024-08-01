@@ -58,13 +58,6 @@ DD_API_KEY = "<YOUR_DATADOG_API_KEY>"
 #
 DD_FORWARD_LOG = get_env_var("DD_FORWARD_LOG", "true", boolean=True)
 
-## @param DD_STEP_FUNCTION_TRACE_ENABLED - boolean - optional - default: true
-## Set this variable to `True` to enable log to trace conversion for Step Functions.
-#
-DD_STEP_FUNCTION_TRACE_ENABLED = get_env_var(
-    "DD_STEP_FUNCTION_TRACE_ENABLED", default="false", boolean=True
-)
-
 ## @param DD_USE_TCP - boolean - optional -default: false
 ## Change this value to `true` to send your logs and metrics using the TCP network client
 ## By default, it uses the HTTP client.
