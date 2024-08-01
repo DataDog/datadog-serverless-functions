@@ -71,6 +71,7 @@ class TestAWSLogsHandler(unittest.TestCase):
 
     @patch("caching.cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.__init__")
     @patch("caching.cloudwatch_log_group_cache.send_forwarder_internal_metrics")
+    @patch.dict("os.environ", {"DD_STEP_FUNCTIONS_TRACE_ENABLED": "true"})
     def test_awslogs_handler_step_functions_tags_added_properly(
         self,
         mock_forward_metrics,

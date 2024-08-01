@@ -184,6 +184,12 @@ class AwsLogsHandler:
                 + ",".join(formatted_stepfunctions_tags)
             )
 
+        if os.environ.get("DD_STEP_FUNCTIONS_TRACE_ENABLED", "false").lower() == "true":
+            self.metadata[DD_CUSTOM_TAGS] = ",".join(
+                [self.metadata.get(DD_CUSTOM_TAGS, [])]
+                + ["dd_step_functions_trace_enabled:true"]
+            )
+
     def handle_verified_access_source(self):
         try:
             message = json.loads(self.aws_attributes.get_log_events()[0].get("message"))

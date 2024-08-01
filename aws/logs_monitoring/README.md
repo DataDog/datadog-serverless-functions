@@ -148,7 +148,7 @@ Starting version 3.107.0 a new feature is added to enable Lambda function to sto
 
 ### Upgrade an older version to +3.106.0
 
-Starting version 3.106.0 Lambda function has been updated to add a prefix to cache filenames stored in the S3 bucket configured in `DD_S3_BUCKET_NAME`. This allows to use the same bucket to store cache files from several functions.  
+Starting version 3.106.0 Lambda function has been updated to add a prefix to cache filenames stored in the S3 bucket configured in `DD_S3_BUCKET_NAME`. This allows to use the same bucket to store cache files from several functions.
 Additionally, starting this version, the forwarder will attach custom S3 bucket tags by default to all logs exported to S3. For example, if a service is configured to send logs to a destiantion S3 bucket, the forwarder will add the bucket's tags to the logs while pulling and forwarding the logs.
 
 ### Upgrade an older version to +3.99.0
@@ -388,15 +388,6 @@ SSL encrypted TCP connection, set this parameter to true.
 `DdForwardLog`
 : Set to false to disable log forwarding, while continuing to forward other observability data, such as metrics and traces from Lambda functions.
 
-`DdFetchLambdaTags`
-: Let the Forwarder fetch Lambda tags using GetResources API calls and apply them to logs, metrics, and traces. If set to true, permission `tag:GetResources` will be automatically added to the Lambda execution IAM role.
-
-`DdFetchLogGroupTags`
-: Let the forwarder fetch Log Group tags using ListTagsLogGroup and apply them to logs, metrics, and traces. If set to true, permission `logs:ListTagsLogGroup` will be automatically added to the Lambda execution IAM role.
-
-`DdFetchStepFunctionsTags`
-: Let the Forwarder fetch Step Functions tags using GetResources API calls and apply them to logs and traces (if Step Functions tracing is enabled). If set to true, permission `tag:GetResources` will be automatically added to the Lambda execution IAM role.
-
 ### Log scrubbing (optional)
 
 `RedactIp`
@@ -432,6 +423,18 @@ Some examples of regular expressions that can be used for log filtering:
 To test different patterns against your logs, turn on [debug logs](#troubleshooting).
 
 ### Advanced (optional)
+
+`DdFetchLambdaTags`
+: Let the Forwarder fetch Lambda tags using GetResources API calls and apply them to logs, metrics, and traces. If set to true, permission `tag:GetResources` will be automatically added to the Lambda execution IAM role.
+
+`DdFetchLogGroupTags`
+: Let the forwarder fetch Log Group tags using ListTagsLogGroup and apply them to logs, metrics, and traces. If set to true, permission `logs:ListTagsLogGroup` will be automatically added to the Lambda execution IAM role.
+
+`DdFetchStepFunctionsTags`
+: Let the Forwarder fetch Step Functions tags using GetResources API calls and apply them to logs and traces (if Step Functions tracing is enabled). If set to true, permission `tag:GetResources` will be automatically added to the Lambda execution IAM role.
+
+`DdStepFunctionTraceEnabled`
+: Set to true to enable tracing for all Step Functions.
 
 `SourceZipUrl`
 : Do not change unless you know what you are doing. Override the default location of the function source code.
