@@ -434,7 +434,7 @@ To test different patterns against your logs, turn on [debug logs](#troubleshoot
 : Let the Forwarder fetch Step Functions tags using GetResources API calls and apply them to logs and traces (if Step Functions tracing is enabled). If set to true, permission `tag:GetResources` will be automatically added to the Lambda execution IAM role.
 
 `DdStepFunctionTraceEnabled`
-: Set to true to enable log to trace conversion for all Step Functions.
+: Set to true to enable tracing for all Step Functions.
 
 `SourceZipUrl`
 : Do not change unless you know what you are doing. Override the default location of the function source code.

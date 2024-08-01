@@ -167,7 +167,7 @@ Parameters:
     AllowedValues:
       - true
       - false
-    Description: Set to true to enable log to trace conversion for all Step Functions.
+    Description: Set to true to enable tracing for all Step Functions.
   DdUseCompression:
     Type: String
     Default: true
