@@ -351,6 +351,14 @@ Conditions:
     Fn::Equals:
       - Ref: DdFetchLogGroupTags
       - true
+  ShouldDdFetchTags:
+    Fn::Or:
+      - Fn::Equals:
+          - Ref: DdFetchLogGroupTags
+          - true
+      - Fn::Equals:
+          - Ref: DdFetchLambdaTags
+          - true
   SetDdFetchStepFunctionsTags:
     Fn::Equals:
       - Ref: DdFetchStepFunctionsTags
@@ -446,7 +454,8 @@ Conditions:
       - Fn::Equals:
           - Ref: ReservedConcurrency
           - ""
-  ShouldUseAccessLogBucket: !Not [!Equals [!Ref DdForwarderBucketsAccessLogsTarget, ""]]
+  ShouldUseAccessLogBucket:
+    !Not [!Equals [!Ref DdForwarderBucketsAccessLogsTarget, ""]]
   SetForwarderBucket:
     Fn::Or:
       - Condition: CreateS3Bucket
@@ -509,7 +518,10 @@ Resources:
             S3Key:
               Fn::Sub:
                 - "aws-dd-forwarder-${DdForwarderVersion}.zip"
-                - {DdForwarderVersion: !FindInMap [Constants, DdForwarder, Version]}
+                - {
+                    DdForwarderVersion:
+                      !FindInMap [Constants, DdForwarder, Version],
+                  }
           - ZipFile: " "
       MemorySize:
         Ref: MemorySize
@@ -779,8 +791,9 @@ Resources:
                     - Fn::Sub: "${DdApiKeySecretArn}*"
                 Effect: Allow
               # Fetch Lambda resource tags for data enrichment
+              # Fetch Step Functions resource tags for data enrichment
               - Fn::If:
-                  - SetDdFetchLambdaTags
+                  - ShouldDdFetchTags
                   - Action:
                       - tag:GetResources
                     Resource: "*"
@@ -791,14 +804,6 @@ Resources:
                   - SetDdFetchLogGroupTags
                   - Action:
                       - logs:ListTagsForResource
-                    Resource: "*"
-                    Effect: Allow
-                  - Ref: AWS::NoValue
-              # Fetch Step Functions resource tags for data enrichment
-              - Fn::If:
-                  - SetDdFetchStepFunctionsTags
-                  - Action:
-                      - tag:GetResources
                     Resource: "*"
                     Effect: Allow
                   - Ref: AWS::NoValue
@@ -944,7 +949,10 @@ Resources:
           - !Ref SourceZipUrl
           - Fn::Sub:
               - "https://github.com/DataDog/datadog-serverless-functions/releases/download/aws-dd-forwarder-${DdForwarderVersion}/aws-dd-forwarder-${DdForwarderVersion}.zip"
-              - {DdForwarderVersion: !FindInMap [Constants, DdForwarder, Version]}
+              - {
+                  DdForwarderVersion:
+                    !FindInMap [Constants, DdForwarder, Version],
+                }
   # The Forwarder's source code is too big to fit the inline code size limit for CloudFormation. In most of AWS
   # partitions and regions, the Forwarder is able to load its source code from a Lambda layer attached to it.
   # In places where Datadog can't/doesn't yet publish Lambda layers, use another Lambda to copy the source code

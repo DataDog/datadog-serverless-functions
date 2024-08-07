@@ -165,7 +165,7 @@ LOG_LEVEL=${LOG_LEVEL} \
         SNAPSHOTS_DIR_NAME="./${SNAPSHOTS_DIR_NAME}" \
         DD_FETCH_LAMBDA_TAGS=${DD_FETCH_LAMBDA_TAGS} \
         DD_FETCH_STEP_FUNCTIONS_TAGS=${DD_FETCH_STEP_FUNCTIONS_TAGS} \
-        docker-compose up --build --abort-on-container-exit
+        docker compose up --build --abort-on-container-exit
 
 if [ $ADDITIONAL_LAMBDA == true ]; then
         echo "Waiting for external lambda logs..."

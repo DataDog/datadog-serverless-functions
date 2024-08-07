@@ -4,29 +4,30 @@
 # Copyright 2021 Datadog, Inc.
 
 import json
-import os
-import boto3
 import logging
-import requests
+import os
 from hashlib import sha1
-from datadog_lambda.wrapper import datadog_lambda_wrapper
+
+import boto3
+import requests
 from datadog import api
-from enhanced_lambda_metrics import parse_and_submit_enhanced_metrics
-from steps.parsing import parse
-from steps.enrichment import enrich
-from steps.transformation import transform
-from steps.splitting import split
+from datadog_lambda.wrapper import datadog_lambda_wrapper
+
 from caching.cache_layer import CacheLayer
+from enhanced_lambda_metrics import parse_and_submit_enhanced_metrics
 from forwarder import Forwarder
 from settings import (
+    DD_ADDITIONAL_TARGET_LAMBDAS,
     DD_API_KEY,
-    DD_SKIP_SSL_VALIDATION,
     DD_API_URL,
     DD_FORWARDER_VERSION,
-    DD_ADDITIONAL_TARGET_LAMBDAS,
     DD_RETRY_KEYWORD,
+    DD_SKIP_SSL_VALIDATION,
 )
-
+from steps.enrichment import enrich
+from steps.parsing import parse
+from steps.splitting import split
+from steps.transformation import transform
 
 logger = logging.getLogger()
 logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))

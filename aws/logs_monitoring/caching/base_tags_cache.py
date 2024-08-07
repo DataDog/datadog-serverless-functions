@@ -1,16 +1,18 @@
-import os
-import logging
 import json
-from time import time
+import logging
+import os
 from random import randint
+from time import time
+
 import boto3
 from botocore.exceptions import ClientError
+
+from caching.common import convert_last_modified_time, get_last_modified_time
 from settings import (
     DD_S3_BUCKET_NAME,
-    DD_TAGS_CACHE_TTL_SECONDS,
     DD_S3_CACHE_LOCK_TTL_SECONDS,
+    DD_TAGS_CACHE_TTL_SECONDS,
 )
-from caching.common import get_last_modified_time
 from telemetry import send_forwarder_internal_metrics
 
 JITTER_MIN = 1
@@ -61,23 +63,32 @@ class BaseTagsCache(object):
             self.logger.debug("Unable to write new cache to S3", exc_info=True)
 
     def acquire_s3_cache_lock(self):
-        """Acquire cache lock"""
-        cache_lock_object = self.s3_client.Object(
-            DD_S3_BUCKET_NAME, self.get_cache_lock_with_prefix()
-        )
-        try:
-            file_content = cache_lock_object.get()
+        key = self.get_cache_lock_with_prefix()
 
-            # check lock file expiration
-            last_modified_unix_time = get_last_modified_time(file_content)
-            if last_modified_unix_time + DD_S3_CACHE_LOCK_TTL_SECONDS >= time():
-                return False
+        """Acquire cache lock"""
+        try:
+            response = self.s3_client.list_objects_v2(
+                Bucket=DD_S3_BUCKET_NAME, Prefix=key
+            )
+            for content in response.get("Contents", []):
+                if content["Key"] != key:
+                    continue
+
+                # check lock file expiration
+                last_modified_unix_time = convert_last_modified_time(
+                    content["LastModified"]
+                )
+                if last_modified_unix_time + DD_S3_CACHE_LOCK_TTL_SECONDS >= time():
+                    return False
+
         except Exception:
             self.logger.debug("Unable to get cache lock file")
 
         # lock file doesn't exist, create file to acquire lock
         try:
-            cache_lock_object.put(Body=(bytes("lock".encode("UTF-8"))))
+            self.s3_client.Object(DD_S3_BUCKET_NAME, key).put(
+                Body=(bytes("lock".encode("UTF-8")))
+            )
             send_forwarder_internal_metrics("s3_cache_lock_acquired")
             self.logger.debug("S3 cache lock acquired")
         except ClientError:
