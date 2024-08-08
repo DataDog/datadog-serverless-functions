@@ -1,6 +1,6 @@
-import os
 import datetime
 import logging
+import os
 import re
 from collections import defaultdict
 
@@ -19,8 +19,11 @@ def get_last_modified_time(s3_file):
     last_modified_date = datetime.datetime.strptime(
         last_modified_str, "%a, %d %b %Y %H:%M:%S %Z"
     )
-    last_modified_unix_time = int(last_modified_date.strftime("%s"))
-    return last_modified_unix_time
+    return convert_last_modified_time(last_modified_date)
+
+
+def convert_last_modified_time(last_modified_time):
+    return int(last_modified_time.strftime("%s"))
 
 
 def parse_get_resources_response_for_tags_by_arn(get_resources_page):

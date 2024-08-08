@@ -6,6 +6,7 @@ from time import time
 
 import boto3
 from botocore.config import Config
+
 from caching.common import sanitize_aws_tag_string
 from settings import (
     DD_S3_BUCKET_NAME,
