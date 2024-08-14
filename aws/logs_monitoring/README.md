@@ -555,12 +555,11 @@ The CloudFormation Stack creates following IAM roles:
     "Resource": "*"
   },
   {
-    "Action": ["s3:PutObject", "s3:DeleteObject"],
-    "Resource": "<S3Bucket to Store the Forwarder Zip>",
-    "Effect": "Allow"
-  },
-  {
-    "Action": ["s3:ListBucket"],
+    "Action": [
+      "s3:ListBucket",
+      "s3:PutObject",
+      "s3:DeleteObject"
+    ],
     "Resource": "<S3Bucket to Store the Forwarder Zip>",
     "Effect": "Allow"
   }
