@@ -57,7 +57,7 @@ Parameters:
     Description: DO NOT CHANGE unless you know what you are doing. Override the default location of the function source code.
   InstallAsLayer:
     Type: String
-    Default: true
+    Default: "true"
     Description: Whether to use the layer-based installation flow. Set to false to use our legacy installation flow, which installs a second function that copies the forwarder code from Github to an S3 bucket. Defaults to true.
     AllowedValues:
       - true
@@ -72,35 +72,35 @@ Parameters:
     Description: Add custom tags to forwarded logs, comma-delimited string, no trailing comma, e.g., env:prod,stack:classic
   DdFetchLambdaTags:
     Type: String
-    Default: true
+    Default: "true"
     AllowedValues:
       - true
       - false
     Description: Let the forwarder fetch Lambda tags using GetResources API calls and apply them to logs, metrics and traces. If set to true, permission tag:GetResources will be automatically added to the Lambda execution IAM role. The tags are cached in memory and S3 so that they'll only be fetched when the function cold starts or when the TTL (1 hour) expires. The forwarder increments the aws.lambda.enhanced.get_resources_api_calls metric for each API call made.
   DdFetchLogGroupTags:
     Type: String
-    Default: true
+    Default: "true"
     AllowedValues:
       - true
       - false
     Description: Let the forwarder fetch Log Group tags using ListTagsLogGroup and apply them to logs, metrics and traces. If set to true, permission logs:ListTagsLogGroup will be automatically added to the Lambda execution IAM role. The tags are cached in memory and S3 so that they'll only be fetched when the function cold starts or when the TTL (1 hour) expires. The forwarder increments the aws.lambda.enhanced.list_tags_log_group_api_call metric for each API call made.
   DdFetchStepFunctionsTags:
     Type: String
-    Default: true
+    Default: "true"
     AllowedValues:
       - true
       - false
     Description: Let the forwarder fetch Step Functions tags using GetResources API calls and apply them to logs, metrics and traces. If set to true, permission tag:GetResources will be automatically added to the Lambda execution IAM role. The tags are cached in memory and S3 so that they'll only be fetched when the function cold starts or when the TTL (1 hour) expires. The forwarder increments the aws.lambda.enhanced.get_resources_api_calls metric for each API call made.
   DdUseTcp:
     Type: String
-    Default: false
+    Default: "false"
     AllowedValues:
       - true
       - false
     Description: By default, the forwarder sends logs using HTTPS through the port 443. To send logs over an SSL encrypted TCP connection, set this parameter to true.
   DdNoSsl:
     Type: String
-    Default: false
+    Default: "false"
     AllowedValues:
       - true
       - false
@@ -115,21 +115,21 @@ Parameters:
     Description: The endpoint port to forward the logs to, useful for forwarding logs through a proxy
   DdSkipSslValidation:
     Type: String
-    Default: false
+    Default: "false"
     AllowedValues:
       - true
       - false
     Description: Send logs over HTTPS, while NOT validating the certificate provided by the endpoint. This will still encrypt the traffic between the forwarder and the log intake endpoint, but will not verify if the destination SSL certificate is valid.
   RedactIp:
     Type: String
-    Default: false
+    Default: "false"
     AllowedValues:
       - true
       - false
     Description: Replace text matching \d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3} with xxx.xxx.xxx.xxx
   RedactEmail:
     Type: String
-    Default: false
+    Default: "false"
     AllowedValues:
       - true
       - false
@@ -156,35 +156,35 @@ Parameters:
     Description: Use the supplied regular expression to detect for a new log line for multiline logs from S3, e.g., use expression "\d{2}\/\d{2}\/\d{4}" for multiline logs beginning with pattern "11/10/2014".
   DdForwardLog:
     Type: String
-    Default: true
+    Default: "true"
     AllowedValues:
       - true
       - false
     Description: Set to false to disable log forwarding, while continuing to forward other observability data, such as metrics and traces from Lambda functions.
   DdStepFunctionsTraceEnabled:
     Type: String
-    Default: false
+    Default: "false"
     AllowedValues:
       - true
       - false
     Description: Set to true to enable tracing for all Step Functions.
   DdUseCompression:
     Type: String
-    Default: true
+    Default: "true"
     AllowedValues:
       - true
       - false
     Description: Set to false to disable log compression. Only valid when sending logs over HTTP.
   DdUsePrivateLink:
     Type: String
-    Default: false
+    Default: "false"
     AllowedValues:
       - true
       - false
     Description: DEPRECATED, DO NOT CHANGE. See README.md for details. Set to true to deploy the Forwarder to a VPC and send logs, metrics, and traces via AWS PrivateLink. When set to true, must also set VPCSecurityGroupIds and VPCSubnetIds.
   DdUseVPC:
     Type: String
-    Default: false
+    Default: "false"
     AllowedValues:
       - true
       - false
@@ -240,7 +240,7 @@ Parameters:
     Description: (Optional) The name of the S3 bucket to store access logs. Leave empty if access logging is not needed.
   DdStoreFailedEvents:
     Type: String
-    Default: false
+    Default: "false"
     AllowedValues:
       - true
       - false
