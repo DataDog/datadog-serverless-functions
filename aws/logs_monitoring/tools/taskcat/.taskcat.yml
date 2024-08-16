@@ -1,0 +1,14 @@
+general:
+  auth:
+    default: "<REPLACE_AWS_PROFILE>"
+  s3_bucket: datadog-cloudformation-templates-aws-taskcat-test
+
+project:
+  name: aws-quickstart
+  regions:
+    - us-east-2
+tests:
+  default:
+    template: ./template.yaml
+    parameters:
+      DdApiKey: "<REPLACE_DD_API_KEY>"
