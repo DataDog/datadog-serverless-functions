@@ -583,7 +583,7 @@ Resources:
                   Condition:
                     StringLike:
                       s3:prefix:
-                        - "retry/*"
+                        - "failed_events/*"
                         - "log-group-cache/*"
                   Effect: Allow
                 - !Ref AWS::NoValue
