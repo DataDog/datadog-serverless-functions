@@ -6,9 +6,11 @@ from time import time
 
 import boto3
 from botocore.config import Config
+
 from caching.common import sanitize_aws_tag_string
 from settings import (
     DD_S3_BUCKET_NAME,
+    DD_S3_CACHE_DIRNAME,
     DD_S3_LOG_GROUP_CACHE_DIRNAME,
     DD_TAGS_CACHE_TTL_SECONDS,
 )
@@ -20,7 +22,7 @@ class CloudwatchLogGroupTagsCache:
         self,
         prefix,
     ):
-        self.cache_dirname = DD_S3_LOG_GROUP_CACHE_DIRNAME
+        self.cache_dirname = f"{DD_S3_CACHE_DIRNAME}/{DD_S3_LOG_GROUP_CACHE_DIRNAME}"
         self.cache_ttl_seconds = DD_TAGS_CACHE_TTL_SECONDS
         self.bucket_name = DD_S3_BUCKET_NAME
         self.cache_prefix = prefix

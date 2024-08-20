@@ -327,6 +327,9 @@ Conditions:
     - !Equals [!Ref ReservedConcurrency, ""]
   ShouldUseAccessLogBucket: !Not
     - !Equals [!Ref DdForwarderBucketsAccessLogsTarget, ""]
+  ShouldDdFetchTags: !Or
+    - !Equals [!Ref DdFetchLambdaTags, true]
+    - !Equals [!Ref DdFetchStepFunctionsTags, true]
   SetForwarderBucket: !Or
     - !Condition CreateS3Bucket
     - !Not
@@ -583,8 +586,8 @@ Resources:
                   Condition:
                     StringLike:
                       s3:prefix:
-                        - "retry/*"
-                        - "log-group-cache/*"
+                        - "failed_events/*"
+                        - "cache/*"
                   Effect: Allow
                 - !Ref AWS::NoValue
               - Action:
@@ -606,8 +609,9 @@ Resources:
                   - !Sub "${DdApiKeySecretArn}*"
                 Effect: Allow
               # Fetch Lambda resource tags for data enrichment
+              # Fetch Step Functions resource tags for data enrichment
               - !If
-                - SetDdFetchLambdaTags
+                - ShouldDdFetchTags
                 - Action:
                     - tag:GetResources
                   Resource: "*"
@@ -618,14 +622,6 @@ Resources:
                 - SetDdFetchLogGroupTags
                 - Action:
                     - logs:ListTagsForResource
-                  Resource: "*"
-                  Effect: Allow
-                - !Ref AWS::NoValue
-              # Fetch Step Functions resource tags for data enrichment
-              - !If
-                - SetDdFetchStepFunctionsTags
-                - Action:
-                    - tag:GetResources
                   Resource: "*"
                   Effect: Allow
                 - !Ref AWS::NoValue

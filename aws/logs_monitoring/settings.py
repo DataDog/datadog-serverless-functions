@@ -4,11 +4,11 @@
 # Copyright 2021 Datadog, Inc.
 
 import base64
+import logging
 import os
 
 import boto3
 import botocore.config
-import logging
 
 logger = logging.getLogger()
 logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
@@ -255,15 +255,20 @@ CN_STRING = "cn"
 DD_ADDITIONAL_TARGET_LAMBDAS = get_env_var("DD_ADDITIONAL_TARGET_LAMBDAS", default=None)
 
 DD_S3_BUCKET_NAME = get_env_var("DD_S3_BUCKET_NAME", default=None)
+
 # These default cache names remain unchanged so we can get existing cache data for these
-DD_S3_CACHE_FILENAME = "cache.json"
-DD_S3_CACHE_LOCK_FILENAME = "cache.lock"
+DD_S3_CACHE_DIRNAME = "cache"
+
+DD_S3_LAMBDA_CACHE_FILENAME = "lambda.json"
+DD_S3_LAMBDA_CACHE_LOCK_FILENAME = "lambda.lock"
+
 DD_S3_STEP_FUNCTIONS_CACHE_FILENAME = "step-functions-cache.json"
 DD_S3_STEP_FUNCTIONS_CACHE_LOCK_FILENAME = "step-functions-cache.lock"
-DD_S3_TAGS_CACHE_FILENAME = "s3-cache.json"
-DD_S3_TAGS_CACHE_LOCK_FILENAME = "s3-cache.lock"
 
-DD_S3_LOG_GROUP_CACHE_DIRNAME = "log-group-cache"
+DD_S3_TAGS_CACHE_FILENAME = "s3.json"
+DD_S3_TAGS_CACHE_LOCK_FILENAME = "s3.lock"
+
+DD_S3_LOG_GROUP_CACHE_DIRNAME = "log-group"
 
 DD_TAGS_CACHE_TTL_SECONDS = int(get_env_var("DD_TAGS_CACHE_TTL_SECONDS", default=300))
 DD_S3_CACHE_LOCK_TTL_SECONDS = 60
@@ -272,7 +277,7 @@ GET_RESOURCES_STEP_FUNCTIONS_FILTER = "states"
 GET_RESOURCES_S3_FILTER = "s3:bucket"
 
 
-# Retyer
-DD_RETRY_PATH = "failed_events"
+# Retryer
+DD_S3_RETRY_DIRNAME = "failed_events"
 DD_RETRY_KEYWORD = "retry"
 DD_STORE_FAILED_EVENTS = get_env_var("DD_STORE_FAILED_EVENTS", "false", boolean=True)

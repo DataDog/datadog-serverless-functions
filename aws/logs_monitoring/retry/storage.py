@@ -1,10 +1,12 @@
-import os
-import logging
-from time import time
 import json
+import logging
+import os
+from time import time
+
 import boto3
 from botocore.exceptions import ClientError
-from settings import DD_RETRY_PATH, DD_S3_BUCKET_NAME
+
+from settings import DD_S3_BUCKET_NAME, DD_S3_RETRY_DIRNAME
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
@@ -76,7 +78,7 @@ class Storage(object):
             return None
 
     def _get_key_prefix(self, retry_prefix):
-        return f"{DD_RETRY_PATH}/{self.function_prefix}/{str(retry_prefix)}/"
+        return f"{DD_S3_RETRY_DIRNAME}/{self.function_prefix}/{str(retry_prefix)}/"
 
     def _serialize(self, data):
         return bytes(json.dumps(data).encode("UTF-8"))

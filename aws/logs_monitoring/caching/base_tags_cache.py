@@ -1,16 +1,19 @@
-import os
-import logging
 import json
-from time import time
+import logging
+import os
 from random import randint
+from time import time
+
 import boto3
 from botocore.exceptions import ClientError
+
+from caching.common import get_last_modified_time
 from settings import (
     DD_S3_BUCKET_NAME,
-    DD_TAGS_CACHE_TTL_SECONDS,
+    DD_S3_CACHE_DIRNAME,
     DD_S3_CACHE_LOCK_TTL_SECONDS,
+    DD_TAGS_CACHE_TTL_SECONDS,
 )
-from caching.common import get_last_modified_time
 from telemetry import send_forwarder_internal_metrics
 
 JITTER_MIN = 1
@@ -26,6 +29,7 @@ class BaseTagsCache(object):
         cache_lock_filename,
         tags_ttl_seconds=DD_TAGS_CACHE_TTL_SECONDS,
     ):
+        self.cache_dirname = DD_S3_CACHE_DIRNAME
         self.tags_ttl_seconds = tags_ttl_seconds
         self.tags_by_id = {}
         self.last_tags_fetch_time = 0
@@ -43,10 +47,10 @@ class BaseTagsCache(object):
         return self.resource_tagging_client.get_paginator("get_resources")
 
     def get_cache_name_with_prefix(self):
-        return f"{self.cache_prefix}_{self.cache_filename}"
+        return f"{self.cache_dirname}/{self.cache_prefix}_{self.cache_filename}"
 
     def get_cache_lock_with_prefix(self):
-        return f"{self.cache_prefix}_{self.cache_lock_filename}"
+        return f"{self.cache_dirname}/{self.cache_prefix}_{self.cache_lock_filename}"
 
     def write_cache_to_s3(self, data):
         """Writes tags cache to s3"""
