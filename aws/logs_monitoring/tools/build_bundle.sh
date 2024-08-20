@@ -34,7 +34,7 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 cd $DIR
 
 # Read the desired version
-if [ -z "$1" ]; then
+if [[ -z ${1:-} ]]; then
     log_error "Must specify a desired version number"
 elif [[ ! $1 =~ [0-9]+\.[0-9]+\.[0-9]+ ]]; then
     log_error "Must use a semantic version, e.g., 3.1.4"

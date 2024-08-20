@@ -587,7 +587,7 @@ Resources:
                     StringLike:
                       s3:prefix:
                         - "retry/*"
-                        - "log-group-cache/*"
+                        - "cache/*"
                   Effect: Allow
                 - !Ref AWS::NoValue
               - Action:
