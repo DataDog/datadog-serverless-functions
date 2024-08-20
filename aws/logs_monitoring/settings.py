@@ -277,7 +277,7 @@ GET_RESOURCES_STEP_FUNCTIONS_FILTER = "states"
 GET_RESOURCES_S3_FILTER = "s3:bucket"
 
 
-# Retyer
-DD_RETRY_PATH = "failed_events"
+# Retryer
+DD_S3_RETRY_DIRNAME = "failed_events"
 DD_RETRY_KEYWORD = "retry"
 DD_STORE_FAILED_EVENTS = get_env_var("DD_STORE_FAILED_EVENTS", "false", boolean=True)
