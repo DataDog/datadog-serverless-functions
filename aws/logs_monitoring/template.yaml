@@ -3,8 +3,8 @@ Description: Pushes logs, metrics and traces from AWS to Datadog.
 Mappings:
   Constants:
     DdForwarder:
-      Version: 3.121.0
-      LayerVersion: "61"
+      Version: 3.122.0
+      LayerVersion: "62"
 Parameters:
   DdApiKey:
     Type: String
@@ -250,16 +250,15 @@ Parameters:
     Default: ""
     Description: The name of an existing s3 bucket to use. If not provided, a new bucket will be created.
 Conditions:
-  IsAWSChina: !Equals [!Ref AWS::Partition, aws-cn]
-  IsGovCloud: !Equals [!Ref AWS::Partition, aws-us-gov]
+  IsAWSChina: !Equals [!Ref 'AWS::Partition', aws-cn]
+  IsGovCloud: !Equals [!Ref 'AWS::Partition', aws-us-gov]
   UseZipCopier: !Or
     - !Condition IsAWSChina
     - !And
       - !Equals [!Ref InstallAsLayer, "false"]
       - !Not
         - !Condition SetLayerARN
-  CreateDdApiKeySecret:
-    !Equals [!Ref DdApiKeySecretArn, arn:aws:secretsmanager:DEFAULT]
+  CreateDdApiKeySecret: !Equals [!Ref DdApiKeySecretArn, 'arn:aws:secretsmanager:DEFAULT']
   SetFunctionName: !Not
     - !Equals [!Ref FunctionName, DatadogForwarder]
   SetSourceZipUrl: !Not
@@ -306,8 +305,7 @@ Conditions:
     - !Condition SetDdUsePrivateLink
     - !Condition SetDdUseVPC
   SetDdForwardLog: !Equals [!Ref DdForwardLog, false]
-  SetDdStepFunctionsTraceEnabled:
-    !Equals [!Ref DdStepFunctionsTraceEnabled, true]
+  SetDdStepFunctionsTraceEnabled: !Equals [!Ref DdStepFunctionsTraceEnabled, true]
   SetDdUseCompression: !Equals [!Ref DdUseCompression, false]
   SetDdCompressionLevel: !Not
     - !Equals [!Ref DdCompressionLevel, 6]
@@ -379,10 +377,7 @@ Resources:
             - !Ref DdForwarderExistingBucketName
           S3Key: !Sub
             - "aws-dd-forwarder-${DdForwarderVersion}.zip"
-            - {
-                DdForwarderVersion:
-                  !FindInMap [Constants, DdForwarder, Version],
-              }
+            - {DdForwarderVersion: !FindInMap [Constants, DdForwarder, Version]}
         - ZipFile: " "
       MemorySize: !Ref MemorySize
       Runtime: python3.11
@@ -558,8 +553,8 @@ Resources:
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
-              # Access the s3 bucket that is used by the forwarder as a datastore
               - !If
+                # Access the s3 bucket that is used by the forwarder as a datastore
                 - SetForwarderBucket
                 - Action:
                     - s3:GetObject
@@ -572,9 +567,9 @@ Resources:
                       - !Sub "arn:aws:s3:::${DdForwarderExistingBucketName}/*"
                   Effect: Allow
                 - !Ref AWS::NoValue
-              # Get the actual log content from the s3 bucket based on the received s3 event.
-              # Use PermissionsBoundaryArn to limit (allow/deny) access if needed.
               - !If
+                # Get the actual log content from the s3 bucket based on the received s3 event.
+                # Use PermissionsBoundaryArn to limit (allow/deny) access if needed.
                 - SetForwarderBucket
                 - Action:
                     - s3:ListBucket
@@ -608,25 +603,25 @@ Resources:
                   - !Ref DdApiKeySecret
                   - !Sub "${DdApiKeySecretArn}*"
                 Effect: Allow
-              # Fetch Lambda resource tags for data enrichment
-              # Fetch Step Functions resource tags for data enrichment
               - !If
+                # Fetch Lambda resource tags for data enrichment
+                # Fetch Step Functions resource tags for data enrichment
                 - ShouldDdFetchTags
                 - Action:
                     - tag:GetResources
                   Resource: "*"
                   Effect: Allow
                 - !Ref AWS::NoValue
-              # Get tags for log groups and attach them to the logs sent to Datadog
               - !If
+                # Get tags for log groups and attach them to the logs sent to Datadog
                 - SetDdFetchLogGroupTags
                 - Action:
                     - logs:ListTagsForResource
                   Resource: "*"
                   Effect: Allow
                 - !Ref AWS::NoValue
-              # Required for Lambda deployed in VPC
               - !If
+                # Required for Lambda deployed in VPC
                 - UseVPC
                 - Action:
                     - ec2:CreateNetworkInterface
@@ -635,8 +630,8 @@ Resources:
                   Resource: "*"
                   Effect: Allow
                 - !Ref AWS::NoValue
-              # To invoke a follower Lambda with the same event received by the forwarder for dual-shipping
               - !If
+                # To invoke a follower Lambda with the same event received by the forwarder for dual-shipping
                 - SetAdditionalTargetLambdas
                 - Action:
                     - lambda:InvokeFunction
@@ -754,7 +749,7 @@ Resources:
         - !Ref SourceZipUrl
         - !Sub
           - "https://github.com/DataDog/datadog-serverless-functions/releases/download/aws-dd-forwarder-${DdForwarderVersion}/aws-dd-forwarder-${DdForwarderVersion}.zip"
-          - { DdForwarderVersion: !FindInMap [Constants, DdForwarder, Version] }
+          - {DdForwarderVersion: !FindInMap [Constants, DdForwarder, Version]}
   # The Forwarder's source code is too big to fit the inline code size limit for CloudFormation. In most of AWS
   # partitions and regions, the Forwarder is able to load its source code from a Lambda layer attached to it.
   # In places where Datadog can't/doesn't yet publish Lambda layers, use another Lambda to copy the source code
