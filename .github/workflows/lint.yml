@@ -28,3 +28,10 @@ jobs:
           pip install black
           black --check --diff --exclude pb2.py ./aws/logs_monitoring
           black --check --diff ./aws/rds_enhanced_monitoring
+
+      - name: Install cfn-lint print version and check formatting
+        run: |
+          pip install cfn-lint==1.11.1
+          cfn-lint --version
+          cfn-lint -t aws/logs_monitoring/template.yaml -i W1030
+          cfn-lint -t aws/rds_enhanced_monitoring/rds-enhanced-sam-template.yaml
