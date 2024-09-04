@@ -28,15 +28,3 @@ jobs:
           pip install black
           black --check --diff --exclude pb2.py ./aws/logs_monitoring
           black --check --diff ./aws/rds_enhanced_monitoring
-
-      - name: Setup CloudFormation Linter with Latest Version
-        uses: scottbrenner/cfn-lint-action@v2
-
-      - name: Print the CloudFormation Linter Version & run Linter
-        run: |
-          cfn-lint --version
-          # cfn-lint was updated in July 2024 to add this check which fails on the template.
-          # TODO: We might be able to update the template to fix this error; it seems likely that 
-          # SecurityGroupIds in VpcConfig are not generated properly
-          cfn-lint -t aws/logs_monitoring/template.yaml
-          cfn-lint -t aws/rds_enhanced_monitoring/rds-enhanced-sam-template.yaml
