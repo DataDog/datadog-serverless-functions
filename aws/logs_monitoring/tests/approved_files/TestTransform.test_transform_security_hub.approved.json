@@ -1,0 +1,38 @@
+[
+    {
+        "ddsource": "securityhub",
+        "detail": {
+            "finding": {
+                "finding": "3",
+                "resources": {}
+            }
+        }
+    },
+    {
+        "ddsource": "securityhub",
+        "detail": {
+            "finding": {
+                "finding": "4",
+                "resources": {}
+            }
+        }
+    },
+    {
+        "ddsource": "securityhub",
+        "detail": {
+            "finding": {
+                "finding": "1",
+                "resources": {}
+            }
+        }
+    },
+    {
+        "ddsource": "securityhub",
+        "detail": {
+            "finding": {
+                "finding": "2",
+                "resources": {}
+            }
+        }
+    }
+]

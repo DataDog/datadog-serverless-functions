@@ -1,0 +1,42 @@
+[
+    {
+        "ddsource": "waf",
+        "message": {
+            "httpRequest": {
+                "headers": {
+                    "header2": "value2"
+                }
+            },
+            "request_id": "1"
+        }
+    },
+    {
+        "ddsource": "waf",
+        "message": {
+            "httpRequest": {
+                "headers": {
+                    "header1": "value1"
+                }
+            },
+            "request_id": "2"
+        }
+    },
+    {
+        "ddsource": "securityhub",
+        "detail": {
+            "finding": {
+                "finding": "1",
+                "resources": {}
+            }
+        }
+    },
+    {
+        "ddsource": "securityhub",
+        "detail": {
+            "finding": {
+                "finding": "2",
+                "resources": {}
+            }
+        }
+    }
+]

@@ -1,0 +1,36 @@
+[
+    {
+        "ddsource": "waf",
+        "message": {
+            "httpRequest": {
+                "headers": {
+                    "header1": "value1",
+                    "header2": "value2"
+                }
+            },
+            "request_id": "1"
+        }
+    },
+    {
+        "ddsource": "waf",
+        "message": {
+            "httpRequest": {
+                "headers": {
+                    "header1": "value1"
+                }
+            },
+            "request_id": "2"
+        }
+    },
+    {
+        "ddsource": "waf",
+        "message": {
+            "httpRequest": {
+                "headers": {
+                    "header3": "value3"
+                }
+            },
+            "request_id": "3"
+        }
+    }
+]

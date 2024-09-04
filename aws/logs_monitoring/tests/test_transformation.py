@@ -3,6 +3,7 @@ from approvaltests.approvals import verify_as_json
 from steps.transformation import (
     separate_security_hub_findings,
     parse_aws_waf_logs,
+    transform,
 )
 
 
@@ -219,6 +220,95 @@ class TestParseSecurityHubEvents(unittest.TestCase):
             },
         }
         verify_as_json(separate_security_hub_findings(event))
+
+
+class TestTransform(unittest.TestCase):
+    def setUp(self) -> None:
+        self.waf_events = [
+            {
+                "ddsource": "waf",
+                "message": {
+                    "httpRequest": {
+                        "headers": [
+                            {"name": "header1", "value": "value1"},
+                            {"name": "header2", "value": "value2"},
+                        ]
+                    },
+                    "request_id": "1",
+                },
+            },
+            {
+                "ddsource": "waf",
+                "message": {
+                    "httpRequest": {
+                        "headers": [
+                            {"name": "header1", "value": "value1"},
+                        ]
+                    },
+                    "request_id": "2",
+                },
+            },
+            {
+                "ddsource": "waf",
+                "message": {
+                    "httpRequest": {
+                        "headers": [
+                            {"name": "header3", "value": "value3"},
+                        ]
+                    },
+                    "request_id": "3",
+                },
+            },
+        ]
+
+        self.sec_hub_events = [
+            {
+                "ddsource": "securityhub",
+                "detail": {"findings": [{"finding": "1"}, {"finding": "2"}]},
+            },
+            {
+                "ddsource": "securityhub",
+                "detail": {"findings": [{"finding": "3"}, {"finding": "4"}]},
+            },
+        ]
+
+        self.mixed_events = [
+            {
+                "ddsource": "waf",
+                "message": {
+                    "request_id": "1",
+                    "httpRequest": {
+                        "headers": [{"name": "header2", "value": "value2"}]
+                    },
+                },
+            },
+            {
+                "ddsource": "securityhub",
+                "detail": {"findings": [{"finding": "1"}, {"finding": "2"}]},
+            },
+            {
+                "ddsource": "waf",
+                "message": {
+                    "request_id": "2",
+                    "httpRequest": {
+                        "headers": [{"name": "header1", "value": "value1"}]
+                    },
+                },
+            },
+        ]
+
+    # respect events order and prevent duplication
+    def test_transform_waf(self):
+        verify_as_json(transform(self.waf_events))
+
+    def test_transform_mixed(self):
+        verify_as_json(transform(self.mixed_events))
+
+    def test_transform_security_hub(self):
+        verify_as_json(transform(self.sec_hub_events))
+
+    def test_transform_empty(self):
+        self.assertEqual(transform([]), [])
 
 
 if __name__ == "__main__":
