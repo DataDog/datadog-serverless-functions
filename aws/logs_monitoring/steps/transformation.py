@@ -18,18 +18,17 @@ def transform(events):
     Args:
         events (dict[]): the list of event dicts we want to transform
     """
-    for index, event in enumerate(reversed(events)):
+    for index, event in enumerate(events):
+        waf = parse_aws_waf_logs(event)
+        if waf != event:
+            events[index] = waf
+
+    for event in reversed(events):
         findings = separate_security_hub_findings(event)
 
         if findings:
             events.remove(event)
             events.extend(findings)
-
-            continue
-
-        waf = parse_aws_waf_logs(event)
-        if waf != event:
-            events[index] = waf
 
     return events
 
