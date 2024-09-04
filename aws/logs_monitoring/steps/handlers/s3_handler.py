@@ -73,8 +73,8 @@ class S3EventHandler:
 
     def _set_source(self, event):
         self.data_store.source = parse_event_source(event, self.data_store.key)
-        if str(AwsS3EventSourceKeyword.TRANSITAGATEWAY) in self.data_store.bucket:
-            self.data_store.source = AwsEventSource.TRANSITGATEWAY
+        if str(AwsS3EventSourceKeyword.TRANSITGATEWAY) in self.data_store.bucket:
+            self.data_store.source = str(AwsEventSource.TRANSITGATEWAY)
         self.metadata[DD_SOURCE] = self.data_store.source
 
     def _set_host(self):
