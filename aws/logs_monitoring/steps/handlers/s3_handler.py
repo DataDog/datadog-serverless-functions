@@ -8,6 +8,7 @@ from io import BufferedReader, BytesIO
 
 import boto3
 import botocore
+
 from settings import (
     CN_STRING,
     DD_CUSTOM_TAGS,
@@ -95,8 +96,6 @@ class S3EventHandler:
             case AwsEventSource.S3:
                 # For S3 access logs we use the bucket name to rebuild the arn
                 return self._get_s3_arn()
-            case AwsEventSource.CLOUDFRONT:
-                return self._handle_cloudfront_source()
             case AwsEventSource.REDSHIFT:
                 return self._handle_redshift_source()
 
@@ -152,33 +151,6 @@ class S3EventHandler:
             elif CN_STRING in region:
                 partition = "aws-cn"
         return partition
-
-    def _handle_cloudfront_source(self):
-        # For Cloudfront logs we need to get the account and distribution id from the lambda arn and the filename
-        # 1. We extract the cloudfront id  from the filename
-        # 2. We extract the AWS account id from the lambda arn
-        namesplit = self.data_store.key.split("/")
-        if len(namesplit) == 0:
-            return None
-
-        filename = namesplit[len(namesplit) - 1]
-        # (distribution-ID.YYYY-MM-DD-HH.unique-ID.gz)
-        filenamesplit = filename.split(".")
-
-        if len(filenamesplit) <= 3:
-            return None
-
-        distributionID = filenamesplit[len(filenamesplit) - 4].lower()
-        arn = self.context.invoked_function_arn
-        arnsplit = arn.split(":")
-
-        if len(arnsplit) != 7:
-            return None
-
-        awsaccountID = arnsplit[4].lower()
-        return "arn:aws:cloudfront::{}:distribution/{}".format(
-            awsaccountID, distributionID
-        )
 
     def _handle_redshift_source(self):
         # For redshift logs we leverage the filename to extract the relevant information
