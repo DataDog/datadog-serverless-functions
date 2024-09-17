@@ -44,6 +44,11 @@ class S3EventHandler:
             if DD_MULTILINE_LOG_REGEX_PATTERN
             else None
         )
+        self.multiline_regex_pattern = (
+            re.compile("[\n\r\f]+(?={})".format(DD_MULTILINE_LOG_REGEX_PATTERN))
+            if DD_MULTILINE_LOG_REGEX_PATTERN
+            else None
+        )
         # a private data store for event attributes
         self.data_store = S3EventDataStore()
 
@@ -283,12 +288,12 @@ class S3EventHandler:
     def _extract_other_logs(self):
         # Check if using multiline log regex pattern
         # and determine whether line or pattern separated logs
-        if self.multiline_regex_start_pattern:
+        if self.multiline_regex_start_pattern and self.multiline_regex_pattern:
             # We'll do string manipulation, so decode bytes into utf-8 first
             self.data_store.data = self.data_store.data.decode("utf-8", errors="ignore")
 
             if self.multiline_regex_start_pattern.match(self.data_store.data):
-                self.data_store.data = self.multiline_regex_start_pattern.split(
+                self.data_store.data = self.multiline_regex_pattern.split(
                     self.data_store.data
                 )
             else:
