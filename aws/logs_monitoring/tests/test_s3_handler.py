@@ -1,5 +1,6 @@
 import gzip
 import unittest
+import re
 from unittest.mock import MagicMock, patch
 
 from approvaltests.combination_approvals import verify_all_combinations
@@ -107,6 +108,43 @@ class TestS3EventsHandler(unittest.TestCase):
         )
         self.assertEqual(self.s3_handler.metadata["ddsource"], "s3")
         self.assertEqual(self.s3_handler.metadata["host"], "arn:aws:s3:::my-bucket")
+
+    def test_s3_handler_with_multiline_regex(self):
+        event = {
+            "Records": [
+                {
+                    "s3": {
+                        "bucket": {"name": "my-bucket"},
+                        "object": {"key": "my-key"},
+                    }
+                }
+            ]
+        }
+        data = "2022-02-08aaa\nbbbccc\n2022-02-09bbb\n2022-02-10ccc\n"
+        self.s3_handler.data_store.data = data.encode("utf-8")
+        self.s3_handler.multiline_regex_start_pattern = re.compile("^\d{4}-\d{2}-\d{2}")
+        self.s3_handler.multiline_regex_pattern = re.compile(
+            "[\n\r\f]+(?=\d{4}-\d{2}-\d{2})"
+        )
+        self.s3_handler._extract_data = MagicMock()
+        structured_lines = list(self.s3_handler.handle(event))
+        self.assertEqual(
+            structured_lines,
+            [
+                {
+                    "aws": {"s3": {"bucket": "my-bucket", "key": "my-key"}},
+                    "message": "2022-02-08aaa\nbbbccc",
+                },
+                {
+                    "aws": {"s3": {"bucket": "my-bucket", "key": "my-key"}},
+                    "message": "2022-02-09bbb",
+                },
+                {
+                    "aws": {"s3": {"bucket": "my-bucket", "key": "my-key"}},
+                    "message": "2022-02-10ccc\n",
+                },
+            ],
+        )
 
     def test_s3_handler_with_sns(self):
         event = {
