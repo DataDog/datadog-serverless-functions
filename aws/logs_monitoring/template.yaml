@@ -3,8 +3,8 @@ Description: Pushes logs, metrics and traces from AWS to Datadog.
 Mappings:
   Constants:
     DdForwarder:
-      Version: 3.123.0
-      LayerVersion: "63"
+      Version: 3.124.0
+      LayerVersion: "64"
 Parameters:
   DdApiKey:
     Type: String
@@ -531,9 +531,9 @@ Resources:
       VpcConfig: !If
         - UseVPC
         - SecurityGroupIds: !If
-          - SetVpcSecurityGroupIds
-          - !Ref VPCSecurityGroupIds
-          - !Ref AWS::NoValue
+            - SetVpcSecurityGroupIds
+            - !Ref VPCSecurityGroupIds
+            - !Ref AWS::NoValue
           SubnetIds: !If
             - SetVpcSubnetIds
             - !Ref VPCSubnetIds
