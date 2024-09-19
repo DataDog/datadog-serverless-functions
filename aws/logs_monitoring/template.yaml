@@ -332,6 +332,10 @@ Conditions:
     - !Condition CreateS3Bucket
     - !Not
       - !Equals [!Ref DdForwarderExistingBucketName, ""]
+  SetVpcSecurityGroupIds: !Not
+    - !Equals [!Join ["", !Ref VPCSecurityGroupIds], ""]
+  SetVpcSubnetIds: !Not
+    - !Equals [!Join ["", !Ref VPCSubnetIds], ""]
 Rules:
   MustSetDdApiKey:
     Assertions:
@@ -526,8 +530,14 @@ Resources:
         - !Ref AWS::NoValue
       VpcConfig: !If
         - UseVPC
-        - SecurityGroupIds: !Ref VPCSecurityGroupIds
-          SubnetIds: !Ref VPCSubnetIds
+        - SecurityGroupIds: !If
+          - SetVpcSecurityGroupIds
+          - !Ref VPCSecurityGroupIds
+          - !Ref AWS::NoValue
+          SubnetIds: !If
+            - SetVpcSubnetIds
+            - !Ref VPCSubnetIds
+            - !Ref AWS::NoValue
         - !Ref AWS::NoValue
   ForwarderRole:
     Type: AWS::IAM::Role

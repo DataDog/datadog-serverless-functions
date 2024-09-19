@@ -33,5 +33,5 @@ jobs:
         run: |
           pip install cfn-lint==1.11.1
           cfn-lint --version
-          cfn-lint -t aws/logs_monitoring/template.yaml -i W1030
+          cfn-lint -t aws/logs_monitoring/template.yaml
           cfn-lint -t aws/rds_enhanced_monitoring/rds-enhanced-sam-template.yaml
