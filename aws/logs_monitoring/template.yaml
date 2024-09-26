@@ -654,7 +654,7 @@ Resources:
   CloudWatchLogsPermission:
     Type: AWS::Lambda::Permission
     Properties:
-      FunctionName: !Ref "Forwarder"
+      FunctionName: !GetAtt "Forwarder.Arn"
       Action: lambda:InvokeFunction
       Principal: !If
         - IsAWSChina
