@@ -207,13 +207,13 @@ if "DD_API_KEY_SECRET_ARN" in os.environ:
         # Try to parse the secret as JSON
         secret_json = json.loads(secret_string)
 
-        # If it's a JSON object, look for the 'datadogKey' field
+        # If it's a JSON object, look for the 'DD_API_KEY' field
         if "DD_API_KEY" in secret_json:
-            DD_API_KEY = secret_json["datadogKey"]
+            DD_API_KEY = secret_json["DD_API_KEY"]
             logger.debug("Successfully retrieved the Datadog API key from 'datadogKey'.")
         else:
             raise ValueError("The secret does not contain the 'datadogKey' field.")
-    
+
     except json.JSONDecodeError:
         # If parsing as JSON fails, treat the secret as a plain string
         logger.debug("Secret is not JSON, using it directly as the Datadog API key.")
