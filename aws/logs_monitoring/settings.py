@@ -196,9 +196,9 @@ if "DD_API_KEY_SECRET_ARN" in os.environ:
     logger.debug(f"Fetching the Datadog API key from SecretsManager: {SECRET_ARN}")
 
     # Fetch the secret from Secrets Manager
-    secret_response = boto3.client("secretsmanager", config=boto3_config).get_secret_value(
-        SecretId=SECRET_ARN
-    )
+    secret_response = boto3.client(
+        "secretsmanager", config=boto3_config
+    ).get_secret_value(SecretId=SECRET_ARN)
 
     # The secret could be either a plain string or a JSON object
     secret_string = secret_response.get("SecretString")
@@ -210,10 +210,12 @@ if "DD_API_KEY_SECRET_ARN" in os.environ:
         # If it's a JSON object, look for the 'datadogKey' field
         if "DD_API_KEY" in secret_json:
             DD_API_KEY = secret_json["datadogKey"]
-            logger.debug("Successfully retrieved the Datadog API key from 'datadogKey'.")
+            logger.debug(
+                "Successfully retrieved the Datadog API key from 'datadogKey'."
+            )
         else:
             raise ValueError("The secret does not contain the 'datadogKey' field.")
-    
+
     except json.JSONDecodeError:
         # If parsing as JSON fails, treat the secret as a plain string
         logger.debug("Secret is not JSON, using it directly as the Datadog API key.")
