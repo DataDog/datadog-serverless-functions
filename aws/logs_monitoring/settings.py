@@ -214,7 +214,11 @@ if "DD_API_KEY_SECRET_ARN" in os.environ:
                 "Successfully retrieved the Datadog API key from 'DD_API_KEY'."
             )
         else:
-            raise ValueError("The secret does not contain the 'DD_API_KEY' field.")
+            logger.error(
+                "The secret does not contain the 'DD_API_KEY' field. "
+                "Please ensure the secret is in the correct format. "
+                "Not setting the Datadog API key."
+            )
 
     except json.JSONDecodeError:
         # If parsing as JSON fails, treat the secret as a plain string
