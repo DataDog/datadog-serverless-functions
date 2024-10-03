@@ -4,6 +4,7 @@
 # Copyright 2021 Datadog, Inc.
 
 import base64
+import json
 import logging
 import os
 
@@ -189,12 +190,40 @@ boto3_config = botocore.config.Config(
     connect_timeout=5, read_timeout=5, retries={"max_attempts": 2}
 )
 # DD API Key
+# Check if the DD_API_KEY_SECRET_ARN environment variable is set
 if "DD_API_KEY_SECRET_ARN" in os.environ:
     SECRET_ARN = os.environ["DD_API_KEY_SECRET_ARN"]
     logger.debug(f"Fetching the Datadog API key from SecretsManager: {SECRET_ARN}")
-    DD_API_KEY = boto3.client("secretsmanager", config=boto3_config).get_secret_value(
-        SecretId=SECRET_ARN
-    )["SecretString"]
+
+    # Fetch the secret from Secrets Manager
+    secret_response = boto3.client(
+        "secretsmanager", config=boto3_config
+    ).get_secret_value(SecretId=SECRET_ARN)
+
+    # The secret could be either a plain string or a JSON object
+    secret_string = secret_response.get("SecretString")
+
+    try:
+        # Try to parse the secret as JSON
+        secret_json = json.loads(secret_string)
+
+        # If it's a JSON object, look for the 'DD_API_KEY' field
+        if "DD_API_KEY" in secret_json:
+            DD_API_KEY = secret_json["DD_API_KEY"]
+            logger.debug(
+                "Successfully retrieved the Datadog API key from 'DD_API_KEY'."
+            )
+        else:
+            logger.error(
+                "The secret does not contain the 'DD_API_KEY' field. "
+                "Please ensure the secret is in the correct format. "
+                "Not setting the Datadog API key."
+            )
+
+    except json.JSONDecodeError:
+        # If parsing as JSON fails, treat the secret as a plain string
+        logger.debug("Secret is not JSON, using it directly as the Datadog API key.")
+        DD_API_KEY = secret_string
 elif "DD_API_KEY_SSM_NAME" in os.environ:
     SECRET_NAME = os.environ["DD_API_KEY_SSM_NAME"]
     logger.debug(f"Fetching the Datadog API key from SSM: {SECRET_NAME}")
