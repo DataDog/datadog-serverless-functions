@@ -1,4 +1,4 @@
 # Azure Integrations
 azure/                          @DataDog/azure-integrations
 # AWS Integrations
-aws/                            @DataDog/aws-integrations
+aws/                            @DataDog/aws-context
