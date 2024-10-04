@@ -654,13 +654,14 @@ Resources:
   CloudWatchLogsPermission:
     Type: AWS::Lambda::Permission
     Properties:
-      FunctionName: !Ref "Forwarder"
+      FunctionName: !GetAtt "Forwarder.Arn"
       Action: lambda:InvokeFunction
       Principal: !If
         - IsAWSChina
-        - !Sub "logs.${AWS::Region}.amazonaws.com.cn"
-        - !Sub "logs.${AWS::Region}.amazonaws.com"
+        - "logs.amazonaws.com.cn"
+        - "logs.amazonaws.com"
       SourceAccount: !Ref "AWS::AccountId"
+      SourceArn: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:*:*"
   S3Permission:
     Type: AWS::Lambda::Permission
     Properties:
