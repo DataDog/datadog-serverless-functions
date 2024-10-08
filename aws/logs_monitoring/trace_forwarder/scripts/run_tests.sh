@@ -11,5 +11,5 @@ set -e
 # Change to the parent of the directory this script is in
 cd $(dirname "$0")/..
 
-docker buildx build --platform linux/amd64 -t datadog-go-layer . --build-arg runtime=python:3.7
+docker buildx build --platform linux/amd64 -t datadog-go-layer .
 docker run --rm datadog-go-layer go test -v ./...
