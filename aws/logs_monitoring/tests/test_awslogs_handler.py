@@ -93,7 +93,7 @@ class TestAWSLogsHandler(unittest.TestCase):
                                         {
                                             "id": "37199773595581154154810589279545129148442535997644275712",
                                             "timestamp": 1668095539607,
-                                            "message": '{"id":"1","type":"ExecutionStarted","details":{"input":"{"Comment": "Insert your JSON here"}","inputDetails":{"truncated":false},"roleArn":"arn:aws:iam::425362996713:role/service-role/StepFunctions-logs-to-traces-sequential-role-ccd69c03"},",previous_event_id":"0","event_timestamp":"1668095539607","execution_arn":"arn:aws:states:sa-east-1:425362996713:express:logs-to-traces-sequential:d0dbefd8-a0f6-b402-da4c-f4863def7456:7fa0cfbe-be28-4a20-9875-73c37f5dc39e"}',
+                                            "message": '{"id": "1","type": "ExecutionStarted","details": {"input": "{}","inputDetails": {"truncated": "false"},"roleArn": "arn:aws:iam::12345678910:role/service-role/StepFunctions-test-role-a0iurr4pt"},"previous_event_id": "0","event_timestamp": "1716992192441","execution_arn": "arn:aws:states:us-east-1:12345678910:execution:StepFunction1:ccccccc-d1da-4c38-b32c-2b6b07d713fa","redrive_count": "0"}',
                                         }
                                     ],
                                 }
