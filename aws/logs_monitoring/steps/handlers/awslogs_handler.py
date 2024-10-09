@@ -160,18 +160,13 @@ class AwsLogsHandler:
 
     def handle_step_function_source(self):
         if not self.aws_attributes.get_log_stream().startswith("states/"):
-            pass
-        state_machine_arn = ""
+            return
 
-        try:
-            state_machine_arn = self.get_state_machine_arn()
-            if state_machine_arn:  # not empty
-                self.metadata[DD_HOST] = state_machine_arn
-        except Exception as e:
-            logger.debug(
-                "Unable to set stepfunction host or get state_machine_arn: %s" % e
-            )
+        state_machine_arn = self.get_state_machine_arn()
+        if not state_machine_arn:
+            return
 
+        self.metadata[DD_HOST] = state_machine_arn
         formatted_stepfunctions_tags = (
             self.cache_layer.get_step_functions_tags_cache().get(state_machine_arn)
         )
@@ -214,12 +209,15 @@ class AwsLogsHandler:
         # In case the conditions above don't match we maintain eks as the source
 
     def get_state_machine_arn(self):
-        message = json.loads(self.aws_attributes.get_log_events()[0].get("message"))
-        if message.get("execution_arn") is not None:
-            execution_arn = message["execution_arn"]
-            arn_tokens = re.split(r"[:/\\]", execution_arn)
-            arn_tokens[5] = "stateMachine"
-            return ":".join(arn_tokens[:7])
+        try:
+            message = json.loads(self.aws_attributes.get_log_events()[0].get("message"))
+            if message.get("execution_arn") is not None:
+                execution_arn = message["execution_arn"]
+                arn_tokens = re.split(r"[:/\\]", execution_arn)
+                arn_tokens[5] = "stateMachine"
+                return ":".join(arn_tokens[:7])
+        except Exception as e:
+            logger.debug("Unable to get state_machine_arn: %s" % e)
         return ""
 
     # Lambda logs can be from either default or customized log group

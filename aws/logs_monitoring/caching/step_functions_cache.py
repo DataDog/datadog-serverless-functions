@@ -132,7 +132,7 @@ class StepFunctionsTagsCache(BaseTagsCache):
         except Exception as e:
             self.logger.exception(f"Failed to get Step Functions tags due to {e}")
 
-        if len(response.get("ResourceTagMappingList", {})) > 0:
+        if response and len(response.get("ResourceTagMappingList", {})) > 0:
             resource_dict = response.get("ResourceTagMappingList")[0]
             for a_tag in resource_dict.get("Tags", []):
                 key = sanitize_aws_tag_string(a_tag["Key"], remove_colons=True)
