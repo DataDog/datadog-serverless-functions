@@ -2,6 +2,7 @@
 # under the Apache License Version 2.0.
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2021 Datadog, Inc.
+import json
 import os
 import logging
 import re
@@ -202,8 +203,12 @@ def generate_enhanced_lambda_metrics(log, tags_cache):
     if not is_lambda_log:
         return []
 
+    # Check if its Lambda lifecycle log that is emitted if log format is set to JSON
+    parsed_metrics = parse_metrics_from_json_report_log(log_message)
+
     # Check if this is a REPORT log
-    parsed_metrics = parse_metrics_from_report_log(log_message)
+    if not parsed_metrics:
+        parsed_metrics = parse_metrics_from_report_log(log_message)
 
     # Check if this is a timeout
     if not parsed_metrics:
@@ -252,6 +257,89 @@ def parse_lambda_tags_from_arn(arn):
         "aws_account:{}".format(account_id),
         "functionname:{}".format(function_name),
     ]
+
+
+MEMORY_ALLOCATED_RECORD_KEY = "memorySizeMB"
+INIT_DURATION_RECORD_KEY = "initDurationMs"
+BILLED_DURATION_RECORD_KEY = "billedDurationMs"
+RUNTIME_METRICS_BY_RECORD_KEY = {
+    # Except INIT_DURATION_RECORD_KEY which is handled separately
+    "durationMs": DURATION_METRIC_NAME,
+    BILLED_DURATION_RECORD_KEY: BILLED_DURATION_METRIC_NAME,
+    "maxMemoryUsedMB": MAX_MEMORY_USED_METRIC_NAME,
+}
+
+
+def parse_metrics_from_json_report_log(log_message):
+    if not log_message.startswith("{"):
+        return []
+
+    try:
+        body = json.loads(log_message)
+    except json.JSONDecodeError:
+        return []
+
+    stage = body.get("type", "")
+    record = body.get("record", {})
+    record_metrics = record.get("metrics", {})
+
+    if stage != "platform.report" or not record_metrics:
+        return []
+
+    metrics = []
+
+    for record_key, metric_name in RUNTIME_METRICS_BY_RECORD_KEY.items():
+        metric_point_value = record_metrics[record_key]
+
+        if metric_name in METRIC_ADJUSTMENT_FACTORS:
+            metric_point_value *= METRIC_ADJUSTMENT_FACTORS[metric_name]
+
+        metrics.append(
+            DatadogMetricPoint(
+                f"{ENHANCED_METRICS_NAMESPACE_PREFIX}.{metric_name}",
+                metric_point_value,
+            )
+        )
+
+    tags = [
+        f"{MEMORY_ALLOCATED_FIELD_NAME}:{record_metrics[MEMORY_ALLOCATED_RECORD_KEY]}"
+    ]
+
+    try:
+        init_duration = record_metrics[INIT_DURATION_RECORD_KEY]
+    except KeyError:
+        tags.append("cold_start:false")
+    else:
+        tags.append("cold_start:true")
+        metrics.append(
+            DatadogMetricPoint(
+                f"{ENHANCED_METRICS_NAMESPACE_PREFIX}.{INIT_DURATION_METRIC_NAME}",
+                init_duration * METRIC_ADJUSTMENT_FACTORS[INIT_DURATION_METRIC_NAME],
+            )
+        )
+
+    metrics.append(
+        DatadogMetricPoint(
+            f"{ENHANCED_METRICS_NAMESPACE_PREFIX}.{ESTIMATED_COST_METRIC_NAME}",
+            calculate_estimated_cost(
+                record_metrics[BILLED_DURATION_RECORD_KEY],
+                record_metrics[MEMORY_ALLOCATED_RECORD_KEY],
+            ),
+        )
+    )
+
+    if record["status"] == "timeout":
+        metrics.append(
+            DatadogMetricPoint(
+                f"{ENHANCED_METRICS_NAMESPACE_PREFIX}.{TIMEOUTS_METRIC_NAME}",
+                1.0,
+            )
+        )
+
+    for metric in metrics:
+        metric.add_tags(tags)
+
+    return metrics
 
 
 def parse_metrics_from_report_log(report_log_line):

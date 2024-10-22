@@ -1,0 +1,38 @@
+[
+    {
+        "name": "aws.lambda.enhanced.duration",
+        "tags": [
+            "memorysize:128",
+            "cold_start:false"
+        ],
+        "timestamp": null,
+        "value": 0.00062
+    },
+    {
+        "name": "aws.lambda.enhanced.billed_duration",
+        "tags": [
+            "memorysize:128",
+            "cold_start:false"
+        ],
+        "timestamp": null,
+        "value": 0.1
+    },
+    {
+        "name": "aws.lambda.enhanced.max_memory_used",
+        "tags": [
+            "memorysize:128",
+            "cold_start:false"
+        ],
+        "timestamp": null,
+        "value": 51
+    },
+    {
+        "name": "aws.lambda.enhanced.estimated_cost",
+        "tags": [
+            "memorysize:128",
+            "cold_start:false"
+        ],
+        "timestamp": null,
+        "value": 4.0833375e-07
+    }
+]
