@@ -651,7 +651,7 @@ Resources:
       Tags:
         - Value: !FindInMap [Constants, DdForwarder, Version]
           Key: dd_forwarder_version
-  CloudWatchLogsPermission:
+  CloudWatchLogsInvokePermission:
     Type: AWS::Lambda::Permission
     Properties:
       FunctionName: !GetAtt "Forwarder.Arn"
