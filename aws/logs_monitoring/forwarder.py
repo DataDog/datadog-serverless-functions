@@ -90,7 +90,12 @@ class Forwarder(object):
 
             # apply scrubbing rules to inner log message if exists
             if isinstance(log, dict) and log.get("message"):
-                log["message"] = scrubber.scrub(log["message"])
+                try:
+                    log["message"] = scrubber.scrub(log["message"])
+                except Exception as e:
+                    logger.exception(
+                        f"Exception while scrubbing log message {log['message']}: {e}"
+                    )
 
             logs_to_forward.append(json.dumps(log, ensure_ascii=False))
 
