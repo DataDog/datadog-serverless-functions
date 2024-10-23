@@ -176,7 +176,7 @@ SCRUBBING_RULE_CONFIGS = [
     ScrubbingRuleConfig(
         "DD_SCRUBBING_RULE",
         get_env_var("DD_SCRUBBING_RULE", default=None),
-        get_env_var("DD_SCRUBBING_RULE_REPLACEMENT", default="xxxxx"),
+        get_env_var("DD_SCRUBBING_RULE_REPLACEMENT", default=""),
     ),
 ]
 

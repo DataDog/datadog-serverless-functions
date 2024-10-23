@@ -1,0 +1,16 @@
+{
+	"messageType": "DATA_MESSAGE",
+	"owner": "601427279990",
+	"logGroup": "/aws/lambda/testing-datadog",
+	"logStream": "2024/10/10/[$LATEST]20bddfd5a2dc4c6b97ac02800eae90d0",
+	"subscriptionFilters": [
+		"testing-datadog"
+	],
+	"logEvents": [
+		{
+			"id": "35311576111948622874033876462979853992919938886093242368",
+			"timestamp": 1583425836114,
+			"message": "{\"status\":\"debug\",\"message\":\"datadog:Patched console output with trace context\",\"ddtags\":\"env:test,service:test-inner-message\"}\n"
+		}
+	]
+}

@@ -82,17 +82,27 @@ class Forwarder(object):
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug(f"Forwarding {len(logs)} logs")
 
+        scrubber = DatadogScrubber(SCRUBBING_RULE_CONFIGS)
         logs_to_forward = []
         for log in logs:
             if key:
                 log = add_retry_tag(log)
+
+            # apply scrubbing rules to inner log message if exists
+            if isinstance(log, dict) and log.get("message"):
+                try:
+                    log["message"] = scrubber.scrub(log["message"])
+                except Exception as e:
+                    logger.exception(
+                        f"Exception while scrubbing log message {log['message']}: {e}"
+                    )
+
             logs_to_forward.append(json.dumps(log, ensure_ascii=False))
 
         logs_to_forward = filter_logs(
             logs_to_forward, INCLUDE_AT_MATCH, EXCLUDE_AT_MATCH
         )
 
-        scrubber = DatadogScrubber(SCRUBBING_RULE_CONFIGS)
         if DD_USE_TCP:
             batcher = DatadogBatcher(256 * 1000, 256 * 1000, 1)
             cli = DatadogTCPClient(DD_URL, DD_PORT, DD_NO_SSL, DD_API_KEY, scrubber)
