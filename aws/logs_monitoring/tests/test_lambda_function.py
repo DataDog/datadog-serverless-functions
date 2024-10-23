@@ -242,9 +242,30 @@ class TestLambdaFunctionEndToEnd(unittest.TestCase):
         for log in logs:
             self.assertEqual(log["service"], "lambda_service")
 
-    def _get_input_data(self):
+    @patch("caching.cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.__init__")
+    def test_overrding_service_tag_from_message_ddtags(self, mock_cache_init):
+        mock_cache_init.return_value = None
+        cache_layer = CacheLayer("")
+        cache_layer._lambda_cache = MagicMock()
+        cache_layer._cloudwatch_log_group_cache = MagicMock()
+        context = Context()
+        input_data = self._get_input_data(path="events/cloudwatch_logs_ddtags.json")
+        event = {
+            "awslogs": {"data": self._create_cloudwatch_log_event_from_data(input_data)}
+        }
+        normalized_events = parse(event, context, cache_layer)
+        enriched_events = enrich(normalized_events, cache_layer)
+        transformed_events = transform(enriched_events)
+
+        _, logs, _ = split(transformed_events)
+        self.assertEqual(len(logs), 1)
+        for log in logs:
+            self.assertEqual(log["service"], "test-inner-message")
+            self.assertTrue(isinstance(log["message"], str))
+
+    def _get_input_data(self, path="events/cloudwatch_logs.json"):
         my_path = os.path.abspath(os.path.dirname(__file__))
-        path = os.path.join(my_path, "events/cloudwatch_logs.json")
+        path = os.path.join(my_path, path)
 
         with open(
             path,
