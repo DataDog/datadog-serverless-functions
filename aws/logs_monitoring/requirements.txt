@@ -19,6 +19,6 @@ requests
 six
 typing-extensions
 urllib3>=1.26.19,<3.0
-wrapt
+wrapt==1.14.0
 xmltodict
 zipp
