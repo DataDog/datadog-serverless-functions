@@ -1,0 +1,54 @@
+[
+    {
+        "name": "aws.lambda.enhanced.duration",
+        "tags": [
+            "memorysize:128",
+            "cold_start:false",
+            "region:us-east-1",
+            "account_id:172597598159",
+            "aws_account:172597598159",
+            "functionname:post-coupon-prod-us"
+        ],
+        "timestamp": 10000,
+        "value": 3.47065
+    },
+    {
+        "name": "aws.lambda.enhanced.billed_duration",
+        "tags": [
+            "memorysize:128",
+            "cold_start:false",
+            "region:us-east-1",
+            "account_id:172597598159",
+            "aws_account:172597598159",
+            "functionname:post-coupon-prod-us"
+        ],
+        "timestamp": 10000,
+        "value": 3.5
+    },
+    {
+        "name": "aws.lambda.enhanced.max_memory_used",
+        "tags": [
+            "memorysize:128",
+            "cold_start:false",
+            "region:us-east-1",
+            "account_id:172597598159",
+            "aws_account:172597598159",
+            "functionname:post-coupon-prod-us"
+        ],
+        "timestamp": 10000,
+        "value": 89
+    },
+    {
+        "name": "aws.lambda.enhanced.estimated_cost",
+        "tags": [
+            "memorysize:128",
+            "cold_start:false",
+            "region:us-east-1",
+            "account_id:172597598159",
+            "aws_account:172597598159",
+            "functionname:post-coupon-prod-us"
+        ],
+        "timestamp": 10000,
+        "value": 7.49168125e-06
+    }
+]

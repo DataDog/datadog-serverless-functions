@@ -1,3 +1,4 @@
+import json
 import unittest
 import os
 from time import time
@@ -7,6 +8,7 @@ from approvaltests.approvals import verify_as_json
 
 from enhanced_lambda_metrics import (
     parse_metrics_from_report_log,
+    parse_metrics_from_json_report_log,
     parse_lambda_tags_from_arn,
     generate_enhanced_lambda_metrics,
     create_out_of_memory_enhanced_metric,
@@ -32,6 +34,56 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
         "XRAY TraceId: 1-5d83c0ad-b8eb33a0b1de97d804fac890\tSegmentId: 31255c3b19bd3637\t"
         "Sampled: true"
     )
+    standard_json_report = json.dumps(
+        {
+            "time": "2024-10-04T00:36:35.800Z",
+            "type": "platform.report",
+            "record": {
+                "requestId": "4d789d71-2f2c-4c66-a4b5-531a0223233d",
+                "metrics": {
+                    "durationMs": 0.62,
+                    "billedDurationMs": 100,
+                    "memorySizeMB": 128,
+                    "maxMemoryUsedMB": 51,
+                },
+                "status": "success",
+            },
+        }
+    )
+    cold_start_json_report = json.dumps(
+        {
+            "time": "2024-10-04T00:36:35.800Z",
+            "type": "platform.report",
+            "record": {
+                "requestId": "4d789d71-2f2c-4c66-a4b5-531a0223233d",
+                "metrics": {
+                    "durationMs": 0.81,
+                    "billedDurationMs": 100,
+                    "memorySizeMB": 128,
+                    "maxMemoryUsedMB": 90,
+                    "initDurationMs": 1234,
+                },
+                "status": "success",
+            },
+        }
+    )
+    timeout_json_report = json.dumps(
+        {
+            "time": "2024-10-18T19:38:39.661Z",
+            "type": "platform.report",
+            "record": {
+                "requestId": "b441820a-ebe5-4d5f-93bc-f945707b0225",
+                "metrics": {
+                    "durationMs": 30000.0,
+                    "billedDurationMs": 30000,
+                    "memorySizeMB": 128,
+                    "maxMemoryUsedMB": 74,
+                    "initDurationMs": 985.413,
+                },
+                "status": "timeout",
+            },
+        }
+    )
 
     def test_parse_lambda_tags_from_arn(self):
         verify_as_json(
@@ -55,6 +107,24 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
 
     def test_parse_metrics_from_report_with_xray(self):
         parsed_metrics = parse_metrics_from_report_log(self.report_with_xray)
+        verify_as_json(parsed_metrics)
+
+    def test_parse_metrics_from_json_no_report(self):
+        # Ensure we ignore unrelated JSON logs
+        parsed_metrics = parse_metrics_from_json_report_log('{"message": "abcd"}')
+        assert parsed_metrics == []
+
+    def test_parse_metrics_from_json_report_log(self):
+        parsed_metrics = parse_metrics_from_json_report_log(self.standard_json_report)
+        # The timestamps are None because the timestamp is added after the metrics are parsed
+        verify_as_json(parsed_metrics)
+
+    def test_parse_metrics_from_cold_start_json_report_log(self):
+        parsed_metrics = parse_metrics_from_json_report_log(self.cold_start_json_report)
+        verify_as_json(parsed_metrics)
+
+    def test_parse_metrics_from_timeout_json_report_log(self):
+        parsed_metrics = parse_metrics_from_json_report_log(self.timeout_json_report)
         verify_as_json(parsed_metrics)
 
     def test_create_out_of_memory_enhanced_metric(self):
@@ -87,6 +157,47 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
 
         success_message = "Success!"
         self.assertEqual(len(create_out_of_memory_enhanced_metric(success_message)), 0)
+
+    def test_generate_enhanced_lambda_metrics_json(
+        self,
+    ):
+        tags_cache = LambdaTagsCache("")
+        tags_cache.get = MagicMock(return_value=[])
+
+        logs_input = {
+            "message": json.dumps(
+                {
+                    "time": "2024-10-04T00:36:35.800Z",
+                    "type": "platform.report",
+                    "record": {
+                        "requestId": "4d789d71-2f2c-4c66-a4b5-531a0223233d",
+                        "metrics": {
+                            "durationMs": 3470.65,
+                            "billedDurationMs": 3500,
+                            "memorySizeMB": 128,
+                            "maxMemoryUsedMB": 89,
+                        },
+                        "status": "success",
+                    },
+                }
+            ),
+            "aws": {
+                "awslogs": {
+                    "logGroup": "/aws/lambda/post-coupon-prod-us",
+                    "logStream": "2019/09/25/[$LATEST]d6c10ebbd9cb48dba94a7d9b874b49bb",
+                    "owner": "172597598159",
+                },
+                "function_version": "$LATEST",
+                "invoked_function_arn": "arn:aws:lambda:us-east-1:172597598159:function:collect_logs_datadog_demo",
+            },
+            "lambda": {
+                "arn": "arn:aws:lambda:us-east-1:172597598159:function:post-coupon-prod-us"
+            },
+            "timestamp": 10000,
+        }
+
+        generated_metrics = generate_enhanced_lambda_metrics(logs_input, tags_cache)
+        verify_as_json(generated_metrics)
 
     def test_generate_enhanced_lambda_metrics(self):
         tags_cache = LambdaTagsCache("")
