@@ -70,6 +70,11 @@ Parameters:
     Type: String
     Default: ""
     Description: Add custom tags to forwarded logs, comma-delimited string, no trailing comma, e.g., env:prod,stack:classic
+  DdLogLevel:
+    Type: String
+    Default: "INFO"
+    AllowedValues: ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+    Description: Control log level for the Datadog Forwarder Lambda function.
   DdFetchLambdaTags:
     Type: String
     Default: true
@@ -406,6 +411,7 @@ Resources:
             - !Ref DdTags
             - !Ref AWS::NoValue
           DD_TAGS_CACHE_TTL_SECONDS: !Ref TagsCacheTTLSeconds
+          DD_LOG_LEVEL: !Ref DdLogLevel
           DD_FETCH_LAMBDA_TAGS: !If
             - SetDdFetchLambdaTags
             - !Ref DdFetchLambdaTags
@@ -967,6 +973,7 @@ Metadata:
       - Label:
           default: Advanced (Optional)
         Parameters:
+          - DdLogLevel
           - DdFetchLambdaTags
           - DdFetchLogGroupTags
           - DdFetchStepFunctionsTags
