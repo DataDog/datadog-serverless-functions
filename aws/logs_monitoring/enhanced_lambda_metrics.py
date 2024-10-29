@@ -61,6 +61,19 @@ METRICS_TO_PARSE_FROM_REPORT = [
     INIT_DURATION_METRIC_NAME,
 ]
 
+# Keys that appear in Lambda telemetry records emitted when JSON logs are enabled
+MEMORY_ALLOCATED_RECORD_KEY = "memorySizeMB"
+INIT_DURATION_RECORD_KEY = "initDurationMs"
+DURATION_RECORD_KEY = "durationMs"
+BILLED_DURATION_RECORD_KEY = "billedDurationMs"
+MAX_MEMORY_USED_RECORD_KEY = "maxMemoryUsedMB"
+RUNTIME_METRICS_BY_RECORD_KEY = {
+    # Except INIT_DURATION_RECORD_KEY which is handled separately
+    DURATION_RECORD_KEY: DURATION_METRIC_NAME,
+    BILLED_DURATION_RECORD_KEY: BILLED_DURATION_METRIC_NAME,
+    MAX_MEMORY_USED_RECORD_KEY: MAX_MEMORY_USED_METRIC_NAME,
+}
+
 # Multiply the duration metrics by 1/1000 to convert ms to seconds
 METRIC_ADJUSTMENT_FACTORS = {
     DURATION_METRIC_NAME: 0.001,
@@ -259,21 +272,7 @@ def parse_lambda_tags_from_arn(arn):
     ]
 
 
-MEMORY_ALLOCATED_RECORD_KEY = "memorySizeMB"
-INIT_DURATION_RECORD_KEY = "initDurationMs"
-BILLED_DURATION_RECORD_KEY = "billedDurationMs"
-RUNTIME_METRICS_BY_RECORD_KEY = {
-    # Except INIT_DURATION_RECORD_KEY which is handled separately
-    "durationMs": DURATION_METRIC_NAME,
-    BILLED_DURATION_RECORD_KEY: BILLED_DURATION_METRIC_NAME,
-    "maxMemoryUsedMB": MAX_MEMORY_USED_METRIC_NAME,
-}
-
-
 def parse_metrics_from_json_report_log(log_message):
-    if not log_message.startswith("{"):
-        return []
-
     try:
         body = json.loads(log_message)
     except json.JSONDecodeError:
@@ -305,11 +304,8 @@ def parse_metrics_from_json_report_log(log_message):
         f"{MEMORY_ALLOCATED_FIELD_NAME}:{record_metrics[MEMORY_ALLOCATED_RECORD_KEY]}"
     ]
 
-    try:
-        init_duration = record_metrics[INIT_DURATION_RECORD_KEY]
-    except KeyError:
-        tags.append("cold_start:false")
-    else:
+    init_duration = record_metrics.get(INIT_DURATION_RECORD_KEY)
+    if init_duration:
         tags.append("cold_start:true")
         metrics.append(
             DatadogMetricPoint(
@@ -317,6 +313,8 @@ def parse_metrics_from_json_report_log(log_message):
                 init_duration * METRIC_ADJUSTMENT_FACTORS[INIT_DURATION_METRIC_NAME],
             )
         )
+    else:
+        tags.append("cold_start:false")
 
     metrics.append(
         DatadogMetricPoint(
@@ -328,7 +326,7 @@ def parse_metrics_from_json_report_log(log_message):
         )
     )
 
-    if record["status"] == "timeout":
+    if record.get("status") == "timeout":
         metrics.append(
             DatadogMetricPoint(
                 f"{ENHANCED_METRICS_NAMESPACE_PREFIX}.{TIMEOUTS_METRIC_NAME}",
