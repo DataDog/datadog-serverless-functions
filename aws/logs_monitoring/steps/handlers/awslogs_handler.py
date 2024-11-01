@@ -13,6 +13,7 @@ from steps.common import (
 )
 from customized_log_group import (
     is_lambda_customized_log_group,
+    is_step_functions_log_group,
     get_lambda_function_name_from_logstream_name,
 )
 from steps.handlers.aws_attributes import AwsAttributes
@@ -108,6 +109,10 @@ class AwsLogsHandler:
         if is_lambda_customized_log_group(log_stream):
             self.metadata[DD_SOURCE] = str(AwsEventSource.LAMBDA)
 
+        # Special handling for Step Functions log groups. Regardless of whether the log group is customized, the corresponding log stream starts with 'states/'."
+        if is_step_functions_log_group(log_stream):
+            self.metadata[DD_SOURCE] = str(AwsEventSource.STEPFUNCTION)
+
     def add_cloudwatch_tags_from_cache(self):
         log_group_arn = self.aws_attributes.get_log_group_arn()
         formatted_tags = self.cache_layer.get_cloudwatch_log_group_tags_cache().get(
@@ -159,9 +164,6 @@ class AwsLogsHandler:
             )
 
     def handle_step_function_source(self):
-        if not self.aws_attributes.get_log_stream().startswith("states/"):
-            return
-
         state_machine_arn = self.get_state_machine_arn()
         if not state_machine_arn:
             return
