@@ -157,7 +157,7 @@ class TestAWSLogsHandler(unittest.TestCase):
             }
         }
         awslogs_handler = AwsLogsHandler(context, metadata, cache_layer)
-        awslogs_handler.handle(event)
+        awslogs_handler.handle(eventFromCustomizedLogGroup)
         self.assertEqual(
             awslogs_handler.metadata[DD_SOURCE], AwsEventSource.STEPFUNCTION.value
         )
