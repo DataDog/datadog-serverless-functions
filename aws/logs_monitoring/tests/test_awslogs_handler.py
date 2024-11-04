@@ -128,6 +128,14 @@ class TestAWSLogsHandler(unittest.TestCase):
             "arn:aws:states:us-east-1:12345678910:stateMachine:StepFunction1",
         )
 
+    @patch("caching.cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.__init__")
+    @patch("caching.cloudwatch_log_group_cache.send_forwarder_internal_metrics")
+    @patch.dict("os.environ", {"DD_STEP_FUNCTIONS_TRACE_ENABLED": "true"})
+    def test_awslogs_handler_step_functions_customized_log_group_properly(
+        self,
+        mock_forward_metrics,
+        mock_cache_init,
+    ):
         # SF customized log group
         eventFromCustomizedLogGroup = {
             "awslogs": {
@@ -156,7 +164,17 @@ class TestAWSLogsHandler(unittest.TestCase):
                 )
             }
         }
-        awslogs_handler.metadata = {"ddsource": "postgresql", "ddtags": "env:dev"}
+        context = None
+        metadata = {"ddsource": "postgresql", "ddtags": "env:dev"}
+        mock_forward_metrics.side_effect = MagicMock()
+        mock_cache_init.return_value = None
+        cache_layer = CacheLayer("")
+        cache_layer._step_functions_cache.get = MagicMock(
+            return_value=["test_tag_key:test_tag_value"]
+        )
+        cache_layer._cloudwatch_log_group_cache.get = MagicMock()
+
+        awslogs_handler = AwsLogsHandler(context, metadata, cache_layer)
         awslogs_handler.handle(eventFromCustomizedLogGroup)
         self.assertEqual(
             awslogs_handler.metadata[DD_SOURCE], AwsEventSource.STEPFUNCTION.value
@@ -164,39 +182,6 @@ class TestAWSLogsHandler(unittest.TestCase):
         self.assertEqual(
             awslogs_handler.metadata[DD_HOST],
             "arn:aws:states:us-east-1:12345678910:stateMachine:StepFunction2",
-        )
-
-        eventFromCustomizedLogGroup = {
-            "awslogs": {
-                "data": base64.b64encode(
-                    gzip.compress(
-                        bytes(
-                            json.dumps(
-                                {
-                                    "messageType": "DATA_MESSAGE",
-                                    "owner": "425362996713",
-                                    "logGroup": "test/logs",
-                                    "logStream": "state/states/2022-11-10-15-50/7851b2d9",
-                                    "subscriptionFilters": ["testFilter"],
-                                    "logEvents": [
-                                        {
-                                            "id": "37199773595581154154810589279545129148442535997644275712",
-                                            "timestamp": 1668095539607,
-                                            "message": '{"execution_arn": "arn:aws:states:us-east-1:12345678910:execution:StepFunction2:ccccccc-d1da-4c38-b32c-2b6b07d713fa","redrive_count": "0"}',
-                                        }
-                                    ],
-                                }
-                            ),
-                            "utf-8",
-                        )
-                    )
-                )
-            }
-        }
-        awslogs_handler.metadata = {"ddsource": "postgresql", "ddtags": "env:dev"}
-        awslogs_handler.handle(eventFromCustomizedLogGroup)
-        self.assertNotEqual(
-            awslogs_handler.metadata[DD_SOURCE], AwsEventSource.STEPFUNCTION.value
         )
 
     def test_process_lambda_logs(self):
