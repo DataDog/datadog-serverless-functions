@@ -156,7 +156,7 @@ class TestAWSLogsHandler(unittest.TestCase):
                 )
             }
         }
-        awslogs_handler.metadata = {}
+        awslogs_handler.metadata = {"ddsource": "postgresql", "ddtags": "env:dev"}
         awslogs_handler.handle(eventFromCustomizedLogGroup)
         self.assertEqual(
             awslogs_handler.metadata[DD_SOURCE], AwsEventSource.STEPFUNCTION.value
@@ -193,7 +193,7 @@ class TestAWSLogsHandler(unittest.TestCase):
                 )
             }
         }
-        awslogs_handler.metadata = {}
+        awslogs_handler.metadata = {"ddsource": "postgresql", "ddtags": "env:dev"}
         awslogs_handler.handle(eventFromCustomizedLogGroup)
         self.assertNotEqual(
             awslogs_handler.metadata[DD_SOURCE], AwsEventSource.STEPFUNCTION.value
