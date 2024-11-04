@@ -145,7 +145,7 @@ class TestAWSLogsHandler(unittest.TestCase):
                                         {
                                             "id": "37199773595581154154810589279545129148442535997644275712",
                                             "timestamp": 1668095539607,
-                                            "message": '{"execution_arn": "arn:aws:states:us-east-1:12345678910:execution:StepFunction1:ccccccc-d1da-4c38-b32c-2b6b07d713fa","redrive_count": "0"}',
+                                            "message": '{"execution_arn": "arn:aws:states:us-east-1:12345678910:execution:StepFunction2:ccccccc-d1da-4c38-b32c-2b6b07d713fa","redrive_count": "0"}',
                                         }
                                     ],
                                 }
@@ -156,13 +156,14 @@ class TestAWSLogsHandler(unittest.TestCase):
                 )
             }
         }
+        awslogs_handler = AwsLogsHandler(context, metadata, cache_layer)
         awslogs_handler.handle(event)
         self.assertEqual(
             awslogs_handler.metadata[DD_SOURCE], AwsEventSource.STEPFUNCTION.value
         )
         self.assertEqual(
             awslogs_handler.metadata[DD_HOST],
-            "arn:aws:states:us-east-1:12345678910:stateMachine:StepFunction1",
+            "arn:aws:states:us-east-1:12345678910:stateMachine:StepFunction2",
         )
 
         eventFromCustomizedLogGroup = {
@@ -181,7 +182,7 @@ class TestAWSLogsHandler(unittest.TestCase):
                                         {
                                             "id": "37199773595581154154810589279545129148442535997644275712",
                                             "timestamp": 1668095539607,
-                                            "message": '{"execution_arn": "arn:aws:states:us-east-1:12345678910:execution:StepFunction1:ccccccc-d1da-4c38-b32c-2b6b07d713fa","redrive_count": "0"}',
+                                            "message": '{"execution_arn": "arn:aws:states:us-east-1:12345678910:execution:StepFunction2:ccccccc-d1da-4c38-b32c-2b6b07d713fa","redrive_count": "0"}',
                                         }
                                     ],
                                 }
@@ -192,6 +193,7 @@ class TestAWSLogsHandler(unittest.TestCase):
                 )
             }
         }
+        awslogs_handler = AwsLogsHandler(context, metadata, cache_layer)
         awslogs_handler.handle(eventFromCustomizedLogGroup)
         self.assertNotEqual(
             awslogs_handler.metadata[DD_SOURCE], AwsEventSource.STEPFUNCTION.value
