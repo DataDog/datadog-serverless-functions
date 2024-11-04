@@ -118,6 +118,7 @@ def invoke_additional_target_lambdas(event):
     lambda_arns = DD_ADDITIONAL_TARGET_LAMBDAS.split(",")
     lambda_payload = json.dumps(event)
 
+    ## fake
     for lambda_arn in lambda_arns:
         try:
             lambda_client.invoke(
