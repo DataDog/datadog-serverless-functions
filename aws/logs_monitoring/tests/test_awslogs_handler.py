@@ -24,7 +24,7 @@ env_patch = patch.dict(
     },
 )
 env_patch.start()
-from aws.logs_monitoring.settings import DD_SOURCE
+from aws.logs_monitoring.settings import DD_HOST, DD_SOURCE
 from steps.handlers.awslogs_handler import AwsLogsHandler
 from steps.handlers.aws_attributes import AwsAttributes
 from caching.cache_layer import CacheLayer
@@ -121,6 +121,75 @@ class TestAWSLogsHandler(unittest.TestCase):
         verify_as_json(list(awslogs_handler.handle(event)))
         verify_as_json(metadata, options=NamerFactory.with_parameters("metadata"))
         self.assertEqual(
+            awslogs_handler.metadata[DD_SOURCE], AwsEventSource.STEPFUNCTION.value
+        )
+
+        # SF customized log group
+        eventFromCustomizedLogGroup = {
+            "awslogs": {
+                "data": base64.b64encode(
+                    gzip.compress(
+                        bytes(
+                            json.dumps(
+                                {
+                                    "messageType": "DATA_MESSAGE",
+                                    "owner": "425362996713",
+                                    "logGroup": "test/logs",
+                                    "logStream": "states/logs-to-traces-sequential/2022-11-10-15-50/7851b2d9",
+                                    "subscriptionFilters": ["testFilter"],
+                                    "logEvents": [
+                                        {
+                                            "id": "37199773595581154154810589279545129148442535997644275712",
+                                            "timestamp": 1668095539607,
+                                            "message": '{"execution_arn": "arn:aws:states:us-east-1:12345678910:execution:StepFunction1:ccccccc-d1da-4c38-b32c-2b6b07d713fa","redrive_count": "0"}',
+                                        }
+                                    ],
+                                }
+                            ),
+                            "utf-8",
+                        )
+                    )
+                )
+            }
+        }
+        awslogs_handler.handle(event)
+        self.assertEqual(
+            awslogs_handler.metadata[DD_SOURCE], AwsEventSource.STEPFUNCTION.value
+        )
+        self.assertEqual(
+            awslogs_handler.metadata[DD_HOST],
+            "arn:aws:states:us-east-1:12345678910:statemachine:stepfunction1",
+        )
+
+        eventFromCustomizedLogGroup = {
+            "awslogs": {
+                "data": base64.b64encode(
+                    gzip.compress(
+                        bytes(
+                            json.dumps(
+                                {
+                                    "messageType": "DATA_MESSAGE",
+                                    "owner": "425362996713",
+                                    "logGroup": "test/logs",
+                                    "logStream": "states/logs-to-traces-sequential/2022-11-10-15-50/7851b2d9",
+                                    "subscriptionFilters": ["testFilter"],
+                                    "logEvents": [
+                                        {
+                                            "id": "37199773595581154154810589279545129148442535997644275712",
+                                            "timestamp": 1668095539607,
+                                            "message": '{"execution_arn": "arn:aws:states:us-east-1:12345678910:execution:StepFunction1:ccccccc-d1da-4c38-b32c-2b6b07d713fa","redrive_count": "0"}',
+                                        }
+                                    ],
+                                }
+                            ),
+                            "utf-8",
+                        )
+                    )
+                )
+            }
+        }
+        awslogs_handler.handle(eventFromCustomizedLogGroup)
+        self.assertNotEqual(
             awslogs_handler.metadata[DD_SOURCE], AwsEventSource.STEPFUNCTION.value
         )
 
