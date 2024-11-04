@@ -175,7 +175,7 @@ class TestAWSLogsHandler(unittest.TestCase):
                                     "messageType": "DATA_MESSAGE",
                                     "owner": "425362996713",
                                     "logGroup": "test/logs",
-                                    "logStream": "states/logs-to-traces-sequential/2022-11-10-15-50/7851b2d9",
+                                    "logStream": "state/states/2022-11-10-15-50/7851b2d9",
                                     "subscriptionFilters": ["testFilter"],
                                     "logEvents": [
                                         {
