@@ -120,7 +120,9 @@ class TestAWSLogsHandler(unittest.TestCase):
         awslogs_handler = AwsLogsHandler(context, metadata, cache_layer)
         verify_as_json(list(awslogs_handler.handle(event)))
         verify_as_json(metadata, options=NamerFactory.with_parameters("metadata"))
-        self.assertEqual(awslogs_handler.metadata[DD_SOURCE], AwsEventSource.StepFunction);
+        self.assertEqual(
+            awslogs_handler.metadata[DD_SOURCE], AwsEventSource.StepFunction
+        )
         self.assertEqual(
             awslogs_handler.metadata[DD_SOURCE], AwsEventSource.StepFunction
         )

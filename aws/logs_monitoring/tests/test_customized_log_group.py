@@ -66,7 +66,9 @@ class TestCustomizedLogGroup(unittest.TestCase):
         self.assertEqual(is_step_functions_log_group(lambda_log_stream_name), False)
 
         # SF logstream is true
-        step_functions_log_stream_name = "states/selfmonit-statemachine/2024-11-04-15-30/00000000"
+        step_functions_log_stream_name = (
+            "states/selfmonit-statemachine/2024-11-04-15-30/00000000"
+        )
         self.assertEqual(
             is_step_functions_log_group(step_functions_log_stream_name), True
         )
