@@ -123,6 +123,10 @@ class TestAWSLogsHandler(unittest.TestCase):
         self.assertEqual(
             awslogs_handler.metadata[DD_SOURCE], AwsEventSource.STEPFUNCTION.value
         )
+        self.assertEqual(
+            awslogs_handler.metadata[DD_HOST],
+            "arn:aws:states:us-east-1:12345678910:stateMachine:StepFunction1",
+        )
 
         # SF customized log group
         eventFromCustomizedLogGroup = {
@@ -158,7 +162,7 @@ class TestAWSLogsHandler(unittest.TestCase):
         )
         self.assertEqual(
             awslogs_handler.metadata[DD_HOST],
-            "arn:aws:states:us-east-1:12345678910:statemachine:stepfunction1",
+            "arn:aws:states:us-east-1:12345678910:stateMachine:StepFunction1",
         )
 
         eventFromCustomizedLogGroup = {
