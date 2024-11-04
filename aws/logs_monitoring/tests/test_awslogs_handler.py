@@ -8,6 +8,8 @@ from unittest.mock import patch, MagicMock
 from approvaltests.approvals import verify_as_json
 from approvaltests.namer import NamerFactory
 
+from aws.logs_monitoring.steps.enums import AwsEventSource
+
 sys.modules["trace_forwarder.connection"] = MagicMock()
 sys.modules["datadog_lambda.wrapper"] = MagicMock()
 sys.modules["datadog_lambda.metric"] = MagicMock()
@@ -22,6 +24,7 @@ env_patch = patch.dict(
     },
 )
 env_patch.start()
+from aws.logs_monitoring.settings import DD_SOURCE
 from steps.handlers.awslogs_handler import AwsLogsHandler
 from steps.handlers.aws_attributes import AwsAttributes
 from caching.cache_layer import CacheLayer
@@ -117,6 +120,10 @@ class TestAWSLogsHandler(unittest.TestCase):
         awslogs_handler = AwsLogsHandler(context, metadata, cache_layer)
         verify_as_json(list(awslogs_handler.handle(event)))
         verify_as_json(metadata, options=NamerFactory.with_parameters("metadata"))
+        self.assertEqual(awslogs_handler.metadata[DD_SOURCE], AwsEventSource.StepFunction);
+        self.assertEqual(
+            awslogs_handler.metadata[DD_SOURCE], AwsEventSource.StepFunction
+        )
 
     def test_process_lambda_logs(self):
         # Non Lambda log

@@ -2,6 +2,7 @@ import unittest
 from customized_log_group import (
     is_lambda_customized_log_group,
     get_lambda_function_name_from_logstream_name,
+    is_step_functions_log_group,
 )
 
 
@@ -57,4 +58,15 @@ class TestCustomizedLogGroup(unittest.TestCase):
         self.assertEqual(
             get_lambda_function_name_from_logstream_name(stepfunction_log_stream_name),
             None,
+        )
+
+    def test_is_step_functions_log_group(self):
+        # Lambda logstream is false
+        lambda_log_stream_name = "2023/11/04/[$LATEST]4426346c2cdf4c54a74d3bd2b929fc44"
+        self.assertEqual(is_step_functions_log_group(lambda_log_stream_name), False)
+
+        # SF logstream is true
+        step_functions_log_stream_name = "states/selfmonit-statemachine/2024-11-04-15-30/00000000"
+        self.assertEqual(
+            is_step_functions_log_group(step_functions_log_stream_name), True
         )

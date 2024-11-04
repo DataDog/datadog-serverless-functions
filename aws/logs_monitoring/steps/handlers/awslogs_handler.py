@@ -103,13 +103,13 @@ class AwsLogsHandler:
             source = str(AwsEventSource.BEDROCK)
         self.metadata[DD_SOURCE] = parse_event_source(event, source)
 
-        # Special handling for customized log group of Lambda functions
-        # Multiple Lambda functions can share one single customized log group
-        # Need to parse logStream name to determine whether it is a Lambda function
+        # Special handling for customized log group of Lambda Functions and Step Functions
+        # Prefer to place the handling of customized log group at the bottom so that it can correct the source in some edge cases
+        # Multiple functions can share one single customized log group
+        # Need to parse logStream name to determine
         if is_lambda_customized_log_group(log_stream):
             self.metadata[DD_SOURCE] = str(AwsEventSource.LAMBDA)
-
-        # Special handling for Step Functions log groups. Regardless of whether the log group is customized, the corresponding log stream starts with 'states/'."
+        # Regardless of whether the log group is customized, the corresponding log stream starts with 'states/'."
         if is_step_functions_log_group(log_stream):
             self.metadata[DD_SOURCE] = str(AwsEventSource.STEPFUNCTION)
 
