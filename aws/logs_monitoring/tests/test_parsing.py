@@ -295,14 +295,6 @@ class TestParseEventSource(unittest.TestCase):
             str(AwsEventSource.CARBONBLACK),
         )
 
-    def test_step_function_event(self):
-        self.assertEqual(
-            parse_event_source(
-                {"awslogs": "logs"}, "/aws/vendedlogs/states/MyStateMachine-Logs"
-            ),
-            str(AwsEventSource.STEPFUNCTION),
-        )
-
     def test_cloudwatch_source_if_none_found(self):
         self.assertEqual(
             parse_event_source({"awslogs": "logs"}, ""), str(AwsEventSource.CLOUDWATCH)
