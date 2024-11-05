@@ -1,6 +1,6 @@
 {
     "ddsource": "stepfunction",
     "ddtags": "env:dev,test_tag_key:test_tag_value,dd_step_functions_trace_enabled:true",
-    "host": "arn:aws:states:us-east-1:12345678910:stateMachine:StepFunction3",
+    "host": "arn:aws:states:us-east-1:12345678910:stateMachine:StepFunction1",
     "service": "stepfunction"
 }
