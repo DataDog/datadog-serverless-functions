@@ -2,7 +2,7 @@
     {
         "aws": {
             "awslogs": {
-                "logGroup": "/aws/vendedlogs/states/logs-to-traces-sequential-Logs",
+                "logGroup": "test/logs",
                 "logStream": "states/logs-to-traces-sequential/2022-11-10-15-50/7851b2d9",
                 "owner": "425362996713"
             }
