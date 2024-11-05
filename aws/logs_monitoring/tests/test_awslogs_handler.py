@@ -153,7 +153,7 @@ class TestAWSLogsHandler(unittest.TestCase):
                                         {
                                             "id": "37199773595581154154810589279545129148442535997644275712",
                                             "timestamp": 1668095539607,
-                                            "message": '{"execution_arn": "arn:aws:states:us-east-1:12345678910:execution:StepFunction2:ccccccc-d1da-4c38-b32c-2b6b07d713fa","redrive_count": "0"}',
+                                            "message": '{"id": "1","type": "ExecutionStarted","details": {"input": "{}","inputDetails": {"truncated": "false"},"roleArn": "arn:aws:iam::12345678910:role/service-role/StepFunctions-test-role-a0iurr4pt"},"previous_event_id": "0","event_timestamp": "1716992192441","execution_arn": "arn:aws:states:us-east-1:12345678910:execution:StepFunction2:ccccccc-d1da-4c38-b32c-2b6b07d713fa","redrive_count": "0"}',
                                         }
                                     ],
                                 }
@@ -175,7 +175,8 @@ class TestAWSLogsHandler(unittest.TestCase):
         cache_layer._cloudwatch_log_group_cache.get = MagicMock()
 
         awslogs_handler = AwsLogsHandler(context, metadata, cache_layer)
-        awslogs_handler.handle(eventFromCustomizedLogGroup)
+        verify_as_json(list(awslogs_handler.handle(eventFromCustomizedLogGroup)))
+        verify_as_json(metadata, options=NamerFactory.with_parameters("metadata"))
         self.assertEqual(
             awslogs_handler.metadata[DD_SOURCE], AwsEventSource.STEPFUNCTION.value
         )
