@@ -118,6 +118,7 @@ class TestAWSLogsHandler(unittest.TestCase):
         cache_layer._cloudwatch_log_group_cache.get = MagicMock()
 
         awslogs_handler = AwsLogsHandler(context, metadata, cache_layer)
+        awslogs_handler.handle(event)
         # verify_as_json(list(awslogs_handler.handle(event)))
         # verify_as_json(metadata, options=NamerFactory.with_parameters("metadata"))
         self.assertEqual(
