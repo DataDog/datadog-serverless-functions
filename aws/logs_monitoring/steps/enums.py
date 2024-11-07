@@ -136,7 +136,6 @@ class AwsCwEventSourcePrefix(Enum):
     RDS = ("/aws/rds", AwsEventSource.RDS)
     # e.g. sns/us-east-1/123456779121/SnsTopicX
     SNS = ("sns/", AwsEventSource.SNS)
-    STEPFUNCTION = ("/aws/vendedlogs/states", AwsEventSource.STEPFUNCTION)
     TRANSITGATEWAY = ("tgw-attach", AwsEventSource.TRANSITGATEWAY)
 
     def __str__(self):
