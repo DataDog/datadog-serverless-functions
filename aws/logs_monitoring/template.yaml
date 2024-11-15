@@ -249,6 +249,16 @@ Parameters:
     Type: String
     Default: ""
     Description: The name of an existing s3 bucket to use. If not provided, a new bucket will be created.
+  DdLogLevel:
+    Type: String
+    Default: "WARN"
+    Description: Set the log level for the forwarder. Valid values are DEBUG, INFO, WARN, ERROR, CRITICAL. If not set, default is WARN.
+    AllowedValues:
+      - DEBUG
+      - INFO
+      - WARN
+      - ERROR
+      - CRITICAL
 Conditions:
   IsAWSChina: !Equals [!Ref 'AWS::Partition', aws-cn]
   IsGovCloud: !Equals [!Ref 'AWS::Partition', aws-us-gov]
@@ -336,6 +346,8 @@ Conditions:
     - !Equals [!Join ["", !Ref VPCSecurityGroupIds], ""]
   SetVpcSubnetIds: !Not
     - !Equals [!Join ["", !Ref VPCSubnetIds], ""]
+  SetDdLogLevel: !Not
+    - !Equals [!Ref DdLogLevel, ""]
 Rules:
   MustSetDdApiKey:
     Assertions:
@@ -523,6 +535,10 @@ Resources:
           DD_TRACE_INTAKE_URL: !If
             - SetDdTraceIntakeUrl
             - !Ref DdTraceIntakeUrl
+            - !Ref AWS::NoValue
+          DD_LOG_LEVEL: !If
+            - SetDdLogLevel
+            - !Ref DdLogLevel
             - !Ref AWS::NoValue
       ReservedConcurrentExecutions: !If
         - SetReservedConcurrentExecutions
@@ -988,6 +1004,7 @@ Metadata:
           - DdForwarderExistingBucketName
           - DdForwarderBucketName
           - DdStoreFailedEvents
+          - DdLogLevel
     ParameterLabels:
       DdApiKey:
         default: "DdApiKey *"
