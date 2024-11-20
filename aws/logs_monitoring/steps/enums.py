@@ -36,6 +36,7 @@ class AwsEventSource(Enum):
     ROUTE53 = "route53"
     S3 = "s3"
     SNS = "sns"
+    SSM = "ssm"
     STEPFUNCTION = "stepfunction"
     TRANSITGATEWAY = "transitgateway"
     VERIFIED_ACCESS = "verified-access"
@@ -136,6 +137,7 @@ class AwsCwEventSourcePrefix(Enum):
     RDS = ("/aws/rds", AwsEventSource.RDS)
     # e.g. sns/us-east-1/123456779121/SnsTopicX
     SNS = ("sns/", AwsEventSource.SNS)
+    SSM = ("/aws/ssm/", AwsEventSource.SSM)
     TRANSITGATEWAY = ("tgw-attach", AwsEventSource.TRANSITGATEWAY)
 
     def __str__(self):
