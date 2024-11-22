@@ -294,11 +294,11 @@ class S3EventHandler:
             self.data_store.data = self.data_store.data.decode("utf-8", errors="ignore")
 
             if self.multiline_regex_start_pattern.match(self.data_store.data):
-                self.data_store.data = [
-                    item
-                    for item in self.multiline_regex_pattern.split(self.data_store.data)
-                    if item is not None
-                ]
+                self.data_store.data = list(
+                    filter(
+                        None, self.multiline_regex_pattern.split(self.data_store.data)
+                    )
+                )
             else:
                 self.logger.debug(
                     "DD_MULTILINE_LOG_REGEX_PATTERN %s did not match start of file, splitting by line",
