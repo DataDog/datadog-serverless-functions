@@ -8,6 +8,7 @@ from io import BufferedReader, BytesIO
 
 import boto3
 import botocore
+
 from settings import (
     CN_STRING,
     DD_CUSTOM_TAGS,
@@ -293,9 +294,11 @@ class S3EventHandler:
             self.data_store.data = self.data_store.data.decode("utf-8", errors="ignore")
 
             if self.multiline_regex_start_pattern.match(self.data_store.data):
-                self.data_store.data = self.multiline_regex_pattern.split(
-                    self.data_store.data
-                )
+                self.data_store.data = [
+                    item
+                    for item in self.multiline_regex_pattern.split(self.data_store.data)
+                    if item is not None
+                ]
             else:
                 self.logger.debug(
                     "DD_MULTILINE_LOG_REGEX_PATTERN %s did not match start of file, splitting by line",
