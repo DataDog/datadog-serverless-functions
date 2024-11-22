@@ -8,6 +8,7 @@ from io import BufferedReader, BytesIO
 
 import boto3
 import botocore
+
 from settings import (
     CN_STRING,
     DD_CUSTOM_TAGS,
@@ -293,8 +294,10 @@ class S3EventHandler:
             self.data_store.data = self.data_store.data.decode("utf-8", errors="ignore")
 
             if self.multiline_regex_start_pattern.match(self.data_store.data):
-                self.data_store.data = self.multiline_regex_pattern.split(
-                    self.data_store.data
+                self.data_store.data = list(
+                    filter(
+                        None, self.multiline_regex_pattern.split(self.data_store.data)
+                    )
                 )
             else:
                 self.logger.debug(
