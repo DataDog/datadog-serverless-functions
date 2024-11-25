@@ -724,7 +724,8 @@ Resources:
         - !Ref AWS::NoValue
       BucketEncryption:
         ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
+          - BucketKeyEnabled: true 
+            ServerSideEncryptionByDefault:
               SSEAlgorithm: "aws:kms"
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
