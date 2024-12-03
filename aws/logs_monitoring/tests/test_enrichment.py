@@ -107,6 +107,21 @@ class TestMergeMessageTags(unittest.TestCase):
             "my_application_service",
         )
 
+    def test_extract_ddtags_from_message_service_only_in_extracted_ddtags_values(self):
+        loaded_message_tags = {"ddtags": "key:my-service-repo"}
+        event = {"message": loaded_message_tags, "ddtags": self.custom_tags}
+
+        extract_ddtags_from_message(event)
+
+        self.assertEqual(
+            event["ddtags"],
+            "custom_tag_2:value2,service:my_custom_service,key:my-service-repo",
+        )
+        self.assertNotIn(
+            "service",
+            event,
+        )
+
 
 class TestExtractHostFromLogEvents(unittest.TestCase):
     def test_parse_source_cloudtrail(self):
