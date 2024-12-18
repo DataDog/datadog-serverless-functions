@@ -1,7 +1,7 @@
 import unittest
 import base64
 import os
-import urllib.request
+import urllib3
 import json
 import re
 import gzip
@@ -22,9 +22,9 @@ class TestForwarderSnapshots(unittest.TestCase):
     recorder_has_been_initialized = False
 
     def get_recording(self):
-        with urllib.request.urlopen(recorder_url) as url:
-            message = self.filter_snapshot(url.read().decode())
-            data = json.loads(message)
+        resp = urllib3.request("GET", recorder_url)
+        message = self.filter_snapshot(resp.data.decode("utf-8"))
+        data = json.loads(message)
         editedData = self.filter_data(data)
         return editedData
 
@@ -36,8 +36,7 @@ class TestForwarderSnapshots(unittest.TestCase):
         return f'{{"awslogs": {{"data": "{encoded_data}"}}}}'
 
     def send_log_event(self, event):
-        request = urllib.request.Request(forwarder_url, data=event.encode("utf-8"))
-        urllib.request.urlopen(request)
+        urllib3.request("POST", url=forwarder_url, body=event.encode("utf-8"))
 
     def filter_data(self, data):
         # Remove things that can vary during each test run once the JSON is parsed
@@ -122,7 +121,7 @@ class TestForwarderSnapshots(unittest.TestCase):
             recording = self.get_recording()
             self.assertEqual(
                 recording["events"][0]["path"],
-                "/api/v1/validate?api_key=abcdefghijklmnopqrstuvwxyz012345",
+                "/api/v2/logs",
             )
             self.__class__.recorder_has_been_initialized = True
 

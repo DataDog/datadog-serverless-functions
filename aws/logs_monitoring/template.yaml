@@ -396,7 +396,7 @@ Resources:
             - {DdForwarderVersion: !FindInMap [Constants, DdForwarder, Version]}
         - ZipFile: " "
       MemorySize: !Ref MemorySize
-      Runtime: python3.11
+      Runtime: python3.12
       Timeout: !Ref Timeout
       Tags:
         - Key: "dd_forwarder_version"
@@ -724,7 +724,7 @@ Resources:
         - !Ref AWS::NoValue
       BucketEncryption:
         ServerSideEncryptionConfiguration:
-          - BucketKeyEnabled: true 
+          - BucketKeyEnabled: true
             ServerSideEncryptionByDefault:
               SSEAlgorithm: "aws:kms"
       PublicAccessBlockConfiguration:
@@ -788,7 +788,7 @@ Resources:
     Properties:
       Description: Copies Datadog Forwarder zip to the destination S3 bucket
       Handler: index.handler
-      Runtime: python3.11
+      Runtime: python3.12
       Timeout: 600
       Code:
         ZipFile: |
