@@ -1,7 +1,7 @@
 import unittest
 import base64
 import os
-import urllib3
+import urllib.request
 import json
 import re
 import gzip
@@ -22,9 +22,9 @@ class TestForwarderSnapshots(unittest.TestCase):
     recorder_has_been_initialized = False
 
     def get_recording(self):
-        resp = urllib3.request("GET", recorder_url)
-        message = self.filter_snapshot(resp.data.decode("utf-8"))
-        data = json.loads(message)
+        with urllib.request.urlopen(recorder_url) as url:
+            message = self.filter_snapshot(url.read().decode())
+            data = json.loads(message)
         editedData = self.filter_data(data)
         return editedData
 
@@ -36,7 +36,8 @@ class TestForwarderSnapshots(unittest.TestCase):
         return f'{{"awslogs": {{"data": "{encoded_data}"}}}}'
 
     def send_log_event(self, event):
-        urllib3.request("POST", url=forwarder_url, body=event.encode("utf-8"))
+        request = urllib.request.Request(forwarder_url, data=event.encode("utf-8"))
+        urllib.request.urlopen(request)
 
     def filter_data(self, data):
         # Remove things that can vary during each test run once the JSON is parsed
@@ -53,6 +54,14 @@ class TestForwarderSnapshots(unittest.TestCase):
                     event["headers"]["x-datadog-parent-id"] = "<redacted from snapshot>"
                 if "Content-Length" in event["headers"]:
                     event["headers"]["Content-Length"] = "<redacted from snapshot>"
+                if "x-datadog-trace-id" in event["headers"]:
+                    event["headers"]["x-datadog-trace-id"] = "<redacted from snapshot>"
+                if "x-datadog-tags" in event["headers"]:
+                    event["headers"]["x-datadog-tags"] = "<redacted from snapshot>"
+                if "traceparent" in event["headers"]:
+                    event["headers"]["traceparent"] = "<redacted from snapshot>"
+                if "tracestate" in event["headers"]:
+                    event["headers"]["tracestate"] = "<redacted from snapshot>"
             editedData["events"].append(event)
         return editedData
 
@@ -114,8 +123,7 @@ class TestForwarderSnapshots(unittest.TestCase):
         # Clears any previously recorded state
         self.get_recording()
 
-        # If this is the first test we are running, we first need to capture
-        # startup http calls like /validate
+        # Itests will directly call the forwarder handler which is datadog_forwarder() in lambda_function.py
         if not self.__class__.recorder_has_been_initialized:
             self.send_log_event("{}")
             recording = self.get_recording()

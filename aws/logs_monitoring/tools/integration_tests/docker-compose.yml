@@ -27,7 +27,6 @@ services:
       AWS_SECURITY_TOKEN: "${AWS_SECURITY_TOKEN}"
       AWS_SESSION_TOKEN: "${AWS_SESSION_TOKEN}"
       AWS_DEFAULT_REGION: us-east-1
-      DOCKER_LAMBDA_STAY_OPEN: 1
       DD_LOG_LEVEL: ${LOG_LEVEL:-info}
       DD_API_KEY: abcdefghijklmnopqrstuvwxyz012345 # Must be 32 characters exactly
       DD_URL: recorder # Used for logs intake
@@ -46,6 +45,7 @@ services:
       DD_FETCH_LOG_GROUP_TAGS: "true"
       DD_FETCH_STEP_FUNCTIONS_TAGS: "false"  # intentionally set false to allow integration test for step function logs to run without hitting aws
       DD_STORE_FAILED_EVENTS: "false"
+      DD_TRACE_ENABLED: "true"
     expose:
       - 8080
     depends_on:
@@ -60,7 +60,7 @@ services:
 
   tester:
     image: ${PYTHON_BASE}
-    command: /bin/sh -c 'pip install "deepdiff<6" && pip install "urllib3" && python -m unittest discover'
+    command: /bin/sh -c 'pip install "deepdiff<6" && python -m unittest discover'
     volumes:
       - ./tester:/tester
       - ${SNAPSHOTS_DIR_NAME}:/snapshots

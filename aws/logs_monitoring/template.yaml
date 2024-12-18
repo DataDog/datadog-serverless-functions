@@ -259,6 +259,13 @@ Parameters:
       - WARN
       - ERROR
       - CRITICAL
+  DdTraceEnabled:
+    Type: String
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: Set to false to disable trace forwarding.
 Conditions:
   IsAWSChina: !Equals [!Ref 'AWS::Partition', aws-cn]
   IsGovCloud: !Equals [!Ref 'AWS::Partition', aws-us-gov]
@@ -348,6 +355,7 @@ Conditions:
     - !Equals [!Join ["", !Ref VPCSubnetIds], ""]
   SetDdLogLevel: !Not
     - !Equals [!Ref DdLogLevel, ""]
+  SetDdTraceEnabled: !Equals [!Ref DdTraceEnabled, false]
 Rules:
   MustSetDdApiKey:
     Assertions:
@@ -540,6 +548,10 @@ Resources:
             - SetDdLogLevel
             - !Ref DdLogLevel
             - !Ref AWS::NoValue
+          DD_TRACE_ENABLED: !If
+            - SetDdTraceEnabled
+            - !Ref DdTraceEnabled
+            - "true"
       ReservedConcurrentExecutions: !If
         - SetReservedConcurrentExecutions
         - !Ref ReservedConcurrency

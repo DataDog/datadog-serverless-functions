@@ -4,7 +4,7 @@ cattrs
 certifi
 charset-normalizer
 datadog-lambda==6.104.0
-datadog==0.48.0
+datadog==0.50.2
 ddsketch==3.0.1
 ddtrace==2.17.3
 deprecated

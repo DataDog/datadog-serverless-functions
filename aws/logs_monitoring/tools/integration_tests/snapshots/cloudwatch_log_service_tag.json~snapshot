@@ -32,7 +32,13 @@
         "DD-EVP-ORIGIN": "aws_forwarder",
         "DD-EVP-ORIGIN-VERSION": "<redacted from snapshot>",
         "Host": "recorder:8080",
-        "User-Agent": "<redacted from snapshot>"
+        "User-Agent": "<redacted from snapshot>",
+        "traceparent": "<redacted from snapshot>",
+        "tracestate": "<redacted from snapshot>",
+        "x-datadog-parent-id": "<redacted from snapshot>",
+        "x-datadog-sampling-priority": "1",
+        "x-datadog-tags": "<redacted from snapshot>",
+        "x-datadog-trace-id": "<redacted from snapshot>"
       },
       "path": "/api/v2/logs",
       "verb": "POST"
@@ -107,7 +113,13 @@
         "Content-Type": "application/json",
         "DD-API-KEY": "abcdefghijklmnopqrstuvwxyz012345",
         "Host": "recorder:8080",
-        "User-Agent": "<redacted from snapshot>"
+        "User-Agent": "<redacted from snapshot>",
+        "traceparent": "<redacted from snapshot>",
+        "tracestate": "<redacted from snapshot>",
+        "x-datadog-parent-id": "<redacted from snapshot>",
+        "x-datadog-sampling-priority": "1",
+        "x-datadog-tags": "<redacted from snapshot>",
+        "x-datadog-trace-id": "<redacted from snapshot>"
       },
       "path": "/api/v1/distribution_points",
       "verb": "POST"
