@@ -7,8 +7,9 @@
 
 set -e
 
-PYTHON_VERSION="python3.11"
-PYTHON_IMAGE="python:3.11"
+PYTHON_VERSION="python3.12"
+PYTHON_VERSION_TAG="3.12"
+PYTHON_IMAGE="python:3.12"
 SKIP_FORWARDER_BUILD=false
 UPDATE_SNAPSHOTS=false
 LOG_LEVEL=info
@@ -38,10 +39,11 @@ for arg in "$@"; do
 
         # -v or --python-version
         # The version of the Python Lambda runtime to use
-        # Must be 3.9 or 3.10
+        # Must be 3.11 or 3.12
         -v=* | --python-version=*)
                 PYTHON_VERSION="python${arg#*=}"
                 PYTHON_IMAGE="python:${arg#*=}"
+                PYTHON_VERSION_TAG="${arg#*=}"
                 shift
                 ;;
 
@@ -78,8 +80,8 @@ for arg in "$@"; do
         esac
 done
 
-if [ $PYTHON_VERSION != "python3.10" ] && [ $PYTHON_VERSION != "python3.11" ]; then
-        echo "Must use either Python 3.10 or 3.11"
+if [ $PYTHON_VERSION != "python3.11" ] && [ $PYTHON_VERSION != "python3.12" ]; then
+        echo "Must use either Python 3.11 or 3.12"
         exit 1
 fi
 
@@ -152,7 +154,7 @@ cd $INTEGRATION_TESTS_DIR
 echo "Building Docker Image for Forwarder with tag datadog-log-forwarder:$PYTHON_VERSION"
 docker buildx build --platform linux/amd64 --file "${INTEGRATION_TESTS_DIR}/forwarder/Dockerfile" -t "datadog-log-forwarder:$PYTHON_VERSION" ../../.forwarder --no-cache \
         --build-arg forwarder='aws-dd-forwarder-0.0.0' \
-        --build-arg image="mlupin/docker-lambda:${PYTHON_VERSION}-x86_64"
+        --build-arg image="public.ecr.aws/lambda/python:${PYTHON_VERSION_TAG}-x86_64"
 
 echo "Running integration tests for ${PYTHON_VERSION}"
 LOG_LEVEL=${LOG_LEVEL} \

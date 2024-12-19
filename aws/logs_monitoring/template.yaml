@@ -259,6 +259,13 @@ Parameters:
       - WARN
       - ERROR
       - CRITICAL
+  DdTraceEnabled:
+    Type: String
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: Set to false to disable trace forwarding.
 Conditions:
   IsAWSChina: !Equals [!Ref 'AWS::Partition', aws-cn]
   IsGovCloud: !Equals [!Ref 'AWS::Partition', aws-us-gov]
@@ -348,6 +355,7 @@ Conditions:
     - !Equals [!Join ["", !Ref VPCSubnetIds], ""]
   SetDdLogLevel: !Not
     - !Equals [!Ref DdLogLevel, ""]
+  SetDdTraceEnabled: !Equals [!Ref DdTraceEnabled, false]
 Rules:
   MustSetDdApiKey:
     Assertions:
@@ -396,7 +404,7 @@ Resources:
             - {DdForwarderVersion: !FindInMap [Constants, DdForwarder, Version]}
         - ZipFile: " "
       MemorySize: !Ref MemorySize
-      Runtime: python3.11
+      Runtime: python3.12
       Timeout: !Ref Timeout
       Tags:
         - Key: "dd_forwarder_version"
@@ -540,6 +548,10 @@ Resources:
             - SetDdLogLevel
             - !Ref DdLogLevel
             - !Ref AWS::NoValue
+          DD_TRACE_ENABLED: !If
+            - SetDdTraceEnabled
+            - !Ref DdTraceEnabled
+            - "true"
       ReservedConcurrentExecutions: !If
         - SetReservedConcurrentExecutions
         - !Ref ReservedConcurrency
@@ -724,7 +736,7 @@ Resources:
         - !Ref AWS::NoValue
       BucketEncryption:
         ServerSideEncryptionConfiguration:
-          - BucketKeyEnabled: true 
+          - BucketKeyEnabled: true
             ServerSideEncryptionByDefault:
               SSEAlgorithm: "aws:kms"
       PublicAccessBlockConfiguration:
@@ -788,7 +800,7 @@ Resources:
     Properties:
       Description: Copies Datadog Forwarder zip to the destination S3 bucket
       Handler: index.handler
-      Runtime: python3.11
+      Runtime: python3.12
       Timeout: 600
       Code:
         ZipFile: |
