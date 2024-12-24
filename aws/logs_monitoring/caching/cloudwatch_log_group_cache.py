@@ -38,10 +38,6 @@ class CloudwatchLogGroupTagsCache:
             logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper())
         )
 
-        # Initialize the cache
-        if self._should_fetch_tags():
-            self._build_tags_cache()
-
     def get(self, log_group_arn):
         """Get the tags for the Cloudwatch Log Group from the cache
 
@@ -66,29 +62,6 @@ class CloudwatchLogGroupTagsCache:
 
     def _should_fetch_tags(self):
         return os.environ.get("DD_FETCH_LOG_GROUP_TAGS", "false").lower() == "true"
-
-    def _build_tags_cache(self):
-        try:
-            prefix = self._get_cache_file_prefix()
-            response = self.s3_client.list_objects_v2(
-                Bucket=DD_S3_BUCKET_NAME, Prefix=prefix
-            )
-            cache_files = [content["Key"] for content in response.get("Contents", [])]
-            for cache_file in cache_files:
-                log_group_tags, last_modified = self._get_log_group_tags_from_cache(
-                    cache_file
-                )
-                if log_group_tags and not self._is_expired(last_modified):
-                    log_group = cache_file.split("/")[-1].split(".")[0]
-                    self.tags_by_log_group[log_group] = {
-                        "tags": log_group_tags,
-                        "last_modified": last_modified,
-                    }
-            self.logger.debug(
-                f"loggroup_tags_cache initialized successfully {self.tags_by_log_group}"
-            )
-        except Exception:
-            self.logger.exception("failed to build log group tags cache", exc_info=True)
 
     def _fetch_log_group_tags(self, log_group_arn):
         # first, check in-memory cache
