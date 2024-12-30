@@ -424,6 +424,9 @@ To test different patterns against your logs, turn on [debug logs](#troubleshoot
 
 ### Advanced (optional)
 
+`DdLogLevel`
+: Control log level for the Datadog Forwarder Lambda function.
+
 `DdFetchLambdaTags`
 : Let the Forwarder fetch Lambda tags using GetResources API calls and apply them to logs, metrics, and traces. If set to true, permission `tag:GetResources` will be automatically added to the Lambda execution IAM role.
 
