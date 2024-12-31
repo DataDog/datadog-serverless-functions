@@ -428,7 +428,7 @@ To test different patterns against your logs, turn on [debug logs](#troubleshoot
 : Let the Forwarder fetch Lambda tags using GetResources API calls and apply them to logs, metrics, and traces. If set to true, permission `tag:GetResources` will be automatically added to the Lambda execution IAM role.
 
 `DdFetchLogGroupTags`
-: Let the forwarder fetch Log Group tags using ListTagsLogGroup and apply them to logs, metrics, and traces. If set to true, permission `logs:ListTagsLogGroup` will be automatically added to the Lambda execution IAM role.
+: Let the forwarder fetch Log Group tags using ListTagsLogGroup and apply them to logs, metrics, and traces. If set to true, permission `logs:ListTagsForResource` will be automatically added to the Lambda execution IAM role.
 
 `DdFetchStepFunctionsTags`
 : Let the Forwarder fetch Step Functions tags using GetResources API calls and apply them to logs and traces (if Step Functions tracing is enabled). If set to true, permission `tag:GetResources` will be automatically added to the Lambda execution IAM role.
