@@ -214,6 +214,10 @@ Parameters:
     Type: Number
     Default: 20
     Description: Set the max number of workers sending logs concurrently.
+  IamRolePath:
+    Type: String
+    Default: "/"
+    Description: The path for the IAM roles.
   PermissionsBoundaryArn:
     Type: String
     Default: ""
@@ -582,6 +586,7 @@ Resources:
       ManagedPolicyArns:
         - !Sub "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
         - !Sub "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+      Path: !Ref IamRolePath
       PermissionsBoundary: !If
         - SetPermissionsBoundary
         - !Ref PermissionsBoundaryArn
@@ -890,6 +895,7 @@ Resources:
       ManagedPolicyArns:
         - !Sub "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
         - !Sub "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+      Path: !Ref IamRolePath
       PermissionsBoundary: !If
         - SetPermissionsBoundary
         - !Ref PermissionsBoundaryArn
