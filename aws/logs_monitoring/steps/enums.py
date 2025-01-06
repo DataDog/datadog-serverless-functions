@@ -31,7 +31,6 @@ class AwsEventSource(Enum):
     MYSQL = "mysql"
     NETWORKFIREWALL = "network-firewall"
     POSTGRESQL = "postgresql"
-    RDS = "rds"
     REDSHIFT = "redshift"
     ROUTE53 = "route53"
     S3 = "s3"
@@ -61,10 +60,6 @@ class AwsEventSource(Enum):
             AwsEventSource.BEDROCK,
             AwsEventSource.CLOUDFRONT,
         ]
-
-    @staticmethod
-    def rds_sources():
-        return [AwsEventSource.MARIADB, AwsEventSource.MYSQL, AwsEventSource.POSTGRESQL]
 
 
 class AwsS3EventSourceKeyword(Enum):
@@ -134,7 +129,6 @@ class AwsCwEventSourcePrefix(Enum):
     KINESIS = ("/aws/kinesis", AwsEventSource.KINESIS)
     # e.g. /aws/lambda/helloDatadog
     lAMBDA = ("/aws/lambda", AwsEventSource.LAMBDA)
-    RDS = ("/aws/rds", AwsEventSource.RDS)
     # e.g. sns/us-east-1/123456779121/SnsTopicX
     SNS = ("sns/", AwsEventSource.SNS)
     SSM = ("/aws/ssm/", AwsEventSource.SSM)

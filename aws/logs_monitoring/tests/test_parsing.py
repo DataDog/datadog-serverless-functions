@@ -55,19 +55,19 @@ class TestParseEventSource(unittest.TestCase):
     def test_rds_event(self):
         self.assertEqual(
             parse_event_source({"awslogs": "logs"}, "/aws/rds/my-rds-resource"),
-            str(AwsEventSource.RDS),
+            str(AwsEventSource.CLOUDWATCH),
         )
 
     def test_mariadb_event(self):
         self.assertEqual(
             parse_event_source({"awslogs": "logs"}, "/aws/rds/mariaDB-instance/error"),
-            str(AwsEventSource.MARIADB),
+            str(AwsEventSource.CLOUDWATCH),
         )
 
     def test_mysql_event(self):
         self.assertEqual(
             parse_event_source({"awslogs": "logs"}, "/aws/rds/mySQL-instance/error"),
-            str(AwsEventSource.MYSQL),
+            str(AwsEventSource.CLOUDWATCH),
         )
 
     def test_postgresql_event(self):
@@ -75,7 +75,7 @@ class TestParseEventSource(unittest.TestCase):
             parse_event_source(
                 {"awslogs": "logs"}, "/aws/rds/instance/datadog/postgresql"
             ),
-            str(AwsEventSource.POSTGRESQL),
+            str(AwsEventSource.CLOUDWATCH),
         )
 
     def test_lambda_event(self):

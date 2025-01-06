@@ -45,9 +45,6 @@ def is_cloudtrail(key):
 def find_cloudwatch_source(log_group):
     for prefix in AwsCwEventSourcePrefix:
         if log_group.startswith(str(prefix)):
-            if prefix == AwsCwEventSourcePrefix.RDS:
-                return find_rds_source(log_group)
-
             return str(prefix.event_source)
 
     # directly look for the source in the log group
@@ -56,14 +53,6 @@ def find_cloudwatch_source(log_group):
             return str(source)
 
     return str(AwsEventSource.CLOUDWATCH)
-
-
-def find_rds_source(log_group):
-    for engine in AwsEventSource.rds_sources():
-        if str(engine) in log_group:
-            return str(engine)
-
-    return str(AwsEventSource.RDS)
 
 
 def find_s3_source(key):
