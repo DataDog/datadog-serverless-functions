@@ -24,8 +24,6 @@ from settings import (
     DD_CUSTOM_TAGS,
 )
 
-RDS_REGEX = re.compile("/aws/rds/(instance|cluster)/(?P<host>[^/]+)/(?P<name>[^/]+)")
-
 logger = logging.getLogger()
 logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
 
@@ -144,23 +142,6 @@ class AwsLogsHandler:
                 self.handle_verified_access_source()
             case AwsEventSource.STEPFUNCTION:
                 self.handle_step_function_source()
-            # When parsing rds logs, use the cloudwatch log group name to derive the
-            # rds instance name, and add the log name of the stream ingested
-            case (
-                AwsEventSource.RDS
-                | AwsEventSource.MYSQL
-                | AwsEventSource.MARIADB
-                | AwsEventSource.POSTGRESQL
-            ):
-                self.handle_rds_source()
-
-    def handle_rds_source(self):
-        match = RDS_REGEX.match(self.aws_attributes.get_log_group())
-        if match is not None:
-            self.metadata[DD_HOST] = match.group("host")
-            self.metadata[DD_CUSTOM_TAGS] = (
-                self.metadata[DD_CUSTOM_TAGS] + ",logname:" + match.group("name")
-            )
 
     def handle_step_function_source(self):
         state_machine_arn = self.get_state_machine_arn()
