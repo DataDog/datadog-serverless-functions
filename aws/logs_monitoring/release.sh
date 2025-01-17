@@ -74,7 +74,7 @@ user_confirm() {
 }
 
 if [[ ${#} -ne 2 ]]; then
-    log_error "Usage: ${0} DESIRED_VERSION ACCOUNT[sandbox|prod]"
+    log_error "Usage: ${0} DESIRED_VERSION ACCOUNT[sandbox|prod|datadog]"
 fi
 
 if ! command -v jq >/dev/null 2>&1; then
@@ -97,7 +97,7 @@ else
 fi
 
 # Check account parameter
-VALID_ACCOUNTS=("sandbox" "prod")
+VALID_ACCOUNTS=("sandbox" "prod" "datadog")
 if [[ ! ${VALID_ACCOUNTS[@]} =~ ${2} ]]; then
     log_error "The account parameter was invalid. Please choose sandbox or prod."
 fi
@@ -105,11 +105,13 @@ ACCOUNT="${2}"
 
 if [[ ${ACCOUNT} == "prod" ]]; then
     BUCKET="datadog-cloudformation-template"
+elif [[ ${ACCOUNT} == "datadog" ]]; then
+    BUCKET="datadog-forwarder-cloudformation-template-org-2"
 elif [[ ${ACCOUNT} == "sandbox" ]]; then
     if [[ ${DEPLOY_TO_SERVERLESS_SANDBOX:-} == "true" ]]; then
         BUCKET="datadog-cloudformation-template-serverless-sandbox"
     else
-        BUCKET="datadog-cloudformation-template-sandbox"
+        BUCKET="datadog-cloudformation-template-test-sandbox"
     fi
 fi
 
@@ -124,6 +126,8 @@ aws_login() {
     shift
 
     if [[ ${ACCOUNT} == "prod" ]]; then
+        aws-vault exec sso-prod-lambda-admin -- ${cfg[@]}
+    elif [[  ${ACCOUNT} == "datadog" ]]; then
         aws-vault exec sso-prod-lambda-admin -- ${cfg[@]}
     else
         if [[ ${DEPLOY_TO_SERVERLESS_SANDBOX:-} == "true" ]]; then
@@ -141,6 +145,30 @@ get_max_layer_version() {
     else
         echo "${last_layer_version}"
     fi
+}
+
+datadog_release() {
+    if ! user_confirm "Did you update the DdForwarder version and Layer in the template.yaml file before releasing"; then
+        log_error "Please update the Forwarder version in the template.yaml file"
+    fi
+
+    if [[ ! -e ${BUNDLE_PATH} ]] || ! user_confirm "Bundle already exists. Do you want to use it" "true"; then
+        log_info "Building the Forwarder bundle..."
+        ./tools/build_bundle.sh "${FORWARDER_VERSION}"
+
+        log_info "Signing the Forwarder bundle..."
+        aws_login "./tools/sign_bundle.sh" "${BUNDLE_PATH}" "${ACCOUNT}"
+    fi
+
+     # Upload the bundle to S3 instead of GitHub for a org 2 release
+    log_info "Uploading a non-public version of Forwarder to S3..."
+    aws_login aws s3 cp "${BUNDLE_PATH}" "s3://${BUCKET}/aws/forwarder-zip/aws-dd-forwarder-${FORWARDER_VERSION}.zip"
+
+    # set urls
+    TEMPLATE_URL="https://${BUCKET}.s3.amazonaws.com/aws/forwarder/${FORWARDER_VERSION}.yaml"
+    FORWARDER_SOURCE_URL="s3://${BUCKET}/aws/forwarder-zip/aws-dd-forwarder-${FORWARDER_VERSION}.zip"
+    
+    # don't publish layers we'll use the zip copier instead
 }
 
 sandbox_release() {
@@ -231,13 +259,17 @@ CURRENT_ACCOUNT="$(aws_login aws sts get-caller-identity --query Account --outpu
 CURRENT_LAYER_VERSION=$(get_max_layer_version)
 LAYER_VERSION=$((CURRENT_LAYER_VERSION + 1))
 
-log_info "Current layer version is ${CURRENT_LAYER_VERSION}, next layer version will be ${LAYER_VERSION}"
+if [[ ${ACCOUNT} != "datadog" ]]; then
+    log_info "Current layer version is ${CURRENT_LAYER_VERSION}, next layer version will be ${LAYER_VERSION}"
+fi
 
 log_info "Validating template.yaml..."
 aws_login aws cloudformation validate-template --template-body "file://template.yaml"
 
 if [[ ${ACCOUNT} == "prod" ]]; then
     prod_release
+elif [[ ${ACCOUNT} == "datadog" ]]; then
+    datadog_release
 else
     sandbox_release
 fi
@@ -249,6 +281,9 @@ if [[ ${ACCOUNT} == "prod" ]]; then
         --grants "read=uri=http://acs.amazonaws.com/groups/global/AllUsers"
     aws_login aws s3 cp template.yaml "s3://${BUCKET}/aws/forwarder/latest.yaml" \
         --grants "read=uri=http://acs.amazonaws.com/groups/global/AllUsers"
+elif [[ ${ACCOUNT}] == "datadog"]; then
+    aws_login aws s3 cp template.yaml "s3://${BUCKET}/aws/forwarder/${FORWARDER_VERSION}.yaml"
+    aws_login aws s3 cp template.yaml "s3://${BUCKET}/aws/forwarder/latest.yaml"
 else
     aws_login aws s3 cp template.yaml "s3://${BUCKET}/aws/forwarder-staging/${FORWARDER_VERSION}.yaml"
     aws_login aws s3 cp template.yaml "s3://${BUCKET}/aws/forwarder-staging/latest.yaml"
