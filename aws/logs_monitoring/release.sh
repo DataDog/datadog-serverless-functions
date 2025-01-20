@@ -155,9 +155,6 @@ datadog_release() {
     if [[ ! -e ${BUNDLE_PATH} ]] || ! user_confirm "Bundle already exists. Do you want to use it" "true"; then
         log_info "Building the Forwarder bundle..."
         ./tools/build_bundle.sh "${FORWARDER_VERSION}"
-
-        log_info "Signing the Forwarder bundle..."
-        aws_login "./tools/sign_bundle.sh" "${BUNDLE_PATH}" "${ACCOUNT}"
     fi
 
      # Upload the bundle to S3 instead of GitHub for a org 2 release
