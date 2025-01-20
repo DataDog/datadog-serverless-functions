@@ -142,6 +142,9 @@ aws lambda invoke --function-name <function-name> --payload '{"retry":"true"}' o
 
 If you encounter issues upgrading to the latest version, check the Troubleshooting section.
 
+### Upgrade an older version to +4.0.0
+Starting version 4.0.0 `source`, `service` and `host` identification logic will be pulled out from the Lambda forwarder's code and set in directly in Datadog's backend. The first migrated log source is `RDS`.
+
 ### Upgrade an older version to +3.107.0
 
 Starting version 3.107.0 a new feature is added to enable Lambda function to store unforwarded events incase of exceptions on the intake point. If the feature is enabled using `DD_STORE_FAILED_EVENTS` env var, failing events will be stored under a defined dir in the same S3 bucket used to store tags cache. The same bucket can be used to store logs from several Lambda functions under unique subdirs.
