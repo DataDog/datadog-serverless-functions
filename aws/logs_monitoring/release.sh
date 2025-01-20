@@ -278,7 +278,7 @@ if [[ ${ACCOUNT} == "prod" ]]; then
         --grants "read=uri=http://acs.amazonaws.com/groups/global/AllUsers"
     aws_login aws s3 cp template.yaml "s3://${BUCKET}/aws/forwarder/latest.yaml" \
         --grants "read=uri=http://acs.amazonaws.com/groups/global/AllUsers"
-elif [[ ${ACCOUNT}] == "datadog"]; then
+elif [[ ${ACCOUNT} == "datadog" ]]; then
     aws_login aws s3 cp template.yaml "s3://${BUCKET}/aws/forwarder/${FORWARDER_VERSION}.yaml"
     aws_login aws s3 cp template.yaml "s3://${BUCKET}/aws/forwarder/latest.yaml"
 else
