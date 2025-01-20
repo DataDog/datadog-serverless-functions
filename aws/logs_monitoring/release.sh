@@ -99,7 +99,7 @@ fi
 # Check account parameter
 VALID_ACCOUNTS=("sandbox" "prod" "datadog")
 if [[ ! ${VALID_ACCOUNTS[@]} =~ ${2} ]]; then
-    log_error "The account parameter was invalid. Please choose sandbox or prod."
+    log_error "The account parameter was invalid. Please choose sandbox, prod, or datadog"
 fi
 ACCOUNT="${2}"
 
