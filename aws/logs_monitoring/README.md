@@ -144,6 +144,7 @@ If you encounter issues upgrading to the latest version, check the Troubleshooti
 
 ### Upgrade an older version to +4.0.0
 Starting version 4.0.0 `source`, `service` and `host` identification logic will be pulled out from the Lambda forwarder's code and set in directly in Datadog's backend. The first migrated log source is `RDS`.
+This is not a breaking change on how the `source`, `service` and `host` are set on the `Log explorer` side. Users should continue to have the same behavior as before.
 
 ### Upgrade an older version to +3.107.0
 
