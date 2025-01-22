@@ -2,13 +2,18 @@ import base64
 import gzip
 import json
 import os
-import unittest
 import sys
-from unittest.mock import patch, MagicMock
+import unittest
+from unittest.mock import MagicMock, patch
+
 from approvaltests.approvals import verify_as_json
 from approvaltests.namer import NamerFactory
 
+from caching.cache_layer import CacheLayer
+from settings import DD_HOST, DD_SOURCE
 from steps.enums import AwsEventSource
+from steps.handlers.aws_attributes import AwsAttributes
+from steps.handlers.awslogs_handler import AwsLogsHandler
 
 sys.modules["trace_forwarder.connection"] = MagicMock()
 sys.modules["datadog_lambda.wrapper"] = MagicMock()
@@ -24,10 +29,6 @@ env_patch = patch.dict(
     },
 )
 env_patch.start()
-from settings import DD_HOST, DD_SOURCE
-from steps.handlers.awslogs_handler import AwsLogsHandler
-from steps.handlers.aws_attributes import AwsAttributes
-from caching.cache_layer import CacheLayer
 
 env_patch.stop()
 
@@ -74,7 +75,13 @@ class TestAWSLogsHandler(unittest.TestCase):
 
     @patch("caching.cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.__init__")
     @patch("caching.cloudwatch_log_group_cache.send_forwarder_internal_metrics")
-    @patch.dict("os.environ", {"DD_STEP_FUNCTIONS_TRACE_ENABLED": "true"})
+    @patch.dict(
+        "os.environ",
+        {
+            "DD_STEP_FUNCTIONS_TRACE_ENABLED": "true",
+            "DD_FETCH_STEP_FUNCTIONS_TAGS": "true",
+        },
+    )
     def test_awslogs_handler_step_functions_tags_added_properly(
         self,
         mock_forward_metrics,
@@ -131,7 +138,13 @@ class TestAWSLogsHandler(unittest.TestCase):
 
     @patch("caching.cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.__init__")
     @patch("caching.cloudwatch_log_group_cache.send_forwarder_internal_metrics")
-    @patch.dict("os.environ", {"DD_STEP_FUNCTIONS_TRACE_ENABLED": "true"})
+    @patch.dict(
+        "os.environ",
+        {
+            "DD_STEP_FUNCTIONS_TRACE_ENABLED": "true",
+            "DD_FETCH_STEP_FUNCTIONS_TAGS": "true",
+        },
+    )
     def test_awslogs_handler_step_functions_customized_log_group(
         self,
         mock_forward_metrics,
