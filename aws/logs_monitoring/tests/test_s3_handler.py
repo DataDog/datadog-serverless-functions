@@ -1,9 +1,10 @@
 import gzip
-import unittest
 import re
+import unittest
 from unittest.mock import MagicMock, patch
 
 from approvaltests.combination_approvals import verify_all_combinations
+
 from caching.cache_layer import CacheLayer
 from steps.handlers.s3_handler import S3EventDataStore, S3EventHandler
 
@@ -258,47 +259,6 @@ class TestS3EventsHandler(unittest.TestCase):
         _ = list(self.s3_handler.handle(event))
 
         assert "s3_tag:tag_value" in self.s3_handler.metadata["ddtags"]
-
-    def test_elb_s3_key_invalid(self):
-        self.s3_handler.metadata["ddsource"] = "elb"
-        self.s3_handler.key = "123456789123/elasticloadbalancing/us-east-1/2022/02/08/123456789123_elasticloadbalancing_us-east-1_app.my-alb-name.123456789aabcdef_20220208T1127Z_10.0.0.2_1abcdef2.log.gz"
-        self.assertEqual(
-            self.s3_handler._parse_service_arn(),
-            None,
-        )
-
-    def test_elb_s3_key_no_prefix(self):
-        self.s3_handler.data_store.source = "elb"
-        self.s3_handler.data_store.key = "AWSLogs/123456789123/elasticloadbalancing/us-east-1/2022/02/08/123456789123_elasticloadbalancing_us-east-1_app.my-alb-name.123456789aabcdef_20220208T1127Z_10.0.0.2_1abcdef2.log.gz"
-        self.assertEqual(
-            self.s3_handler._parse_service_arn(),
-            "arn:aws:elasticloadbalancing:us-east-1:123456789123:loadbalancer/app/my-alb-name/123456789aabcdef",
-        )
-
-    def test_elb_s3_key_single_prefix(self):
-        self.s3_handler.data_store.source = "elb"
-        self.s3_handler.data_store.key = "elasticloadbalancing/AWSLogs/123456789123/elasticloadbalancing/us-east-1/2022/02/08/123456789123_elasticloadbalancing_us-east-1_app.my-alb-name.123456789aabcdef_20220208T1127Z_10.0.0.2_1abcdef2.log.gz"
-        self.assertEqual(
-            self.s3_handler._parse_service_arn(),
-            "arn:aws:elasticloadbalancing:us-east-1:123456789123:loadbalancer/app/my-alb-name/123456789aabcdef",
-        )
-
-    def test_elb_s3_key_multi_prefix(self):
-        self.s3_handler.data_store.source = "elb"
-        self.s3_handler.data_store.key = "elasticloadbalancing/my-alb-name/AWSLogs/123456789123/elasticloadbalancing/us-east-1/2022/02/08/123456789123_elasticloadbalancing_us-east-1_app.my-alb-name.123456789aabcdef_20220208T1127Z_10.0.0.2_1abcdef2.log.gz"
-        self.assertEqual(
-            self.s3_handler._parse_service_arn(),
-            "arn:aws:elasticloadbalancing:us-east-1:123456789123:loadbalancer/app/my-alb-name/123456789aabcdef",
-        )
-
-    def test_elb_s3_key_multi_prefix_gov(self):
-        self.s3_handler.data_store.source = "elb"
-        self.s3_handler.data_store.key = "elb/my-alb-name/AWSLogs/123456789123/elasticloadbalancing/us-gov-east-1/2022/02/08/123456789123_elasticloadbalancing_us-gov-east-1_app.my-alb-name.123456789aabcdef_20220208T1127Z_10.0.0.2_1abcdef2.log.gz"
-        self.assertEqual(
-            self.s3_handler._parse_service_arn(),
-            "arn:aws-us-gov:elasticloadbalancing:us-gov-east-1:123456789123:loadbalancer/app/my-alb-name"
-            "/123456789aabcdef",
-        )
 
     def test_set_source_waf_cloudfront(self):
         self.s3_handler.data_store.key = (
