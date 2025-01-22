@@ -68,8 +68,8 @@ class TestAWSLogsHandler(unittest.TestCase):
             return_value=["test_tag_key:test_tag_value"]
         )
 
-        awslogs_handler = AwsLogsHandler(context, metadata, cache_layer)
-        verify_as_json(list(awslogs_handler.handle(event)))
+        awslogs_handler = AwsLogsHandler(context, cache_layer)
+        verify_as_json(list(awslogs_handler.handle(event, metadata)))
         verify_as_json(metadata, options=NamerFactory.with_parameters("metadata"))
 
     @patch("caching.cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.__init__")
@@ -117,15 +117,13 @@ class TestAWSLogsHandler(unittest.TestCase):
         )
         cache_layer._cloudwatch_log_group_cache.get = MagicMock()
 
-        awslogs_handler = AwsLogsHandler(context, metadata, cache_layer)
-        verify_as_json(list(awslogs_handler.handle(event)))
+        awslogs_handler = AwsLogsHandler(context, cache_layer)
+        verify_as_json(list(awslogs_handler.handle(event, metadata)))
         verify_as_json(metadata, options=NamerFactory.with_parameters("metadata"))
         # verify that the handling can properly handle SF logs with the default log group naming
+        self.assertEqual(metadata[DD_SOURCE], AwsEventSource.STEPFUNCTION.value)
         self.assertEqual(
-            awslogs_handler.metadata[DD_SOURCE], AwsEventSource.STEPFUNCTION.value
-        )
-        self.assertEqual(
-            awslogs_handler.metadata[DD_HOST],
+            metadata[DD_HOST],
             "arn:aws:states:us-east-1:12345678910:stateMachine:StepFunction1",
         )
 
@@ -175,15 +173,15 @@ class TestAWSLogsHandler(unittest.TestCase):
         )
         cache_layer._cloudwatch_log_group_cache.get = MagicMock()
 
-        awslogs_handler = AwsLogsHandler(context, metadata, cache_layer)
+        awslogs_handler = AwsLogsHandler(context, cache_layer)
         # for some reasons, the below two are needed to update the context of the handler
-        verify_as_json(list(awslogs_handler.handle(eventFromCustomizedLogGroup)))
-        verify_as_json(metadata, options=NamerFactory.with_parameters("metadata"))
-        self.assertEqual(
-            awslogs_handler.metadata[DD_SOURCE], AwsEventSource.STEPFUNCTION.value
+        verify_as_json(
+            list(awslogs_handler.handle(eventFromCustomizedLogGroup, metadata))
         )
+        verify_as_json(metadata, options=NamerFactory.with_parameters("metadata"))
+        self.assertEqual(metadata[DD_SOURCE], AwsEventSource.STEPFUNCTION.value)
         self.assertEqual(
-            awslogs_handler.metadata[DD_HOST],
+            metadata[DD_HOST],
             "arn:aws:states:us-east-1:12345678910:stateMachine:StepFunction2",
         )
 
@@ -202,11 +200,10 @@ class TestAWSLogsHandler(unittest.TestCase):
             stepfunction_loggroup.get("owner"),
         )
         context = None
-        aws_handler = AwsLogsHandler(context, metadata, CacheLayer(""))
-        aws_handler.aws_attributes = aws_attributes
+        aws_handler = AwsLogsHandler(context, CacheLayer(""))
 
-        aws_handler.process_lambda_logs()
-        self.assertEqual(aws_handler.metadata, {"ddsource": "postgresql", "ddtags": ""})
+        aws_handler.process_lambda_logs(metadata, aws_attributes)
+        self.assertEqual(metadata, {"ddsource": "postgresql", "ddtags": ""})
 
         # Lambda log
         lambda_default_loggroup = {
@@ -224,9 +221,8 @@ class TestAWSLogsHandler(unittest.TestCase):
         context = MagicMock()
         context.invoked_function_arn = "arn:aws:lambda:sa-east-1:601427279990:function:inferred-spans-python-dev-initsender"
 
-        aws_handler = AwsLogsHandler(context, metadata, CacheLayer(""))
-        aws_handler.aws_attributes = aws_attributes
-        aws_handler.process_lambda_logs()
+        aws_handler = AwsLogsHandler(context, CacheLayer(""))
+        aws_handler.process_lambda_logs(metadata, aws_attributes)
         self.assertEqual(
             metadata,
             {
@@ -241,8 +237,7 @@ class TestAWSLogsHandler(unittest.TestCase):
 
         # env not set
         metadata = {"ddsource": "postgresql", "ddtags": ""}
-        aws_handler.metadata = metadata
-        aws_handler.process_lambda_logs()
+        aws_handler.process_lambda_logs(metadata, aws_attributes)
         self.assertEqual(
             metadata,
             {
@@ -254,48 +249,48 @@ class TestAWSLogsHandler(unittest.TestCase):
 
 class TestLambdaCustomizedLogGroup(unittest.TestCase):
     def setUp(self):
-        self.aws_handler = AwsLogsHandler(None, None, None)
+        self.aws_handler = AwsLogsHandler(None, None)
 
     def test_get_lower_cased_lambda_function_name(self):
         self.assertEqual(True, True)
         # Non Lambda log
-        self.aws_handler.aws_attributes = AwsAttributes(
+        aws_attributes = AwsAttributes(
             "/aws/vendedlogs/states/logs-to-traces-sequential-Logs",
             "states/logs-to-traces-sequential/2022-11-10-15-50/7851b2d9",
             [],
         )
         self.assertEqual(
-            self.aws_handler.get_lower_cased_lambda_function_name(),
+            self.aws_handler.get_lower_cased_lambda_function_name(aws_attributes),
             None,
         )
 
-        self.aws_handler.aws_attributes = AwsAttributes(
+        aws_attributes = AwsAttributes(
             "/aws/lambda/test-lambda-default-log-group",
             "2023/11/06/[$LATEST]b25b1f977b3e416faa45a00f427e7acb",
             [],
         )
         self.assertEqual(
-            self.aws_handler.get_lower_cased_lambda_function_name(),
+            self.aws_handler.get_lower_cased_lambda_function_name(aws_attributes),
             "test-lambda-default-log-group",
         )
 
-        self.aws_handler.aws_attributes = AwsAttributes(
+        aws_attributes = AwsAttributes(
             "customizeLambdaGrop",
             "2023/11/06/test-customized-log-group1[$LATEST]13e304cba4b9446eb7ef082a00038990",
             [],
         )
         self.assertEqual(
-            self.aws_handler.get_lower_cased_lambda_function_name(),
+            self.aws_handler.get_lower_cased_lambda_function_name(aws_attributes),
             "test-customized-log-group1",
         )
 
 
 class TestParsingStepFunctionLogs(unittest.TestCase):
     def setUp(self):
-        self.aws_handler = AwsLogsHandler(None, None, None)
+        self.aws_handler = AwsLogsHandler(None, None)
 
     def test_get_state_machine_arn(self):
-        self.aws_handler.aws_attributes = AwsAttributes(
+        aws_attributes = AwsAttributes(
             log_events=[
                 {
                     "message": json.dumps({"no_execution_arn": "xxxx/yyy"}),
@@ -303,9 +298,9 @@ class TestParsingStepFunctionLogs(unittest.TestCase):
             ]
         )
 
-        self.assertEqual(self.aws_handler.get_state_machine_arn(), "")
+        self.assertEqual(self.aws_handler.get_state_machine_arn(aws_attributes), "")
 
-        self.aws_handler.aws_attributes = AwsAttributes(
+        aws_attributes = AwsAttributes(
             log_events=[
                 {
                     "message": json.dumps(
@@ -317,11 +312,11 @@ class TestParsingStepFunctionLogs(unittest.TestCase):
             ]
         )
         self.assertEqual(
-            self.aws_handler.get_state_machine_arn(),
+            self.aws_handler.get_state_machine_arn(aws_attributes),
             "arn:aws:states:sa-east-1:425362996713:stateMachine:my-Various-States",
         )
 
-        self.aws_handler.aws_attributes = AwsAttributes(
+        aws_attributes = AwsAttributes(
             log_events=[
                 {
                     "message": json.dumps(
@@ -334,11 +329,11 @@ class TestParsingStepFunctionLogs(unittest.TestCase):
         )
 
         self.assertEqual(
-            self.aws_handler.get_state_machine_arn(),
+            self.aws_handler.get_state_machine_arn(aws_attributes),
             "arn:aws:states:sa-east-1:425362996713:stateMachine:my-Various-States",
         )
 
-        self.aws_handler.aws_attributes = AwsAttributes(
+        aws_attributes = AwsAttributes(
             log_events=[
                 {
                     "message": json.dumps(
@@ -350,7 +345,7 @@ class TestParsingStepFunctionLogs(unittest.TestCase):
             ]
         )
         self.assertEqual(
-            self.aws_handler.get_state_machine_arn(),
+            self.aws_handler.get_state_machine_arn(aws_attributes),
             "arn:aws:states:sa-east-1:425362996713:stateMachine:my-Various-States",
         )
 
