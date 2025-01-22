@@ -48,14 +48,16 @@ def parse(event, context, cache_layer):
                 s3_handler = S3EventHandler(context, metadata, cache_layer)
                 events = s3_handler.handle(event)
             case AwsEventType.AWSLOGS:
-                aws_handler = AwsLogsHandler(context, metadata, cache_layer)
-                events = aws_handler.handle(event)
+                aws_handler = AwsLogsHandler(context, cache_layer)
+                # regenerate a metadata object for each event
+                metadata = generate_metadata(context)
+                events = aws_handler.handle(event, metadata)
             case AwsEventType.EVENTS:
                 events = cwevent_handler(event, metadata)
             case AwsEventType.SNS:
                 events = sns_handler(event, metadata)
             case AwsEventType.KINESIS:
-                events = kinesis_awslogs_handler(event, context, metadata, cache_layer)
+                events = kinesis_awslogs_handler(event, context, cache_layer)
             case _:
                 events = ["Parsing: Unsupported event type"]
     except Exception as e:
@@ -68,31 +70,6 @@ def parse(event, context, cache_layer):
     set_forwarder_telemetry_tags(context, event_type)
 
     return normalize_events(events, metadata)
-
-
-def generate_metadata(context):
-    metadata = {
-        SOURCECATEGORY_STRING: AWS_STRING,
-        AWS_STRING: {
-            FUNCTIONVERSION_STRING: context.function_version,
-            INVOKEDFUNCTIONARN_STRING: context.invoked_function_arn,
-        },
-    }
-    # Add custom tags here by adding new value with the following format "key1:value1, key2:value2"  - might be subject to modifications
-    dd_custom_tags_data = generate_custom_tags(context)
-    metadata[DD_CUSTOM_TAGS] = ",".join(
-        filter(
-            None,
-            [
-                DD_TAGS,
-                ",".join(
-                    ["{}:{}".format(k, v) for k, v in dd_custom_tags_data.items()]
-                ),
-            ],
-        )
-    )
-
-    return metadata
 
 
 def generate_custom_tags(context):
@@ -155,14 +132,40 @@ def sns_handler(event, metadata):
 
 
 # Handle CloudWatch logs from Kinesis
-def kinesis_awslogs_handler(event, context, metadata, cache_layer):
+def kinesis_awslogs_handler(event, context, cache_layer):
     def reformat_record(record):
         return {"awslogs": {"data": record["kinesis"]["data"]}}
 
-    awslogs_handler = AwsLogsHandler(context, metadata, cache_layer)
+    awslogs_handler = AwsLogsHandler(context, cache_layer)
     return itertools.chain.from_iterable(
-        awslogs_handler.handle(reformat_record(r)) for r in event["Records"]
+        awslogs_handler.handle(reformat_record(r), generate_metadata(context))
+        for r in event["Records"]
     )
+
+
+def generate_metadata(context):
+    metadata = {
+        SOURCECATEGORY_STRING: AWS_STRING,
+        AWS_STRING: {
+            FUNCTIONVERSION_STRING: context.function_version,
+            INVOKEDFUNCTIONARN_STRING: context.invoked_function_arn,
+        },
+    }
+    # Add custom tags here by adding new value with the following format "key1:value1, key2:value2"  - might be subject to modifications
+    dd_custom_tags_data = generate_custom_tags(context)
+    metadata[DD_CUSTOM_TAGS] = ",".join(
+        filter(
+            None,
+            [
+                DD_TAGS,
+                ",".join(
+                    ["{}:{}".format(k, v) for k, v in dd_custom_tags_data.items()]
+                ),
+            ],
+        )
+    )
+
+    return metadata
 
 
 def normalize_events(events, metadata):
