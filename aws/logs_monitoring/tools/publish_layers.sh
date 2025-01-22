@@ -92,7 +92,7 @@ user_confirm() {
 # Makes sure any subprocesses will be terminated with this process
 trap "pkill -P $$; exit 1;" INT
 
-PYTHON_VERSIONS_FOR_AWS_CLI=("python3.11")
+PYTHON_VERSIONS_FOR_AWS_CLI=("python3.12")
 LAYER_PATHS=(".forwarder/aws-dd-forwarder-${FORWARDER_VERSION}-layer.zip")
 AVAILABLE_LAYERS=("Datadog-Forwarder")
 AVAILABLE_REGIONS=$(aws ec2 describe-regions | jq -r '.[] | .[] | .RegionName')
