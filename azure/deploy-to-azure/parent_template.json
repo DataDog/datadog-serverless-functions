@@ -81,7 +81,7 @@
   },
   "variables": {
     "eventHubTemplateLink": "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/deploy-to-azure/event_hub.json",
-    "functionAppTemplateLink": "https://github.com/DataDog/datadog-serverless-functions/blob/0d94395995e0f6d953b0f63bb3cdf123a5d7640d/azure/deploy-to-azure/function_template.json",
+    "functionAppTemplateLink": "https://github.com/DataDog/datadog-serverless-functions/tree/rebecca.parsons/upgrade_azure_forwarder_node_20/azure/deploy-to-azure/function_template.json",
     "activityLogDiagnosticSettingsTemplateLink": "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/deploy-to-azure/activity_log_diagnostic_settings.json"
   },
   "resources": [
