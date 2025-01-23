@@ -72,16 +72,16 @@
       }
     },
     "diagnosticSettingName": {
-        "type": "string",
-        "defaultValue": "[concat('datadog-activity-logs-diagnostic-setting-', uniqueString(newGuid()))]",
-        "metadata": {
-            "description": "The name of the diagnostic setting if sending Activity Logs"
-        }
+      "type": "string",
+      "defaultValue": "[concat('datadog-activity-logs-diagnostic-setting-', uniqueString(newGuid()))]",
+      "metadata": {
+        "description": "The name of the diagnostic setting if sending Activity Logs"
+      }
     }
   },
   "variables": {
     "eventHubTemplateLink": "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/deploy-to-azure/event_hub.json",
-    "functionAppTemplateLink": "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/deploy-to-azure/function_template.json",
+    "functionAppTemplateLink": "https://github.com/DataDog/datadog-serverless-functions/blob/0d94395995e0f6d953b0f63bb3cdf123a5d7640d/azure/deploy-to-azure/function_template.json",
     "activityLogDiagnosticSettingsTemplateLink": "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/deploy-to-azure/activity_log_diagnostic_settings.json"
   },
   "resources": [
@@ -185,10 +185,10 @@
       "location": "[parameters('resourcesLocation')]"
     }
   ],
-    "outputs": {
-      "eventHubNamespace": {
-        "type": "string",
-        "value": "[parameters('eventHubNamespace')]"
-      }
+  "outputs": {
+    "eventHubNamespace": {
+      "type": "string",
+      "value": "[parameters('eventHubNamespace')]"
     }
+  }
 }
