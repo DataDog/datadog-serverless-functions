@@ -72,11 +72,11 @@
       }
     },
     "diagnosticSettingName": {
-        "type": "string",
-        "defaultValue": "[concat('datadog-activity-logs-diagnostic-setting-', uniqueString(newGuid()))]",
-        "metadata": {
-            "description": "The name of the diagnostic setting if sending Activity Logs"
-        }
+      "type": "string",
+      "defaultValue": "[concat('datadog-activity-logs-diagnostic-setting-', uniqueString(newGuid()))]",
+      "metadata": {
+        "description": "The name of the diagnostic setting if sending Activity Logs"
+      }
     }
   },
   "variables": {
@@ -185,10 +185,10 @@
       "location": "[parameters('resourcesLocation')]"
     }
   ],
-    "outputs": {
-      "eventHubNamespace": {
-        "type": "string",
-        "value": "[parameters('eventHubNamespace')]"
-      }
+  "outputs": {
+    "eventHubNamespace": {
+      "type": "string",
+      "value": "[parameters('eventHubNamespace')]"
     }
+  }
 }
