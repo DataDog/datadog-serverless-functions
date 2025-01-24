@@ -8,7 +8,6 @@ from io import BufferedReader, BytesIO
 
 from steps.common import (
     add_service_tag,
-    generate_metadata,
     merge_dicts,
     parse_event_source,
 )
@@ -34,9 +33,7 @@ class AwsLogsHandler:
         self.context = context
         self.cache_layer = cache_layer
 
-    def handle(self, event):
-        # Generate metadata
-        metadata = generate_metadata(self.context)
+    def handle(self, event, metadata):
         # Get logs
         logs = self.extract_logs(event)
         # Build aws attributes
@@ -68,8 +65,7 @@ class AwsLogsHandler:
             self.process_eks_logs(metadata, aws_attributes)
         # Create and send structured logs to Datadog
         for log in logs["logEvents"]:
-            merged = merge_dicts(log, aws_attributes.to_dict())
-            yield merge_dicts(merged, metadata)
+            yield merge_dicts(log, aws_attributes.to_dict())
 
     @staticmethod
     def extract_logs(event):
