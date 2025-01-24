@@ -6,9 +6,6 @@ import unittest
 import sys
 from unittest.mock import patch, MagicMock
 from approvaltests.approvals import verify_as_json
-from approvaltests.namer import NamerFactory
-
-from steps.enums import AwsEventSource
 
 sys.modules["trace_forwarder.connection"] = MagicMock()
 sys.modules["datadog_lambda.wrapper"] = MagicMock()
@@ -24,7 +21,6 @@ env_patch = patch.dict(
     },
 )
 env_patch.start()
-from settings import DD_HOST, DD_SOURCE
 from steps.handlers.awslogs_handler import AwsLogsHandler
 from steps.handlers.aws_attributes import AwsAttributes
 from caching.cache_layer import CacheLayer

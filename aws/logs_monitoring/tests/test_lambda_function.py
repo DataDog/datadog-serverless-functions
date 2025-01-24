@@ -100,7 +100,7 @@ class TestLambdaFunctionEndToEnd(unittest.TestCase):
         transformed_events = transform(enriched_events)
 
         scrubber = create_regex_scrubber(
-            "forwarder_version:\d+\.\d+\.\d+",
+            r"forwarder_version:\d+\.\d+\.\d+",
             "forwarder_version:<redacted from snapshot>",
         )
         verify_as_json(transformed_events, options=Options().with_scrubber(scrubber))
