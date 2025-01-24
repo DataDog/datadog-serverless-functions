@@ -67,7 +67,7 @@ def add_metadata_to_lambda_log(event, cache_layer):
     # If not set during parsing or has a default value
     # then set the service tag from lambda tags cache or using the function name
     # otherwise, remove the service tag from the custom lambda tags if exists to avoid duplication
-    if not event[DD_SERVICE] or event[DD_SERVICE] == event[DD_SOURCE]:
+    if not event.get(DD_SERVICE) or event.get(DD_SERVICE) == event.get(DD_SOURCE):
         service_tag = next(
             (tag for tag in custom_lambda_tags if tag.startswith("service:")),
             f"service:{function_name}",
@@ -86,7 +86,7 @@ def add_metadata_to_lambda_log(event, cache_layer):
         (tag for tag in custom_lambda_tags if tag.startswith("env:")), None
     )
     if custom_env_tag is not None:
-        event[DD_CUSTOM_TAGS] = event[DD_CUSTOM_TAGS].replace("env:none", "")
+        event[DD_CUSTOM_TAGS] = event.get(DD_CUSTOM_TAGS, "").replace("env:none", "")
 
     tags += custom_lambda_tags
 
@@ -94,7 +94,7 @@ def add_metadata_to_lambda_log(event, cache_layer):
     tags = list(set(tags))
     tags.sort()  # Keep order deterministic
 
-    event[DD_CUSTOM_TAGS] = ",".join([event[DD_CUSTOM_TAGS]] + tags)
+    event[DD_CUSTOM_TAGS] = ",".join([event.get(DD_CUSTOM_TAGS)] + tags)
 
 
 def get_enriched_lambda_log_tags(log_event, cache_layer):
