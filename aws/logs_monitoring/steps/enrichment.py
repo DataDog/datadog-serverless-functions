@@ -154,7 +154,7 @@ def extract_ddtags_from_message(event):
                 return
 
         # Extract service tag from message.ddtags if exists
-        if "service" in extracted_ddtags:
+        if "service:" in extracted_ddtags:
             event[DD_SERVICE] = next(
                 tag[8:]
                 for tag in extracted_ddtags.split(",")
