@@ -169,6 +169,44 @@ class TestAWSLogsHandler(unittest.TestCase):
         # for some reasons, the below two are needed to update the context of the handler
         verify_as_json(list(awslogs_handler.handle(eventFromCustomizedLogGroup)))
 
+    def test_awslogs_handler_lambda_log(self):
+        event = {
+            "awslogs": {
+                "data": base64.b64encode(
+                    gzip.compress(
+                        bytes(
+                            json.dumps(
+                                {
+                                    "messageType": "DATA_MESSAGE",
+                                    "owner": "123456789012",
+                                    "logGroup": "/aws/lambda/test-lambda-default-log-group",
+                                    "logStream": "2023/11/06/[$LATEST]b25b1f977b3e416faa45a00f427e7acb",
+                                    "subscriptionFilters": ["testFilter"],
+                                    "logEvents": [
+                                        {
+                                            "id": "37199773595581154154810589279545129148442535997644275712",
+                                            "timestamp": 1668095539607,
+                                            "message": "2021-01-02 03:04:05 UTC::@:[5306]:LOG:  database system is ready to accept connections",
+                                        }
+                                    ],
+                                }
+                            ),
+                            "utf-8",
+                        )
+                    )
+                )
+            }
+        }
+        context = Context()
+        cache_layer = CacheLayer("")
+        cache_layer._cloudwatch_log_group_cache.get = MagicMock()
+        cache_layer._lambda_cache.get = MagicMock(
+            return_value=["service:customtags_service"]
+        )
+
+        awslogs_handler = AwsLogsHandler(context, cache_layer)
+        verify_as_json(list(awslogs_handler.handle(event)))
+
     def test_process_lambda_logs(self):
         # Non Lambda log
         stepfunction_loggroup = {

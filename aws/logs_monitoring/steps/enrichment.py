@@ -90,17 +90,19 @@ def add_metadata_to_lambda_log(event, cache_layer):
     custom_env_tag = next(
         (tag for tag in custom_lambda_tags if tag.startswith("env:")), None
     )
-    if custom_env_tag is not None:
-        event[DD_CUSTOM_TAGS] = event.get(DD_CUSTOM_TAGS, "").replace("env:none", "")
+    if custom_env_tag:
+        event[DD_CUSTOM_TAGS] = ",".join(
+            [t for t in event.get(DD_CUSTOM_TAGS, "").split(",") if t != "env:none"]
+        )
 
-    tags += custom_lambda_tags
+    tags.extend(custom_lambda_tags)
 
     # Dedup tags, so we don't end up with functionname twice
     tags = list(set(tags))
     tags.sort()  # Keep order deterministic
 
     if custom_tags := event.get(DD_CUSTOM_TAGS):
-        event[DD_CUSTOM_TAGS] = custom_tags + ",".join(tags)
+        event[DD_CUSTOM_TAGS] = ",".join([custom_tags] + tags)
     else:
         event[DD_CUSTOM_TAGS] = ",".join(tags)
 
