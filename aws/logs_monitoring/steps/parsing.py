@@ -47,6 +47,7 @@ def parse(event, context, cache_layer):
                 events = sns_handler(event, metadata)
             case AwsEventType.KINESIS:
                 events = kinesis_awslogs_handler(event, context, cache_layer)
+                return collect_and_count(events)
     except Exception as e:
         # Logs through the socket the error
         err_message = "Error parsing the object. Exception: {} for event {}".format(

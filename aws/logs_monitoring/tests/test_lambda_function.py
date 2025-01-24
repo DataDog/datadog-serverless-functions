@@ -88,9 +88,7 @@ class TestLambdaFunctionEndToEnd(unittest.TestCase):
 
         context = Context()
         input_data = self._get_input_data()
-        event = {
-            "awslogs": {"data": self._create_cloudwatch_log_event_from_data(input_data)}
-        }
+        event = {"awslogs": {"data": self._create_log_event_from_data(input_data)}}
 
         event_type = parse_event_type(event)
         self.assertEqual(event_type, AwsEventType.AWSLOGS)
@@ -149,9 +147,7 @@ class TestLambdaFunctionEndToEnd(unittest.TestCase):
         )
         context = Context()
         input_data = self._get_input_data()
-        event = {
-            "awslogs": {"data": self._create_cloudwatch_log_event_from_data(input_data)}
-        }
+        event = {"awslogs": {"data": self._create_log_event_from_data(input_data)}}
 
         normalized_events = parse(event, context, cache_layer)
         enriched_events = enrich(normalized_events, cache_layer)
@@ -175,9 +171,7 @@ class TestLambdaFunctionEndToEnd(unittest.TestCase):
         )
         context = Context()
         input_data = self._get_input_data()
-        event = {
-            "awslogs": {"data": self._create_cloudwatch_log_event_from_data(input_data)}
-        }
+        event = {"awslogs": {"data": self._create_log_event_from_data(input_data)}}
 
         normalized_events = parse(event, context, cache_layer)
         enriched_events = enrich(normalized_events, cache_layer)
@@ -207,9 +201,7 @@ class TestLambdaFunctionEndToEnd(unittest.TestCase):
         cache_layer._cloudwatch_log_group_cache = MagicMock()
         context = Context()
         input_data = self._get_input_data()
-        event = {
-            "awslogs": {"data": self._create_cloudwatch_log_event_from_data(input_data)}
-        }
+        event = {"awslogs": {"data": self._create_log_event_from_data(input_data)}}
 
         normalized_events = parse(event, context, cache_layer)
         enriched_events = enrich(normalized_events, cache_layer)
@@ -232,9 +224,7 @@ class TestLambdaFunctionEndToEnd(unittest.TestCase):
         cache_layer._cloudwatch_log_group_cache = MagicMock()
         context = Context()
         input_data = self._get_input_data()
-        event = {
-            "awslogs": {"data": self._create_cloudwatch_log_event_from_data(input_data)}
-        }
+        event = {"awslogs": {"data": self._create_log_event_from_data(input_data)}}
         normalized_events = parse(event, context, cache_layer)
         enriched_events = enrich(normalized_events, cache_layer)
         transformed_events = transform(enriched_events)
@@ -252,9 +242,7 @@ class TestLambdaFunctionEndToEnd(unittest.TestCase):
         cache_layer._cloudwatch_log_group_cache = MagicMock()
         context = Context()
         input_data = self._get_input_data(path="events/cloudwatch_logs_ddtags.json")
-        event = {
-            "awslogs": {"data": self._create_cloudwatch_log_event_from_data(input_data)}
-        }
+        event = {"awslogs": {"data": self._create_log_event_from_data(input_data)}}
         normalized_events = parse(event, context, cache_layer)
         enriched_events = enrich(normalized_events, cache_layer)
         transformed_events = transform(enriched_events)
@@ -265,10 +253,35 @@ class TestLambdaFunctionEndToEnd(unittest.TestCase):
             self.assertEqual(log["service"], "test-inner-message")
             self.assertTrue(isinstance(log["message"], str))
 
+    @patch("caching.cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.__init__")
+    def test_kinesis_awslogs_handler(self, mock_cache_init):
+        mock_cache_init.return_value = None
+        cache_layer = CacheLayer("")
+        cache_layer._lambda_cache = MagicMock()
+        cache_layer._cloudwatch_log_group_cache = MagicMock()
+        context = Context()
+        input_data1 = self._get_input_data(path="events/cloudwatch_logs_ddtags.json")
+        input_data2 = self._get_input_data(path="events/cloudwatch_logs_2.json")
+        event = {
+            "Records": [
+                {"kinesis": {"data": self._create_log_event_from_data(input_data1)}},
+                {"kinesis": {"data": self._create_log_event_from_data(input_data2)}},
+            ]
+        }
+
+        normalized_events = parse(event, context, cache_layer)
+        enriched_events = enrich(normalized_events, cache_layer)
+        transformed_events = transform(enriched_events)
+
+        scrubber = create_regex_scrubber(
+            r"forwarder_version:\d+\.\d+\.\d+",
+            "forwarder_version:<redacted from snapshot>",
+        )
+        verify_as_json(transformed_events, options=Options().with_scrubber(scrubber))
+
     def _get_input_data(self, path="events/cloudwatch_logs.json"):
         my_path = os.path.abspath(os.path.dirname(__file__))
         path = os.path.join(my_path, path)
-
         with open(
             path,
             "r",
@@ -277,7 +290,7 @@ class TestLambdaFunctionEndToEnd(unittest.TestCase):
 
         return input_data
 
-    def _create_cloudwatch_log_event_from_data(self, data):
+    def _create_log_event_from_data(self, data):
         # CloudWatch log event data is a base64-encoded ZIP archive
         # see https://docs.aws.amazon.com/lambda/latest/dg/services-cloudwatchlogs.html
         gzipped_data = gzip.compress(bytes(data, encoding="utf-8"))
