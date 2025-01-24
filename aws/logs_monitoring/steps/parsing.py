@@ -47,8 +47,6 @@ def parse(event, context, cache_layer):
                 events = sns_handler(event, metadata)
             case AwsEventType.KINESIS:
                 events = kinesis_awslogs_handler(event, context, cache_layer)
-            case _:
-                events = ["Parsing: Unsupported event type"]
     except Exception as e:
         # Logs through the socket the error
         err_message = "Error parsing the object. Exception: {} for event {}".format(
