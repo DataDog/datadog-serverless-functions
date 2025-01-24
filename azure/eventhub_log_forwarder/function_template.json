@@ -63,7 +63,7 @@
       }
     },
     "endpointSuffix": {
-      "type": "string",
+     "type": "string",
       "defaultValue": "core.windows.net",
       "metadata": {
         "description": "Endpoint suffix for storage account"
@@ -143,7 +143,7 @@
             },
             {
               "name": "WEBSITE_NODE_DEFAULT_VERSION",
-              "value": "~20"
+              "value": "~18"
             }
           ]
         }
