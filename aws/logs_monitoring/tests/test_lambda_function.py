@@ -141,6 +141,7 @@ class TestLambdaFunctionEndToEnd(unittest.TestCase):
     def test_setting_service_tag_from_log_group_cache(self, mock_cache_init):
         reload(sys.modules["settings"])
         reload(sys.modules["steps.parsing"])
+        reload(sys.modules["steps.common"])
         mock_cache_init.return_value = None
         cache_layer = CacheLayer("")
         cache_layer._cloudwatch_log_group_cache.get = MagicMock(
@@ -166,6 +167,7 @@ class TestLambdaFunctionEndToEnd(unittest.TestCase):
     def test_service_override_from_dd_tags(self, mock_cache_init):
         reload(sys.modules["settings"])
         reload(sys.modules["steps.parsing"])
+        reload(sys.modules["steps.common"])
         mock_cache_init.return_value = None
         cache_layer = CacheLayer("")
         cache_layer._cloudwatch_log_group_cache.get = MagicMock(
