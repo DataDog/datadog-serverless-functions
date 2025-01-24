@@ -54,11 +54,16 @@ def add_metadata_to_lambda_log(event, cache_layer):
     if not lambda_log_arn:
         return
 
+    # Function name is the seventh piece of the ARN
+    try:
+        function_name = lambda_log_arn.split(":")[6]
+    except IndexError:
+        logger.error(f"Failed to extract function name from ARN: {lambda_log_arn}")
+        return
+
     # Set Lambda ARN to "host"
     event[DD_HOST] = lambda_log_arn
 
-    # Function name is the seventh piece of the ARN
-    function_name = lambda_log_arn.split(":")[6]
     tags = [f"functionname:{function_name}"]
 
     # Get custom tags of the Lambda function
@@ -94,7 +99,10 @@ def add_metadata_to_lambda_log(event, cache_layer):
     tags = list(set(tags))
     tags.sort()  # Keep order deterministic
 
-    event[DD_CUSTOM_TAGS] = ",".join([event.get(DD_CUSTOM_TAGS)] + tags)
+    if custom_tags := event.get(DD_CUSTOM_TAGS):
+        event[DD_CUSTOM_TAGS] = custom_tags + ",".join(tags)
+    else:
+        event[DD_CUSTOM_TAGS] = ",".join(tags)
 
 
 def get_enriched_lambda_log_tags(log_event, cache_layer):
@@ -164,7 +172,7 @@ def extract_ddtags_from_message(event):
                 [
                     tag
                     for tag in event[DD_CUSTOM_TAGS].split(",")
-                    if not tag.startswith("service")
+                    if not tag.startswith("service:")
                 ]
             )
 
