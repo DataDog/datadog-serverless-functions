@@ -11,23 +11,14 @@ from telemetry import set_forwarder_telemetry_tags, send_event_metric
 from steps.handlers.awslogs_handler import AwsLogsHandler
 from steps.handlers.s3_handler import S3EventHandler
 from steps.common import (
-    merge_dicts,
+    generate_metadata,
     get_service_from_tags_and_remove_duplicates,
+    merge_dicts,
 )
 from steps.enums import AwsEventType, AwsEventTypeKeyword, AwsEventSource
 from settings import (
-    AWS_STRING,
-    FUNCTIONVERSION_STRING,
-    INVOKEDFUNCTIONARN_STRING,
-    SOURCECATEGORY_STRING,
-    FORWARDERNAME_STRING,
-    FORWARDERMEMSIZE_STRING,
-    FORWARDERVERSION_STRING,
-    DD_TAGS,
     DD_SOURCE,
-    DD_CUSTOM_TAGS,
     DD_SERVICE,
-    DD_FORWARDER_VERSION,
 )
 
 logger = logging.getLogger()
@@ -37,29 +28,26 @@ logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").uppe
 def parse(event, context, cache_layer):
     """Parse Lambda input to normalized events"""
     metadata = generate_metadata(context)
-    event_type = AwsEventType.UNKNOWN
     try:
-        # Route to the corresponding parser
         event_type = parse_event_type(event)
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug(f"Parsed event type: {event_type}")
+        set_forwarder_telemetry_tags(context, event_type)
         match event_type:
+            case AwsEventType.AWSLOGS:
+                aws_handler = AwsLogsHandler(context, cache_layer)
+                events = aws_handler.handle(event)
+                return collect_and_count(events)
             case AwsEventType.S3:
                 s3_handler = S3EventHandler(context, metadata, cache_layer)
                 events = s3_handler.handle(event)
-            case AwsEventType.AWSLOGS:
-                aws_handler = AwsLogsHandler(context, cache_layer)
-                # regenerate a metadata object for each event
-                metadata = generate_metadata(context)
-                events = aws_handler.handle(event, metadata)
             case AwsEventType.EVENTS:
                 events = cwevent_handler(event, metadata)
             case AwsEventType.SNS:
                 events = sns_handler(event, metadata)
             case AwsEventType.KINESIS:
                 events = kinesis_awslogs_handler(event, context, cache_layer)
-            case _:
-                events = ["Parsing: Unsupported event type"]
+                return collect_and_count(events)
     except Exception as e:
         # Logs through the socket the error
         err_message = "Error parsing the object. Exception: {} for event {}".format(
@@ -67,19 +55,7 @@ def parse(event, context, cache_layer):
         )
         events = [err_message]
 
-    set_forwarder_telemetry_tags(context, event_type)
-
     return normalize_events(events, metadata)
-
-
-def generate_custom_tags(context):
-    dd_custom_tags_data = {
-        FORWARDERNAME_STRING: context.function_name.lower(),
-        FORWARDERMEMSIZE_STRING: context.memory_limit_in_mb,
-        FORWARDERVERSION_STRING: DD_FORWARDER_VERSION,
-    }
-
-    return dd_custom_tags_data
 
 
 def parse_event_type(event):
@@ -138,34 +114,8 @@ def kinesis_awslogs_handler(event, context, cache_layer):
 
     awslogs_handler = AwsLogsHandler(context, cache_layer)
     return itertools.chain.from_iterable(
-        awslogs_handler.handle(reformat_record(r), generate_metadata(context))
-        for r in event["Records"]
+        awslogs_handler.handle(reformat_record(r)) for r in event["Records"]
     )
-
-
-def generate_metadata(context):
-    metadata = {
-        SOURCECATEGORY_STRING: AWS_STRING,
-        AWS_STRING: {
-            FUNCTIONVERSION_STRING: context.function_version,
-            INVOKEDFUNCTIONARN_STRING: context.invoked_function_arn,
-        },
-    }
-    # Add custom tags here by adding new value with the following format "key1:value1, key2:value2"  - might be subject to modifications
-    dd_custom_tags_data = generate_custom_tags(context)
-    metadata[DD_CUSTOM_TAGS] = ",".join(
-        filter(
-            None,
-            [
-                DD_TAGS,
-                ",".join(
-                    ["{}:{}".format(k, v) for k, v in dd_custom_tags_data.items()]
-                ),
-            ],
-        )
-    )
-
-    return metadata
 
 
 def normalize_events(events, metadata):
@@ -186,3 +136,15 @@ def normalize_events(events, metadata):
     send_event_metric("incoming_events", events_counter)
 
     return normalized
+
+
+def collect_and_count(events):
+    collected = []
+    counter = 0
+    for event in events:
+        counter += 1
+        collected.append(event)
+
+    send_event_metric("incoming_events", counter)
+
+    return collected

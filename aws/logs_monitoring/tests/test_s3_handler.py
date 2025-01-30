@@ -122,9 +122,11 @@ class TestS3EventsHandler(unittest.TestCase):
         }
         data = "2022-02-08aaa\nbbbccc\n2022-02-09bbb\n2022-02-10ccc\n"
         self.s3_handler.data_store.data = data.encode("utf-8")
-        self.s3_handler.multiline_regex_start_pattern = re.compile("^\d{4}-\d{2}-\d{2}")
+        self.s3_handler.multiline_regex_start_pattern = re.compile(
+            r"^\d{4}-\d{2}-\d{2}"
+        )
         self.s3_handler.multiline_regex_pattern = re.compile(
-            "[\n\r\f]+(?=\d{4}-\d{2}-\d{2})"
+            r"[\n\r\f]+(?=\d{4}-\d{2}-\d{2})"
         )
         self.s3_handler._extract_data = MagicMock()
         structured_lines = list(self.s3_handler.handle(event))

@@ -166,11 +166,11 @@ class ScrubbingRuleConfig(object):
 # Option to redact all pattern that looks like an ip address / email address / custom pattern
 SCRUBBING_RULE_CONFIGS = [
     ScrubbingRuleConfig(
-        "REDACT_IP", "\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", "xxx.xxx.xxx.xxx"
+        "REDACT_IP", r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", "xxx.xxx.xxx.xxx"
     ),
     ScrubbingRuleConfig(
         "REDACT_EMAIL",
-        "[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+",
+        r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+",
         "xxxxx@xxxxx.com",
     ),
     ScrubbingRuleConfig(

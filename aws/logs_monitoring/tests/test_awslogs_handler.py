@@ -6,9 +6,6 @@ import unittest
 import sys
 from unittest.mock import patch, MagicMock
 from approvaltests.approvals import verify_as_json
-from approvaltests.namer import NamerFactory
-
-from steps.enums import AwsEventSource
 
 sys.modules["trace_forwarder.connection"] = MagicMock()
 sys.modules["datadog_lambda.wrapper"] = MagicMock()
@@ -24,12 +21,18 @@ env_patch = patch.dict(
     },
 )
 env_patch.start()
-from settings import DD_HOST, DD_SOURCE
 from steps.handlers.awslogs_handler import AwsLogsHandler
 from steps.handlers.aws_attributes import AwsAttributes
 from caching.cache_layer import CacheLayer
 
 env_patch.stop()
+
+
+class Context:
+    function_version = 0
+    invoked_function_arn = "invoked_function_arn"
+    function_name = "function_name"
+    memory_limit_in_mb = "10"
 
 
 class TestAWSLogsHandler(unittest.TestCase):
@@ -60,8 +63,7 @@ class TestAWSLogsHandler(unittest.TestCase):
                 )
             }
         }
-        context = None
-        metadata = {"ddsource": "cloudwatch", "ddtags": "env:dev"}
+        context = Context()
         mock_cache_init.return_value = None
         cache_layer = CacheLayer("")
         cache_layer._cloudwatch_log_group_cache.get = MagicMock(
@@ -69,8 +71,7 @@ class TestAWSLogsHandler(unittest.TestCase):
         )
 
         awslogs_handler = AwsLogsHandler(context, cache_layer)
-        verify_as_json(list(awslogs_handler.handle(event, metadata)))
-        verify_as_json(metadata, options=NamerFactory.with_parameters("metadata"))
+        verify_as_json(list(awslogs_handler.handle(event)))
 
     @patch("caching.cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.__init__")
     @patch("caching.cloudwatch_log_group_cache.send_forwarder_internal_metrics")
@@ -107,8 +108,7 @@ class TestAWSLogsHandler(unittest.TestCase):
                 )
             }
         }
-        context = None
-        metadata = {"ddsource": "postgresql", "ddtags": "env:dev"}
+        context = Context()
         mock_forward_metrics.side_effect = MagicMock()
         mock_cache_init.return_value = None
         cache_layer = CacheLayer("")
@@ -118,14 +118,7 @@ class TestAWSLogsHandler(unittest.TestCase):
         cache_layer._cloudwatch_log_group_cache.get = MagicMock()
 
         awslogs_handler = AwsLogsHandler(context, cache_layer)
-        verify_as_json(list(awslogs_handler.handle(event, metadata)))
-        verify_as_json(metadata, options=NamerFactory.with_parameters("metadata"))
-        # verify that the handling can properly handle SF logs with the default log group naming
-        self.assertEqual(metadata[DD_SOURCE], AwsEventSource.STEPFUNCTION.value)
-        self.assertEqual(
-            metadata[DD_HOST],
-            "arn:aws:states:us-east-1:12345678910:stateMachine:StepFunction1",
-        )
+        verify_as_json(list(awslogs_handler.handle(event)))
 
     @patch("caching.cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.__init__")
     @patch("caching.cloudwatch_log_group_cache.send_forwarder_internal_metrics")
@@ -163,8 +156,7 @@ class TestAWSLogsHandler(unittest.TestCase):
                 )
             }
         }
-        context = None
-        metadata = {"ddtags": "env:dev"}
+        context = Context()
         mock_forward_metrics.side_effect = MagicMock()
         mock_cache_init.return_value = None
         cache_layer = CacheLayer("")
@@ -175,15 +167,45 @@ class TestAWSLogsHandler(unittest.TestCase):
 
         awslogs_handler = AwsLogsHandler(context, cache_layer)
         # for some reasons, the below two are needed to update the context of the handler
-        verify_as_json(
-            list(awslogs_handler.handle(eventFromCustomizedLogGroup, metadata))
+        verify_as_json(list(awslogs_handler.handle(eventFromCustomizedLogGroup)))
+
+    def test_awslogs_handler_lambda_log(self):
+        event = {
+            "awslogs": {
+                "data": base64.b64encode(
+                    gzip.compress(
+                        bytes(
+                            json.dumps(
+                                {
+                                    "messageType": "DATA_MESSAGE",
+                                    "owner": "123456789012",
+                                    "logGroup": "/aws/lambda/test-lambda-default-log-group",
+                                    "logStream": "2023/11/06/[$LATEST]b25b1f977b3e416faa45a00f427e7acb",
+                                    "subscriptionFilters": ["testFilter"],
+                                    "logEvents": [
+                                        {
+                                            "id": "37199773595581154154810589279545129148442535997644275712",
+                                            "timestamp": 1668095539607,
+                                            "message": "2021-01-02 03:04:05 UTC::@:[5306]:LOG:  database system is ready to accept connections",
+                                        }
+                                    ],
+                                }
+                            ),
+                            "utf-8",
+                        )
+                    )
+                )
+            }
+        }
+        context = Context()
+        cache_layer = CacheLayer("")
+        cache_layer._cloudwatch_log_group_cache.get = MagicMock()
+        cache_layer._lambda_cache.get = MagicMock(
+            return_value=["service:customtags_service"]
         )
-        verify_as_json(metadata, options=NamerFactory.with_parameters("metadata"))
-        self.assertEqual(metadata[DD_SOURCE], AwsEventSource.STEPFUNCTION.value)
-        self.assertEqual(
-            metadata[DD_HOST],
-            "arn:aws:states:us-east-1:12345678910:stateMachine:StepFunction2",
-        )
+
+        awslogs_handler = AwsLogsHandler(context, cache_layer)
+        verify_as_json(list(awslogs_handler.handle(event)))
 
     def test_process_lambda_logs(self):
         # Non Lambda log
@@ -199,7 +221,7 @@ class TestAWSLogsHandler(unittest.TestCase):
             stepfunction_loggroup.get("logStream"),
             stepfunction_loggroup.get("owner"),
         )
-        context = None
+        context = Context()
         aws_handler = AwsLogsHandler(context, CacheLayer(""))
 
         aws_handler.process_lambda_logs(metadata, aws_attributes)
@@ -218,8 +240,7 @@ class TestAWSLogsHandler(unittest.TestCase):
             lambda_default_loggroup.get("logStream"),
             lambda_default_loggroup.get("owner"),
         )
-        context = MagicMock()
-        context.invoked_function_arn = "arn:aws:lambda:sa-east-1:601427279990:function:inferred-spans-python-dev-initsender"
+        context = Context()
 
         aws_handler = AwsLogsHandler(context, CacheLayer(""))
         aws_handler.process_lambda_logs(metadata, aws_attributes)
@@ -232,7 +253,7 @@ class TestAWSLogsHandler(unittest.TestCase):
         )
         self.assertEqual(
             aws_attributes.to_dict().get("lambda", None).get("arn", None),
-            "arn:aws:lambda:sa-east-1:601427279990:function:test-lambda-default-log-group",
+            "invoked_function_arnfunction:test-lambda-default-log-group",
         )
 
         # env not set

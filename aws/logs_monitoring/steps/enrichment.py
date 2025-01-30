@@ -54,11 +54,16 @@ def add_metadata_to_lambda_log(event, cache_layer):
     if not lambda_log_arn:
         return
 
+    # Function name is the seventh piece of the ARN
+    try:
+        function_name = lambda_log_arn.split(":")[6]
+    except IndexError:
+        logger.error(f"Failed to extract function name from ARN: {lambda_log_arn}")
+        return
+
     # Set Lambda ARN to "host"
     event[DD_HOST] = lambda_log_arn
 
-    # Function name is the seventh piece of the ARN
-    function_name = lambda_log_arn.split(":")[6]
     tags = [f"functionname:{function_name}"]
 
     # Get custom tags of the Lambda function
@@ -67,7 +72,7 @@ def add_metadata_to_lambda_log(event, cache_layer):
     # If not set during parsing or has a default value
     # then set the service tag from lambda tags cache or using the function name
     # otherwise, remove the service tag from the custom lambda tags if exists to avoid duplication
-    if not event[DD_SERVICE] or event[DD_SERVICE] == event[DD_SOURCE]:
+    if not event.get(DD_SERVICE) or event.get(DD_SERVICE) == event.get(DD_SOURCE):
         service_tag = next(
             (tag for tag in custom_lambda_tags if tag.startswith("service:")),
             f"service:{function_name}",
@@ -85,16 +90,21 @@ def add_metadata_to_lambda_log(event, cache_layer):
     custom_env_tag = next(
         (tag for tag in custom_lambda_tags if tag.startswith("env:")), None
     )
-    if custom_env_tag is not None:
-        event[DD_CUSTOM_TAGS] = event[DD_CUSTOM_TAGS].replace("env:none", "")
+    if custom_env_tag:
+        event[DD_CUSTOM_TAGS] = ",".join(
+            [t for t in event.get(DD_CUSTOM_TAGS, "").split(",") if t != "env:none"]
+        )
 
-    tags += custom_lambda_tags
+    tags.extend(custom_lambda_tags)
 
     # Dedup tags, so we don't end up with functionname twice
     tags = list(set(tags))
     tags.sort()  # Keep order deterministic
 
-    event[DD_CUSTOM_TAGS] = ",".join([event[DD_CUSTOM_TAGS]] + tags)
+    if custom_tags := event.get(DD_CUSTOM_TAGS):
+        event[DD_CUSTOM_TAGS] = ",".join([custom_tags] + tags)
+    else:
+        event[DD_CUSTOM_TAGS] = ",".join(tags)
 
 
 def get_enriched_lambda_log_tags(log_event, cache_layer):
@@ -164,7 +174,7 @@ def extract_ddtags_from_message(event):
                 [
                     tag
                     for tag in event[DD_CUSTOM_TAGS].split(",")
-                    if not tag.startswith("service")
+                    if not tag.startswith("service:")
                 ]
             )
 
