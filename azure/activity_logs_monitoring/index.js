@@ -598,10 +598,10 @@ class EventhubLogHandler {
         let newObj = {};
         for (const [key, value] of Object.entries(obj)) {
             // regex looks for word boundaries and captures the alpha character that follows
-            const new_key = key
+            const newKey = key
                 .replace(/\b\w/g, c => c.toUpperCase())
                 .replaceAll(' ', '');
-            newObj[new_key] = value;
+            newObj[newKey] = value;
         }
         return newObj;
     }
