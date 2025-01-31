@@ -3,7 +3,7 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2025 Datadog, Inc.
 
-const VERSION = '1.2.0';
+const VERSION = '1.2.1';
 
 const STRING = 'string'; // example: 'some message'
 const STRING_ARRAY = 'string-array'; // example: ['one message', 'two message', ...]
@@ -98,6 +98,11 @@ function sleep(ms) {
 }
 
 class ScrubberRule {
+    /**
+     * @param {string} name
+     * @param {string} pattern
+     * @param {string} replacement
+     */
     constructor(name, pattern, replacement) {
         this.name = name;
         this.replacement = replacement;
@@ -106,6 +111,11 @@ class ScrubberRule {
 }
 
 class Batcher {
+    /**
+     * @param {number} maxItemSizeBytes
+     * @param {number} maxBatchSizeBytes
+     * @param {number} maxItemsCount
+     */
     constructor(maxItemSizeBytes, maxBatchSizeBytes, maxItemsCount) {
         this.maxItemSizeBytes = maxItemSizeBytes;
         this.maxBatchSizeBytes = maxBatchSizeBytes;
@@ -152,6 +162,9 @@ class Batcher {
 }
 
 class HTTPClient {
+    /**
+     * @param {InvocationContext} context
+     */
     constructor(context) {
         this.context = context;
         this.url = `https://${DD_HTTP_URL}:${DD_HTTP_PORT}/api/v2/logs`;
@@ -228,6 +241,10 @@ class HTTPClient {
 }
 
 class Scrubber {
+    /**
+     * @param {InvocationContext} context
+     * @param {Record<string, {'pattern': string, 'replacement': string}>} configs
+     */
     constructor(context, configs) {
         let rules = [];
         for (const [name, settings] of Object.entries(configs)) {
@@ -260,6 +277,9 @@ class Scrubber {
 }
 
 class EventhubLogHandler {
+    /**
+     * @param {InvocationContext} context
+     */
     constructor(context) {
         this.context = context;
         this.logSplittingConfig = getLogSplittingConfig();
