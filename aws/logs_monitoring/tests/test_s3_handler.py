@@ -305,16 +305,18 @@ class TestS3EventsHandler(unittest.TestCase):
             "AWSLogs/123456779121/WAFLogs/cloudfront/this/is/a/prio/test.log.gz"
         )
         self.s3_handler.data_store.bucket = "my-bucket"
-        self.s3_handler._set_source({
-            "Records": [
-                {
-                    "s3": {
-                        "bucket": {"name": "my-bucket"},
-                        "object": {"key": self.s3_handler.data_store.key},
+        self.s3_handler._set_source(
+            {
+                "Records": [
+                    {
+                        "s3": {
+                            "bucket": {"name": "my-bucket"},
+                            "object": {"key": self.s3_handler.data_store.key},
+                        }
                     }
-                }
-            ]
-        })
+                ]
+            }
+        )
         self.assertEqual(
             self.s3_handler.data_store.source,
             "waf",
@@ -323,16 +325,18 @@ class TestS3EventsHandler(unittest.TestCase):
     def test_set_source_cloudfront(self):
         self.s3_handler.data_store.key = "AWSLogs/123456779121/CloudFront/us-east-1/2020/10/02/21/123456779121_CloudFront_us-east-1_20201002T2100Z_abcdef.log.gz"
         self.s3_handler.data_store.bucket = "my-bucket"
-        self.s3_handler._set_source({
-            "Records": [
-                {
-                    "s3": {
-                        "bucket": {"name": "my-bucket"},
-                        "object": {"key": self.s3_handler.data_store.key},
+        self.s3_handler._set_source(
+            {
+                "Records": [
+                    {
+                        "s3": {
+                            "bucket": {"name": "my-bucket"},
+                            "object": {"key": self.s3_handler.data_store.key},
+                        }
                     }
-                }
-            ]
-        })
+                ]
+            }
+        )
         self.assertEqual(
             self.s3_handler.data_store.source,
             "cloudfront",
@@ -341,16 +345,18 @@ class TestS3EventsHandler(unittest.TestCase):
     def test_set_source_transit_gateway(self):
         self.s3_handler.data_store.key = "AWSLogs/1234566312/vpcflowlogs/us-east-1/2024/08/09/11/123455660991_vpcflowlogs_us-east-1_fl-01fb37"
         self.s3_handler.data_store.bucket = "my-bucket-transit-gateway"
-        self.s3_handler._set_source({
-            "Records": [
-                {
-                    "s3": {
-                        "bucket": {"name": "my-bucket-transit-gateway"},
-                        "object": {"key": self.s3_handler.data_store.key},
+        self.s3_handler._set_source(
+            {
+                "Records": [
+                    {
+                        "s3": {
+                            "bucket": {"name": "my-bucket-transit-gateway"},
+                            "object": {"key": self.s3_handler.data_store.key},
+                        }
                     }
-                }
-            ]
-        })
+                ]
+            }
+        )
         self.assertEqual(
             self.s3_handler.data_store.source,
             "transitgateway",

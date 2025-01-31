@@ -7,7 +7,6 @@ import zlib
 from google.protobuf.json_format import MessageToDict
 import pb.trace_payload_pb2 as TracePayloadProtobuf
 
-
 PORT_NUMBER = 8080
 
 print("Starting recorder", flush=True)

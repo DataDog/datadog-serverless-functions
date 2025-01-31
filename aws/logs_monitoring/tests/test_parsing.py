@@ -325,7 +325,9 @@ class TestGetServiceFromTags(unittest.TestCase):
     def test_get_service_from_tags_removing_duplicates(self):
         metadata = {
             DD_SOURCE: "ecs",
-            DD_CUSTOM_TAGS: "env:dev,tag,stack:aws:ecs,service:web,version:v1,service:other",
+            DD_CUSTOM_TAGS: (
+                "env:dev,tag,stack:aws:ecs,service:web,version:v1,service:other"
+            ),
         }
         self.assertEqual(get_service_from_tags_and_remove_duplicates(metadata), "web")
         self.assertEqual(

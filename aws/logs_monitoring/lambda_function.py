@@ -27,7 +27,6 @@ from settings import (
     DD_RETRY_KEYWORD,
 )
 
-
 logger = logging.getLogger()
 logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
 

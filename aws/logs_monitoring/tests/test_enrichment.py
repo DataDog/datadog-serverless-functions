@@ -135,7 +135,9 @@ class TestExtractHostFromLogEvents(unittest.TestCase):
             "ddsource": "cloudtrail",
             "message": {
                 "userIdentity": {
-                    "arn": "arn:aws:sts::601427279990:assumed-role/gke-90725aa7-management/i-99999999"
+                    "arn": (
+                        "arn:aws:sts::601427279990:assumed-role/gke-90725aa7-management/i-99999999"
+                    )
                 }
             },
         }
