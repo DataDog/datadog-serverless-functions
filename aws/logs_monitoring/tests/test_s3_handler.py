@@ -41,15 +41,44 @@ class TestS3EventsHandler(unittest.TestCase):
             [
                 [
                     '{"timestamp": 12345, "key1": "value1", "key2":"value2"}\n',
-                    '{"timestamp": 12345, "key1": "value1", "key2":"value2"}\r\n{"timestamp": 67890, "key1": "value2", "key2":"value3"}\r\n',
-                    '{"timestamp": 12345, "key1": "value1", "key2":"value1"}\n{"timestamp": 67890, "key1": "value2", "key2":"value3"}\r{"timestamp": 123456, "key1": "value3", "key2":"value3"}\r\n{"timestamp": 678901, "key1": "value4", "key2":"value4"}',
-                    '{"timestamp": 12345, "key1": "value1", "key2":"value2"}\n{"timestamp": 789760, "key1": "value1", "key3":"value4"}\n',
-                    '{"timestamp": 12345, "key1": "value1", "key2":"value2" "key3": {"key5" : "value5"}}\r{"timestamp": 12345, "key1": "value1"}\n',
-                    '{"timestamp": 12345, "key1": "value1", "key2":"value2" "key3": {"key5" : "value5"}}\f{"timestamp": 12345, "key1": "value1"}\n',
-                    '{"timestamp": 12345, "key1": "value1", "key2":"value2" "key3": {"key5" : "value5"}}\u00A0{"timestamp": 12345, "key1": "value1"}\n',
-                    '{"timestamp":1234, "injection":"/Ð²Ð¸ÐºÑÐ¾ÑÐ¸Ñ+Ð²Ð»Ð°ÑÐ¾Ð²Ð°/about"}',
+                    (
+                        '{"timestamp": 12345, "key1": "value1",'
+                        ' "key2":"value2"}\r\n{"timestamp": 67890, "key1": "value2",'
+                        ' "key2":"value3"}\r\n'
+                    ),
+                    (
+                        '{"timestamp": 12345, "key1": "value1",'
+                        ' "key2":"value1"}\n{"timestamp": 67890, "key1": "value2",'
+                        ' "key2":"value3"}\r{"timestamp": 123456, "key1": "value3",'
+                        ' "key2":"value3"}\r\n{"timestamp": 678901, "key1": "value4",'
+                        ' "key2":"value4"}'
+                    ),
+                    (
+                        '{"timestamp": 12345, "key1": "value1",'
+                        ' "key2":"value2"}\n{"timestamp": 789760, "key1": "value1",'
+                        ' "key3":"value4"}\n'
+                    ),
+                    (
+                        '{"timestamp": 12345, "key1": "value1", "key2":"value2" "key3":'
+                        ' {"key5" : "value5"}}\r{"timestamp": 12345, "key1":'
+                        ' "value1"}\n'
+                    ),
+                    (
+                        '{"timestamp": 12345, "key1": "value1", "key2":"value2" "key3":'
+                        ' {"key5" : "value5"}}\f{"timestamp": 12345, "key1":'
+                        ' "value1"}\n'
+                    ),
+                    (
+                        '{"timestamp": 12345, "key1": "value1", "key2":"value2" "key3":'
+                        ' {"key5" : "value5"}}\u00a0{"timestamp": 12345, "key1":'
+                        ' "value1"}\n'
+                    ),
+                    (
+                        '{"timestamp":1234,'
+                        ' "injection":"/Ð²Ð¸ÐºÑÐ¾ÑÐ¸Ñ+Ð²Ð»Ð°ÑÐ¾Ð²Ð°/about"}'
+                    ),
                     '{"timestamp":1234, "should_not_be_splitted":"\v"}',
-                    '{"timestamp":1234, "should_be_splitted":"\u000D\u000Acontinue"}',
+                    '{"timestamp":1234, "should_be_splitted":"\u000d\u000acontinue"}',
                     "\n",
                     "\r\n",
                 ]
@@ -66,7 +95,10 @@ class TestS3EventsHandler(unittest.TestCase):
             [
                 [
                     '{"Records": [{"event_key" : "logs-from-s3"}]}',
-                    '{"Records": [{"event_key" : "logs-from-s3"}, {"key1" : "data1", "key2" : "data2"}]}',
+                    (
+                        '{"Records": [{"event_key" : "logs-from-s3"}, {"key1" :'
+                        ' "data1", "key2" : "data2"}]}'
+                    ),
                     '{"Records": {}}',
                     "",
                 ]
@@ -153,7 +185,10 @@ class TestS3EventsHandler(unittest.TestCase):
             "Records": [
                 {
                     "Sns": {
-                        "Message": '{"Records": [{"s3": {"bucket": {"name": "my-bucket"}, "object": {"key": "sns-my-key"}}}]}'
+                        "Message": (
+                            '{"Records": [{"s3": {"bucket": {"name": "my-bucket"},'
+                            ' "object": {"key": "sns-my-key"}}}]}'
+                        )
                     }
                 }
             ]
@@ -270,18 +305,16 @@ class TestS3EventsHandler(unittest.TestCase):
             "AWSLogs/123456779121/WAFLogs/cloudfront/this/is/a/prio/test.log.gz"
         )
         self.s3_handler.data_store.bucket = "my-bucket"
-        self.s3_handler._set_source(
-            {
-                "Records": [
-                    {
-                        "s3": {
-                            "bucket": {"name": "my-bucket"},
-                            "object": {"key": self.s3_handler.data_store.key},
-                        }
+        self.s3_handler._set_source({
+            "Records": [
+                {
+                    "s3": {
+                        "bucket": {"name": "my-bucket"},
+                        "object": {"key": self.s3_handler.data_store.key},
                     }
-                ]
-            }
-        )
+                }
+            ]
+        })
         self.assertEqual(
             self.s3_handler.data_store.source,
             "waf",
@@ -290,18 +323,16 @@ class TestS3EventsHandler(unittest.TestCase):
     def test_set_source_cloudfront(self):
         self.s3_handler.data_store.key = "AWSLogs/123456779121/CloudFront/us-east-1/2020/10/02/21/123456779121_CloudFront_us-east-1_20201002T2100Z_abcdef.log.gz"
         self.s3_handler.data_store.bucket = "my-bucket"
-        self.s3_handler._set_source(
-            {
-                "Records": [
-                    {
-                        "s3": {
-                            "bucket": {"name": "my-bucket"},
-                            "object": {"key": self.s3_handler.data_store.key},
-                        }
+        self.s3_handler._set_source({
+            "Records": [
+                {
+                    "s3": {
+                        "bucket": {"name": "my-bucket"},
+                        "object": {"key": self.s3_handler.data_store.key},
                     }
-                ]
-            }
-        )
+                }
+            ]
+        })
         self.assertEqual(
             self.s3_handler.data_store.source,
             "cloudfront",
@@ -310,18 +341,16 @@ class TestS3EventsHandler(unittest.TestCase):
     def test_set_source_transit_gateway(self):
         self.s3_handler.data_store.key = "AWSLogs/1234566312/vpcflowlogs/us-east-1/2024/08/09/11/123455660991_vpcflowlogs_us-east-1_fl-01fb37"
         self.s3_handler.data_store.bucket = "my-bucket-transit-gateway"
-        self.s3_handler._set_source(
-            {
-                "Records": [
-                    {
-                        "s3": {
-                            "bucket": {"name": "my-bucket-transit-gateway"},
-                            "object": {"key": self.s3_handler.data_store.key},
-                        }
+        self.s3_handler._set_source({
+            "Records": [
+                {
+                    "s3": {
+                        "bucket": {"name": "my-bucket-transit-gateway"},
+                        "object": {"key": self.s3_handler.data_store.key},
                     }
-                ]
-            }
-        )
+                }
+            ]
+        })
         self.assertEqual(
             self.s3_handler.data_store.source,
             "transitgateway",

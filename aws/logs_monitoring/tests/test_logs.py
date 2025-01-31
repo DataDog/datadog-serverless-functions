@@ -22,16 +22,14 @@ class TestScrubLogs(unittest.TestCase):
         os.environ.pop("REDACT_EMAIL", None)
 
     def test_non_ascii(self):
-        os.environ["DD_SCRUBBING_RULE"] = "[^\u0001-\u007F]+"
-        scrubber = DatadogScrubber(
-            [
-                ScrubbingRuleConfig(
-                    "DD_SCRUBBING_RULE",
-                    get_env_var("DD_SCRUBBING_RULE", default=None),
-                    get_env_var("DD_SCRUBBING_RULE_REPLACEMENT", default="xxxxx"),
-                )
-            ]
-        )
+        os.environ["DD_SCRUBBING_RULE"] = "[^\u0001-\u007f]+"
+        scrubber = DatadogScrubber([
+            ScrubbingRuleConfig(
+                "DD_SCRUBBING_RULE",
+                get_env_var("DD_SCRUBBING_RULE", default=None),
+                get_env_var("DD_SCRUBBING_RULE_REPLACEMENT", default="xxxxx"),
+            )
+        ])
         payload = scrubber.scrub("abcdef日本語efgかきくけこhij")
         self.assertEqual(payload, "abcdefxxxxxefgxxxxxhij")
         os.environ.pop("DD_SCRUBBING_RULE", None)
