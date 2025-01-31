@@ -1,11 +1,9 @@
 // Unless explicitly stated otherwise all files in this repository are licensed
 // under the Apache License Version 2.0.
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
-// Copyright 2024 Datadog, Inc.
+// Copyright 2025 Datadog, Inc.
 
-var https = require('https');
-
-const VERSION = '1.1.0';
+const VERSION = '1.2.0';
 
 const STRING = 'string'; // example: 'some message'
 const STRING_ARRAY = 'string-array'; // example: ['one message', 'two message', ...]
@@ -27,7 +25,7 @@ const DD_TAGS = process.env.DD_TAGS || ''; // Replace '' by your comma-separated
 const DD_SERVICE = process.env.DD_SERVICE || 'azure';
 const DD_SOURCE = process.env.DD_SOURCE || 'azure';
 const DD_SOURCE_CATEGORY = process.env.DD_SOURCE_CATEGORY || 'azure';
-const DD_PARSE_DEFENDER_LOGS = process.env.DD_PARSE_DEFENDER_LOGS; // Boolean whether to enable special parsing of Defender for Cloud logs. Set to 'false' to disable 
+const DD_PARSE_DEFENDER_LOGS = process.env.DD_PARSE_DEFENDER_LOGS; // Boolean whether to enable special parsing of Defender for Cloud logs. Set to 'false' to disable
 
 const MAX_RETRIES = 4; // max number of times to retry a single http request
 const RETRY_INTERVAL = 250; // amount of time (milliseconds) to wait before retrying request, doubles after every retry
@@ -95,6 +93,10 @@ function shouldParseDefenderForCloudLogs() {
     return !(parse_defender_logs === 'false' || parse_defender_logs === 'f');
 }
 
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 class ScrubberRule {
     constructor(name, pattern, replacement) {
         this.name = name;
@@ -104,20 +106,19 @@ class ScrubberRule {
 }
 
 class Batcher {
-    constructor(context, maxItemSizeBytes, maxBatchSizeBytes, maxItemsCount) {
+    constructor(maxItemSizeBytes, maxBatchSizeBytes, maxItemsCount) {
         this.maxItemSizeBytes = maxItemSizeBytes;
         this.maxBatchSizeBytes = maxBatchSizeBytes;
         this.maxItemsCount = maxItemsCount;
     }
 
     batch(items) {
-        var batches = [];
-        var batch = [];
-        var sizeBytes = 0;
-        var sizeCount = 0;
-        for (var i = 0; i < items.length; i++) {
-            var item = items[i];
-            var itemSizeBytes = this.getSizeInBytes(item);
+        let batches = [];
+        let batch = [];
+        let sizeBytes = 0;
+        let sizeCount = 0;
+        for (const item of items) {
+            let itemSizeBytes = this.getSizeInBytes(item);
             if (
                 sizeCount > 0 &&
                 (sizeCount >= this.maxItemsCount ||
@@ -153,35 +154,21 @@ class Batcher {
 class HTTPClient {
     constructor(context) {
         this.context = context;
-        this.httpOptions = {
-            hostname: DD_HTTP_URL,
-            port: DD_HTTP_PORT,
-            path: '/api/v2/logs',
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'DD-API-KEY': DD_API_KEY,
-                'DD-EVP-ORIGIN': 'azure'
-            },
-            timeout: DD_REQUEST_TIMEOUT_MS
-        };
+        this.url = `https://${DD_HTTP_URL}:${DD_HTTP_PORT}/api/v2/logs`;
         this.scrubber = new Scrubber(this.context, SCRUBBER_RULE_CONFIGS);
-        this.batcher = new Batcher(
-            this.context,
-            256 * 1000,
-            4 * 1000 * 1000,
-            400
-        );
+        this.batcher = new Batcher(256 * 1000, 4 * 1000 * 1000, 400);
     }
 
     async sendAll(records) {
-        var batches = this.batcher.batch(records);
-        var promises = [];
-        for (var i = 0; i < batches.length; i++) {
-            promises.push(this.send(batches[i]));
-        }
+        let batches = this.batcher.batch(records);
         return await Promise.all(
-            promises.map(p => p.catch(e => this.context.log.error(e)))
+            batches.map(async batch => {
+                try {
+                    return await this.send(batch);
+                } catch (e) {
+                    this.context.log.error(e);
+                }
+            })
         );
     }
 
@@ -197,58 +184,52 @@ class HTTPClient {
         );
     }
 
-    send(record) {
-        var numRetries = MAX_RETRIES;
-        var retryInterval = RETRY_INTERVAL;
-        return new Promise((resolve, reject) => {
-            const sendRequest = (options, record) => {
-                const retryRequest = errMsg => {
-                    if (numRetries === 0) {
-                        return reject(errMsg);
-                    }
-                    this.context.log.warn(
-                        `Unable to send request, with error: ${errMsg}. Retrying ${numRetries} more times`
-                    );
-                    numRetries--;
-                    retryInterval *= 2;
-                    setTimeout(() => {
-                        sendRequest(options, record);
-                    }, retryInterval);
-                };
-                const req = https
-                    .request(options, resp => {
-                        if (this.isStatusCodeValid(resp.statusCode)) {
-                            resolve(true);
-                        } else if (
-                            this.shouldStatusCodeRetry(resp.statusCode)
-                        ) {
-                            retryRequest(
-                                `invalid status code ${resp.statusCode}`
-                            );
-                        } else {
-                            reject(`invalid status code ${resp.statusCode}`);
-                        }
-                    })
-                    .on('error', error => {
-                        retryRequest(error.message);
-                    })
-                    .on('timeout', () => {
-                        req.destroy();
-                        retryRequest(
-                            `request timed out after ${DD_REQUEST_TIMEOUT_MS}ms`
-                        );
-                    });
-                req.write(this.scrubber.scrub(JSON.stringify(record)));
-                req.end();
-            };
-            sendRequest(this.httpOptions, record);
-        });
+    async send(record, retries = MAX_RETRIES, retryInterval = RETRY_INTERVAL) {
+        const retryRequest = async errMsg => {
+            if (retries === 0) {
+                throw new Error(errMsg);
+            }
+            this.context.log.warn(
+                `Unable to send request, with error: ${errMsg}. Retrying ${retries} more times`
+            );
+            retries--;
+            retryInterval *= 2;
+            await sleep(retryInterval);
+            return await this.send(record, retries, retryInterval);
+        };
+        try {
+            const resp = await fetch(this.url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'DD-API-KEY': DD_API_KEY,
+                    'DD-EVP-ORIGIN': 'azure'
+                },
+                signal: AbortSignal.timeout(DD_REQUEST_TIMEOUT_MS),
+                body: this.scrubber.scrub(JSON.stringify(record))
+            });
+            if (this.isStatusCodeValid(resp.status)) {
+                return true;
+            } else if (this.shouldStatusCodeRetry(resp.status)) {
+                return await retryRequest(`invalid status code ${resp.status}`);
+            } else {
+                throw new Error(`invalid status code ${resp.status}`);
+            }
+        } catch (e) {
+            if (e.name === 'TimeoutError') {
+                return await retryRequest(
+                    `request timed out after ${DD_REQUEST_TIMEOUT_MS}ms`
+                );
+            } else {
+                return await retryRequest(e.message);
+            }
+        }
     }
 }
 
 class Scrubber {
     constructor(context, configs) {
-        var rules = [];
+        let rules = [];
         for (const [name, settings] of Object.entries(configs)) {
             try {
                 rules.push(
@@ -286,7 +267,7 @@ class EventhubLogHandler {
     }
 
     findSplitRecords(record, fields) {
-        var tempRecord = record;
+        let tempRecord = record;
         for (const fieldName in fields) {
             // loop through the fields to find the one we want to split
             if (
@@ -310,19 +291,18 @@ class EventhubLogHandler {
 
     formatLog(messageType, record) {
         if (messageType == JSON_TYPE) {
-            var originalRecord = this.addTagsToJsonLog(record);
+            let originalRecord = this.addTagsToJsonLog(record);
             // normalize the host field. Azure EventHub sends it as "Host".
             if (originalRecord.Host) {
                 originalRecord.host = originalRecord.Host;
             }
-            var source = originalRecord['ddsource'];
-            var config = this.logSplittingConfig[source];
+            let source = originalRecord['ddsource'];
+            let config = this.logSplittingConfig[source];
             if (config !== undefined) {
-                var splitFieldFound = false;
+                let splitFieldFound = false;
 
-                for (var i = 0; i < config.paths.length; i++) {
-                    var fields = config.paths[i];
-                    var recordsToSplit = this.findSplitRecords(record, fields);
+                for (const fields of config.paths) {
+                    let recordsToSplit = this.findSplitRecords(record, fields);
                     if (
                         recordsToSplit === null ||
                         !(recordsToSplit instanceof Array)
@@ -332,17 +312,16 @@ class EventhubLogHandler {
                     }
                     splitFieldFound = true;
 
-                    for (var j = 0; j < recordsToSplit.length; j++) {
-                        var splitRecord = recordsToSplit[j];
+                    for (let splitRecord of recordsToSplit) {
                         if (typeof splitRecord === 'string') {
                             try {
                                 splitRecord = JSON.parse(splitRecord);
-                            } catch (err) {}
+                            } catch {}
                         }
-                        var formattedSplitRecord = {};
-                        var temp = formattedSplitRecord;
+                        let formattedSplitRecord = {};
+                        let temp = formattedSplitRecord;
                         // re-create the same nested attributes with only the split log
-                        for (var k = 0; k < fields.length; k++) {
+                        for (let k = 0; k < fields.length; k++) {
                             if (k === fields.length - 1) {
                                 // if it is the last field, add the split record
                                 temp[fields[k]] = splitRecord;
@@ -354,11 +333,11 @@ class EventhubLogHandler {
                         formattedSplitRecord = {
                             parsed_arrays: formattedSplitRecord
                         };
-
+                        let newRecord;
                         if (config.preserve_fields) {
-                            var newRecord = { ...originalRecord };
+                            newRecord = { ...originalRecord };
                         } else {
-                            var newRecord = {
+                            newRecord = {
                                 ddsource: source,
                                 ddsourcecategory:
                                     originalRecord['ddsourcecategory'],
@@ -388,7 +367,7 @@ class EventhubLogHandler {
     }
 
     handleLogs(logs) {
-        var logsType = this.getLogFormat(logs);
+        let logsType = this.getLogFormat(logs);
         switch (logsType) {
             case STRING:
                 this.formatLog(STRING_TYPE, logs);
@@ -423,12 +402,11 @@ class EventhubLogHandler {
     }
 
     handleJSONArrayLogs(logs, logsType) {
-        for (var i = 0; i < logs.length; i++) {
-            var message = logs[i];
+        for (let message of logs) {
             if (logsType == JSON_STRING_ARRAY) {
                 try {
                     message = JSON.parse(message);
-                } catch (err) {
+                } catch {
                     this.context.log.warn(
                         'log is malformed json, sending as string'
                     );
@@ -440,7 +418,7 @@ class EventhubLogHandler {
             if (logsType == BUFFER_ARRAY) {
                 try {
                     message = JSON.parse(message.toString());
-                } catch (err) {
+                } catch {
                     this.context.log.warn(
                         'log is malformed json, sending as string'
                     );
@@ -491,35 +469,40 @@ class EventhubLogHandler {
         try {
             JSON.parse(record);
             return true;
-        } catch (err) {
+        } catch {
             return false;
         }
     }
 
     createDDTags(tags) {
-        const forwarderNameTag =  'forwardername:' + this.context.executionContext.functionName;
+        const forwarderNameTag =
+            'forwardername:' + this.context.executionContext.functionName;
         const fowarderVersionTag = 'forwarderversion:' + VERSION;
-        var ddTags = tags.concat([DD_TAGS, forwarderNameTag, fowarderVersionTag]);
+        let ddTags = tags.concat([
+            DD_TAGS,
+            forwarderNameTag,
+            fowarderVersionTag
+        ]);
         return ddTags.filter(Boolean).join(',');
     }
 
     addTagsToJsonLog(record) {
-        var [metadata, record] = this.extractMetadataFromLog(record);
-        record['ddsource'] = metadata.source || DD_SOURCE;
-        record['ddsourcecategory'] = DD_SOURCE_CATEGORY;
-        record['service'] = metadata.service || DD_SERVICE;
-        record['ddtags'] = this.createDDTags(metadata.tags);
-        return record;
+        let [metadata, newRecord] = this.extractMetadataFromLog(record);
+        newRecord['ddsource'] = metadata.source || DD_SOURCE;
+        newRecord['ddsourcecategory'] = DD_SOURCE_CATEGORY;
+        newRecord['service'] = metadata.service || DD_SERVICE;
+        newRecord['ddtags'] = this.createDDTags(metadata.tags);
+        return newRecord;
     }
 
     addTagsToStringLog(stringLog) {
-        var jsonLog = { message: stringLog };
+        let jsonLog = { message: stringLog };
         return this.addTagsToJsonLog(jsonLog);
     }
 
     createResourceIdArray(resourceId) {
         // Convert a valid resource ID to an array, handling beginning/ending slashes
-        var resourceIdArray = resourceId.toLowerCase().split('/');
+        let resourceIdArray = resourceId.toLowerCase().split('/');
         if (resourceIdArray[0] === '') {
             resourceIdArray = resourceIdArray.slice(1);
         }
@@ -540,7 +523,7 @@ class EventhubLogHandler {
 
     getResourceId(record) {
         // Most logs have resourceId, but some logs have ResourceId instead
-        var id = record.resourceId || record.ResourceId;
+        let id = record.resourceId || record.ResourceId;
         if (typeof id !== 'string') {
             return null;
         }
@@ -555,8 +538,8 @@ class EventhubLogHandler {
     }
 
     extractMetadataFromStandardLog(record) {
-        var metadata = { tags: [], source: '', service: '' };
-        var resourceId = this.getResourceId(record);
+        let metadata = { tags: [], source: '', service: '' };
+        let resourceId = this.getResourceId(record);
         if (resourceId === null || resourceId === '') {
             return metadata;
         }
@@ -612,10 +595,12 @@ class EventhubLogHandler {
 
     removeWhitespaceFromKeys(obj) {
         // remove whitespace from the keys of an object and capitalizes the letter that follows
-        var newObj = {};
+        let newObj = {};
         for (const [key, value] of Object.entries(obj)) {
             // regex looks for word boundaries and captures the alpha character that follows
-            const new_key = key.replace(/\b\w/g, c=> c.toUpperCase()).replaceAll(' ', '');
+            const new_key = key
+                .replace(/\b\w/g, c => c.toUpperCase())
+                .replaceAll(' ', '');
             newObj[new_key] = value;
         }
         return newObj;
@@ -637,7 +622,7 @@ class EventhubLogHandler {
         } else if ([SECURITY_SCORES, SECURITY_SCORE_CONTROLS].includes(type)) {
             metadata.service = 'SecureScore';
         } else {
-            metadata.service = 'microsoft-defender-for-cloud'
+            metadata.service = 'microsoft-defender-for-cloud';
         }
         return [metadata, record];
     }
@@ -650,14 +635,15 @@ module.exports = async function(context, eventHubMessages) {
         );
         return;
     }
+    let parsedLogs;
     try {
-        var handler = new EventhubLogHandler(context);
-        var parsedLogs = handler.handleLogs(eventHubMessages);
+        let handler = new EventhubLogHandler(context);
+        parsedLogs = handler.handleLogs(eventHubMessages);
     } catch (err) {
         context.log.error('Error raised when parsing logs: ', err);
         throw err;
     }
-    var results = await new HTTPClient(context).sendAll(parsedLogs);
+    let results = await new HTTPClient(context).sendAll(parsedLogs);
 
     if (results.every(v => v === true) !== true) {
         context.log.error(
