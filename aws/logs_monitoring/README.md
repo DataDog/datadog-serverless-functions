@@ -278,7 +278,11 @@ We love pull requests. Here's a quick guide.
 
 ### Shipping logs to multiple destinations
 
-If you need to ship logs to multiple Datadog organizations or other destinations, configure the `AdditionalTargetLambdaArns` Cloudformation parameter to let the Datadog Forwarder copy the incoming logs to the specified Lambda functions. These additional Lambda functions will be called asynchronously with the exact same `event` the Datadog Forwarder receives.
+If you need to ship logs to multiple Datadog organizations or other destinations, configure the `AdditionalTargetLambdaArns` CloudFormation parameter to let the Datadog Forwarder copy the incoming logs to the specified Lambda functions. These additional Lambda functions are called asynchronously with the exact same `event` the Datadog Forwarder receives.
+
+<div class="alert alert-warning">
+Shipping logs to two or more destinations involves using two or more Lambda functions that may start logging each other in an infinite loop. Use <code>ExcludeAtMatch</code> to filter Lambda logs and avoid this infinite loop. See the <a href="#log-filtering-optional">Log filtering</a> section for more details.
+</div>
 
 ### AWS PrivateLink support
 
