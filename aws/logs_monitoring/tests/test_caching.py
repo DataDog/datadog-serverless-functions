@@ -56,7 +56,9 @@ class TestCaching(unittest.TestCase):
                 {
                     "ResourceTagMappingList": [
                         {
-                            "ResourceARN": "arn:aws:lambda:us-east-1:123497598159:function:my-test-lambda-dev",
+                            "ResourceARN": (
+                                "arn:aws:lambda:us-east-1:123497598159:function:my-test-lambda-dev"
+                            ),
                             "Tags": [
                                 {"Key": "stage", "Value": "dev"},
                                 {"Key": "team", "Value": "serverless"},
@@ -64,7 +66,9 @@ class TestCaching(unittest.TestCase):
                             ],
                         },
                         {
-                            "ResourceARN": "arn:aws:lambda:us-east-1:123497598159:function:my-test-lambda-prod",
+                            "ResourceARN": (
+                                "arn:aws:lambda:us-east-1:123497598159:function:my-test-lambda-prod"
+                            ),
                             "Tags": [
                                 {"Key": "stage", "Value": "prod"},
                                 {"Key": "team", "Value": "serverless"},

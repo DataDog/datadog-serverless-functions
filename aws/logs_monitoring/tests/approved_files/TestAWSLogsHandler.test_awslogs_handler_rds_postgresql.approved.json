@@ -11,7 +11,7 @@
         },
         "ddsource": "cloudwatch",
         "ddsourcecategory": "aws",
-        "ddtags": "forwardername:function_name,forwarder_memorysize:10,forwarder_version:4.0.1,test_tag_key:test_tag_value",
+        "ddtags": "forwardername:function_name,forwarder_memorysize:10,forwarder_version:4.0.2,test_tag_key:test_tag_value",
         "host": "/aws/rds/instance/datadog/postgresql",
         "id": "31953106606966983378809025079804211143289615424298221568",
         "message": "2021-01-02 03:04:05 UTC::@:[5306]:LOG:  database system is ready to accept connections",

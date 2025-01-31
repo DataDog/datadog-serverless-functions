@@ -50,9 +50,13 @@ class TestAWSLogsHandler(unittest.TestCase):
                                     "logStream": "datadog.0",
                                     "logEvents": [
                                         {
-                                            "id": "31953106606966983378809025079804211143289615424298221568",
+                                            "id": (
+                                                "31953106606966983378809025079804211143289615424298221568"
+                                            ),
                                             "timestamp": 1609556645000,
-                                            "message": "2021-01-02 03:04:05 UTC::@:[5306]:LOG:  database system is ready to accept connections",
+                                            "message": (
+                                                "2021-01-02 03:04:05 UTC::@:[5306]:LOG:  database system is ready to accept connections"
+                                            ),
                                         }
                                     ],
                                 }
@@ -90,14 +94,22 @@ class TestAWSLogsHandler(unittest.TestCase):
                                 {
                                     "messageType": "DATA_MESSAGE",
                                     "owner": "425362996713",
-                                    "logGroup": "/aws/vendedlogs/states/logs-to-traces-sequential-Logs",
-                                    "logStream": "states/logs-to-traces-sequential/2022-11-10-15-50/7851b2d9",
+                                    "logGroup": (
+                                        "/aws/vendedlogs/states/logs-to-traces-sequential-Logs"
+                                    ),
+                                    "logStream": (
+                                        "states/logs-to-traces-sequential/2022-11-10-15-50/7851b2d9"
+                                    ),
                                     "subscriptionFilters": ["testFilter"],
                                     "logEvents": [
                                         {
-                                            "id": "37199773595581154154810589279545129148442535997644275712",
+                                            "id": (
+                                                "37199773595581154154810589279545129148442535997644275712"
+                                            ),
                                             "timestamp": 1668095539607,
-                                            "message": '{"id": "1","type": "ExecutionStarted","details": {"input": "{}","inputDetails": {"truncated": "false"},"roleArn": "arn:aws:iam::12345678910:role/service-role/StepFunctions-test-role-a0iurr4pt"},"previous_event_id": "0","event_timestamp": "1716992192441","execution_arn": "arn:aws:states:us-east-1:12345678910:execution:StepFunction1:ccccccc-d1da-4c38-b32c-2b6b07d713fa","redrive_count": "0"}',
+                                            "message": (
+                                                '{"id": "1","type": "ExecutionStarted","details": {"input": "{}","inputDetails": {"truncated": "false"},"roleArn": "arn:aws:iam::12345678910:role/service-role/StepFunctions-test-role-a0iurr4pt"},"previous_event_id": "0","event_timestamp": "1716992192441","execution_arn": "arn:aws:states:us-east-1:12345678910:execution:StepFunction1:ccccccc-d1da-4c38-b32c-2b6b07d713fa","redrive_count": "0"}'
+                                            ),
                                         }
                                     ],
                                 }
@@ -139,13 +151,19 @@ class TestAWSLogsHandler(unittest.TestCase):
                                     "messageType": "DATA_MESSAGE",
                                     "owner": "425362996713",
                                     "logGroup": "test/logs",
-                                    "logStream": "states/logs-to-traces-sequential/2022-11-10-15-50/7851b2d9",
+                                    "logStream": (
+                                        "states/logs-to-traces-sequential/2022-11-10-15-50/7851b2d9"
+                                    ),
                                     "subscriptionFilters": ["testFilter"],
                                     "logEvents": [
                                         {
-                                            "id": "37199773595581154154810589279545129148442535997644275712",
+                                            "id": (
+                                                "37199773595581154154810589279545129148442535997644275712"
+                                            ),
                                             "timestamp": 1668095539607,
-                                            "message": '{"id": "1","type": "ExecutionStarted","details": {"input": "{}","inputDetails": {"truncated": "false"},"roleArn": "arn:aws:iam::12345678910:role/service-role/StepFunctions-test-role-a0iurr4pt"},"previous_event_id": "0","event_timestamp": "1716992192441","execution_arn": "arn:aws:states:us-east-1:12345678910:execution:StepFunction2:ccccccc-d1da-4c38-b32c-2b6b07d713fa","redrive_count": "0"}',
+                                            "message": (
+                                                '{"id": "1","type": "ExecutionStarted","details": {"input": "{}","inputDetails": {"truncated": "false"},"roleArn": "arn:aws:iam::12345678910:role/service-role/StepFunctions-test-role-a0iurr4pt"},"previous_event_id": "0","event_timestamp": "1716992192441","execution_arn": "arn:aws:states:us-east-1:12345678910:execution:StepFunction2:ccccccc-d1da-4c38-b32c-2b6b07d713fa","redrive_count": "0"}'
+                                            ),
                                         }
                                     ],
                                 }
@@ -179,14 +197,22 @@ class TestAWSLogsHandler(unittest.TestCase):
                                 {
                                     "messageType": "DATA_MESSAGE",
                                     "owner": "123456789012",
-                                    "logGroup": "/aws/lambda/test-lambda-default-log-group",
-                                    "logStream": "2023/11/06/[$LATEST]b25b1f977b3e416faa45a00f427e7acb",
+                                    "logGroup": (
+                                        "/aws/lambda/test-lambda-default-log-group"
+                                    ),
+                                    "logStream": (
+                                        "2023/11/06/[$LATEST]b25b1f977b3e416faa45a00f427e7acb"
+                                    ),
                                     "subscriptionFilters": ["testFilter"],
                                     "logEvents": [
                                         {
-                                            "id": "37199773595581154154810589279545129148442535997644275712",
+                                            "id": (
+                                                "37199773595581154154810589279545129148442535997644275712"
+                                            ),
                                             "timestamp": 1668095539607,
-                                            "message": "2021-01-02 03:04:05 UTC::@:[5306]:LOG:  database system is ready to accept connections",
+                                            "message": (
+                                                "2021-01-02 03:04:05 UTC::@:[5306]:LOG:  database system is ready to accept connections"
+                                            ),
                                         }
                                     ],
                                 }
@@ -326,7 +352,9 @@ class TestParsingStepFunctionLogs(unittest.TestCase):
                 {
                     "message": json.dumps(
                         {
-                            "execution_arn": "arn:aws:states:sa-east-1:425362996713:express:my-Various-States:7f653fda-c79a-430b-91e2-3f97eb87cabb:862e5d40-a457-4ca2-a3c1-78485bd94d3f"
+                            "execution_arn": (
+                                "arn:aws:states:sa-east-1:425362996713:express:my-Various-States:7f653fda-c79a-430b-91e2-3f97eb87cabb:862e5d40-a457-4ca2-a3c1-78485bd94d3f"
+                            )
                         }
                     ),
                 }
@@ -342,7 +370,9 @@ class TestParsingStepFunctionLogs(unittest.TestCase):
                 {
                     "message": json.dumps(
                         {
-                            "execution_arn": "arn:aws:states:sa-east-1:425362996713:express:my-Various-States/7f653fda-c79a-430b-91e2-3f97eb87cabb:862e5d40-a457-4ca2-a3c1-78485bd94d3f"
+                            "execution_arn": (
+                                "arn:aws:states:sa-east-1:425362996713:express:my-Various-States/7f653fda-c79a-430b-91e2-3f97eb87cabb:862e5d40-a457-4ca2-a3c1-78485bd94d3f"
+                            )
                         }
                     )
                 }
@@ -359,7 +389,9 @@ class TestParsingStepFunctionLogs(unittest.TestCase):
                 {
                     "message": json.dumps(
                         {
-                            "execution_arn": "arn:aws:states:sa-east-1:425362996713:express:my-Various-States\\7f653fda-c79a-430b-91e2-3f97eb87cabb:862e5d40-a457-4ca2-a3c1-78485bd94d3f"
+                            "execution_arn": (
+                                "arn:aws:states:sa-east-1:425362996713:express:my-Various-States\\7f653fda-c79a-430b-91e2-3f97eb87cabb:862e5d40-a457-4ca2-a3c1-78485bd94d3f"
+                            )
                         }
                     )
                 }

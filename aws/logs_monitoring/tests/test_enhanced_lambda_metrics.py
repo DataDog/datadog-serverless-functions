@@ -188,10 +188,14 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
                     "owner": "172597598159",
                 },
                 "function_version": "$LATEST",
-                "invoked_function_arn": "arn:aws:lambda:us-east-1:172597598159:function:collect_logs_datadog_demo",
+                "invoked_function_arn": (
+                    "arn:aws:lambda:us-east-1:172597598159:function:collect_logs_datadog_demo"
+                ),
             },
             "lambda": {
-                "arn": "arn:aws:lambda:us-east-1:172597598159:function:post-coupon-prod-us"
+                "arn": (
+                    "arn:aws:lambda:us-east-1:172597598159:function:post-coupon-prod-us"
+                )
             },
             "timestamp": 10000,
         }
@@ -204,7 +208,9 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
         tags_cache.get = MagicMock(return_value=[])
 
         logs_input = {
-            "message": "REPORT RequestId: fe1467d6-1458-4e20-8e40-9aaa4be7a0f4\tDuration: 3470.65 ms\tBilled Duration: 3500 ms\tMemory Size: 128 MB\tMax Memory Used: 89 MB\t\nXRAY TraceId: 1-5d8bba5a-dc2932496a65bab91d2d42d4\tSegmentId: 5ff79d2a06b82ad6\tSampled: true\t\n",
+            "message": (
+                "REPORT RequestId: fe1467d6-1458-4e20-8e40-9aaa4be7a0f4\tDuration: 3470.65 ms\tBilled Duration: 3500 ms\tMemory Size: 128 MB\tMax Memory Used: 89 MB\t\nXRAY TraceId: 1-5d8bba5a-dc2932496a65bab91d2d42d4\tSegmentId: 5ff79d2a06b82ad6\tSampled: true\t\n"
+            ),
             "aws": {
                 "awslogs": {
                     "logGroup": "/aws/lambda/post-coupon-prod-us",
@@ -212,10 +218,14 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
                     "owner": "172597598159",
                 },
                 "function_version": "$LATEST",
-                "invoked_function_arn": "arn:aws:lambda:us-east-1:172597598159:function:collect_logs_datadog_demo",
+                "invoked_function_arn": (
+                    "arn:aws:lambda:us-east-1:172597598159:function:collect_logs_datadog_demo"
+                ),
             },
             "lambda": {
-                "arn": "arn:aws:lambda:us-east-1:172597598159:function:post-coupon-prod-us"
+                "arn": (
+                    "arn:aws:lambda:us-east-1:172597598159:function:post-coupon-prod-us"
+                )
             },
             "timestamp": 10000,
         }
@@ -232,7 +242,9 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
         )
 
         logs_input = {
-            "message": "REPORT RequestId: fe1467d6-1458-4e20-8e40-9aaa4be7a0f4\tDuration: 3470.65 ms\tBilled Duration: 3500 ms\tMemory Size: 128 MB\tMax Memory Used: 89 MB\t\nXRAY TraceId: 1-5d8bba5a-dc2932496a65bab91d2d42d4\tSegmentId: 5ff79d2a06b82ad6\tSampled: true\t\n",
+            "message": (
+                "REPORT RequestId: fe1467d6-1458-4e20-8e40-9aaa4be7a0f4\tDuration: 3470.65 ms\tBilled Duration: 3500 ms\tMemory Size: 128 MB\tMax Memory Used: 89 MB\t\nXRAY TraceId: 1-5d8bba5a-dc2932496a65bab91d2d42d4\tSegmentId: 5ff79d2a06b82ad6\tSampled: true\t\n"
+            ),
             "aws": {
                 "awslogs": {
                     "logGroup": "/aws/lambda/post-coupon-prod-us",
@@ -240,10 +252,14 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
                     "owner": "172597598159",
                 },
                 "function_version": "$LATEST",
-                "invoked_function_arn": "arn:aws:lambda:us-east-1:172597598159:function:collect_logs_datadog_demo",
+                "invoked_function_arn": (
+                    "arn:aws:lambda:us-east-1:172597598159:function:collect_logs_datadog_demo"
+                ),
             },
             "lambda": {
-                "arn": "arn:aws:lambda:us-east-1:172597598159:function:post-coupon-prod-us"
+                "arn": (
+                    "arn:aws:lambda:us-east-1:172597598159:function:post-coupon-prod-us"
+                )
             },
             "timestamp": 10000,
         }
@@ -256,7 +272,9 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
         tags_cache.get = MagicMock(return_value=[])
 
         logs_input = {
-            "message": "REPORT RequestId: fe1467d6-1458-4e20-8e40-9aaa4be7a0f4\tDuration: 3470.65 ms\tBilled Duration: 3500 ms\tMemory Size: 128 MB\tMax Memory Used: 89 MB\t\nXRAY TraceId: 1-5d8bba5a-dc2932496a65bab91d2d42d4\tSegmentId: 5ff79d2a06b82ad6\tSampled: true\t\n",
+            "message": (
+                "REPORT RequestId: fe1467d6-1458-4e20-8e40-9aaa4be7a0f4\tDuration: 3470.65 ms\tBilled Duration: 3500 ms\tMemory Size: 128 MB\tMax Memory Used: 89 MB\t\nXRAY TraceId: 1-5d8bba5a-dc2932496a65bab91d2d42d4\tSegmentId: 5ff79d2a06b82ad6\tSampled: true\t\n"
+            ),
             "aws": {
                 "awslogs": {
                     "logGroup": "/aws/lambda/post-coupon-prod-us",
@@ -264,10 +282,14 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
                     "owner": "172597598159",
                 },
                 "function_version": "$LATEST",
-                "invoked_function_arn": "arn:aws:lambda:us-east-1:172597598159:function:collect_logs_datadog_demo",
+                "invoked_function_arn": (
+                    "arn:aws:lambda:us-east-1:172597598159:function:collect_logs_datadog_demo"
+                ),
             },
             "lambda": {
-                "arn": "arn:aws:lambda:us-east-1:172597598159:function:post-coupon-prod-us"
+                "arn": (
+                    "arn:aws:lambda:us-east-1:172597598159:function:post-coupon-prod-us"
+                )
             },
             "timestamp": 10000,
         }
@@ -290,7 +312,9 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
         tags_cache.build_tags_cache = MagicMock(return_value=(True, {}))
 
         logs_input = {
-            "message": "REPORT RequestId: fe1467d6-1458-4e20-8e40-9aaa4be7a0f4\tDuration: 3470.65 ms\tBilled Duration: 3500 ms\tMemory Size: 128 MB\tMax Memory Used: 89 MB\t\nXRAY TraceId: 1-5d8bba5a-dc2932496a65bab91d2d42d4\tSegmentId: 5ff79d2a06b82ad6\tSampled: true\t\n",
+            "message": (
+                "REPORT RequestId: fe1467d6-1458-4e20-8e40-9aaa4be7a0f4\tDuration: 3470.65 ms\tBilled Duration: 3500 ms\tMemory Size: 128 MB\tMax Memory Used: 89 MB\t\nXRAY TraceId: 1-5d8bba5a-dc2932496a65bab91d2d42d4\tSegmentId: 5ff79d2a06b82ad6\tSampled: true\t\n"
+            ),
             "aws": {
                 "awslogs": {
                     "logGroup": "/aws/lambda/post-coupon-prod-us",
@@ -298,10 +322,14 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
                     "owner": "172597598159",
                 },
                 "function_version": "$LATEST",
-                "invoked_function_arn": "arn:aws:lambda:us-east-1:172597598159:function:collect_logs_datadog_demo",
+                "invoked_function_arn": (
+                    "arn:aws:lambda:us-east-1:172597598159:function:collect_logs_datadog_demo"
+                ),
             },
             "lambda": {
-                "arn": "arn:aws:lambda:us-east-1:172597598159:function:post-coupon-prod-us"
+                "arn": (
+                    "arn:aws:lambda:us-east-1:172597598159:function:post-coupon-prod-us"
+                )
             },
             "timestamp": 10000,
         }
@@ -341,7 +369,9 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
         tags_cache = LambdaTagsCache("")
 
         logs_input = {
-            "message": "REPORT RequestId: fe1467d6-1458-4e20-8e40-9aaa4be7a0f4\tDuration: 3470.65 ms\tBilled Duration: 3500 ms\tMemory Size: 128 MB\tMax Memory Used: 89 MB\t\nXRAY TraceId: 1-5d8bba5a-dc2932496a65bab91d2d42d4\tSegmentId: 5ff79d2a06b82ad6\tSampled: true\t\n",
+            "message": (
+                "REPORT RequestId: fe1467d6-1458-4e20-8e40-9aaa4be7a0f4\tDuration: 3470.65 ms\tBilled Duration: 3500 ms\tMemory Size: 128 MB\tMax Memory Used: 89 MB\t\nXRAY TraceId: 1-5d8bba5a-dc2932496a65bab91d2d42d4\tSegmentId: 5ff79d2a06b82ad6\tSampled: true\t\n"
+            ),
             "aws": {
                 "awslogs": {
                     "logGroup": "/aws/lambda/post-coupon-prod-us",
@@ -349,10 +379,14 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
                     "owner": "172597598159",
                 },
                 "function_version": "$LATEST",
-                "invoked_function_arn": "arn:aws:lambda:us-east-1:172597598159:function:collect_logs_datadog_demo",
+                "invoked_function_arn": (
+                    "arn:aws:lambda:us-east-1:172597598159:function:collect_logs_datadog_demo"
+                ),
             },
             "lambda": {
-                "arn": "arn:aws:lambda:us-east-1:172597598159:function:post-coupon-prod-us"
+                "arn": (
+                    "arn:aws:lambda:us-east-1:172597598159:function:post-coupon-prod-us"
+                )
             },
             "timestamp": 10000,
         }
@@ -387,7 +421,9 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
         tags_cache = LambdaTagsCache("")
 
         logs_input = {
-            "message": "2020-06-09T15:02:26.150Z 7c9567b5-107b-4a6c-8798-0157ac21db52 Task timed out after 3.00 seconds\n\n",
+            "message": (
+                "2020-06-09T15:02:26.150Z 7c9567b5-107b-4a6c-8798-0157ac21db52 Task timed out after 3.00 seconds\n\n"
+            ),
             "aws": {
                 "awslogs": {
                     "logGroup": "/aws/lambda/cloudwatch-event",
@@ -426,7 +462,9 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
         tags_cache = LambdaTagsCache("")
 
         logs_input = {
-            "message": "2020-06-09T15:02:26.150Z 7c9567b5-107b-4a6c-8798-0157ac21db52 FATAL ERROR: CALL_AND_RETRY_LAST Allocation failed - JavaScript heap out of memory\n\n",
+            "message": (
+                "2020-06-09T15:02:26.150Z 7c9567b5-107b-4a6c-8798-0157ac21db52 FATAL ERROR: CALL_AND_RETRY_LAST Allocation failed - JavaScript heap out of memory\n\n"
+            ),
             "aws": {
                 "awslogs": {
                     "logGroup": "/aws/lambda/cloudwatch-event",

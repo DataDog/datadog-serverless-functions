@@ -11,7 +11,7 @@
         },
         "ddsource": "lambda",
         "ddsourcecategory": "aws",
-        "ddtags": "forwardername:function_name,forwarder_memorysize:10,forwarder_version:4.0.1,env:none",
+        "ddtags": "forwardername:function_name,forwarder_memorysize:10,forwarder_version:4.0.2,env:none",
         "host": "/aws/lambda/test-lambda-default-log-group",
         "id": "37199773595581154154810589279545129148442535997644275712",
         "lambda": {
