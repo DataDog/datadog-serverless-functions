@@ -64,11 +64,11 @@ docker_build_zip() {
     # between different python runtimes.
     temp_dir=$(mktemp -d)
 
-    docker buildx build --platform linux/amd64 --file "${DIR}/Dockerfile_bundle" -t "datadog-bundle:$1" .. --no-cache --build-arg "runtime=${PYTHON_VERSION}"
+    docker buildx build --platform  linux/arm64 --file "${DIR}/Dockerfile_bundle" -t "datadog-bundle:$1" .. --no-cache --build-arg "runtime=${PYTHON_VERSION}"
 
     # Run the image by runtime tag, tar its generated `python` directory to sdout,
     # then extract it to a temp directory.
-    docker run --platform linux/amd64 "datadog-bundle:${1}" tar cf - . | tar -xf - -C "${temp_dir}"
+    docker run --platform linux/arm64 "datadog-bundle:${1}" tar cf - . | tar -xf - -C "${temp_dir}"
 
     # Zip to destination, and keep directory structure as based in $temp_dir
     (cd "${temp_dir}" && zip -q -r "${zip_destination}" ./)
@@ -82,7 +82,7 @@ docker_build_zip() {
 
     # Run the image by runtime tag, tar its generated `python` directory to sdout,
     # then extract it to a temp directory.
-    docker run --platform linux/amd64 datadog-bundle:$1 tar cf - . | tar -xf - -C $temp_dir/$SUB_DIRECTORY
+    docker run --platform linux/arm64 datadog-bundle:$1 tar cf - . | tar -xf - -C $temp_dir/$SUB_DIRECTORY
 
     # Zip to destination, and keep directory structure as based in $temp_dir
     (cd "${temp_dir}" && zip -q -r "${layer_destination}" ./)

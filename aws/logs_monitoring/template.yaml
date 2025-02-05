@@ -409,6 +409,8 @@ Resources:
         - ZipFile: " "
       MemorySize: !Ref MemorySize
       Runtime: python3.12
+      Architectures:
+        - arm64
       Timeout: !Ref Timeout
       Tags:
         - Key: "dd_forwarder_version"
