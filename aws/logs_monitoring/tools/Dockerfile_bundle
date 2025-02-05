@@ -7,7 +7,7 @@ WORKDIR /build
 
 COPY . .
 
-RUN pip install -r requirements.txt -t .
+RUN pip install --no-cache-dir -r requirements.txt -t . -U 
 
 # Remove *.pyc files
 RUN find . -name \*.pyc -delete
