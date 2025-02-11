@@ -25,8 +25,6 @@ For more information about sending AWS services logs with the Datadog Forwarder,
 
 Datadog recommends using [CloudFormation](#cloudformation) to automatically install the Forwarder. You can also complete the setup process using [Terraform](#terraform) or [manually](#manual). Once installed, you can subscribe the Forwarder to log sources such as S3 buckets or CloudWatch log groups by [setting up triggers][4].
 
-{{< tabs >}}
-{{% tab "CloudFormation" %}}
 
 ### CloudFormation
 
@@ -46,8 +44,6 @@ If you had previously enabled your AWS Integration using the [following CloudFor
 [101]: https://docs.datadoghq.com/logs/guide/send-aws-services-logs-with-the-datadog-lambda-function/#set-up-triggers
 [102]: https://github.com/DataDog/cloudformation-template/tree/master/aws
 
-{{% /tab %}}
-{{% tab "Terraform" %}}
 
 ### Terraform
 
@@ -91,8 +87,8 @@ resource "aws_cloudformation_stack" "datadog_forwarder" {
   name         = "datadog-forwarder"
   capabilities = ["CAPABILITY_IAM", "CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND"]
   parameters   = {
-    DdApiKeySecretArn  = "REPLACE ME WITH THE SECRETS ARN",
-    DdSite             = "<SITE>",
+    DdApiKeySecretArn  = "REPLACE WITH DATADOG SECRETS ARN",
+    DdSite             = "REPLACE WITH DATADOG SITE",
     FunctionName       = "datadog-forwarder"
   }
   template_url = "https://datadog-cloudformation-template.s3.amazonaws.com/aws/forwarder/latest.yaml"
@@ -105,9 +101,6 @@ resource "aws_cloudformation_stack" "datadog_forwarder" {
 [102]: https://app.datadoghq.com/organization-settings/api-keys
 [103]: https://docs.datadoghq.com/logs/guide/send-aws-services-logs-with-the-datadog-lambda-function/#set-up-triggers
 [104]: https://docs.datadoghq.com/getting_started/site/#access-the-datadog-site
-
-{{% /tab %}}
-{{% tab "Manual" %}}
 
 ### Manual
 
@@ -130,9 +123,6 @@ aws lambda invoke --function-name <function-name> --payload '{"retry":"true"}' o
 [102]: https://app.datadoghq.com/organization-settings/api-keys
 [103]: https://github.com/DataDog/datadog-serverless-functions/blob/029bd46e5c6d4e8b1ae647ed3b4d1917ac3cd793/aws/logs_monitoring/template.yaml#L680
 [104]: https://docs.datadoghq.com/logs/guide/send-aws-services-logs-with-the-datadog-lambda-function/?tab=awsconsole#set-up-triggers
-
-{{% /tab %}}
-{{< /tabs >}}
 
 ### Upgrade to a new version
 

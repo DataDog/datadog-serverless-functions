@@ -294,6 +294,15 @@ class TestParseEventSource(unittest.TestCase):
             ),
             str(AwsEventSource.CARBONBLACK),
         )
+        
+    def test_opensearch_event(self):
+        self.assertEqual(
+            parse_event_source(
+                {"awslogs": "logs"},
+                "/aws/OpenSearchService/domains/my-opensearch-cluster/ES_APPLICATION_LOGS",
+            ),
+            str(AwsEventSource.OPENSEARCH),
+        )
 
     def test_cloudwatch_source_if_none_found(self):
         self.assertEqual(
