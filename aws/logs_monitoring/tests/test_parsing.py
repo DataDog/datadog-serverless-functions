@@ -294,7 +294,7 @@ class TestParseEventSource(unittest.TestCase):
             ),
             str(AwsEventSource.CARBONBLACK),
         )
-        
+
     def test_opensearch_event(self):
         self.assertEqual(
             parse_event_source(

@@ -5,7 +5,8 @@ import os
 import unittest
 import sys
 from unittest.mock import patch, MagicMock
-from approvaltests.approvals import verify_as_json
+from approvaltests.approvals import Options, verify_as_json
+from approvaltests.scrubbers import create_regex_scrubber
 
 sys.modules["trace_forwarder.connection"] = MagicMock()
 sys.modules["datadog_lambda.wrapper"] = MagicMock()
@@ -36,6 +37,11 @@ class Context:
 
 
 class TestAWSLogsHandler(unittest.TestCase):
+    def setUp(self):
+        self.scrubber = create_regex_scrubber(
+                r"forwarder_version:\d+\.\d+\.\d+",
+                "forwarder_version:<redacted>",
+            )
     @patch("caching.cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.__init__")
     def test_awslogs_handler_rds_postgresql(self, mock_cache_init):
         event = {
@@ -75,7 +81,7 @@ class TestAWSLogsHandler(unittest.TestCase):
         )
 
         awslogs_handler = AwsLogsHandler(context, cache_layer)
-        verify_as_json(list(awslogs_handler.handle(event)))
+        verify_as_json(list(awslogs_handler.handle(event)), options=Options().with_scrubber(self.scrubber))
 
     @patch("caching.cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.__init__")
     @patch("caching.cloudwatch_log_group_cache.send_forwarder_internal_metrics")
@@ -130,7 +136,7 @@ class TestAWSLogsHandler(unittest.TestCase):
         cache_layer._cloudwatch_log_group_cache.get = MagicMock()
 
         awslogs_handler = AwsLogsHandler(context, cache_layer)
-        verify_as_json(list(awslogs_handler.handle(event)))
+        verify_as_json(list(awslogs_handler.handle(event)), options=Options().with_scrubber(self.scrubber))
 
     @patch("caching.cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.__init__")
     @patch("caching.cloudwatch_log_group_cache.send_forwarder_internal_metrics")
@@ -185,7 +191,7 @@ class TestAWSLogsHandler(unittest.TestCase):
 
         awslogs_handler = AwsLogsHandler(context, cache_layer)
         # for some reasons, the below two are needed to update the context of the handler
-        verify_as_json(list(awslogs_handler.handle(eventFromCustomizedLogGroup)))
+        verify_as_json(list(awslogs_handler.handle(eventFromCustomizedLogGroup)), options=Options().with_scrubber(self.scrubber))
 
     def test_awslogs_handler_lambda_log(self):
         event = {
@@ -231,7 +237,7 @@ class TestAWSLogsHandler(unittest.TestCase):
         )
 
         awslogs_handler = AwsLogsHandler(context, cache_layer)
-        verify_as_json(list(awslogs_handler.handle(event)))
+        verify_as_json(list(awslogs_handler.handle(event)), options=Options().with_scrubber(self.scrubber))
 
     def test_process_lambda_logs(self):
         # Non Lambda log
