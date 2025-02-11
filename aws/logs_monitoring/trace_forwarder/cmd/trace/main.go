@@ -37,8 +37,8 @@ type (
 func Configure(rootURL, apiKey string, InsecureSkipVerify bool) {
 	// Need to make a copy of these values, otherwise the underlying memory
 	// might be cleaned up by the runtime.
-	localRootURL := fmt.Sprintf("%s", rootURL)
-	localAPIKey := fmt.Sprintf("%s", apiKey)
+	localRootURL := rootURL
+	localAPIKey := apiKey
 
 	obfuscator = obfuscate.NewObfuscator(&obfuscate.Config{
 		ES: obfuscate.JSONSettings{

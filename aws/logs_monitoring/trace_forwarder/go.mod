@@ -3,7 +3,7 @@ module github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring/trace
 go 1.23.6
 
 require (
-	github.com/DataDog/datadog-agent v0.0.0-20200417180928-f454c60bc16f
+	github.com/DataDog/datadog-agent v0.0.0-20200417180928-f454c60bc16f // This is kept as a commit ref for now
 	github.com/davecgh/go-spew v1.1.1
 	github.com/gogo/protobuf v1.3.2
 	github.com/stretchr/testify v1.10.0
