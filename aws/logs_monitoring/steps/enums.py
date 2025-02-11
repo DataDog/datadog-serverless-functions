@@ -132,7 +132,7 @@ class AwsCwEventSourcePrefix(Enum):
     # e.g. /aws/kinesisfirehose/dev
     KINESIS = ("/aws/kinesis", AwsEventSource.KINESIS)
     # e.g. /aws/lambda/helloDatadog
-    lAMBDA = ("/aws/lambda", AwsEventSource.LAMBDA)
+    LAMBDA = ("/aws/lambda", AwsEventSource.LAMBDA)
     # e.g. /aws/opensearchservice/domains/my-cluster
     OPENSEARCH = ("/aws/opensearchservice/domains/", AwsEventSource.OPENSEARCH)
     # e.g. sns/us-east-1/123456779121/SnsTopicX
