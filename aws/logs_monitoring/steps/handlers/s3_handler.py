@@ -160,6 +160,9 @@ class S3EventHandler:
         # 2. We extract the AWS account id from the lambda arn
         namesplit = self.data_store.key.split("/")
         if len(namesplit) == 0:
+            self.logger.error(
+                f"Invalid key {self.data_store.key}, handle cloudfront source failed"
+            )
             return None
 
         filename = namesplit[len(namesplit) - 1]
@@ -167,6 +170,9 @@ class S3EventHandler:
         filenamesplit = filename.split(".")
 
         if len(filenamesplit) <= 3:
+            self.logger.error(
+                f"Invalid filename {filename}, handle cloudfront source failed"
+            )
             return None
 
         distributionID = filenamesplit[len(filenamesplit) - 4].lower()
@@ -174,9 +180,11 @@ class S3EventHandler:
         arnsplit = arn.split(":")
 
         if len(arnsplit) != 7:
+            self.logger.error(f"Invalid ARN {arn}, handle cloudfront source failed")
             return None
 
         awsaccountID = arnsplit[4].lower()
+
         return "arn:aws:cloudfront::{}:distribution/{}".format(
             awsaccountID, distributionID
         )
