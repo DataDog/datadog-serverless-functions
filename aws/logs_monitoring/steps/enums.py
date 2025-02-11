@@ -5,6 +5,7 @@ class AwsEventSource(Enum):
     APIGATEWAY = "apigateway"
     APPSYNC = "appsync"
     AWS = "aws"
+    BATCH = "batch"
     BEDROCK = "bedrock"
     CARBONBLACK = "carbonblack"
     CLOUDFRONT = "cloudfront"
@@ -30,6 +31,7 @@ class AwsEventSource(Enum):
     MSK = "msk"
     MYSQL = "mysql"
     NETWORKFIREWALL = "network-firewall"
+    OPENSEARCH = "opensearch"
     POSTGRESQL = "postgresql"
     REDSHIFT = "redshift"
     ROUTE53 = "route53"
@@ -48,17 +50,17 @@ class AwsEventSource(Enum):
     @staticmethod
     def cloudwatch_sources():
         return [
-            AwsEventSource.NETWORKFIREWALL,
-            AwsEventSource.ROUTE53,
-            AwsEventSource.VPC,
-            AwsEventSource.FARGATE,
-            AwsEventSource.CLOUDTRAIL,
-            AwsEventSource.MSK,
-            AwsEventSource.ELASTICSEARCH,
-            AwsEventSource.TRANSITGATEWAY,
-            AwsEventSource.VERIFIED_ACCESS,
             AwsEventSource.BEDROCK,
             AwsEventSource.CLOUDFRONT,
+            AwsEventSource.CLOUDTRAIL,
+            AwsEventSource.ELASTICSEARCH,
+            AwsEventSource.FARGATE,
+            AwsEventSource.MSK,
+            AwsEventSource.NETWORKFIREWALL,
+            AwsEventSource.ROUTE53,
+            AwsEventSource.TRANSITGATEWAY,
+            AwsEventSource.VERIFIED_ACCESS,
+            AwsEventSource.VPC,
         ]
 
 
@@ -82,6 +84,7 @@ class AwsS3EventSourceKeyword(Enum):
     DOCDB = ("amazon_documentdb", AwsEventSource.DOCDB)
     # e.g. AWSLogs/123456779121/elasticloadbalancing/us-east-1/2020/10/02/123456779121_elasticloadbalancing_us-east-1_app.alb.xxxxx.xx.xxx.xxx_x.log.gz
     ELB = ("elasticloadbalancing", AwsEventSource.ELB)
+    GUARDDUTY = ("guardduty", AwsEventSource.GUARDDUTY)
     KINESIS = ("amazon_kinesis", AwsEventSource.KINESIS)
     MSK = ("amazon_msk", AwsEventSource.MSK)
     NETWORKFIREWALL = ("network-firewall", AwsEventSource.NETWORKFIREWALL)
@@ -113,6 +116,7 @@ class AwsCwEventSourcePrefix(Enum):
     APIGATEWAY_3 = ("/aws/apigateway", AwsEventSource.APIGATEWAY)
     # e.g. /aws/appsync/yourApiId
     APPSYNC = ("/aws/appsync", AwsEventSource.APPSYNC)
+    BATCH = ("/aws/batch/job", AwsEventSource.BATCH)
     BEDROCK = ("aws/bedrock/modelinvocations", AwsEventSource.BEDROCK)
     # e.g. /aws/codebuild/my-project
     CODEBUILD = ("/aws/codebuild", AwsEventSource.CODEBUILD)
@@ -128,7 +132,9 @@ class AwsCwEventSourcePrefix(Enum):
     # e.g. /aws/kinesisfirehose/dev
     KINESIS = ("/aws/kinesis", AwsEventSource.KINESIS)
     # e.g. /aws/lambda/helloDatadog
-    lAMBDA = ("/aws/lambda", AwsEventSource.LAMBDA)
+    LAMBDA = ("/aws/lambda", AwsEventSource.LAMBDA)
+    # e.g. /aws/opensearchservice/domains/my-cluster
+    OPENSEARCH = ("/aws/opensearchservice/domains/", AwsEventSource.OPENSEARCH)
     # e.g. sns/us-east-1/123456779121/SnsTopicX
     SNS = ("sns/", AwsEventSource.SNS)
     SSM = ("/aws/ssm/", AwsEventSource.SSM)
