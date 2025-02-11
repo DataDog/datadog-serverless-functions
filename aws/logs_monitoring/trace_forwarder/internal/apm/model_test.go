@@ -10,6 +10,7 @@ package apm
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
@@ -17,8 +18,6 @@ import (
 	"github.com/DataDog/datadog-agent/pkg/trace/obfuscate"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/assert"
-
-	"io/ioutil"
 )
 
 type integrationTestData struct {
@@ -28,7 +27,6 @@ type integrationTestData struct {
 }
 
 func CompareSnapshot(t *testing.T, inputFile, snapshotFile string, updateSnapshots bool) {
-
 	// Spew is used to serialize snapshots, for
 	sc := spew.NewDefaultConfig()
 	sc.DisablePointerAddresses = true
@@ -74,7 +72,7 @@ func CompareSnapshot(t *testing.T, inputFile, snapshotFile string, updateSnapsho
 	output := sc.Sdump(payload)
 
 	if updateSnapshots {
-		err = ioutil.WriteFile(snapshotFile, []byte(output), 0644)
+		err = ioutil.WriteFile(snapshotFile, []byte(output), 0o644)
 		assert.NoError(t, err)
 		fmt.Printf("Updated Snapshot %s\n", snapshotFile)
 	} else {

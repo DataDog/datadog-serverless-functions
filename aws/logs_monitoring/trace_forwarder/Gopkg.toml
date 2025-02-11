@@ -1,7 +1,0 @@
-[[constraint]]
-  name = "github.com/DataDog/datadog-agent"
-  branch = "master"
-
-[[constraint]]
-  name = "github.com/gogo/protobuf"
-  version = "~v1.0.0"

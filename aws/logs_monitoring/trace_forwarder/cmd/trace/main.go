@@ -14,10 +14,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring/trace_forwarder/internal/apm"
-
 	"github.com/DataDog/datadog-agent/pkg/trace/obfuscate"
 	"github.com/DataDog/datadog-agent/pkg/trace/pb"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring/trace_forwarder/internal/apm"
 )
 
 var (
@@ -93,7 +92,6 @@ func ForwardTraces(serializedTraces string) int {
 func unmarshalSerializedTraces(serializedTraces string) ([]RawTracePayload, error) {
 	var rawTracePayloads []RawTracePayload
 	err := json.Unmarshal([]byte(serializedTraces), &rawTracePayloads)
-
 	if err != nil {
 		return rawTracePayloads, fmt.Errorf("Couldn't unmarshal serialized traces, %v", err)
 	}

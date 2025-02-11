@@ -18,7 +18,6 @@ const (
 
 // ComputeAPMStats calculates the stats that should be submitted to APM about a given trace
 func ComputeAPMStats(tracePayload *pb.TracePayload) *stats.Payload {
-
 	statsRawBuckets := make(map[int64]*stats.RawBucket)
 
 	for _, trace := range tracePayload.Traces {

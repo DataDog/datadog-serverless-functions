@@ -3,10 +3,10 @@
 Shared libary for submitting traces to trace intake.
 Features include:
 
--   Tools for building AWS Lambda Layer from library
--   Trace obfuscation, (using logic from datadog-agent)
--   Submits Stats/Transcations for traces
--   Python bindings
+- Tools for building AWS Lambda Layer from library
+- Trace obfuscation, (using logic from datadog-agent)
+- Submits Stats/Transcations for traces
+- Python bindings
 
 ```python
 from trace_forwarder.connection import TraceConnection
@@ -43,14 +43,11 @@ conn.send("""
 
 ## Requirements
 
--   dep
--   go 1.12 or higher
--   docker
+- docker
 
 ## Building Go Binary
 
 ```bash
-dep ensure
 make
 ```
 

@@ -15,10 +15,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gogo/protobuf/proto"
-
 	"github.com/DataDog/datadog-agent/pkg/trace/pb"
 	"github.com/DataDog/datadog-agent/pkg/trace/stats"
+	"github.com/gogo/protobuf/proto"
 )
 
 // TraceEdgeConnection is used to send data to trace edge
@@ -41,7 +40,6 @@ const (
 
 // CreateTraceEdgeConnection returns a new TraceEdgeConnection
 func CreateTraceEdgeConnection(rootURL, apiKey string, InsecureSkipVerify bool) TraceEdgeConnection {
-
 	return &traceEdgeConnection{
 		traceURL:           rootURL + "/api/v0.2/traces",
 		statsURL:           rootURL + "/api/v0.2/stats",
@@ -151,7 +149,7 @@ func (con *traceEdgeConnection) sendPayloadToTraceEdge(ctx context.Context, apiK
 
 	// userAgent is the computed user agent we'll use when
 	// communicating with Datadog
-	var userAgent = fmt.Sprintf(
+	userAgent := fmt.Sprintf(
 		"%s/%s/%s (+%s)",
 		"xray-converter", "0.1", "1", "http://localhost",
 	)
@@ -162,7 +160,6 @@ func (con *traceEdgeConnection) sendPayloadToTraceEdge(ctx context.Context, apiK
 
 	client := NewClient(InsecureSkipVerify)
 	resp, err := client.Do(req)
-
 	if err != nil {
 		return err
 	}
