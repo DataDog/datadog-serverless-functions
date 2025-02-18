@@ -12,10 +12,10 @@ aliases:
 
 The Datadog Forwarder is an AWS Lambda function that ships logs from AWS to Datadog, specifically:
 
-- Forward CloudWatch, ELB, S3, CloudTrail, VPC, SNS, and CloudFront logs to Datadog.
-- Forward S3 events to Datadog.
-- Forward Kinesis data stream events to Datadog (only CloudWatch logs are supported).
-- Forward metrics, traces, and logs from AWS Lambda functions to Datadog. Datadog recommends you use the [Datadog Lambda Extension][1] to monitor your Lambda functions.
+- Forward CloudWatch and S3 logs.
+- Forward logs from SNS, and Kinesis events to Datadog.
+- Kinesis data stream events support CloudWatch logs only.
+- Forward metrics, traces, and logs from AWS Lambda functions to Datadog. Datadog recommends to use [Datadog Lambda Extension][1] to monitor Lambda functions.
 
 For Serverless customers using the Forwarder to forward metrics, traces, and logs from AWS Lambda logs to Datadog, you should [migrate to the Datadog Lambda Extension][3] to collect telemetry directly from the Lambda execution environments. The Forwarder is still available for use in Serverless Monitoring, but will not be updated to support the latest features.
 
@@ -91,8 +91,8 @@ resource "aws_cloudformation_stack" "datadog_forwarder" {
   name         = "datadog-forwarder"
   capabilities = ["CAPABILITY_IAM", "CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND"]
   parameters   = {
-    DdApiKeySecretArn  = "REPLACE ME WITH THE SECRETS ARN",
-    DdSite             = "<SITE>",
+    DdApiKeySecretArn  = "REPLACE WITH DATADOG SECRETS ARN",
+    DdSite             = "REPLACE WITH DATADOG SITE",
     FunctionName       = "datadog-forwarder"
   }
   template_url = "https://datadog-cloudformation-template.s3.amazonaws.com/aws/forwarder/latest.yaml"
@@ -278,7 +278,11 @@ We love pull requests. Here's a quick guide.
 
 ### Shipping logs to multiple destinations
 
-If you need to ship logs to multiple Datadog organizations or other destinations, configure the `AdditionalTargetLambdaArns` Cloudformation parameter to let the Datadog Forwarder copy the incoming logs to the specified Lambda functions. These additional Lambda functions will be called asynchronously with the exact same `event` the Datadog Forwarder receives.
+If you need to ship logs to multiple Datadog organizations or other destinations, configure the `AdditionalTargetLambdaArns` CloudFormation parameter to let the Datadog Forwarder copy the incoming logs to the specified Lambda functions. These additional Lambda functions are called asynchronously with the exact same `event` the Datadog Forwarder receives.
+
+<div class="alert alert-warning">
+Shipping logs to two or more destinations involves using two or more Lambda functions that may start logging each other in an infinite loop. Use <code>ExcludeAtMatch</code> to filter Lambda logs and avoid this infinite loop. See the <a href="#log-filtering-optional">Log filtering</a> section for more details.
+</div>
 
 ### AWS PrivateLink support
 
@@ -287,7 +291,7 @@ You can run the Forwarder in a VPC private subnet and send data to Datadog over 
 1. Follow [these instructions][14] to add the Datadog `api`, `http-logs.intake`, and `trace.agent` endpoints to your VPC.
 2. Follow the [instructions][15] to add the AWS Secrets Manager and S3 endpoints to your VPC.
 3. When installing the Forwarder with the CloudFormation template:
-   1. Set `UseVPC` to `true`.
+   1. Set `DdUseVPC` to `true`.
    2. Set `VPCSecurityGroupIds` and `VPCSubnetIds` based on your VPC settings.
    3. Set `DdFetchLambdaTags` to `false`, because AWS Resource Groups Tagging API doesn't support PrivateLink.
 

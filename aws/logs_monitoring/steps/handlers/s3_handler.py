@@ -8,7 +8,6 @@ from io import BufferedReader, BytesIO
 
 import boto3
 import botocore
-
 from settings import (
     CN_STRING,
     DD_CUSTOM_TAGS,
@@ -91,8 +90,6 @@ class S3EventHandler:
     def _parse_service_arn(self):
         src = AwsEventSource._value2member_map_.get(self.data_store.source)
         match src:
-            case AwsEventSource.ELB:
-                return self._handle_elb_source()
             case AwsEventSource.S3:
                 # For S3 access logs we use the bucket name to rebuild the arn
                 return self._get_s3_arn()
@@ -105,45 +102,6 @@ class S3EventHandler:
         if not self.data_store.bucket:
             return None
         return "arn:aws:s3:::{}".format(self.data_store.bucket)
-
-    def _handle_elb_source(self):
-        # For ELB logs we parse the filename to extract parameters in order to rebuild the ARN
-        # 1. We extract the region from the filename
-        # 2. We extract the loadbalancer name and replace the "." by "/" to match the ARN format
-        # 3. We extract the id of the loadbalancer
-        # 4. We build the arn
-        idsplit = self.data_store.key.split("/")
-        if not idsplit:
-            self.logger.debug("Invalid service ARN, unable to parse ELB ARN")
-            return None
-
-        # If there is a prefix on the S3 bucket, remove the prefix before splitting the key
-        if idsplit[0] != "AWSLogs":
-            try:
-                idsplit = idsplit[idsplit.index("AWSLogs") :]
-                keysplit = "/".join(idsplit).split("_")
-            except ValueError:
-                self.logger.debug("Invalid S3 key, doesn't contain AWSLogs")
-                return None
-        # If no prefix, split the key
-        else:
-            keysplit = self.data_store.key.split("_")
-
-        if len(keysplit) <= 3:
-            return None
-
-        region = keysplit[2].lower()
-        name = keysplit[3]
-        elbname = name.replace(".", "/")
-
-        if len(idsplit) <= 1:
-            return None
-
-        idvalue = idsplit[1]
-        partition = self._get_partition_from_region(region)
-        return "arn:{}:elasticloadbalancing:{}:{}:loadbalancer/{}".format(
-            partition, region, idvalue, elbname
-        )
 
     def _get_partition_from_region(self, region):
         partition = "aws"
@@ -160,6 +118,9 @@ class S3EventHandler:
         # 2. We extract the AWS account id from the lambda arn
         namesplit = self.data_store.key.split("/")
         if len(namesplit) == 0:
+            self.logger.error(
+                f"Invalid key {self.data_store.key}, handle cloudfront source failed"
+            )
             return None
 
         filename = namesplit[len(namesplit) - 1]
@@ -167,6 +128,9 @@ class S3EventHandler:
         filenamesplit = filename.split(".")
 
         if len(filenamesplit) <= 3:
+            self.logger.error(
+                f"Invalid filename {filename}, handle cloudfront source failed"
+            )
             return None
 
         distributionID = filenamesplit[len(filenamesplit) - 4].lower()
@@ -174,9 +138,11 @@ class S3EventHandler:
         arnsplit = arn.split(":")
 
         if len(arnsplit) != 7:
+            self.logger.error(f"Invalid ARN {arn}, handle cloudfront source failed")
             return None
 
         awsaccountID = arnsplit[4].lower()
+
         return "arn:aws:cloudfront::{}:distribution/{}".format(
             awsaccountID, distributionID
         )
