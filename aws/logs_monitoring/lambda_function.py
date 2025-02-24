@@ -6,9 +6,12 @@
 import json
 import os
 import boto3
+import gzip
+import base64
 import logging
 import requests
 from hashlib import sha1
+from botocore.exceptions import BotoCoreError, ClientError
 
 from datadog_lambda.wrapper import datadog_lambda_wrapper
 from datadog import api
@@ -28,12 +31,27 @@ from settings import (
     DD_RETRY_KEYWORD,
 )
 
+def get_dd_api_key():
+    """Retrieve the Datadog API key from AWS SSM Parameter Store."""
+    ssm_client = boto3.client("ssm")
+
+    # Fetch SSM parameter name from environment variable (if set)
+    dd_api_key_ssm_name = os.environ.get("DD_API_KEY_SSM_NAME", "/datadog/api_key")
+
+    try:
+        response = ssm_client.get_parameter(Name=dd_api_key_ssm_name, WithDecryption=True)
+        return response["Parameter"]["Value"]
+    except (BotoCoreError, ClientError) as e:
+        print(f"Error retrieving Datadog API key from SSM: {e}")
+        return None
+
 logger = logging.getLogger()
 logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
 
 # DD_API_KEY must be set
-if DD_API_KEY == "<YOUR_DATADOG_API_KEY>" or DD_API_KEY == "":
-    raise Exception("Missing Datadog API key")
+DD_API_KEY = get_dd_api_key()
+if not DD_API_KEY:
+    raise Exception("Datadog API key could not be retrieved from SSM or settings file")
 # Check if the API key is the correct number of characters
 if len(DD_API_KEY) != 32:
     raise Exception(
