@@ -8,6 +8,7 @@ from io import BufferedReader, BytesIO
 
 import boto3
 import botocore
+
 from settings import (
     CN_STRING,
     DD_CUSTOM_TAGS,
@@ -95,8 +96,6 @@ class S3EventHandler:
                 return self._get_s3_arn()
             case AwsEventSource.CLOUDFRONT:
                 return self._handle_cloudfront_source()
-            case AwsEventSource.REDSHIFT:
-                return self._handle_redshift_source()
 
     def _get_s3_arn(self):
         if not self.data_store.bucket:
@@ -145,32 +144,6 @@ class S3EventHandler:
 
         return "arn:aws:cloudfront::{}:distribution/{}".format(
             awsaccountID, distributionID
-        )
-
-    def _handle_redshift_source(self):
-        # For redshift logs we leverage the filename to extract the relevant information
-        # 1. We extract the region from the filename
-        # 2. We extract the account-id from the filename
-        # 3. We extract the name of the cluster
-        # 4. We build the arn: arn:aws:redshift:region:account-id:cluster:cluster-name
-        namesplit = self.data_store.key.split("/")
-        if len(namesplit) != 8:
-            return None
-
-        region = namesplit[3].lower()
-        accountID = namesplit[1].lower()
-        filename = namesplit[7]
-        filesplit = filename.split("_")
-
-        if len(filesplit) != 6:
-            return None
-
-        clustername = filesplit[3]
-        return "arn:{}:redshift:{}:{}:cluster:{}:".format(
-            self._get_partition_from_region(region),
-            region,
-            accountID,
-            clustername,
         )
 
     def _add_s3_tags_from_cache(self):

@@ -1,14 +1,8 @@
 import unittest
 
-from steps.common import (
-    parse_event_source,
-    get_service_from_tags_and_remove_duplicates,
-)
+from settings import DD_CUSTOM_TAGS, DD_SOURCE
+from steps.common import get_service_from_tags_and_remove_duplicates, parse_event_source
 from steps.enums import AwsEventSource
-from settings import (
-    DD_CUSTOM_TAGS,
-    DD_SOURCE,
-)
 
 
 class TestParseEventSource(unittest.TestCase):
@@ -189,25 +183,6 @@ class TestParseEventSource(unittest.TestCase):
                 "AWSLogs/123456779121/WAFLogs/us-east-1/xxxxxx-waf/2022/10/11/14/10/123456779121_waflogs_us-east-1_xxxxx-waf_20221011T1410Z_12756524.log.gz",
             ),
             str(AwsEventSource.WAF),
-        )
-
-    def test_redshift_event(self):
-        self.assertEqual(
-            parse_event_source(
-                {"Records": ["logs-from-s3"]},
-                "AWSLogs/123456779121/redshift/us-east-1/2020/10/21/123456779121_redshift_us-east-1_mycluster_userlog_2020-10-21T18:01.gz",
-            ),
-            str(AwsEventSource.REDSHIFT),
-        )
-
-    def test_redshift_gov_event(self):
-        self.assertEqual(
-            parse_event_source(
-                {"Records": ["logs-from-s3"]},
-                "AWSLogs/123456779121/redshift/us-gov-east-1/2020/10/21/123456779121_redshift_us-gov-east"
-                "-1_mycluster_userlog_2020-10-21T18:01.gz",
-            ),
-            str(AwsEventSource.REDSHIFT),
         )
 
     def test_route53_event(self):
