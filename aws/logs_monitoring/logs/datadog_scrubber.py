@@ -16,13 +16,17 @@ class DatadogScrubber(object):
             if config.name in os.environ:
                 rules.append(
                     ScrubbingRule(
-                        compileRegex(config.name, config.pattern), config.placeholder
+                        compileRegex(config.name, config.pattern),
+                        config.placeholder,
+                        config.enabled,
                     )
                 )
         self._rules = rules
 
     def scrub(self, payload):
         for rule in self._rules:
+            if rule.enabled is False:
+                continue
             try:
                 payload = rule.regex.sub(rule.placeholder, payload)
             except Exception:
@@ -31,6 +35,7 @@ class DatadogScrubber(object):
 
 
 class ScrubbingRule(object):
-    def __init__(self, regex, placeholder):
+    def __init__(self, regex, placeholder, enabled):
         self.regex = regex
         self.placeholder = placeholder
+        self.enabled = enabled
