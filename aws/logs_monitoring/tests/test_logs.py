@@ -1,16 +1,20 @@
 import unittest
 import os
+import sys
+from importlib import reload
+import unittest.mock
 
 from logs.datadog_scrubber import DatadogScrubber
 from logs.datadog_batcher import DatadogBatcher
 from logs.helpers import filter_logs
-from settings import ScrubbingRuleConfig, SCRUBBING_RULE_CONFIGS, get_env_var
 
 
 class TestScrubLogs(unittest.TestCase):
+    @unittest.mock.patch.dict(os.environ, {"REDACT_IP": "true", "REDACT_EMAIL": "true"})
     def test_scrubbing_rule_config(self):
-        os.environ["REDACT_IP"] = ""
-        os.environ["REDACT_EMAIL"] = ""
+        reload(sys.modules["settings"])
+        from settings import SCRUBBING_RULE_CONFIGS
+
         scrubber = DatadogScrubber(SCRUBBING_RULE_CONFIGS)
         payload = scrubber.scrub(
             "ip_address is 127.0.0.1, email is abc.edf@example.com"
@@ -21,17 +25,18 @@ class TestScrubLogs(unittest.TestCase):
         os.environ.pop("REDACT_IP", None)
         os.environ.pop("REDACT_EMAIL", None)
 
+    @unittest.mock.patch.dict(
+        os.environ,
+        {
+            "DD_SCRUBBING_RULE": "[^\u0001-\u007f]+",
+            "DD_SCRUBBING_RULE_REPLACEMENT": "xxxxx",
+        },
+    )
     def test_non_ascii(self):
-        os.environ["DD_SCRUBBING_RULE"] = "[^\u0001-\u007f]+"
-        scrubber = DatadogScrubber(
-            [
-                ScrubbingRuleConfig(
-                    "DD_SCRUBBING_RULE",
-                    get_env_var("DD_SCRUBBING_RULE", default=None),
-                    get_env_var("DD_SCRUBBING_RULE_REPLACEMENT", default="xxxxx"),
-                )
-            ]
-        )
+        reload(sys.modules["settings"])
+        from settings import SCRUBBING_RULE_CONFIGS
+
+        scrubber = DatadogScrubber(SCRUBBING_RULE_CONFIGS)
         payload = scrubber.scrub("abcdef日本語efgかきくけこhij")
         self.assertEqual(payload, "abcdefxxxxxefgxxxxxhij")
         os.environ.pop("DD_SCRUBBING_RULE", None)
