@@ -78,7 +78,6 @@ class AwsS3EventSourceKeyword(Enum):
     # e.g. carbon-black-cloud-forwarder/alerts/org_key=*****/year=2021/month=7/day=19/hour=18/minute=15/second=41/8436e850-7e78-40e4-b3cd-6ebbc854d0a2.jsonl.gz
     CARBONBLACK = ("carbon-black", AwsEventSource.CARBONBLACK)
     CODEBUILD = ("amazon_codebuild", AwsEventSource.CODEBUILD)
-    CLOUDFRONT = ("cloudfront", AwsEventSource.CLOUDFRONT)
     DMS = ("amazon_dms", AwsEventSource.DMS)
     DOCDB = ("amazon_documentdb", AwsEventSource.DOCDB)
     # e.g. AWSLogs/123456779121/elasticloadbalancing/us-east-1/2020/10/02/123456779121_elasticloadbalancing_us-east-1_app.alb.xxxxx.xx.xxx.xxx_x.log.gz
