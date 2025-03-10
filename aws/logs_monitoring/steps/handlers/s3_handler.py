@@ -94,8 +94,6 @@ class S3EventHandler:
             case AwsEventSource.S3:
                 # For S3 access logs we use the bucket name to rebuild the arn
                 return self._get_s3_arn()
-            case AwsEventSource.CLOUDFRONT:
-                return self._handle_cloudfront_source()
 
     def _get_s3_arn(self):
         if not self.data_store.bucket:
@@ -110,41 +108,6 @@ class S3EventHandler:
             elif CN_STRING in region:
                 partition = "aws-cn"
         return partition
-
-    def _handle_cloudfront_source(self):
-        # For Cloudfront logs we need to get the account and distribution id from the lambda arn and the filename
-        # 1. We extract the cloudfront id  from the filename
-        # 2. We extract the AWS account id from the lambda arn
-        namesplit = self.data_store.key.split("/")
-        if len(namesplit) == 0:
-            self.logger.error(
-                f"Invalid key {self.data_store.key}, handle cloudfront source failed"
-            )
-            return None
-
-        filename = namesplit[len(namesplit) - 1]
-        # (distribution-ID.YYYY-MM-DD-HH.unique-ID.gz)
-        filenamesplit = filename.split(".")
-
-        if len(filenamesplit) <= 3:
-            self.logger.error(
-                f"Invalid filename {filename}, handle cloudfront source failed"
-            )
-            return None
-
-        distributionID = filenamesplit[len(filenamesplit) - 4].lower()
-        arn = self.context.invoked_function_arn
-        arnsplit = arn.split(":")
-
-        if len(arnsplit) != 7:
-            self.logger.error(f"Invalid ARN {arn}, handle cloudfront source failed")
-            return None
-
-        awsaccountID = arnsplit[4].lower()
-
-        return "arn:aws:cloudfront::{}:distribution/{}".format(
-            awsaccountID, distributionID
-        )
 
     def _add_s3_tags_from_cache(self):
         bucket_arn = self._get_s3_arn()
