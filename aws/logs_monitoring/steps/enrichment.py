@@ -163,6 +163,9 @@ def extract_ddtags_from_message(event):
                     logger.debug(f"Failed to extract ddtags from: {event}")
                 return
 
+        # strip and cleanup spaces from extracted tags:
+        extracted_ddtags = extracted_ddtags.replace(" ", "")
+
         # Extract service tag from message.ddtags if exists
         if "service:" in extracted_ddtags:
             event[DD_SERVICE] = next(
@@ -174,7 +177,7 @@ def extract_ddtags_from_message(event):
                 [
                     tag
                     for tag in event[DD_CUSTOM_TAGS].split(",")
-                    if not tag.startswith("service:")
+                    if not tag.startswith("service:") and not tag == ""
                 ]
             )
 

@@ -128,6 +128,23 @@ class TestMergeMessageTags(unittest.TestCase):
             event,
         )
 
+    def test_extract_ddtags_handles_empty_spaces(self):
+        loaded_message_tags = {
+            "ddtags": "key:my-service-repo,  service:  my_custom_service  "
+        }
+        event = {"message": loaded_message_tags, "ddtags": "custom_tag_2:value2,"}
+
+        extract_ddtags_from_message(event)
+
+        self.assertEqual(
+            event["ddtags"],
+            "custom_tag_2:value2,key:my-service-repo,service:my_custom_service",
+        )
+        self.assertEqual(
+            event["service"],
+            "my_custom_service",
+        )
+
 
 class TestExtractHostFromLogEvents(unittest.TestCase):
     def test_parse_source_cloudtrail(self):
