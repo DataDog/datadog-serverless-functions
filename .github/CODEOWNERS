@@ -2,4 +2,3 @@
 azure/                          @DataDog/azure-integrations
 # AWS Integrations
 aws/                            @DataDog/aws-ints-context
-aws/*/*template.yaml            @DataDog/aws-ints-context @DataDog/aws-ints-customer-experience
