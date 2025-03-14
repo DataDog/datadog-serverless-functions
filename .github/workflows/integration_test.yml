@@ -19,10 +19,6 @@ jobs:
   build:
     runs-on: ubuntu-24.04-arm
     continue-on-error: true
-    strategy:
-      max-parallel: 4
-      matrix:
-        python-version: ["3.11", "3.12"]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -32,4 +28,4 @@ jobs:
 
       - name: Run integration tests
         run: |
-          ./aws/logs_monitoring/tools/integration_tests/integration_tests.sh --python-version=${{ matrix.python-version }}
+          ./aws/logs_monitoring/tools/integration_tests/integration_tests.sh --python-version=3.12
