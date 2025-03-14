@@ -36,16 +36,7 @@ for arg in "$@"; do
                 SKIP_FORWARDER_BUILD=true
                 shift
                 ;;
-
-        # -v or --python-version
-        # The version of the Python Lambda runtime to use
-        # Must be 3.11 or 3.12
-        -v=* | --python-version=*)
-                PYTHON_VERSION="python${arg#*=}"
-                PYTHON_IMAGE="python:${arg#*=}"
-                PYTHON_VERSION_TAG="${arg#*=}"
-                shift
-                ;;
+                
 
         # -u or --update
         # Update the snapshots to reflect this test run
@@ -79,11 +70,6 @@ for arg in "$@"; do
                 ;;
         esac
 done
-
-if [ $PYTHON_VERSION != "python3.11" ] && [ $PYTHON_VERSION != "python3.12" ]; then
-        echo "Must use either Python 3.11 or 3.12"
-        exit 1
-fi
 
 # Build the Forwarder
 if ! [ $SKIP_FORWARDER_BUILD == true ]; then

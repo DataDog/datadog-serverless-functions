@@ -142,6 +142,9 @@ aws lambda invoke --function-name <function-name> --payload '{"retry":"true"}' o
 
 If you encounter issues upgrading to the latest version, check the Troubleshooting section.
 
+### Upgrade an older verison to 4.3.0+
+Starting verison 4.3.0 Lambda forwarder will support a single python version only. The supported Python version of this release is 3.12. 
+
 ### Upgrade an older version to +4.0.0
 Starting version 4.0.0 `source`, `service` and `host` identification logic will be pulled out from the Lambda forwarder's code and set in directly in Datadog's backend. The first migrated log source is `RDS`.
 This is not a breaking change on how the `source`, `service` and `host` are set on the `Log explorer` side. Users should continue to have the same behavior as before.
