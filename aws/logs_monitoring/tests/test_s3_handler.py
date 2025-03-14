@@ -299,7 +299,7 @@ class TestS3EventsHandler(unittest.TestCase):
         )
         self.assertEqual(
             self.s3_handler.data_store.source,
-            "cloudfront",
+            "s3",
         )
 
     def test_set_source_transit_gateway(self):
