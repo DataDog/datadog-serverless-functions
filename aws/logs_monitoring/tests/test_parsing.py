@@ -246,7 +246,7 @@ class TestParseEventSource(unittest.TestCase):
                 {"Records": ["logs-from-s3"]},
                 "AWSLogs/cloudfront/123456779121/test/01.gz",
             ),
-            str(AwsEventSource.CLOUDFRONT),
+            str(AwsEventSource.S3),
         )
 
     def test_eks_event(self):
