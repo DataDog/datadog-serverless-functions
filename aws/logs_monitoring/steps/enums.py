@@ -33,7 +33,6 @@ class AwsEventSource(Enum):
     NETWORKFIREWALL = "network-firewall"
     OPENSEARCH = "opensearch"
     POSTGRESQL = "postgresql"
-    REDSHIFT = "redshift"
     ROUTE53 = "route53"
     S3 = "s3"
     SNS = "sns"
@@ -79,7 +78,6 @@ class AwsS3EventSourceKeyword(Enum):
     # e.g. carbon-black-cloud-forwarder/alerts/org_key=*****/year=2021/month=7/day=19/hour=18/minute=15/second=41/8436e850-7e78-40e4-b3cd-6ebbc854d0a2.jsonl.gz
     CARBONBLACK = ("carbon-black", AwsEventSource.CARBONBLACK)
     CODEBUILD = ("amazon_codebuild", AwsEventSource.CODEBUILD)
-    CLOUDFRONT = ("cloudfront", AwsEventSource.CLOUDFRONT)
     DMS = ("amazon_dms", AwsEventSource.DMS)
     DOCDB = ("amazon_documentdb", AwsEventSource.DOCDB)
     # e.g. AWSLogs/123456779121/elasticloadbalancing/us-east-1/2020/10/02/123456779121_elasticloadbalancing_us-east-1_app.alb.xxxxx.xx.xxx.xxx_x.log.gz
@@ -88,8 +86,6 @@ class AwsS3EventSourceKeyword(Enum):
     KINESIS = ("amazon_kinesis", AwsEventSource.KINESIS)
     MSK = ("amazon_msk", AwsEventSource.MSK)
     NETWORKFIREWALL = ("network-firewall", AwsEventSource.NETWORKFIREWALL)
-    # e.g. AWSLogs/123456779121/redshift/us-east-1/2020/10/21/123456779121_redshift_us-east-1_mycluster_userlog_2020-10-21T18:01.gz
-    REDSHIFT = ("_redshift_", AwsEventSource.REDSHIFT)
     # e.g. AWSLogs/123456779121/vpcdnsquerylogs/vpc-********/2021/05/11/vpc-********_vpcdnsquerylogs_********_20210511T0910Z_71584702.log.gz
     ROUTE53 = ("vpcdnsquerylogs", AwsEventSource.ROUTE53)
     TRANSITGATEWAY = ("transit-gateway", AwsEventSource.TRANSITGATEWAY)
