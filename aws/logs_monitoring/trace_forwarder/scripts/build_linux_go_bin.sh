@@ -16,11 +16,11 @@ rm -rf ./bin
 # Install datadogpy in a docker container to avoid the mess from switching
 # between different python runtimes.
 
-if [[ $(docker image ls | grep -c datadog-go-layer) -lt 1 ]]; then
-    docker buildx build --platform linux/amd64 -t datadog-go-layer . --no-cache --build-arg "runtime=python:3.7"
+if [[ $(docker image ls | grep -c golang) -lt 1 ]]; then
+    docker buildx build --platform linux/arm64 -t golang . --no-cache --build-arg "runtime=python:3.12"
 fi
 
-id=$(docker create --platform linux/amd64 datadog-go-layer)
+id=$(docker create --platform linux/arm64 golang)
 docker cp "${id}:/go/src/github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring/trace_forwarder/bin" .
 docker rm -v "${id}"
 echo "Done creating archive bin"

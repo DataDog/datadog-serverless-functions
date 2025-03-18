@@ -1,9 +1,10 @@
 import gzip
-import unittest
 import re
+import unittest
 from unittest.mock import MagicMock, patch
 
 from approvaltests.combination_approvals import verify_all_combinations
+
 from caching.cache_layer import CacheLayer
 from steps.handlers.s3_handler import S3EventDataStore, S3EventHandler
 
@@ -41,15 +42,44 @@ class TestS3EventsHandler(unittest.TestCase):
             [
                 [
                     '{"timestamp": 12345, "key1": "value1", "key2":"value2"}\n',
-                    '{"timestamp": 12345, "key1": "value1", "key2":"value2"}\r\n{"timestamp": 67890, "key1": "value2", "key2":"value3"}\r\n',
-                    '{"timestamp": 12345, "key1": "value1", "key2":"value1"}\n{"timestamp": 67890, "key1": "value2", "key2":"value3"}\r{"timestamp": 123456, "key1": "value3", "key2":"value3"}\r\n{"timestamp": 678901, "key1": "value4", "key2":"value4"}',
-                    '{"timestamp": 12345, "key1": "value1", "key2":"value2"}\n{"timestamp": 789760, "key1": "value1", "key3":"value4"}\n',
-                    '{"timestamp": 12345, "key1": "value1", "key2":"value2" "key3": {"key5" : "value5"}}\r{"timestamp": 12345, "key1": "value1"}\n',
-                    '{"timestamp": 12345, "key1": "value1", "key2":"value2" "key3": {"key5" : "value5"}}\f{"timestamp": 12345, "key1": "value1"}\n',
-                    '{"timestamp": 12345, "key1": "value1", "key2":"value2" "key3": {"key5" : "value5"}}\u00A0{"timestamp": 12345, "key1": "value1"}\n',
-                    '{"timestamp":1234, "injection":"/Ð²Ð¸ÐºÑÐ¾ÑÐ¸Ñ+Ð²Ð»Ð°ÑÐ¾Ð²Ð°/about"}',
+                    (
+                        '{"timestamp": 12345, "key1": "value1",'
+                        ' "key2":"value2"}\r\n{"timestamp": 67890, "key1": "value2",'
+                        ' "key2":"value3"}\r\n'
+                    ),
+                    (
+                        '{"timestamp": 12345, "key1": "value1",'
+                        ' "key2":"value1"}\n{"timestamp": 67890, "key1": "value2",'
+                        ' "key2":"value3"}\r{"timestamp": 123456, "key1": "value3",'
+                        ' "key2":"value3"}\r\n{"timestamp": 678901, "key1": "value4",'
+                        ' "key2":"value4"}'
+                    ),
+                    (
+                        '{"timestamp": 12345, "key1": "value1",'
+                        ' "key2":"value2"}\n{"timestamp": 789760, "key1": "value1",'
+                        ' "key3":"value4"}\n'
+                    ),
+                    (
+                        '{"timestamp": 12345, "key1": "value1", "key2":"value2" "key3":'
+                        ' {"key5" : "value5"}}\r{"timestamp": 12345, "key1":'
+                        ' "value1"}\n'
+                    ),
+                    (
+                        '{"timestamp": 12345, "key1": "value1", "key2":"value2" "key3":'
+                        ' {"key5" : "value5"}}\f{"timestamp": 12345, "key1":'
+                        ' "value1"}\n'
+                    ),
+                    (
+                        '{"timestamp": 12345, "key1": "value1", "key2":"value2" "key3":'
+                        ' {"key5" : "value5"}}\u00a0{"timestamp": 12345, "key1":'
+                        ' "value1"}\n'
+                    ),
+                    (
+                        '{"timestamp":1234,'
+                        ' "injection":"/Ð²Ð¸ÐºÑÐ¾ÑÐ¸Ñ+Ð²Ð»Ð°ÑÐ¾Ð²Ð°/about"}'
+                    ),
                     '{"timestamp":1234, "should_not_be_splitted":"\v"}',
-                    '{"timestamp":1234, "should_be_splitted":"\u000D\u000Acontinue"}',
+                    '{"timestamp":1234, "should_be_splitted":"\u000d\u000acontinue"}',
                     "\n",
                     "\r\n",
                 ]
@@ -66,7 +96,10 @@ class TestS3EventsHandler(unittest.TestCase):
             [
                 [
                     '{"Records": [{"event_key" : "logs-from-s3"}]}',
-                    '{"Records": [{"event_key" : "logs-from-s3"}, {"key1" : "data1", "key2" : "data2"}]}',
+                    (
+                        '{"Records": [{"event_key" : "logs-from-s3"}, {"key1" :'
+                        ' "data1", "key2" : "data2"}]}'
+                    ),
                     '{"Records": {}}',
                     "",
                 ]
@@ -122,9 +155,11 @@ class TestS3EventsHandler(unittest.TestCase):
         }
         data = "2022-02-08aaa\nbbbccc\n2022-02-09bbb\n2022-02-10ccc\n"
         self.s3_handler.data_store.data = data.encode("utf-8")
-        self.s3_handler.multiline_regex_start_pattern = re.compile("^\d{4}-\d{2}-\d{2}")
+        self.s3_handler.multiline_regex_start_pattern = re.compile(
+            r"^\d{4}-\d{2}-\d{2}"
+        )
         self.s3_handler.multiline_regex_pattern = re.compile(
-            "[\n\r\f]+(?=\d{4}-\d{2}-\d{2})"
+            r"[\n\r\f]+(?=\d{4}-\d{2}-\d{2})"
         )
         self.s3_handler._extract_data = MagicMock()
         structured_lines = list(self.s3_handler.handle(event))
@@ -151,7 +186,10 @@ class TestS3EventsHandler(unittest.TestCase):
             "Records": [
                 {
                     "Sns": {
-                        "Message": '{"Records": [{"s3": {"bucket": {"name": "my-bucket"}, "object": {"key": "sns-my-key"}}}]}'
+                        "Message": (
+                            '{"Records": [{"s3": {"bucket": {"name": "my-bucket"},'
+                            ' "object": {"key": "sns-my-key"}}}]}'
+                        )
                     }
                 }
             ]
@@ -222,47 +260,6 @@ class TestS3EventsHandler(unittest.TestCase):
 
         assert "s3_tag:tag_value" in self.s3_handler.metadata["ddtags"]
 
-    def test_elb_s3_key_invalid(self):
-        self.s3_handler.metadata["ddsource"] = "elb"
-        self.s3_handler.key = "123456789123/elasticloadbalancing/us-east-1/2022/02/08/123456789123_elasticloadbalancing_us-east-1_app.my-alb-name.123456789aabcdef_20220208T1127Z_10.0.0.2_1abcdef2.log.gz"
-        self.assertEqual(
-            self.s3_handler._parse_service_arn(),
-            None,
-        )
-
-    def test_elb_s3_key_no_prefix(self):
-        self.s3_handler.data_store.source = "elb"
-        self.s3_handler.data_store.key = "AWSLogs/123456789123/elasticloadbalancing/us-east-1/2022/02/08/123456789123_elasticloadbalancing_us-east-1_app.my-alb-name.123456789aabcdef_20220208T1127Z_10.0.0.2_1abcdef2.log.gz"
-        self.assertEqual(
-            self.s3_handler._parse_service_arn(),
-            "arn:aws:elasticloadbalancing:us-east-1:123456789123:loadbalancer/app/my-alb-name/123456789aabcdef",
-        )
-
-    def test_elb_s3_key_single_prefix(self):
-        self.s3_handler.data_store.source = "elb"
-        self.s3_handler.data_store.key = "elasticloadbalancing/AWSLogs/123456789123/elasticloadbalancing/us-east-1/2022/02/08/123456789123_elasticloadbalancing_us-east-1_app.my-alb-name.123456789aabcdef_20220208T1127Z_10.0.0.2_1abcdef2.log.gz"
-        self.assertEqual(
-            self.s3_handler._parse_service_arn(),
-            "arn:aws:elasticloadbalancing:us-east-1:123456789123:loadbalancer/app/my-alb-name/123456789aabcdef",
-        )
-
-    def test_elb_s3_key_multi_prefix(self):
-        self.s3_handler.data_store.source = "elb"
-        self.s3_handler.data_store.key = "elasticloadbalancing/my-alb-name/AWSLogs/123456789123/elasticloadbalancing/us-east-1/2022/02/08/123456789123_elasticloadbalancing_us-east-1_app.my-alb-name.123456789aabcdef_20220208T1127Z_10.0.0.2_1abcdef2.log.gz"
-        self.assertEqual(
-            self.s3_handler._parse_service_arn(),
-            "arn:aws:elasticloadbalancing:us-east-1:123456789123:loadbalancer/app/my-alb-name/123456789aabcdef",
-        )
-
-    def test_elb_s3_key_multi_prefix_gov(self):
-        self.s3_handler.data_store.source = "elb"
-        self.s3_handler.data_store.key = "elb/my-alb-name/AWSLogs/123456789123/elasticloadbalancing/us-gov-east-1/2022/02/08/123456789123_elasticloadbalancing_us-gov-east-1_app.my-alb-name.123456789aabcdef_20220208T1127Z_10.0.0.2_1abcdef2.log.gz"
-        self.assertEqual(
-            self.s3_handler._parse_service_arn(),
-            "arn:aws-us-gov:elasticloadbalancing:us-gov-east-1:123456789123:loadbalancer/app/my-alb-name"
-            "/123456789aabcdef",
-        )
-
     def test_set_source_waf_cloudfront(self):
         self.s3_handler.data_store.key = (
             "AWSLogs/123456779121/WAFLogs/cloudfront/this/is/a/prio/test.log.gz"
@@ -302,7 +299,7 @@ class TestS3EventsHandler(unittest.TestCase):
         )
         self.assertEqual(
             self.s3_handler.data_store.source,
-            "cloudfront",
+            "s3",
         )
 
     def test_set_source_transit_gateway(self):

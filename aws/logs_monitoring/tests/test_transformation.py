@@ -53,14 +53,18 @@ class TestParseAwsWafLogs(unittest.TestCase):
                     {
                         "limitValue": "195.154.122.189",
                         "rateBasedRuleName": "tf-rate-limit-5-min",
-                        "rateBasedRuleId": "arn:aws:wafv2:ap-southeast-2:068133125972_MANAGED:regional/ipset/0f94bd8b-0fa5-4865-81ce-d11a60051fb4_fef50279-8b9a-4062-b733-88ecd1cfd889_IPV4/fef50279-8b9a-4062-b733-88ecd1cfd889",
+                        "rateBasedRuleId": (
+                            "arn:aws:wafv2:ap-southeast-2:068133125972_MANAGED:regional/ipset/0f94bd8b-0fa5-4865-81ce-d11a60051fb4_fef50279-8b9a-4062-b733-88ecd1cfd889_IPV4/fef50279-8b9a-4062-b733-88ecd1cfd889"
+                        ),
                         "maxRateAllowed": 300,
                         "limitKey": "IP",
                     },
                     {
                         "limitValue": "195.154.122.189",
                         "rateBasedRuleName": "no-rate-limit",
-                        "rateBasedRuleId": "arn:aws:wafv2:ap-southeast-2:068133125972_MANAGED:regional/ipset/0f94bd8b-0fa5-4865-81ce-d11a60051fb4_fef50279-8b9a-4062-b733-88ecd1cfd889_IPV4/fef50279-8b9a-4062-b733-88ecd1cfd889",
+                        "rateBasedRuleId": (
+                            "arn:aws:wafv2:ap-southeast-2:068133125972_MANAGED:regional/ipset/0f94bd8b-0fa5-4865-81ce-d11a60051fb4_fef50279-8b9a-4062-b733-88ecd1cfd889_IPV4/fef50279-8b9a-4062-b733-88ecd1cfd889"
+                        ),
                         "maxRateAllowed": 300,
                         "limitKey": "IP",
                     },

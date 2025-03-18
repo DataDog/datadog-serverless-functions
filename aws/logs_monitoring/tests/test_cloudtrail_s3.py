@@ -43,14 +43,18 @@ test_data = {
             "userIdentity": {
                 "type": "AssumedRole",
                 "principalId": "AROAYYB64AB3HGPQO2EPR:DatadogAWSIntegration",
-                "arn": "arn:aws:sts::601427279990:assumed-role/Siti_DatadogAWSIntegrationRole/i-08014e4f62ccf762d",
+                "arn": (
+                    "arn:aws:sts::601427279990:assumed-role/Siti_DatadogAWSIntegrationRole/i-08014e4f62ccf762d"
+                ),
                 "accountId": "601427279990",
                 "accessKeyId": "ASIAYYB64AB3DWOY7JNT",
                 "sessionContext": {
                     "sessionIssuer": {
                         "type": "Role",
                         "principalId": "AROAYYB64AB3HGPQO2EPR",
-                        "arn": "arn:aws:iam::601427279990:role/Siti_DatadogAWSIntegrationRole",
+                        "arn": (
+                            "arn:aws:iam::601427279990:role/Siti_DatadogAWSIntegrationRole"
+                        ),
                         "accountId": "601427279990",
                         "userName": "Siti_DatadogAWSIntegrationRole",
                     },
@@ -75,7 +79,9 @@ test_data = {
                 {
                     "accountId": "601427279990",
                     "type": "AWS::DynamoDB::Table",
-                    "ARN": "arn:aws:dynamodb:us-east-1:601427279990:table/KinesisClientLibraryLocal",
+                    "ARN": (
+                        "arn:aws:dynamodb:us-east-1:601427279990:table/KinesisClientLibraryLocal"
+                    ),
                 }
             ],
             "eventType": "AwsApiCall",
@@ -114,7 +120,9 @@ class TestS3CloudwatchParsing(unittest.TestCase):
                     "name": "test-bucket",
                 },
                 "object": {
-                    "key": "601427279990_CloudTrail_us-east-1_20210503T0000Z_QrttGEk4ZcBTLwj5.json.gz"
+                    "key": (
+                        "601427279990_CloudTrail_us-east-1_20210503T0000Z_QrttGEk4ZcBTLwj5.json.gz"
+                    )
                 },
             }
         }

@@ -6,10 +6,23 @@ from steps.enums import (
     AwsCwEventSourcePrefix,
     AwsS3EventSourceKeyword,
 )
-from settings import DD_CUSTOM_TAGS, DD_SERVICE, DD_SOURCE
+from settings import (
+    AWS_STRING,
+    DD_CUSTOM_TAGS,
+    DD_FORWARDER_VERSION,
+    DD_SERVICE,
+    DD_SOURCE,
+    DD_TAGS,
+    FUNCTIONVERSION_STRING,
+    FORWARDERNAME_STRING,
+    FORWARDERMEMSIZE_STRING,
+    FORWARDERVERSION_STRING,
+    INVOKEDFUNCTIONARN_STRING,
+    SOURCECATEGORY_STRING,
+)
 
 CLOUDTRAIL_REGEX = re.compile(
-    "\d+_CloudTrail(|-Digest|-Insight)_\w{2}(|-gov|-cn)-\w{4,9}-\d_(|.+)\d{8}T\d{4,6}Z(|.+).json.gz$",
+    r"\d+_CloudTrail(|-Digest|-Insight)_\w{2}(|-gov|-cn)-\w{4,9}-\d_(|.+)\d{8}T\d{4,6}Z(|.+).json.gz$",
     re.I,
 )
 
@@ -45,9 +58,6 @@ def is_cloudtrail(key):
 def find_cloudwatch_source(log_group):
     for prefix in AwsCwEventSourcePrefix:
         if log_group.startswith(str(prefix)):
-            if prefix == AwsCwEventSourcePrefix.RDS:
-                return find_rds_source(log_group)
-
             return str(prefix.event_source)
 
     # directly look for the source in the log group
@@ -56,14 +66,6 @@ def find_cloudwatch_source(log_group):
             return str(source)
 
     return str(AwsEventSource.CLOUDWATCH)
-
-
-def find_rds_source(log_group):
-    for engine in AwsEventSource.rds_sources():
-        if str(engine) in log_group:
-            return str(engine)
-
-    return str(AwsEventSource.RDS)
 
 
 def find_s3_source(key):
@@ -112,3 +114,38 @@ def merge_dicts(a, b, path=None):
         else:
             a[key] = b[key]
     return a
+
+
+def generate_metadata(context):
+    metadata = {
+        SOURCECATEGORY_STRING: AWS_STRING,
+        AWS_STRING: {
+            FUNCTIONVERSION_STRING: context.function_version,
+            INVOKEDFUNCTIONARN_STRING: context.invoked_function_arn,
+        },
+    }
+    # Add custom tags here by adding new value with the following format "key1:value1, key2:value2"  - might be subject to modifications
+    dd_custom_tags_data = generate_custom_tags(context)
+    metadata[DD_CUSTOM_TAGS] = ",".join(
+        filter(
+            None,
+            [
+                DD_TAGS,
+                ",".join(
+                    ["{}:{}".format(k, v) for k, v in dd_custom_tags_data.items()]
+                ),
+            ],
+        )
+    )
+
+    return metadata
+
+
+def generate_custom_tags(context):
+    dd_custom_tags_data = {
+        FORWARDERNAME_STRING: context.function_name.lower(),
+        FORWARDERMEMSIZE_STRING: context.memory_limit_in_mb,
+        FORWARDERVERSION_STRING: DD_FORWARDER_VERSION,
+    }
+
+    return dd_custom_tags_data

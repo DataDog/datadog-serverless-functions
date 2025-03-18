@@ -156,22 +156,27 @@ if DD_USE_PRIVATE_LINK:
 
 
 class ScrubbingRuleConfig(object):
-    def __init__(self, name, pattern, placeholder):
+    def __init__(self, name, pattern, placeholder, enabled=True):
         self.name = name
         self.pattern = pattern
         self.placeholder = placeholder
+        self.enabled = enabled
 
 
 # Scrubbing sensitive data
 # Option to redact all pattern that looks like an ip address / email address / custom pattern
 SCRUBBING_RULE_CONFIGS = [
     ScrubbingRuleConfig(
-        "REDACT_IP", "\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", "xxx.xxx.xxx.xxx"
+        "REDACT_IP",
+        r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}",
+        "xxx.xxx.xxx.xxx",
+        get_env_var("REDACT_IP", "false", boolean=True),
     ),
     ScrubbingRuleConfig(
         "REDACT_EMAIL",
-        "[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+",
+        r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+",
         "xxxxx@xxxxx.com",
+        get_env_var("REDACT_EMAIL", "false", boolean=True),
     ),
     ScrubbingRuleConfig(
         "DD_SCRUBBING_RULE",
@@ -267,7 +272,7 @@ DD_SOURCE = "ddsource"
 DD_CUSTOM_TAGS = "ddtags"
 DD_SERVICE = "service"
 DD_HOST = "host"
-DD_FORWARDER_VERSION = "3.129.0"
+DD_FORWARDER_VERSION = "4.2.0"
 
 # CONST STRINGS
 AWS_STRING = "aws"

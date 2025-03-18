@@ -3,10 +3,10 @@ Description: Pushes logs, metrics and traces from AWS to Datadog.
 Mappings:
   Constants:
     DdForwarder:
-      Version: 3.129.0
-      LayerVersion: "67"
+      Version: 4.2.0
+      LayerVersion: "77"
 Parameters:
-  DdApiKey:
+  DdApiKey:  
     Type: String
     NoEcho: true
     Default: ""
@@ -16,6 +16,11 @@ Parameters:
     AllowedPattern: "arn:.*:secretsmanager:.*"
     Default: "arn:aws:secretsmanager:DEFAULT"
     Description: The ARN of the secret storing the Datadog API key, if you already have it stored in Secrets Manager. You must store the secret as a plaintext, rather than a key-value pair.
+  DdApiKeySsmParameterName:
+    Type: String
+    Default: "/my/parameter/path"
+    AllowedPattern: "^/[a-zA-Z0-9/_.-]*$"
+    Description: The name of the SSM parameter containing Datadog's API key. If set, both DdApiKey and DdApiKeySecretArn will be ignored, the forwarder will use the SSM parameter name to fetch the API key.
   DdSite:
     Type: String
     Default: datadoghq.com
@@ -214,6 +219,10 @@ Parameters:
     Type: Number
     Default: 20
     Description: Set the max number of workers sending logs concurrently.
+  IamRolePath:
+    Type: String
+    Default: "/"
+    Description: The path for the IAM roles.
   PermissionsBoundaryArn:
     Type: String
     Default: ""
@@ -249,6 +258,23 @@ Parameters:
     Type: String
     Default: ""
     Description: The name of an existing s3 bucket to use. If not provided, a new bucket will be created.
+  DdLogLevel:
+    Type: String
+    Default: "WARN"
+    Description: Set the log level for the forwarder. Valid values are DEBUG, INFO, WARN, ERROR, CRITICAL. If not set, default is WARN.
+    AllowedValues:
+      - DEBUG
+      - INFO
+      - WARN
+      - ERROR
+      - CRITICAL
+  DdTraceEnabled:
+    Type: String
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: Set to false to disable trace forwarding.
 Conditions:
   IsAWSChina: !Equals [!Ref 'AWS::Partition', aws-cn]
   IsGovCloud: !Equals [!Ref 'AWS::Partition', aws-us-gov]
@@ -258,7 +284,11 @@ Conditions:
       - !Equals [!Ref InstallAsLayer, "false"]
       - !Not
         - !Condition SetLayerARN
-  CreateDdApiKeySecret: !Equals [!Ref DdApiKeySecretArn, 'arn:aws:secretsmanager:DEFAULT']
+  CreateDdApiKeySecret: !And
+    - !Equals [!Ref DdApiKeySecretArn, 'arn:aws:secretsmanager:DEFAULT'] 
+    - !Equals [!Ref DdApiKeySsmParameterName, '/my/parameter/path']
+  SetDDApiSsmParamName: !Not
+    - !Equals [!Ref DdApiKeySsmParameterName, "/my/parameter/path"]
   SetFunctionName: !Not
     - !Equals [!Ref FunctionName, DatadogForwarder]
   SetSourceZipUrl: !Not
@@ -336,6 +366,9 @@ Conditions:
     - !Equals [!Join ["", !Ref VPCSecurityGroupIds], ""]
   SetVpcSubnetIds: !Not
     - !Equals [!Join ["", !Ref VPCSubnetIds], ""]
+  SetDdLogLevel: !Not
+    - !Equals [!Ref DdLogLevel, ""]
+  SetDdTraceEnabled: !Equals [!Ref DdTraceEnabled, false]
 Rules:
   MustSetDdApiKey:
     Assertions:
@@ -344,7 +377,9 @@ Rules:
             - !Equals [!Ref DdApiKey, ""]
           - !Not
             - !Equals [!Ref DdApiKeySecretArn, "arn:aws:secretsmanager:DEFAULT"]
-        AssertDescription: DdApiKey or DdApiKeySecretArn must be set
+          - !Not
+            - !Equals [!Ref DdApiKeySsmParameterName, ""]
+        AssertDescription: DdApiKey or DdApiKeySecretArn or DdApiKeySecretName must be set
 Resources:
   Forwarder:
     Type: AWS::Lambda::Function
@@ -384,7 +419,9 @@ Resources:
             - {DdForwarderVersion: !FindInMap [Constants, DdForwarder, Version]}
         - ZipFile: " "
       MemorySize: !Ref MemorySize
-      Runtime: python3.11
+      Runtime: python3.12
+      Architectures:
+        - arm64
       Timeout: !Ref Timeout
       Tags:
         - Key: "dd_forwarder_version"
@@ -393,9 +430,16 @@ Resources:
         Variables:
           DD_ENHANCED_METRICS: "false"
           DD_API_KEY_SECRET_ARN: !If
-            - CreateDdApiKeySecret
-            - !Ref DdApiKeySecret
-            - !Ref DdApiKeySecretArn
+            - SetDDApiSsmParamName
+            - !Ref AWS::NoValue
+            - !If
+              - CreateDdApiKeySecret
+              - !Ref DdApiKeySecret
+              - !Ref DdApiKeySecretArn
+          DD_API_KEY_SSM_NAME: !If
+            - SetDDApiSsmParamName
+            - !Ref DdApiKeySsmParameterName
+            - !Ref AWS::NoValue
           DD_S3_BUCKET_NAME: !If
             - CreateS3Bucket
             - !Ref ForwarderBucket
@@ -524,6 +568,14 @@ Resources:
             - SetDdTraceIntakeUrl
             - !Ref DdTraceIntakeUrl
             - !Ref AWS::NoValue
+          DD_LOG_LEVEL: !If
+            - SetDdLogLevel
+            - !Ref DdLogLevel
+            - !Ref AWS::NoValue
+          DD_TRACE_ENABLED: !If
+            - SetDdTraceEnabled
+            - !Ref DdTraceEnabled
+            - "true"
       ReservedConcurrentExecutions: !If
         - SetReservedConcurrentExecutions
         - !Ref ReservedConcurrency
@@ -554,6 +606,7 @@ Resources:
       ManagedPolicyArns:
         - !Sub "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
         - !Sub "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+      Path: !Ref IamRolePath
       PermissionsBoundary: !If
         - SetPermissionsBoundary
         - !Ref PermissionsBoundaryArn
@@ -605,14 +658,17 @@ Resources:
                   - kms:Decrypt
                 Resource: "*"
                 Effect: Allow
-              # Access the Datadog API key from Secrets Manager
-              - Action:
-                  - secretsmanager:GetSecretValue
-                Resource: !If
-                  - CreateDdApiKeySecret
-                  - !Ref DdApiKeySecret
-                  - !Sub "${DdApiKeySecretArn}*"
-                Effect: Allow
+              - !If
+               # Access the Datadog API key from Secrets Manager
+                - SetDDApiSsmParamName
+                - !Ref AWS::NoValue
+                - Action:
+                    - secretsmanager:GetSecretValue
+                  Resource: !If
+                    - CreateDdApiKeySecret
+                    - !Ref DdApiKeySecret
+                    - !Sub "${DdApiKeySecretArn}*"
+                  Effect: Allow
               - !If
                 # Fetch Lambda resource tags for data enrichment
                 # Fetch Step Functions resource tags for data enrichment
@@ -646,6 +702,16 @@ Resources:
                 - Action:
                     - lambda:InvokeFunction
                   Resource: !Ref AdditionalTargetLambdaArns
+                  Effect: Allow
+                - !Ref AWS::NoValue
+              - !If
+                # Access the Datadog API key from SSM
+                - SetDDApiSsmParamName
+                - Action:
+                    - ssm:GetParameter
+                    - ssm:GetParameters
+                    - ssm:GetParametersByPath
+                  Resource: "*"
                   Effect: Allow
                 - !Ref AWS::NoValue
       Tags:
@@ -708,7 +774,8 @@ Resources:
         - !Ref AWS::NoValue
       BucketEncryption:
         ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
+          - BucketKeyEnabled: true
+            ServerSideEncryptionByDefault:
               SSEAlgorithm: "aws:kms"
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
@@ -771,7 +838,7 @@ Resources:
     Properties:
       Description: Copies Datadog Forwarder zip to the destination S3 bucket
       Handler: index.handler
-      Runtime: python3.11
+      Runtime: python3.12
       Timeout: 600
       Code:
         ZipFile: |
@@ -861,6 +928,7 @@ Resources:
       ManagedPolicyArns:
         - !Sub "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
         - !Sub "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+      Path: !Ref IamRolePath
       PermissionsBoundary: !If
         - SetPermissionsBoundary
         - !Ref PermissionsBoundaryArn
@@ -907,11 +975,11 @@ Outputs:
     Export:
       Name: !Sub ${AWS::StackName}-ForwarderArn
   DdApiKeySecretArn:
+    Condition: CreateDdApiKeySecret
     Description: ARN of SecretsManager Secret with Datadog API Key
     Value: !Ref DdApiKeySecret
     Export:
       Name: !Sub ${AWS::StackName}-ApiKeySecretArn
-    Condition: CreateDdApiKeySecret
   ForwarderBucketName:
     Condition: SetForwarderBucket
     Description: Name of the S3 bucket used by the Forwarder
@@ -929,6 +997,7 @@ Metadata:
         Parameters:
           - DdApiKey
           - DdApiKeySecretArn
+          - DdApiKeySsmParameterName
           - DdSite
       - Label:
           default: Lambda Function (Optional)
@@ -988,6 +1057,7 @@ Metadata:
           - DdForwarderExistingBucketName
           - DdForwarderBucketName
           - DdStoreFailedEvents
+          - DdLogLevel
     ParameterLabels:
       DdApiKey:
         default: "DdApiKey *"

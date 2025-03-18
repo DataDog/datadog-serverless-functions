@@ -12,10 +12,10 @@ aliases:
 
 The Datadog Forwarder is an AWS Lambda function that ships logs from AWS to Datadog, specifically:
 
-- Forward CloudWatch, ELB, S3, CloudTrail, VPC, SNS, and CloudFront logs to Datadog.
-- Forward S3 events to Datadog.
-- Forward Kinesis data stream events to Datadog (only CloudWatch logs are supported).
-- Forward metrics, traces, and logs from AWS Lambda functions to Datadog. Datadog recommends you use the [Datadog Lambda Extension][1] to monitor your Lambda functions.
+- Forward CloudWatch and S3 logs.
+- Forward logs from SNS, and Kinesis events to Datadog.
+- Kinesis data stream events support CloudWatch logs only.
+- Forward metrics, traces, and logs from AWS Lambda functions to Datadog. Datadog recommends to use [Datadog Lambda Extension][1] to monitor Lambda functions.
 
 For Serverless customers using the Forwarder to forward metrics, traces, and logs from AWS Lambda logs to Datadog, you should [migrate to the Datadog Lambda Extension][3] to collect telemetry directly from the Lambda execution environments. The Forwarder is still available for use in Serverless Monitoring, but will not be updated to support the latest features.
 
@@ -91,8 +91,8 @@ resource "aws_cloudformation_stack" "datadog_forwarder" {
   name         = "datadog-forwarder"
   capabilities = ["CAPABILITY_IAM", "CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND"]
   parameters   = {
-    DdApiKeySecretArn  = "REPLACE ME WITH THE SECRETS ARN",
-    DdSite             = "<SITE>",
+    DdApiKeySecretArn  = "REPLACE WITH DATADOG SECRETS ARN",
+    DdSite             = "REPLACE WITH DATADOG SITE",
     FunctionName       = "datadog-forwarder"
   }
   template_url = "https://datadog-cloudformation-template.s3.amazonaws.com/aws/forwarder/latest.yaml"
@@ -113,7 +113,7 @@ resource "aws_cloudformation_stack" "datadog_forwarder" {
 
 If you can't install the Forwarder using the provided CloudFormation template, you can install the Forwarder manually following the steps below. Feel free to open an issue or pull request to let us know if there is anything we can improve to make the template work for you.
 
-1. Create a Python 3.11 Lambda function using `aws-dd-forwarder-<VERSION>.zip` from the latest [releases][101].
+1. Create a Python 3.12 Lambda function using `aws-dd-forwarder-<VERSION>.zip` from the latest [releases][101].
 2. Save your [Datadog API key][102] in AWS Secrets Manager, set environment variable `DD_API_KEY_SECRET_ARN` with the secret ARN on the Lambda function, and add the `secretsmanager:GetSecretValue` permission to the Lambda execution role.
 3. If you need to forward logs from S3 buckets, add the `s3:GetObject` permission to the Lambda execution role.
 4. Set the environment variable `DD_ENHANCED_METRICS` to `false` on the Forwarder. This stops the Forwarder from generating enhanced metrics itself, but it will still forward custom metrics from other lambdas.
@@ -125,6 +125,10 @@ If you can't install the Forwarder using the provided CloudFormation template, y
 ```bash
 aws lambda invoke --function-name <function-name> --payload '{"retry":"true"}' out
 ```
+
+<div class="alert alert-warning">
+The <a href="#cloudformation-parameters">environment variables provided on this page</a> are formatted for CloudFormation and Terraform. If you are installing the Forwarder manually, convert these parameter names from Pascal case to screaming snake case. For example, <code>DdApiKey</code> becomes <code>DD_API_KEY</code>, and <code>ExcludeAtMatch</code> becomes <code>EXCLUDE_AT_MATCH</code>.
+</div>
 
 [101]: https://github.com/DataDog/datadog-serverless-functions/releases
 [102]: https://app.datadoghq.com/organization-settings/api-keys
@@ -141,6 +145,13 @@ aws lambda invoke --function-name <function-name> --payload '{"retry":"true"}' o
 3. Update the stack using template `https://datadog-cloudformation-template.s3.amazonaws.com/aws/forwarder/latest.yaml`. You can also replace `latest` with a specific version, such as `3.73.0.yaml`, if needed. Make sure to review the changesets before applying the update.
 
 If you encounter issues upgrading to the latest version, check the Troubleshooting section.
+
+### Upgrade an older verison to 4.3.0+
+Starting verison 4.3.0 Lambda forwarder will support a single python version only. The supported Python version of this release is 3.12. 
+
+### Upgrade an older version to +4.0.0
+Starting version 4.0.0 `source`, `service` and `host` identification logic will be pulled out from the Lambda forwarder's code and set in directly in Datadog's backend. The first migrated log source is `RDS`.
+This is not a breaking change on how the `source`, `service` and `host` are set on the `Log explorer` side. Users should continue to have the same behavior as before.
 
 ### Upgrade an older version to +3.107.0
 
@@ -274,7 +285,11 @@ We love pull requests. Here's a quick guide.
 
 ### Shipping logs to multiple destinations
 
-If you need to ship logs to multiple Datadog organizations or other destinations, configure the `AdditionalTargetLambdaArns` Cloudformation parameter to let the Datadog Forwarder copy the incoming logs to the specified Lambda functions. These additional Lambda functions will be called asynchronously with the exact same `event` the Datadog Forwarder receives.
+If you need to ship logs to multiple Datadog organizations or other destinations, configure the `AdditionalTargetLambdaArns` CloudFormation parameter to let the Datadog Forwarder copy the incoming logs to the specified Lambda functions. These additional Lambda functions are called asynchronously with the exact same `event` the Datadog Forwarder receives.
+
+<div class="alert alert-warning">
+Shipping logs to two or more destinations involves using two or more Lambda functions that may start logging each other in an infinite loop. Use <code>ExcludeAtMatch</code> to filter Lambda logs and avoid this infinite loop. See the <a href="#log-filtering-optional">Log filtering</a> section for more details.
+</div>
 
 ### AWS PrivateLink support
 
@@ -283,7 +298,7 @@ You can run the Forwarder in a VPC private subnet and send data to Datadog over 
 1. Follow [these instructions][14] to add the Datadog `api`, `http-logs.intake`, and `trace.agent` endpoints to your VPC.
 2. Follow the [instructions][15] to add the AWS Secrets Manager and S3 endpoints to your VPC.
 3. When installing the Forwarder with the CloudFormation template:
-   1. Set `UseVPC` to `true`.
+   1. Set `DdUseVPC` to `true`.
    2. Set `VPCSecurityGroupIds` and `VPCSubnetIds` based on your VPC settings.
    3. Set `DdFetchLambdaTags` to `false`, because AWS Resource Groups Tagging API doesn't support PrivateLink.
 
@@ -325,6 +340,10 @@ Otherwise, if you are using Web Proxy:
 The Datadog Forwarder is signed by Datadog. To verify the integrity of the Forwarder, use the manual installation method. [Create a Code Signing Configuration][19] that includes Datadog’s Signing Profile ARN (`arn:aws:signer:us-east-1:464622532012:/signing-profiles/DatadogLambdaSigningProfile/9vMI9ZAGLc`) and associate it with the Forwarder Lambda function before uploading the Forwarder ZIP file.
 
 ## CloudFormation parameters
+
+<div class="alert alert-warning">
+The following parameters are used in CloudFormation and Terraform. If you are installing the Forwarder manually, convert these parameter names from Pascal case to screaming snake case. For example, <code>DdApiKey</code> becomes <code>DD_API_KEY</code>, and <code>ExcludeAtMatch</code> becomes <code>EXCLUDE_AT_MATCH</code>.
+</div>
 
 ### Required
 
@@ -428,7 +447,7 @@ To test different patterns against your logs, turn on [debug logs](#troubleshoot
 : Let the Forwarder fetch Lambda tags using GetResources API calls and apply them to logs, metrics, and traces. If set to true, permission `tag:GetResources` will be automatically added to the Lambda execution IAM role.
 
 `DdFetchLogGroupTags`
-: Let the forwarder fetch Log Group tags using ListTagsLogGroup and apply them to logs, metrics, and traces. If set to true, permission `logs:ListTagsLogGroup` will be automatically added to the Lambda execution IAM role.
+: Let the forwarder fetch Log Group tags using ListTagsLogGroup and apply them to logs, metrics, and traces. If set to true, permission `logs:ListTagsForResource` will be automatically added to the Lambda execution IAM role.
 
 `DdFetchStepFunctionsTags`
 : Let the Forwarder fetch Step Functions tags using GetResources API calls and apply them to logs and traces (if Step Functions tracing is enabled). If set to true, permission `tag:GetResources` will be automatically added to the Lambda execution IAM role.

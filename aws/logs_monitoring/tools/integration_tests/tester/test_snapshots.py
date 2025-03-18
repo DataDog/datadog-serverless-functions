@@ -54,6 +54,14 @@ class TestForwarderSnapshots(unittest.TestCase):
                     event["headers"]["x-datadog-parent-id"] = "<redacted from snapshot>"
                 if "Content-Length" in event["headers"]:
                     event["headers"]["Content-Length"] = "<redacted from snapshot>"
+                if "x-datadog-trace-id" in event["headers"]:
+                    event["headers"]["x-datadog-trace-id"] = "<redacted from snapshot>"
+                if "x-datadog-tags" in event["headers"]:
+                    event["headers"]["x-datadog-tags"] = "<redacted from snapshot>"
+                if "traceparent" in event["headers"]:
+                    event["headers"]["traceparent"] = "<redacted from snapshot>"
+                if "tracestate" in event["headers"]:
+                    event["headers"]["tracestate"] = "<redacted from snapshot>"
             editedData["events"].append(event)
         return editedData
 
@@ -115,14 +123,13 @@ class TestForwarderSnapshots(unittest.TestCase):
         # Clears any previously recorded state
         self.get_recording()
 
-        # If this is the first test we are running, we first need to capture
-        # startup http calls like /validate
+        # Itests will directly call the forwarder handler which is datadog_forwarder() in lambda_function.py
         if not self.__class__.recorder_has_been_initialized:
             self.send_log_event("{}")
             recording = self.get_recording()
             self.assertEqual(
                 recording["events"][0]["path"],
-                "/api/v1/validate?api_key=abcdefghijklmnopqrstuvwxyz012345",
+                "/api/v2/logs",
             )
             self.__class__.recorder_has_been_initialized = True
 

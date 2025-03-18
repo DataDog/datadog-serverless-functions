@@ -26,7 +26,7 @@ services:
       AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY}"
       AWS_SECURITY_TOKEN: "${AWS_SECURITY_TOKEN}"
       AWS_SESSION_TOKEN: "${AWS_SESSION_TOKEN}"
-      DOCKER_LAMBDA_STAY_OPEN: 1
+      AWS_DEFAULT_REGION: us-east-1
       DD_LOG_LEVEL: ${LOG_LEVEL:-info}
       DD_API_KEY: abcdefghijklmnopqrstuvwxyz012345 # Must be 32 characters exactly
       DD_URL: recorder # Used for logs intake
@@ -45,11 +45,18 @@ services:
       DD_FETCH_LOG_GROUP_TAGS: "true"
       DD_FETCH_STEP_FUNCTIONS_TAGS: "false"  # intentionally set false to allow integration test for step function logs to run without hitting aws
       DD_STORE_FAILED_EVENTS: "false"
+      DD_TRACE_ENABLED: "true"
     expose:
-      - 9001
+      - 8080
     depends_on:
       recorder:
         condition: service_healthy
+    healthcheck:
+        test: ["CMD", "curl", "-f", "http://localhost:8080/2015-03-31/functions/function/invocations"]
+        interval: 10s
+        timeout: 5s
+        retries: 3
+
 
   tester:
     image: ${PYTHON_BASE}
@@ -60,8 +67,11 @@ services:
     working_dir: /tester
     environment:
       RECORDER_URL: http://recorder:8080/recording
-      FORWARDER_URL: http://forwarder:9001/2015-03-31/functions/myfunction/invocations
+      FORWARDER_URL: http://forwarder:8080/2015-03-31/functions/function/invocations
       UPDATE_SNAPSHOTS: ${UPDATE_SNAPSHOTS:-false}
       SNAPSHOTS_DIR_NAME: ${SNAPSHOTS_DIR_NAME}
     depends_on:
-      - forwarder
+        forwarder:
+            condition: service_healthy
+        recorder:
+            condition: service_healthy

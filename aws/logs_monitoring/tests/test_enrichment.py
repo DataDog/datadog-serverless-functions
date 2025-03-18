@@ -1,6 +1,12 @@
-import unittest
 import json
+
+import unittest
+from unittest.mock import MagicMock
+
+from caching.cache_layer import CacheLayer
+from approvaltests.approvals import verify_as_json
 from steps.enrichment import (
+    add_metadata_to_lambda_log,
     extract_host_from_cloudtrails,
     extract_host_from_guardduty,
     extract_host_from_route53,
@@ -107,6 +113,38 @@ class TestMergeMessageTags(unittest.TestCase):
             "my_application_service",
         )
 
+    def test_extract_ddtags_from_message_service_only_in_extracted_ddtags_values(self):
+        loaded_message_tags = {"ddtags": "key:my-service-repo"}
+        event = {"message": loaded_message_tags, "ddtags": self.custom_tags}
+
+        extract_ddtags_from_message(event)
+
+        self.assertEqual(
+            event["ddtags"],
+            "custom_tag_2:value2,service:my_custom_service,key:my-service-repo",
+        )
+        self.assertNotIn(
+            "service",
+            event,
+        )
+
+    def test_extract_ddtags_handles_empty_spaces(self):
+        loaded_message_tags = {
+            "ddtags": "key:my-service-repo,  service:  my_custom_service  "
+        }
+        event = {"message": loaded_message_tags, "ddtags": "custom_tag_2:value2,"}
+
+        extract_ddtags_from_message(event)
+
+        self.assertEqual(
+            event["ddtags"],
+            "custom_tag_2:value2,key:my-service-repo,service:my_custom_service",
+        )
+        self.assertEqual(
+            event["service"],
+            "my_custom_service",
+        )
+
 
 class TestExtractHostFromLogEvents(unittest.TestCase):
     def test_parse_source_cloudtrail(self):
@@ -114,7 +152,9 @@ class TestExtractHostFromLogEvents(unittest.TestCase):
             "ddsource": "cloudtrail",
             "message": {
                 "userIdentity": {
-                    "arn": "arn:aws:sts::601427279990:assumed-role/gke-90725aa7-management/i-99999999"
+                    "arn": (
+                        "arn:aws:sts::601427279990:assumed-role/gke-90725aa7-management/i-99999999"
+                    )
                 }
             },
         }
@@ -136,6 +176,100 @@ class TestExtractHostFromLogEvents(unittest.TestCase):
         }
         extract_host_from_route53(event)
         self.assertEqual(event["host"], "i-99999999")
+
+
+class TestLambdaMetadataEnrichment(unittest.TestCase):
+    def test_empty_event(self):
+        cache_layer = CacheLayer("")
+        event = {}
+        add_metadata_to_lambda_log(event, cache_layer)
+
+        self.assertEqual(event, {})
+
+    def test_non_lambda_event(self):
+        cache_layer = CacheLayer("")
+        event = {"lambda": {}}
+        add_metadata_to_lambda_log(event, cache_layer)
+
+        verify_as_json(event)
+
+    def test_lambda_event_bad_arn(self):
+        cache_layer = CacheLayer("")
+        event = {"lambda": {"arn": "bad_arn"}}
+        add_metadata_to_lambda_log(event, cache_layer)
+        verify_as_json(event)
+
+    def test_lambda_event_wo_service(self):
+        cache_layer = CacheLayer("")
+        event = {
+            "lambda": {
+                "arn": "arn:aws:lambda:us-east-1:123456789012:function:my-function"
+            }
+        }
+        add_metadata_to_lambda_log(event, cache_layer)
+        verify_as_json(event)
+
+    def test_lambda_event_w_custom_tags_wo_service(self):
+        cache_layer = CacheLayer("")
+        cache_layer._lambda_cache.get = MagicMock(
+            return_value=["service:customtags_service"]
+        )
+        event = {
+            "lambda": {
+                "arn": "arn:aws:lambda:us-east-1:123456789012:function:my-function"
+            }
+        }
+        add_metadata_to_lambda_log(event, cache_layer)
+        verify_as_json(event)
+
+    def test_lambda_event_w_custom_tags_w_service(self):
+        cache_layer = CacheLayer("")
+        cache_layer._lambda_cache.get = MagicMock(
+            return_value=["service:customtags_service"]
+        )
+        event = {
+            "lambda": {
+                "arn": "arn:aws:lambda:us-east-1:123456789012:function:my-function"
+            },
+            "service": "my_service",
+        }
+        add_metadata_to_lambda_log(event, cache_layer)
+        verify_as_json(event)
+
+    def test_lambda_event_w_service(self):
+        cache_layer = CacheLayer("")
+        event = {
+            "lambda": {
+                "arn": "arn:aws:lambda:us-east-1:123456789012:function:my-function"
+            },
+            "service": "my_service",
+        }
+        add_metadata_to_lambda_log(event, cache_layer)
+        verify_as_json(event)
+
+    def test_lambda_event_w_service_and_ddtags(self):
+        cache_layer = CacheLayer("")
+        event = {
+            "lambda": {
+                "arn": "arn:aws:lambda:us-east-1:123456789012:function:my-function"
+            },
+            "service": "my_service",
+            "ddtags": "service:ddtags_service",
+        }
+        add_metadata_to_lambda_log(event, cache_layer)
+        verify_as_json(event)
+
+    def test_lambda_event_w_custom_tags_env(self):
+        cache_layer = CacheLayer("")
+        cache_layer._lambda_cache.get = MagicMock(return_value=["env:customtags_env"])
+        event = {
+            "lambda": {
+                "arn": "arn:aws:lambda:us-east-1:123456789012:function:my-function"
+            },
+            "ddtags": "env:none",
+        }
+        add_metadata_to_lambda_log(event, cache_layer)
+        verify_as_json(event)
 
 
 if __name__ == "__main__":

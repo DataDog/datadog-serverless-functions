@@ -5,6 +5,7 @@ class AwsEventSource(Enum):
     APIGATEWAY = "apigateway"
     APPSYNC = "appsync"
     AWS = "aws"
+    BATCH = "batch"
     BEDROCK = "bedrock"
     CARBONBLACK = "carbonblack"
     CLOUDFRONT = "cloudfront"
@@ -30,12 +31,12 @@ class AwsEventSource(Enum):
     MSK = "msk"
     MYSQL = "mysql"
     NETWORKFIREWALL = "network-firewall"
+    OPENSEARCH = "opensearch"
     POSTGRESQL = "postgresql"
-    RDS = "rds"
-    REDSHIFT = "redshift"
     ROUTE53 = "route53"
     S3 = "s3"
     SNS = "sns"
+    SSM = "ssm"
     STEPFUNCTION = "stepfunction"
     TRANSITGATEWAY = "transitgateway"
     VERIFIED_ACCESS = "verified-access"
@@ -48,22 +49,18 @@ class AwsEventSource(Enum):
     @staticmethod
     def cloudwatch_sources():
         return [
-            AwsEventSource.NETWORKFIREWALL,
-            AwsEventSource.ROUTE53,
-            AwsEventSource.VPC,
-            AwsEventSource.FARGATE,
-            AwsEventSource.CLOUDTRAIL,
-            AwsEventSource.MSK,
-            AwsEventSource.ELASTICSEARCH,
-            AwsEventSource.TRANSITGATEWAY,
-            AwsEventSource.VERIFIED_ACCESS,
             AwsEventSource.BEDROCK,
             AwsEventSource.CLOUDFRONT,
+            AwsEventSource.CLOUDTRAIL,
+            AwsEventSource.ELASTICSEARCH,
+            AwsEventSource.FARGATE,
+            AwsEventSource.MSK,
+            AwsEventSource.NETWORKFIREWALL,
+            AwsEventSource.ROUTE53,
+            AwsEventSource.TRANSITGATEWAY,
+            AwsEventSource.VERIFIED_ACCESS,
+            AwsEventSource.VPC,
         ]
-
-    @staticmethod
-    def rds_sources():
-        return [AwsEventSource.MARIADB, AwsEventSource.MYSQL, AwsEventSource.POSTGRESQL]
 
 
 class AwsS3EventSourceKeyword(Enum):
@@ -81,16 +78,14 @@ class AwsS3EventSourceKeyword(Enum):
     # e.g. carbon-black-cloud-forwarder/alerts/org_key=*****/year=2021/month=7/day=19/hour=18/minute=15/second=41/8436e850-7e78-40e4-b3cd-6ebbc854d0a2.jsonl.gz
     CARBONBLACK = ("carbon-black", AwsEventSource.CARBONBLACK)
     CODEBUILD = ("amazon_codebuild", AwsEventSource.CODEBUILD)
-    CLOUDFRONT = ("cloudfront", AwsEventSource.CLOUDFRONT)
     DMS = ("amazon_dms", AwsEventSource.DMS)
     DOCDB = ("amazon_documentdb", AwsEventSource.DOCDB)
     # e.g. AWSLogs/123456779121/elasticloadbalancing/us-east-1/2020/10/02/123456779121_elasticloadbalancing_us-east-1_app.alb.xxxxx.xx.xxx.xxx_x.log.gz
     ELB = ("elasticloadbalancing", AwsEventSource.ELB)
+    GUARDDUTY = ("guardduty", AwsEventSource.GUARDDUTY)
     KINESIS = ("amazon_kinesis", AwsEventSource.KINESIS)
     MSK = ("amazon_msk", AwsEventSource.MSK)
     NETWORKFIREWALL = ("network-firewall", AwsEventSource.NETWORKFIREWALL)
-    # e.g. AWSLogs/123456779121/redshift/us-east-1/2020/10/21/123456779121_redshift_us-east-1_mycluster_userlog_2020-10-21T18:01.gz
-    REDSHIFT = ("_redshift_", AwsEventSource.REDSHIFT)
     # e.g. AWSLogs/123456779121/vpcdnsquerylogs/vpc-********/2021/05/11/vpc-********_vpcdnsquerylogs_********_20210511T0910Z_71584702.log.gz
     ROUTE53 = ("vpcdnsquerylogs", AwsEventSource.ROUTE53)
     TRANSITGATEWAY = ("transit-gateway", AwsEventSource.TRANSITGATEWAY)
@@ -117,6 +112,7 @@ class AwsCwEventSourcePrefix(Enum):
     APIGATEWAY_3 = ("/aws/apigateway", AwsEventSource.APIGATEWAY)
     # e.g. /aws/appsync/yourApiId
     APPSYNC = ("/aws/appsync", AwsEventSource.APPSYNC)
+    BATCH = ("/aws/batch/job", AwsEventSource.BATCH)
     BEDROCK = ("aws/bedrock/modelinvocations", AwsEventSource.BEDROCK)
     # e.g. /aws/codebuild/my-project
     CODEBUILD = ("/aws/codebuild", AwsEventSource.CODEBUILD)
@@ -132,11 +128,12 @@ class AwsCwEventSourcePrefix(Enum):
     # e.g. /aws/kinesisfirehose/dev
     KINESIS = ("/aws/kinesis", AwsEventSource.KINESIS)
     # e.g. /aws/lambda/helloDatadog
-    lAMBDA = ("/aws/lambda", AwsEventSource.LAMBDA)
-    RDS = ("/aws/rds", AwsEventSource.RDS)
+    LAMBDA = ("/aws/lambda", AwsEventSource.LAMBDA)
+    # e.g. /aws/opensearchservice/domains/my-cluster
+    OPENSEARCH = ("/aws/opensearchservice/domains/", AwsEventSource.OPENSEARCH)
     # e.g. sns/us-east-1/123456779121/SnsTopicX
     SNS = ("sns/", AwsEventSource.SNS)
-    STEPFUNCTION = ("/aws/vendedlogs/states", AwsEventSource.STEPFUNCTION)
+    SSM = ("/aws/ssm/", AwsEventSource.SSM)
     TRANSITGATEWAY = ("tgw-attach", AwsEventSource.TRANSITGATEWAY)
 
     def __str__(self):

@@ -9,6 +9,7 @@ import boto3
 import logging
 import requests
 from hashlib import sha1
+
 from datadog_lambda.wrapper import datadog_lambda_wrapper
 from datadog import api
 from enhanced_lambda_metrics import parse_and_submit_enhanced_metrics
@@ -27,7 +28,6 @@ from settings import (
     DD_RETRY_KEYWORD,
 )
 
-
 logger = logging.getLogger()
 logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
 
@@ -42,13 +42,22 @@ if len(DD_API_KEY) != 32:
     )
 # Validate the API key
 logger.debug("Validating the Datadog API key")
-validation_res = requests.get(
-    "{}/api/v1/validate?api_key={}".format(DD_API_URL, DD_API_KEY),
-    verify=(not DD_SKIP_SSL_VALIDATION),
-    timeout=10,
-)
-if not validation_res.ok:
-    raise Exception("The API key is not valid.")
+
+with requests.Session() as s:
+    retries = requests.adapters.Retry(
+        total=5, backoff_factor=1, status_forcelist=[500, 502, 503, 504]
+    )
+
+    s.mount("http://", requests.adapters.HTTPAdapter(max_retries=retries))
+    s.mount("https://", requests.adapters.HTTPAdapter(max_retries=retries))
+
+    validation_res = s.get(
+        "{}/api/v1/validate?api_key={}".format(DD_API_URL, DD_API_KEY),
+        verify=(not DD_SKIP_SSL_VALIDATION),
+        timeout=10,
+    )
+    if not validation_res.ok:
+        raise Exception("The API key is not valid.")
 
 # Force the layer to use the exact same API key and host as the forwarder
 api._api_key = DD_API_KEY

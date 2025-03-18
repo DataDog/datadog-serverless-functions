@@ -1,0 +1,16 @@
+{
+	"messageType": "DATA_MESSAGE",
+	"owner": "123456789012",
+	"logGroup": "/aws/rds/cluster",
+	"logStream": "2025/01/01/[$LATEST]3b1b2b3b4b5b6b7b8b9b0",
+	"subscriptionFilters": [
+		"testing-datadog"
+	],
+	"logEvents": [
+		{
+			"id": "45311576111948622874033876462979853992919938886093242368",
+			"timestamp": 1737735732,
+			"message": "{\"status\":\"info\",\"message\":\"datadog:This is a custom message\",\"ddtags\":\"my:tag\"}\n"
+		}
+	]
+}
