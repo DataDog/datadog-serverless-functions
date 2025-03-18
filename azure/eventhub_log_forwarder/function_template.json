@@ -84,7 +84,17 @@
       "kind": "StorageV2",
       "sku": {
         "name": "Standard_LRS"
-      }
+      },
+      "properties": {
+          "encryption": {
+              "keySource": "Microsoft.Storage",
+              "requireInfrastructureEncryption": true,
+              "services": {
+                  "blob": { "enabled": true },
+                  "file": { "enabled": true }
+                }
+            }
+        }
     },
     {
       "apiVersion": "2018-11-01",
