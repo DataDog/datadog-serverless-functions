@@ -53,7 +53,7 @@ try {
 
 try {
     New-AzDeployment `
-        -TemplateUri "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/altantls12/azure/eventhub_log_forwarder/activity_log_diagnostic_settings.json" `
+        -TemplateUri "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/eventhub_log_forwarder/activity_log_diagnostic_settings.json" `
         -eventHubNamespace $EventhubNamespace `
         -eventHubName $EventhubName `
         -settingName $DiagnosticSettingName `
