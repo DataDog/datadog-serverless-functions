@@ -63,7 +63,7 @@
       }
     },
     "endpointSuffix": {
-     "type": "string",
+      "type": "string",
       "defaultValue": "core.windows.net",
       "metadata": {
         "description": "Endpoint suffix for storage account"
@@ -84,6 +84,9 @@
       "kind": "StorageV2",
       "sku": {
         "name": "Standard_LRS"
+      },
+      "properties": {
+        "minimumTlsVersion": "TLS1_2"
       }
     },
     {

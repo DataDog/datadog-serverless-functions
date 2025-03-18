@@ -42,7 +42,9 @@
         "capacity": 1
       },
       "tags": {},
-      "properties": {},
+      "properties": {
+        "minimumTlsVersion": "1.2"
+      },
       "resources": [
         {
           "apiVersion": "2017-04-01",
