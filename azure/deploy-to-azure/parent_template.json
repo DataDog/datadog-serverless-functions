@@ -77,6 +77,20 @@
         "metadata": {
             "description": "The name of the diagnostic setting if sending Activity Logs"
         }
+    },
+    "isAutoInflateEnabled": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+          "description": "Whether or not to use Auto Inflate"
+      }
+    },
+    "maximumThroughputUnits": {
+      "type": "int",
+      "defaultValue": 0,
+      "metadata": {
+        "description": "The maximum number of throughput units"
+      }
     }
   },
   "variables": {
@@ -107,6 +121,12 @@
           },
           "location": {
             "value": "[parameters('resourcesLocation')]"
+          },
+          "isAutoInflateEnabled": {
+            "value": "[parameters('isAutoInflateEnabled')]"
+          },
+          "maximumThroughputUnits": {
+            "value": "[parameters('maximumThroughputUnits')]"
           }
         }
       }
