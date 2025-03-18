@@ -80,9 +80,9 @@
     }
   },
   "variables": {
-    "eventHubTemplateLink": "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/altan/tls12/azure/deploy-to-azure/event_hub.json",
-    "functionAppTemplateLink": "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/altan/tls12/azure/deploy-to-azure/function_template.json",
-    "activityLogDiagnosticSettingsTemplateLink": "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/altan/tls12/azure/deploy-to-azure/activity_log_diagnostic_settings.json"
+    "eventHubTemplateLink": "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/deploy-to-azure/event_hub.json",
+    "functionAppTemplateLink": "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/deploy-to-azure/function_template.json",
+    "activityLogDiagnosticSettingsTemplateLink": "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/deploy-to-azure/activity_log_diagnostic_settings.json"
   },
   "resources": [
     {
