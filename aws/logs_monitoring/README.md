@@ -126,6 +126,10 @@ If you can't install the Forwarder using the provided CloudFormation template, y
 aws lambda invoke --function-name <function-name> --payload '{"retry":"true"}' out
 ```
 
+<div class="alert alert-warning">
+The <a href="#cloudformation-parameters">environment variables provided on this page</a> are formatted for CloudFormation and Terraform. If you are installing the Forwarder manually, convert these parameter names from Pascal case to screaming snake case. For example, <code>DdApiKey</code> becomes <code>DD_API_KEY</code>, and <code>ExcludeAtMatch</code> becomes <code>EXCLUDE_AT_MATCH</code>.
+</div>
+
 [101]: https://github.com/DataDog/datadog-serverless-functions/releases
 [102]: https://app.datadoghq.com/organization-settings/api-keys
 [103]: https://github.com/DataDog/datadog-serverless-functions/blob/029bd46e5c6d4e8b1ae647ed3b4d1917ac3cd793/aws/logs_monitoring/template.yaml#L680
@@ -336,6 +340,10 @@ Otherwise, if you are using Web Proxy:
 The Datadog Forwarder is signed by Datadog. To verify the integrity of the Forwarder, use the manual installation method. [Create a Code Signing Configuration][19] that includes Datadog’s Signing Profile ARN (`arn:aws:signer:us-east-1:464622532012:/signing-profiles/DatadogLambdaSigningProfile/9vMI9ZAGLc`) and associate it with the Forwarder Lambda function before uploading the Forwarder ZIP file.
 
 ## CloudFormation parameters
+
+<div class="alert alert-warning">
+The following parameters are used in CloudFormation and Terraform. If you are installing the Forwarder manually, convert these parameter names from Pascal case to screaming snake case. For example, <code>DdApiKey</code> becomes <code>DD_API_KEY</code>, and <code>ExcludeAtMatch</code> becomes <code>EXCLUDE_AT_MATCH</code>.
+</div>
 
 ### Required
 
