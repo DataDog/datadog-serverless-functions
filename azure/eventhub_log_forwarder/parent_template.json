@@ -79,7 +79,7 @@
     {
       "name": "eventHubTemplate",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2018-05-01",
+      "apiVersion": "2024-07-01",
       "properties": {
         "mode": "Incremental",
         "templateLink": {
@@ -102,7 +102,7 @@
     {
       "name": "functionAppTemplate",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2018-05-01",
+      "apiVersion": "2024-07-01",
       "properties": {
         "mode": "Incremental",
         "templateLink": {
@@ -147,10 +147,10 @@
       ]
     }
   ],
-    "outputs": {
-      "eventHubNamespace": {
-        "type": "string",
-        "value": "[parameters('eventHubNamespace')]"
-      }
+  "outputs": {
+    "eventHubNamespace": {
+      "type": "string",
+      "value": "[parameters('eventHubNamespace')]"
     }
+  }
 }
