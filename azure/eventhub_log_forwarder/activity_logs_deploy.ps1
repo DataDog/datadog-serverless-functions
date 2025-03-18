@@ -17,7 +17,7 @@ if (-Not ($SubscriptionId -And $ApiKey)) { Throw "`SubscriptionId` and `ApiKey` 
 
 Set-AzContext -SubscriptionId $SubscriptionId
 
-$code = (New-Object System.Net.WebClient).DownloadString("https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/activity_logs_monitoring/index.js")
+$code = (New-Object System.Net.WebClient).DownloadString("https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/altan/tls12/azure/activity_logs_monitoring/index.js")
 
 New-AzResourceGroup -Name $ResourceGroupName -Location $ResourceGroupLocation
 
@@ -26,7 +26,7 @@ $endpointSuffix = $environment.StorageEndpointSuffix
 $secureApiKey = ConvertTo-SecureString $ApiKey -AsPlainText -Force
 
 $deploymentArgs = @{
-    TemplateUri = "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/eventhub_log_forwarder/parent_template.json"
+    TemplateUri = "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/altan/tls12/azure/eventhub_log_forwarder/parent_template.json"
     ResourceGroupName = $ResourceGroupName
     functionCode = $code
     apiKey = $secureApiKey
@@ -53,7 +53,7 @@ try {
 
 try {
     New-AzDeployment `
-        -TemplateUri "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/eventhub_log_forwarder/activity_log_diagnostic_settings.json" `
+        -TemplateUri "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/altantls12/azure/eventhub_log_forwarder/activity_log_diagnostic_settings.json" `
         -eventHubNamespace $EventhubNamespace `
         -eventHubName $EventhubName `
         -settingName $DiagnosticSettingName `
