@@ -26,4 +26,3 @@ Resources:
         !Sub
           - 'arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key/${keyId}'
           - {keyId: !Ref KMSKeyId}
-    Type: AWS::Serverless::Function
