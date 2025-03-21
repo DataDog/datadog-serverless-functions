@@ -22,3 +22,4 @@ jobs:
           pip install boto3 mock approvaltests
           python -m unittest discover ./aws/logs_monitoring/
           python -m unittest discover ./aws/rds_enhanced_monitoring/
+          python -m unittest discover ./aws/vpc_flow_log_monitoring/
