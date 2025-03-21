@@ -412,18 +412,17 @@ class Stats(object):
 
         self._initialize()
 
+        creds = urlencode(datadog_keys)
+        url = "%s?%s" % (
+            datadog_keys.get("api_host", "https://api.%s/api/v1/series" % DD_SITE),
+            creds,
+        )
         batches = self.batch_series(series)
         for batch in batches:
             metrics_dict = {
                 "series": batch,
             }
-
-            creds = urlencode(datadog_keys)
             data = json.dumps(metrics_dict).encode("utf-8")
-            url = "%s?%s" % (
-                datadog_keys.get("api_host", "https://api.%s/api/v1/series" % DD_SITE),
-                creds,
-            )
             req = Request(url, data, {"Content-Type": "application/json"})
             response = urlopen(req)
             logger.info(f"INFO Submitted data with status {response.getcode()}")
