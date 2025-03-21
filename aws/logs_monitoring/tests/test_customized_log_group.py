@@ -1,7 +1,8 @@
 import unittest
+
 from customized_log_group import (
-    is_lambda_customized_log_group,
     get_lambda_function_name_from_logstream_name,
+    is_lambda_customized_log_group,
     is_step_functions_log_group,
 )
 

@@ -57,7 +57,6 @@ class S3EventHandler:
         event = self._extract_event(event)
         self._set_source(event)
         add_service_tag(self.metadata)
-        self._set_host()
         self._add_s3_tags_from_cache()
         self._extract_data()
         yield from self._get_structured_lines_for_s3_handler()
@@ -82,18 +81,6 @@ class S3EventHandler:
         if str(AwsS3EventSourceKeyword.TRANSITGATEWAY) in self.data_store.bucket:
             self.data_store.source = str(AwsEventSource.TRANSITGATEWAY)
         self.metadata[DD_SOURCE] = self.data_store.source
-
-    def _set_host(self):
-        hostname = self._parse_service_arn()
-        if hostname:
-            self.metadata[DD_HOST] = hostname
-
-    def _parse_service_arn(self):
-        src = AwsEventSource._value2member_map_.get(self.data_store.source)
-        match src:
-            case AwsEventSource.S3:
-                # For S3 access logs we use the bucket name to rebuild the arn
-                return self._get_s3_arn()
 
     def _get_s3_arn(self):
         if not self.data_store.bucket:
