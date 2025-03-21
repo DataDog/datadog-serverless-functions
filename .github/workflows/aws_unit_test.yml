@@ -1,4 +1,4 @@
-name: Python unit tests
+name: AWS Python unit tests
 
 on: [pull_request]
 
@@ -13,7 +13,7 @@ jobs:
         with:
           python-version: 3.12
 
-      - name: Run Python unit tests
+      - name: AWS Python unit tests
         env:
           AWS_DEFAULT_REGION: us-east-1
           DD_API_KEY: "11111111111111111111111111111111"
@@ -22,3 +22,4 @@ jobs:
           pip install boto3 mock approvaltests
           python -m unittest discover ./aws/logs_monitoring/
           python -m unittest discover ./aws/rds_enhanced_monitoring/
+          python -m unittest discover ./aws/vpc_flow_log_monitoring/
