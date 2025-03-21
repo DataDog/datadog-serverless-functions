@@ -352,7 +352,7 @@ class Stats(object):
     def __init__(self):
         self._initialize()
         self.metric_prefix = "aws.vpc.flowlogs"
-        #limit input size at 3.2MB see https://docs.datadoghq.com/api/latest/metrics/#submit-metrics 
+        # limit input size at 3.2MB see https://docs.datadoghq.com/api/latest/metrics/#submit-metrics
         self.max_batch_size_bytes = 3200000
 
     def increment(self, metric, value=1, timestamp=None, tags=None):
