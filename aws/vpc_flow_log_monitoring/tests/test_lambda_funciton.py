@@ -27,5 +27,9 @@ class TestLambdaFunction(unittest.TestCase):
         stats = Stats()
         batched_series = stats.batch_series(series)
 
+        batches_length = 0
         for batch in batched_series:
             self.assertLessEqual(sys.getsizeof(batch), 3200000)
+            batches_length += len(batch)
+
+        self.assertEqual(len(series), batches_length)
