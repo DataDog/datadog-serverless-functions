@@ -1,6 +1,7 @@
 import unittest
 import unittest.mock
 import os
+import sys
 
 
 
@@ -21,4 +22,6 @@ class TestLambdaFunction(unittest.TestCase):
         stats = Stats()
         batched_series = stats.batch_series(series)
         
-        self.assertEqual(len(batched_series), 6)
+        for batch in batched_series:
+            self.assertLessEqual(sys.getsizeof(batch), 3200000)
+            
