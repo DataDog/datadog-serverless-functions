@@ -109,13 +109,13 @@ logger.info("Lambda function initialized, ready to send metrics")
 
 def process_message(message, tags, timestamp, node_ip):
     (
-        version,
-        account_id,
+        _,
+        _,
         interface_id,
         srcaddr,
         dstaddr,
-        srcport,
-        dstport,
+        _,
+        _,
         protocol,
         packets,
         _bytes,
@@ -244,7 +244,6 @@ def protocol_id_to_name(protocol):
         81: "VMTP",
         82: "SECURE-VMTP",
         83: "VINES",
-        84: "TTP",
         84: "IPTM",
         85: "NSFNET-IGP",
         86: "DGP",
