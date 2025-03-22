@@ -8,7 +8,7 @@
 package main
 
 import (
-	"io/ioutil"
+	"io"
 	"os"
 	"testing"
 
@@ -58,7 +58,7 @@ func TestForwardTracesWithXRayRoot(t *testing.T) {
 	assert.NoError(t, err)
 	defer file.Close()
 
-	contents, err := ioutil.ReadAll(file)
+	contents, err := io.ReadAll(file)
 	input := string(contents)
 
 	assert.NoError(t, err, "Couldn't read contents of test file")
@@ -71,7 +71,7 @@ func TestForwardTracesWithXRayRoot(t *testing.T) {
 	result := ForwardTraces(input)
 
 	w.Close()
-	out, _ := ioutil.ReadAll(r)
+	out, _ := io.ReadAll(r)
 	os.Stdout = originalStdout
 
 	outputLog := string(out)

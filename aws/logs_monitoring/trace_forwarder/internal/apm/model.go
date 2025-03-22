@@ -186,7 +186,6 @@ func AddTagsToTracePayloads(tracePayloads []*pb.TracePayload, tags string) {
 			tracePayload.Env = env
 		}
 		for _, trace := range tracePayload.Traces {
-
 			for _, span := range trace.Spans {
 				// do not add tags from Lambda function if it's an inferred span and
 				// it does not belong to the AWS Lambda service
@@ -210,7 +209,6 @@ func AddTagsToTracePayloads(tracePayloads []*pb.TracePayload, tags string) {
 // ObfuscatePayload applies obfuscator rules to the trace payloads
 func ObfuscatePayload(obfuscator *obfuscate.Obfuscator, tracePayloads []*pb.TracePayload) {
 	for _, tracePayload := range tracePayloads {
-
 		// Obfuscate the traces in the payload
 		for _, trace := range tracePayload.Traces {
 			for _, span := range trace.Spans {
@@ -271,7 +269,6 @@ func addToAPITrace(apiTrace *pb.APITrace, sp *pb.Span) {
 	if apiTrace.StartTime == 0 || apiTrace.StartTime > sp.Start {
 		apiTrace.StartTime = sp.Start
 	}
-
 }
 
 func decodeAPMId(id string) uint64 {
