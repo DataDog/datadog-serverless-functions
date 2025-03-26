@@ -5,7 +5,6 @@
             "memorysize:128",
             "cold_start:false",
             "region:us-east-1",
-            "account_id:172597598159",
             "aws_account:172597598159",
             "functionname:post-coupon-prod-us"
         ],
@@ -18,7 +17,6 @@
             "memorysize:128",
             "cold_start:false",
             "region:us-east-1",
-            "account_id:172597598159",
             "aws_account:172597598159",
             "functionname:post-coupon-prod-us"
         ],
@@ -31,7 +29,6 @@
             "memorysize:128",
             "cold_start:false",
             "region:us-east-1",
-            "account_id:172597598159",
             "aws_account:172597598159",
             "functionname:post-coupon-prod-us"
         ],
@@ -44,7 +41,6 @@
             "memorysize:128",
             "cold_start:false",
             "region:us-east-1",
-            "account_id:172597598159",
             "aws_account:172597598159",
             "functionname:post-coupon-prod-us"
         ],

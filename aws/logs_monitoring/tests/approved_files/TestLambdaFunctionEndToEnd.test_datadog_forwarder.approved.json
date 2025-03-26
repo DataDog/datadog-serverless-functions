@@ -6,12 +6,11 @@
                 "logStream": "2020/03/05/[$LATEST]20bddfd5a2dc4c6b97ac02800eae90d0",
                 "owner": "601427279990"
             },
-            "function_version": 0,
             "invoked_function_arn": "arn:aws:lambda:sa-east-1:601427279990:function:inferred-spans-python-dev-initsender"
         },
         "ddsource": "lambda",
         "ddsourcecategory": "aws",
-        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,account_id:601427279990,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
+        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_version:<redacted from snapshot>,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
         "host": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x",
         "id": "35311576111948622874033876462979853992919938886093242368",
         "lambda": {
@@ -28,12 +27,11 @@
                 "logStream": "2020/03/05/[$LATEST]20bddfd5a2dc4c6b97ac02800eae90d0",
                 "owner": "601427279990"
             },
-            "function_version": 0,
             "invoked_function_arn": "arn:aws:lambda:sa-east-1:601427279990:function:inferred-spans-python-dev-initsender"
         },
         "ddsource": "lambda",
         "ddsourcecategory": "aws",
-        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,account_id:601427279990,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
+        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_version:<redacted from snapshot>,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
         "host": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x",
         "id": "35311576111948622874033876462979853992919938886093242369",
         "lambda": {
@@ -50,12 +48,11 @@
                 "logStream": "2020/03/05/[$LATEST]20bddfd5a2dc4c6b97ac02800eae90d0",
                 "owner": "601427279990"
             },
-            "function_version": 0,
             "invoked_function_arn": "arn:aws:lambda:sa-east-1:601427279990:function:inferred-spans-python-dev-initsender"
         },
         "ddsource": "lambda",
         "ddsourcecategory": "aws",
-        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,account_id:601427279990,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
+        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_version:<redacted from snapshot>,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
         "host": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x",
         "id": "35311576111948622874033876462979853992919938886093242370",
         "lambda": {
@@ -72,12 +69,11 @@
                 "logStream": "2020/03/05/[$LATEST]20bddfd5a2dc4c6b97ac02800eae90d0",
                 "owner": "601427279990"
             },
-            "function_version": 0,
             "invoked_function_arn": "arn:aws:lambda:sa-east-1:601427279990:function:inferred-spans-python-dev-initsender"
         },
         "ddsource": "lambda",
         "ddsourcecategory": "aws",
-        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,account_id:601427279990,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
+        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_version:<redacted from snapshot>,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
         "host": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x",
         "id": "35311576111948622874033876462979853992919938886093242371",
         "lambda": {
@@ -94,12 +90,11 @@
                 "logStream": "2020/03/05/[$LATEST]20bddfd5a2dc4c6b97ac02800eae90d0",
                 "owner": "601427279990"
             },
-            "function_version": 0,
             "invoked_function_arn": "arn:aws:lambda:sa-east-1:601427279990:function:inferred-spans-python-dev-initsender"
         },
         "ddsource": "lambda",
         "ddsourcecategory": "aws",
-        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,account_id:601427279990,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
+        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_version:<redacted from snapshot>,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
         "host": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x",
         "id": "35311576111948622874033876462979853992919938886093242372",
         "lambda": {
@@ -116,12 +111,11 @@
                 "logStream": "2020/03/05/[$LATEST]20bddfd5a2dc4c6b97ac02800eae90d0",
                 "owner": "601427279990"
             },
-            "function_version": 0,
             "invoked_function_arn": "arn:aws:lambda:sa-east-1:601427279990:function:inferred-spans-python-dev-initsender"
         },
         "ddsource": "lambda",
         "ddsourcecategory": "aws",
-        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,account_id:601427279990,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
+        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_version:<redacted from snapshot>,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
         "host": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x",
         "id": "35311576112305434797210366433244425485282312670188929029",
         "lambda": {
@@ -138,12 +132,11 @@
                 "logStream": "2020/03/05/[$LATEST]20bddfd5a2dc4c6b97ac02800eae90d0",
                 "owner": "601427279990"
             },
-            "function_version": 0,
             "invoked_function_arn": "arn:aws:lambda:sa-east-1:601427279990:function:inferred-spans-python-dev-initsender"
         },
         "ddsource": "lambda",
         "ddsourcecategory": "aws",
-        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,account_id:601427279990,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
+        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_version:<redacted from snapshot>,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
         "host": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x",
         "id": "35311576113197464605151591358905854216188247130428145670",
         "lambda": {
@@ -160,12 +153,11 @@
                 "logStream": "2020/03/05/[$LATEST]20bddfd5a2dc4c6b97ac02800eae90d0",
                 "owner": "601427279990"
             },
-            "function_version": 0,
             "invoked_function_arn": "arn:aws:lambda:sa-east-1:601427279990:function:inferred-spans-python-dev-initsender"
         },
         "ddsource": "lambda",
         "ddsourcecategory": "aws",
-        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,account_id:601427279990,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
+        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_version:<redacted from snapshot>,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
         "host": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x",
         "id": "35311576113197464605151591358905854216188247130428145671",
         "lambda": {
@@ -182,12 +174,11 @@
                 "logStream": "2020/03/05/[$LATEST]20bddfd5a2dc4c6b97ac02800eae90d0",
                 "owner": "601427279990"
             },
-            "function_version": 0,
             "invoked_function_arn": "arn:aws:lambda:sa-east-1:601427279990:function:inferred-spans-python-dev-initsender"
         },
         "ddsource": "lambda",
         "ddsourcecategory": "aws",
-        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,account_id:601427279990,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
+        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_version:<redacted from snapshot>,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
         "host": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x",
         "id": "35311576113197464605151591358905854216188247130428145672",
         "lambda": {
@@ -204,12 +195,11 @@
                 "logStream": "2020/03/05/[$LATEST]20bddfd5a2dc4c6b97ac02800eae90d0",
                 "owner": "601427279990"
             },
-            "function_version": 0,
             "invoked_function_arn": "arn:aws:lambda:sa-east-1:601427279990:function:inferred-spans-python-dev-initsender"
         },
         "ddsource": "lambda",
         "ddsourcecategory": "aws",
-        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,account_id:601427279990,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
+        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_version:<redacted from snapshot>,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
         "host": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x",
         "id": "35311576113197464605151591358905854216188247130428145673",
         "lambda": {
@@ -226,12 +216,11 @@
                 "logStream": "2020/03/05/[$LATEST]20bddfd5a2dc4c6b97ac02800eae90d0",
                 "owner": "601427279990"
             },
-            "function_version": 0,
             "invoked_function_arn": "arn:aws:lambda:sa-east-1:601427279990:function:inferred-spans-python-dev-initsender"
         },
         "ddsource": "lambda",
         "ddsourcecategory": "aws",
-        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,account_id:601427279990,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
+        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_version:<redacted from snapshot>,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
         "host": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x",
         "id": "35311576113197464605151591358905854216188247130428145674",
         "lambda": {
@@ -248,12 +237,11 @@
                 "logStream": "2020/03/05/[$LATEST]20bddfd5a2dc4c6b97ac02800eae90d0",
                 "owner": "601427279990"
             },
-            "function_version": 0,
             "invoked_function_arn": "arn:aws:lambda:sa-east-1:601427279990:function:inferred-spans-python-dev-initsender"
         },
         "ddsource": "lambda",
         "ddsourcecategory": "aws",
-        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,account_id:601427279990,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
+        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_version:<redacted from snapshot>,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
         "host": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x",
         "id": "35311576113643479509122203821736568581641214360547753995",
         "lambda": {
@@ -270,12 +258,11 @@
                 "logStream": "2020/03/05/[$LATEST]20bddfd5a2dc4c6b97ac02800eae90d0",
                 "owner": "601427279990"
             },
-            "function_version": 0,
             "invoked_function_arn": "arn:aws:lambda:sa-east-1:601427279990:function:inferred-spans-python-dev-initsender"
         },
         "ddsource": "lambda",
         "ddsourcecategory": "aws",
-        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,account_id:601427279990,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
+        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_version:<redacted from snapshot>,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
         "host": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x",
         "id": "35311576113643479509122203821736568581641214360547753996",
         "lambda": {
@@ -292,12 +279,11 @@
                 "logStream": "2020/03/05/[$LATEST]20bddfd5a2dc4c6b97ac02800eae90d0",
                 "owner": "601427279990"
             },
-            "function_version": 0,
             "invoked_function_arn": "arn:aws:lambda:sa-east-1:601427279990:function:inferred-spans-python-dev-initsender"
         },
         "ddsource": "lambda",
         "ddsourcecategory": "aws",
-        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,account_id:601427279990,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
+        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_version:<redacted from snapshot>,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
         "host": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x",
         "id": "35311576113643479509122203821736568581641214360547753997",
         "lambda": {
@@ -314,12 +300,11 @@
                 "logStream": "2020/03/05/[$LATEST]20bddfd5a2dc4c6b97ac02800eae90d0",
                 "owner": "601427279990"
             },
-            "function_version": 0,
             "invoked_function_arn": "arn:aws:lambda:sa-east-1:601427279990:function:inferred-spans-python-dev-initsender"
         },
         "ddsource": "lambda",
         "ddsourcecategory": "aws",
-        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,account_id:601427279990,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
+        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_version:<redacted from snapshot>,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
         "host": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x",
         "id": "35311576123455807396475678004012284621606493423179137038",
         "lambda": {
@@ -336,12 +321,11 @@
                 "logStream": "2020/03/05/[$LATEST]20bddfd5a2dc4c6b97ac02800eae90d0",
                 "owner": "601427279990"
             },
-            "function_version": 0,
             "invoked_function_arn": "arn:aws:lambda:sa-east-1:601427279990:function:inferred-spans-python-dev-initsender"
         },
         "ddsource": "lambda",
         "ddsourcecategory": "aws",
-        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,account_id:601427279990,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
+        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_version:<redacted from snapshot>,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
         "host": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x",
         "id": "35311576123478108141674208627153820339879141784685117455",
         "lambda": {
@@ -358,12 +342,11 @@
                 "logStream": "2020/03/05/[$LATEST]20bddfd5a2dc4c6b97ac02800eae90d0",
                 "owner": "601427279990"
             },
-            "function_version": 0,
             "invoked_function_arn": "arn:aws:lambda:sa-east-1:601427279990:function:inferred-spans-python-dev-initsender"
         },
         "ddsource": "lambda",
         "ddsourcecategory": "aws",
-        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,account_id:601427279990,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
+        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_version:<redacted from snapshot>,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
         "host": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x",
         "id": "35311576125685881916328740318165856448871329573777178640",
         "lambda": {
@@ -380,12 +363,11 @@
                 "logStream": "2020/03/05/[$LATEST]20bddfd5a2dc4c6b97ac02800eae90d0",
                 "owner": "601427279990"
             },
-            "function_version": 0,
             "invoked_function_arn": "arn:aws:lambda:sa-east-1:601427279990:function:inferred-spans-python-dev-initsender"
         },
         "ddsource": "lambda",
         "ddsourcecategory": "aws",
-        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,account_id:601427279990,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
+        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_version:<redacted from snapshot>,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
         "host": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x",
         "id": "35311576126131896820299352780996570814324296803896786961",
         "lambda": {
@@ -402,12 +384,11 @@
                 "logStream": "2020/03/05/[$LATEST]20bddfd5a2dc4c6b97ac02800eae90d0",
                 "owner": "601427279990"
             },
-            "function_version": 0,
             "invoked_function_arn": "arn:aws:lambda:sa-east-1:601427279990:function:inferred-spans-python-dev-initsender"
         },
         "ddsource": "lambda",
         "ddsourcecategory": "aws",
-        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_memorysize:10,forwarder_version:<redacted from snapshot>,account_id:601427279990,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
+        "ddtags": "forwardername:inferred-spans-python-dev-initsender,forwarder_version:<redacted from snapshot>,aws_account:601427279990,creator:swf,env:prod,functionname:hello-dog-node-dev-hello12x,monitor:datadog,region:sa-east-1,service:hello,team:metrics",
         "host": "arn:aws:lambda:sa-east-1:601427279990:function:hello-dog-node-dev-hello12x",
         "id": "35311576126131896820299352780996570814324296803896786962",
         "lambda": {
