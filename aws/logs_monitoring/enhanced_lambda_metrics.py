@@ -265,7 +265,6 @@ def parse_lambda_tags_from_arn(arn):
 
     return [
         "region:{}".format(region),
-        "account_id:{}".format(account_id),
         # Include the aws_account tag to match the aws.lambda CloudWatch metrics
         "aws_account:{}".format(account_id),
         "functionname:{}".format(function_name),

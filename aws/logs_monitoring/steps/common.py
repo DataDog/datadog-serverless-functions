@@ -13,9 +13,7 @@ from settings import (
     DD_SERVICE,
     DD_SOURCE,
     DD_TAGS,
-    FUNCTIONVERSION_STRING,
     FORWARDERNAME_STRING,
-    FORWARDERMEMSIZE_STRING,
     FORWARDERVERSION_STRING,
     INVOKEDFUNCTIONARN_STRING,
     SOURCECATEGORY_STRING,
@@ -120,7 +118,6 @@ def generate_metadata(context):
     metadata = {
         SOURCECATEGORY_STRING: AWS_STRING,
         AWS_STRING: {
-            FUNCTIONVERSION_STRING: context.function_version,
             INVOKEDFUNCTIONARN_STRING: context.invoked_function_arn,
         },
     }
@@ -144,7 +141,6 @@ def generate_metadata(context):
 def generate_custom_tags(context):
     dd_custom_tags_data = {
         FORWARDERNAME_STRING: context.function_name.lower(),
-        FORWARDERMEMSIZE_STRING: context.memory_limit_in_mb,
         FORWARDERVERSION_STRING: DD_FORWARDER_VERSION,
     }
 
