@@ -33,7 +33,7 @@ env_patch.stop()
 
 
 class Context:
-    function_version = 0
+    function_version = "$LATEST"
     invoked_function_arn = "invoked_function_arn"
     function_name = "function_name"
     memory_limit_in_mb = "10"

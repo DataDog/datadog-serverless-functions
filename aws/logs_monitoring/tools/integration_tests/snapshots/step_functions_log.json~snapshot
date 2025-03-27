@@ -9,12 +9,11 @@
               "logStream": "states/logs-to-traces-sequential/2022-11-10-15-50/7851b2d9",
               "owner": "425362996713"
             },
-            "function_version": "$LATEST",
             "invoked_function_arn": "arn:aws:lambda:us-east-1:012345678912:function:test_function"
           },
           "ddsource": "stepfunction",
           "ddsourcecategory": "aws",
-          "ddtags": "forwardername:test_function,forwarder_memorysize:3008,forwarder_version:<redacted from snapshot>",
+          "ddtags": "forwardername:test_function,forwarder_version:<redacted from snapshot>",
           "host": "/aws/vendedlogs/states/logs-to-traces-sequential-Logs",
           "id": "37199773595581154154810589279545129148442535997644275712",
           "message": "{\"id\":\"1\",\"type\":\"ExecutionStarted\",\"details\":{\"input\":\"{\"Comment\": \"Insert your JSON here\"}\",\"inputDetails\":{\"truncated\":false},\"roleArn\":\"arn:aws:iam::425362996713:role/service-role/StepFunctions-logs-to-traces-sequential-role-ccd69c03\"},\",previous_event_id\":\"0\",\"event_timestamp\":\"1668095539607\",\"execution_arn\":\"arn:aws:states:sa-east-1:425362996713:express:logs-to-traces-sequential:<redacted from snapshot>:<redacted from snapshot>\"}",

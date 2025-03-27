@@ -9,12 +9,11 @@
               "logStream": "2020/03/05/test-customized-loggroup[$LATEST]20bddfd5a2dc4c6b97ac02800eae90d0",
               "owner": "601427279990"
             },
-            "function_version": "$LATEST",
             "invoked_function_arn": "arn:aws:lambda:us-east-1:012345678912:function:test_function"
           },
           "ddsource": "lambda",
           "ddsourcecategory": "aws",
-          "ddtags": "forwardername:test_function,forwarder_memorysize:3008,forwarder_version:<redacted from snapshot>,env:none,account_id:012345678912,aws_account:012345678912,functionname:test-customized-loggroup,region:us-east-1,service:test-customized-loggroup",
+          "ddtags": "forwardername:test_function,forwarder_version:<redacted from snapshot>,env:none,aws_account:012345678912,functionname:test-customized-loggroup,region:us-east-1,service:test-customized-loggroup",
           "host": "arn:aws:lambda:us-east-1:012345678912:function:test-customized-loggroup",
           "id": "35311576111948622874033876462979853992919938886093242368",
           "lambda": {
@@ -31,12 +30,11 @@
               "logStream": "2020/03/05/test-customized-loggroup[$LATEST]20bddfd5a2dc4c6b97ac02800eae90d0",
               "owner": "601427279990"
             },
-            "function_version": "$LATEST",
             "invoked_function_arn": "arn:aws:lambda:us-east-1:012345678912:function:test_function"
           },
           "ddsource": "lambda",
           "ddsourcecategory": "aws",
-          "ddtags": "forwardername:test_function,forwarder_memorysize:3008,forwarder_version:<redacted from snapshot>,env:none,account_id:012345678912,aws_account:012345678912,functionname:test-customized-loggroup,region:us-east-1,service:test-customized-loggroup",
+          "ddtags": "forwardername:test_function,forwarder_version:<redacted from snapshot>,env:none,aws_account:012345678912,functionname:test-customized-loggroup,region:us-east-1,service:test-customized-loggroup",
           "host": "arn:aws:lambda:us-east-1:012345678912:function:test-customized-loggroup",
           "id": "35311576111948622874033876462979853992919938886093242369",
           "lambda": {
@@ -53,12 +51,11 @@
               "logStream": "2020/03/05/test-customized-loggroup[$LATEST]20bddfd5a2dc4c6b97ac02800eae90d0",
               "owner": "601427279990"
             },
-            "function_version": "$LATEST",
             "invoked_function_arn": "arn:aws:lambda:us-east-1:012345678912:function:test_function"
           },
           "ddsource": "lambda",
           "ddsourcecategory": "aws",
-          "ddtags": "forwardername:test_function,forwarder_memorysize:3008,forwarder_version:<redacted from snapshot>,env:none,account_id:012345678912,aws_account:012345678912,functionname:test-customized-loggroup,region:us-east-1,service:test-customized-loggroup",
+          "ddtags": "forwardername:test_function,forwarder_version:<redacted from snapshot>,env:none,aws_account:012345678912,functionname:test-customized-loggroup,region:us-east-1,service:test-customized-loggroup",
           "host": "arn:aws:lambda:us-east-1:012345678912:function:test-customized-loggroup",
           "id": "35311576111948622874033876462979853992919938886093242370",
           "lambda": {

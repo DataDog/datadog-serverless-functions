@@ -9,12 +9,11 @@
               "logStream": "testLogStream",
               "owner": "123456789123"
             },
-            "function_version": "$LATEST",
             "invoked_function_arn": "arn:aws:lambda:us-east-1:012345678912:function:test_function"
           },
           "ddsource": "cloudwatch",
           "ddsourcecategory": "aws",
-          "ddtags": "forwardername:test_function,forwarder_memorysize:3008,forwarder_version:<redacted from snapshot>,custom_tag1:value1,custom_tag2:value2",
+          "ddtags": "forwardername:test_function,forwarder_version:<redacted from snapshot>,custom_tag1:value1,custom_tag2:value2",
           "host": "testLogGroup",
           "id": "eventId1",
           "message": "{\"message\": \"hello world\"}",

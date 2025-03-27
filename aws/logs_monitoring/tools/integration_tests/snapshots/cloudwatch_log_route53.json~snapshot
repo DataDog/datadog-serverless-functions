@@ -9,12 +9,11 @@
               "logStream": "vpc-34d4ae52_20210419T0940Z_i-090384b04e4e5bfd2",
               "owner": "601427279990"
             },
-            "function_version": "$LATEST",
             "invoked_function_arn": "arn:aws:lambda:us-east-1:012345678912:function:test_function"
           },
           "ddsource": "route53",
           "ddsourcecategory": "aws",
-          "ddtags": "forwardername:test_function,forwarder_memorysize:3008,forwarder_version:<redacted from snapshot>",
+          "ddtags": "forwardername:test_function,forwarder_version:<redacted from snapshot>",
           "host": "i-090384b04e4e5bfd2",
           "id": "36101011026851289935914250459116581911799633971817938944",
           "message": "{\"version\":\"1.100000\",\"account_id\":\"601427279990\",\"region\":\"us-east-1\",\"vpc_id\":\"vpc-34d4ae52\",\"query_timestamp\":\"2021-04-19T09:42:02Z\",\"query_name\":\"queue.amazonaws.com.\",\"query_type\":\"A\",\"query_class\":\"IN\",\"rcode\":\"NOERROR\",\"answers\":[{\"Rdata\":\"3.236.169.0\",\"Type\":\"A\",\"Class\":\"IN\"}],\"srcaddr\":\"172.31.26.215\",\"srcport\":\"34460\",\"transport\":\"UDP\",\"srcids\":{\"instance\":\"i-090384b04e4e5bfd2\"}}",
