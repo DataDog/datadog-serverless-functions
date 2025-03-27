@@ -11,7 +11,6 @@ from approvaltests.approvals import Options, verify_as_json
 from approvaltests.scrubbers import create_regex_scrubber
 
 from caching.cache_layer import CacheLayer
-from settings import DD_HOST, DD_SERVICE, DD_SOURCE
 from steps.handlers.aws_attributes import AwsAttributes
 from steps.handlers.awslogs_handler import AwsLogsHandler
 
@@ -89,7 +88,6 @@ class TestAWSLogsHandler(unittest.TestCase):
 
         # Process the event
         awslogs_handler = AwsLogsHandler(context, cache_layer)
-        result = list(awslogs_handler.handle(event))
 
         # Verify
         verify_as_json(
@@ -99,6 +97,9 @@ class TestAWSLogsHandler(unittest.TestCase):
 
     @patch("caching.cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.__init__")
     def test_awslogs_handler_rds_postgresql(self, mock_cache_init):
+        reload(sys.modules["settings"])
+        reload(sys.modules["steps.common"])
+
         event = {
             "awslogs": {
                 "data": base64.b64encode(

@@ -6,12 +6,11 @@
                 "logStream": "2024/03/14/[$LATEST]abc123",
                 "owner": "123456789012"
             },
-            "function_version": 0,
             "invoked_function_arn": "invoked_function_arn"
         },
         "ddsource": "something",
         "ddsourcecategory": "aws",
-        "ddtags": "wan:obi,forwardername:function_name,forwarder_memorysize:10,forwarder_version:<redacted>,source_overriden:true",
+        "ddtags": "wan:obi,forwardername:function_name,forwarder_version:<redacted>,source_overriden:true",
         "host": "/aws/lambda/test-function",
         "id": "123456789",
         "message": "Test log message",

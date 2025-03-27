@@ -162,7 +162,7 @@ class TestS3EventsHandler(unittest.TestCase):
 
         self.s3_handler._extract_data = MagicMock()
         self.s3_handler.data_store.data = "data".encode("utf-8")
-        structured_lines = list(self.s3_handler.handle(event))
+        self.s3_handler.handle(event)
         self.assertEqual(self.s3_handler.metadata["ddsource"], "something")
 
     def test_s3_handler_with_multiline_regex(self):
