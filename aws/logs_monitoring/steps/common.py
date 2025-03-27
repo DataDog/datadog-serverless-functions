@@ -15,7 +15,6 @@ from settings import (
     DD_TAGS,
     FUNCTIONVERSION_STRING,
     FORWARDERNAME_STRING,
-    FORWARDERMEMSIZE_STRING,
     FORWARDERVERSION_STRING,
     INVOKEDFUNCTIONARN_STRING,
     SOURCECATEGORY_STRING,
@@ -120,10 +119,14 @@ def generate_metadata(context):
     metadata = {
         SOURCECATEGORY_STRING: AWS_STRING,
         AWS_STRING: {
-            FUNCTIONVERSION_STRING: context.function_version,
             INVOKEDFUNCTIONARN_STRING: context.invoked_function_arn,
         },
     }
+
+    # Add the function version to the metadata if it is not the latest
+    if context.function_version != "$LATEST":
+        metadata[AWS_STRING][FUNCTIONVERSION_STRING] = context.function_version
+
     # Add custom tags here by adding new value with the following format "key1:value1, key2:value2"  - might be subject to modifications
     dd_custom_tags_data = generate_custom_tags(context)
     metadata[DD_CUSTOM_TAGS] = ",".join(
@@ -144,7 +147,6 @@ def generate_metadata(context):
 def generate_custom_tags(context):
     dd_custom_tags_data = {
         FORWARDERNAME_STRING: context.function_name.lower(),
-        FORWARDERMEMSIZE_STRING: context.memory_limit_in_mb,
         FORWARDERVERSION_STRING: DD_FORWARDER_VERSION,
     }
 

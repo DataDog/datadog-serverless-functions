@@ -30,7 +30,7 @@ env_patch.stop()
 
 
 class Context:
-    function_version = 0
+    function_version = "$LATEST"
     invoked_function_arn = "invoked_function_arn"
     function_name = "function_name"
     memory_limit_in_mb = "10"
@@ -144,7 +144,6 @@ class TestS3CloudwatchParsing(unittest.TestCase):
                         "bucket": payload["s3"]["bucket"]["name"],
                         "key": payload["s3"]["object"]["key"],
                     },
-                    "function_version": context.function_version,
                     "invoked_function_arn": context.invoked_function_arn,
                 },
             }

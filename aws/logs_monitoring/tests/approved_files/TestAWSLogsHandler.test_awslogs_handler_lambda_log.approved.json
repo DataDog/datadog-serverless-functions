@@ -6,12 +6,11 @@
                 "logStream": "2023/11/06/[$LATEST]b25b1f977b3e416faa45a00f427e7acb",
                 "owner": "123456789012"
             },
-            "function_version": 0,
             "invoked_function_arn": "invoked_function_arn"
         },
         "ddsource": "lambda",
         "ddsourcecategory": "aws",
-        "ddtags": "forwardername:function_name,forwarder_memorysize:10,forwarder_version:<redacted>,env:none",
+        "ddtags": "forwardername:function_name,forwarder_version:<redacted>,env:none",
         "host": "/aws/lambda/test-lambda-default-log-group",
         "id": "37199773595581154154810589279545129148442535997644275712",
         "lambda": {

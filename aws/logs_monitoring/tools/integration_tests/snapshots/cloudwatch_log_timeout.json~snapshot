@@ -9,12 +9,11 @@
               "logStream": "2020/06/09/[$LATEST]b249865adaaf4fad80f95f8ad09725b8",
               "owner": "601427279990"
             },
-            "function_version": "$LATEST",
             "invoked_function_arn": "arn:aws:lambda:us-east-1:012345678912:function:test_function"
           },
           "ddsource": "lambda",
           "ddsourcecategory": "aws",
-          "ddtags": "forwardername:test_function,forwarder_memorysize:3008,forwarder_version:<redacted from snapshot>,env:none,account_id:012345678912,aws_account:012345678912,functionname:storms-cloudwatch-event,region:us-east-1,service:storms-cloudwatch-event",
+          "ddtags": "forwardername:test_function,forwarder_version:<redacted from snapshot>,env:none,aws_account:012345678912,functionname:storms-cloudwatch-event,region:us-east-1,service:storms-cloudwatch-event",
           "host": "arn:aws:lambda:us-east-1:012345678912:function:storms-cloudwatch-event",
           "id": "35496429375792603298393743017356257146982675867810398208",
           "lambda": {
@@ -31,12 +30,11 @@
               "logStream": "2020/06/09/[$LATEST]b249865adaaf4fad80f95f8ad09725b8",
               "owner": "601427279990"
             },
-            "function_version": "$LATEST",
             "invoked_function_arn": "arn:aws:lambda:us-east-1:012345678912:function:test_function"
           },
           "ddsource": "lambda",
           "ddsourcecategory": "aws",
-          "ddtags": "forwardername:test_function,forwarder_memorysize:3008,forwarder_version:<redacted from snapshot>,env:none,account_id:012345678912,aws_account:012345678912,functionname:storms-cloudwatch-event,region:us-east-1,service:storms-cloudwatch-event",
+          "ddtags": "forwardername:test_function,forwarder_version:<redacted from snapshot>,env:none,aws_account:012345678912,functionname:storms-cloudwatch-event,region:us-east-1,service:storms-cloudwatch-event",
           "host": "arn:aws:lambda:us-east-1:012345678912:function:storms-cloudwatch-event",
           "id": "35496429442806342619978265557671090556291002193281548289",
           "lambda": {
@@ -53,12 +51,11 @@
               "logStream": "2020/06/09/[$LATEST]b249865adaaf4fad80f95f8ad09725b8",
               "owner": "601427279990"
             },
-            "function_version": "$LATEST",
             "invoked_function_arn": "arn:aws:lambda:us-east-1:012345678912:function:test_function"
           },
           "ddsource": "lambda",
           "ddsourcecategory": "aws",
-          "ddtags": "forwardername:test_function,forwarder_memorysize:3008,forwarder_version:<redacted from snapshot>,env:none,account_id:012345678912,aws_account:012345678912,functionname:storms-cloudwatch-event,region:us-east-1,service:storms-cloudwatch-event",
+          "ddtags": "forwardername:test_function,forwarder_version:<redacted from snapshot>,env:none,aws_account:012345678912,functionname:storms-cloudwatch-event,region:us-east-1,service:storms-cloudwatch-event",
           "host": "arn:aws:lambda:us-east-1:012345678912:function:storms-cloudwatch-event",
           "id": "35496429442806342619978265557671090556291002193281548290",
           "lambda": {
@@ -75,12 +72,11 @@
               "logStream": "2020/06/09/[$LATEST]b249865adaaf4fad80f95f8ad09725b8",
               "owner": "601427279990"
             },
-            "function_version": "$LATEST",
             "invoked_function_arn": "arn:aws:lambda:us-east-1:012345678912:function:test_function"
           },
           "ddsource": "lambda",
           "ddsourcecategory": "aws",
-          "ddtags": "forwardername:test_function,forwarder_memorysize:3008,forwarder_version:<redacted from snapshot>,env:none,account_id:012345678912,aws_account:012345678912,functionname:storms-cloudwatch-event,region:us-east-1,service:storms-cloudwatch-event",
+          "ddtags": "forwardername:test_function,forwarder_version:<redacted from snapshot>,env:none,aws_account:012345678912,functionname:storms-cloudwatch-event,region:us-east-1,service:storms-cloudwatch-event",
           "host": "arn:aws:lambda:us-east-1:012345678912:function:storms-cloudwatch-event",
           "id": "35496429442806342619978265557671090556291002193281548291",
           "lambda": {
@@ -179,7 +175,6 @@
             "points": "<redacted from snapshot>",
             "tags": [
               "region:us-east-1",
-              "account_id:012345678912",
               "aws_account:012345678912",
               "functionname:storms-cloudwatch-event"
             ],

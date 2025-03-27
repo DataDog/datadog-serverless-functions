@@ -6,12 +6,11 @@
                 "logStream": "states/logs-to-traces-sequential/2022-11-10-15-50/7851b2d9",
                 "owner": "425362996713"
             },
-            "function_version": 0,
             "invoked_function_arn": "invoked_function_arn"
         },
         "ddsource": "stepfunction",
         "ddsourcecategory": "aws",
-        "ddtags": "forwardername:function_name,forwarder_memorysize:10,forwarder_version:<redacted>,test_tag_key:test_tag_value,dd_step_functions_trace_enabled:true",
+        "ddtags": "forwardername:function_name,forwarder_version:<redacted>,test_tag_key:test_tag_value,dd_step_functions_trace_enabled:true",
         "host": "arn:aws:states:us-east-1:12345678910:stateMachine:StepFunction1",
         "id": "37199773595581154154810589279545129148442535997644275712",
         "message": "{\"id\": \"1\",\"type\": \"ExecutionStarted\",\"details\": {\"input\": \"{}\",\"inputDetails\": {\"truncated\": \"false\"},\"roleArn\": \"arn:aws:iam::12345678910:role/service-role/StepFunctions-test-role-a0iurr4pt\"},\"previous_event_id\": \"0\",\"event_timestamp\": \"1716992192441\",\"execution_arn\": \"arn:aws:states:us-east-1:12345678910:execution:StepFunction1:ccccccc-d1da-4c38-b32c-2b6b07d713fa\",\"redrive_count\": \"0\"}",

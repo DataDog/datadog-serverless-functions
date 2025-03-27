@@ -37,7 +37,7 @@ env_patch.stop()
 
 
 class Context:
-    function_version = 0
+    function_version = "$LATEST"
     invoked_function_arn = "arn:aws:lambda:sa-east-1:601427279990:function:inferred-spans-python-dev-initsender"
     function_name = "inferred-spans-python-dev-initsender"
     memory_limit_in_mb = "10"
