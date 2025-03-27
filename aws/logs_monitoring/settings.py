@@ -134,6 +134,9 @@ else:
 ## @param DD_USE_VPC
 DD_USE_VPC = get_env_var("DD_USE_VPC", "false", boolean=True)
 
+## @param DD_CUSTOM_SOURCE
+DD_CUSTOM_SOURCE = get_env_var("DD_SOURCE", "")
+
 # DEPRECATED. No longer need to use special endpoints, as you can now expose
 # regular Datadog API endpoints `api`, `http-intake.logs` and `trace.agent`
 # via PrivateLink. See https://docs.datadoghq.com/agent/guide/private-link/.

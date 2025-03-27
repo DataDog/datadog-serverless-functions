@@ -55,7 +55,10 @@ class S3EventHandler:
 
     def handle(self, event):
         event = self._extract_event(event)
-        self._set_source(event)
+
+        if self.metadata.get(DD_SOURCE) is None:
+            self._set_source(event)
+
         add_service_tag(self.metadata)
         self._add_s3_tags_from_cache()
         self._extract_data()

@@ -4,12 +4,14 @@ import json
 import os
 import sys
 import unittest
+from importlib import reload
 from unittest.mock import MagicMock, patch
 
 from approvaltests.approvals import Options, verify_as_json
 from approvaltests.scrubbers import create_regex_scrubber
 
 from caching.cache_layer import CacheLayer
+from settings import DD_HOST, DD_SERVICE, DD_SOURCE
 from steps.handlers.aws_attributes import AwsAttributes
 from steps.handlers.awslogs_handler import AwsLogsHandler
 
@@ -28,7 +30,6 @@ env_patch = patch.dict(
 )
 env_patch.start()
 
-
 env_patch.stop()
 
 
@@ -44,6 +45,56 @@ class TestAWSLogsHandler(unittest.TestCase):
         self.scrubber = create_regex_scrubber(
             r"forwarder_version:\d+\.\d+\.\d+",
             "forwarder_version:<redacted>",
+        )
+
+    @patch.dict(os.environ, {"DD_SOURCE": "something"})
+    @patch.dict(os.environ, {"DD_TAGS": "wan:obi"})
+    @patch("caching.cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.__init__")
+    def test_handle_with_overridden_source(self, mock_cache_init):
+        reload(sys.modules["settings"])
+        reload(sys.modules["steps.common"])
+
+        # Create a minimal test event
+        event = {
+            "awslogs": {
+                "data": base64.b64encode(
+                    gzip.compress(
+                        bytes(
+                            json.dumps(
+                                {
+                                    "owner": "123456789012",
+                                    "logGroup": "/aws/lambda/test-function",
+                                    "logStream": "2024/03/14/[$LATEST]abc123",
+                                    "logEvents": [
+                                        {
+                                            "id": "123456789",
+                                            "timestamp": 1710428400000,
+                                            "message": "Test log message",
+                                        }
+                                    ],
+                                }
+                            ),
+                            "utf-8",
+                        )
+                    )
+                )
+            }
+        }
+
+        # Create required args
+        context = Context()
+        mock_cache_init.return_value = None
+        cache_layer = CacheLayer("")
+        cache_layer._cloudwatch_log_group_cache.get = MagicMock(return_value=[])
+
+        # Process the event
+        awslogs_handler = AwsLogsHandler(context, cache_layer)
+        result = list(awslogs_handler.handle(event))
+
+        # Verify
+        verify_as_json(
+            list(awslogs_handler.handle(event)),
+            options=Options().with_scrubber(self.scrubber),
         )
 
     @patch("caching.cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.__init__")

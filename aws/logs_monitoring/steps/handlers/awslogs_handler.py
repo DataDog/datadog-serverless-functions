@@ -45,7 +45,9 @@ class AwsLogsHandler:
         # Set account and region from lambda function ARN
         self.set_account_region(aws_attributes)
         # Set the source on the logs
-        self.set_source(event, metadata, aws_attributes)
+        if metadata.get(DD_SOURCE) is None:
+            self.set_source(event, metadata, aws_attributes)
+
         # Add custom tags from cache
         self.add_cloudwatch_tags_from_cache(metadata, aws_attributes)
         # Set service from custom tags, which may include the tags set on the log group

@@ -3,23 +3,21 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2021 Datadog, Inc.
 
-import json
-import os
 import itertools
+import json
 import logging
-from telemetry import set_forwarder_telemetry_tags, send_event_metric
-from steps.handlers.awslogs_handler import AwsLogsHandler
-from steps.handlers.s3_handler import S3EventHandler
+import os
+
+from settings import DD_SERVICE, DD_SOURCE
 from steps.common import (
     generate_metadata,
     get_service_from_tags_and_remove_duplicates,
     merge_dicts,
 )
-from steps.enums import AwsEventType, AwsEventTypeKeyword, AwsEventSource
-from settings import (
-    DD_SOURCE,
-    DD_SERVICE,
-)
+from steps.enums import AwsEventSource, AwsEventType, AwsEventTypeKeyword
+from steps.handlers.awslogs_handler import AwsLogsHandler
+from steps.handlers.s3_handler import S3EventHandler
+from telemetry import send_event_metric, set_forwarder_telemetry_tags
 
 logger = logging.getLogger()
 logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
@@ -88,12 +86,14 @@ def parse_event_type(event):
 # Handle Cloudwatch Events
 def cwevent_handler(event, metadata):
     # Set the source on the log
-    source = event.get("source", str(AwsEventSource.CLOUDWATCH))
-    service = source.split(".")
-    if len(service) > 1:
-        metadata[DD_SOURCE] = service[1]
-    else:
-        metadata[DD_SOURCE] = str(AwsEventSource.CLOUDWATCH)
+    if metadata.get(DD_SOURCE) is None:
+        source = event.get("source", str(AwsEventSource.CLOUDWATCH))
+        service = source.split(".")
+        if len(service) > 1:
+            metadata[DD_SOURCE] = service[1]
+        else:
+            metadata[DD_SOURCE] = str(AwsEventSource.CLOUDWATCH)
+
     metadata[DD_SERVICE] = get_service_from_tags_and_remove_duplicates(metadata)
 
     yield event
