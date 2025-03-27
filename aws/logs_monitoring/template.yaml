@@ -3,10 +3,10 @@ Description: Pushes logs, metrics and traces from AWS to Datadog.
 Mappings:
   Constants:
     DdForwarder:
-      Version: 4.2.0
-      LayerVersion: "77"
+      Version: 4.3.0
+      LayerVersion: "78"
 Parameters:
-  DdApiKey:  
+  DdApiKey:
     Type: String
     NoEcho: true
     Default: ""
@@ -285,7 +285,7 @@ Conditions:
       - !Not
         - !Condition SetLayerARN
   CreateDdApiKeySecret: !And
-    - !Equals [!Ref DdApiKeySecretArn, 'arn:aws:secretsmanager:DEFAULT'] 
+    - !Equals [!Ref DdApiKeySecretArn, 'arn:aws:secretsmanager:DEFAULT']
     - !Equals [!Ref DdApiKeySsmParameterName, '/my/parameter/path']
   SetDDApiSsmParamName: !Not
     - !Equals [!Ref DdApiKeySsmParameterName, "/my/parameter/path"]
@@ -659,7 +659,7 @@ Resources:
                 Resource: "*"
                 Effect: Allow
               - !If
-               # Access the Datadog API key from Secrets Manager
+                # Access the Datadog API key from Secrets Manager
                 - SetDDApiSsmParamName
                 - !Ref AWS::NoValue
                 - Action:
