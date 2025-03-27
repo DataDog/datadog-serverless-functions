@@ -10,7 +10,7 @@
         },
         "ddsource": "something",
         "ddsourcecategory": "aws",
-        "ddtags": "wan:obi,forwardername:function_name,forwarder_version:<redacted>,source_overriden:true",
+        "ddtags": "forwardername:function_name,forwarder_version:<redacted>,source_overriden:true",
         "host": "/aws/lambda/test-function",
         "id": "123456789",
         "message": "Test log message",

@@ -46,60 +46,58 @@ class TestAWSLogsHandler(unittest.TestCase):
             "forwarder_version:<redacted>",
         )
 
-    @patch.dict(os.environ, {"DD_SOURCE": "something"})
-    @patch.dict(os.environ, {"DD_TAGS": "wan:obi"})
     @patch("caching.cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.__init__")
     def test_handle_with_overridden_source(self, mock_cache_init):
-        reload(sys.modules["settings"])
-        reload(sys.modules["steps.common"])
-
-        # Create a minimal test event
-        event = {
-            "awslogs": {
-                "data": base64.b64encode(
-                    gzip.compress(
-                        bytes(
-                            json.dumps(
-                                {
-                                    "owner": "123456789012",
-                                    "logGroup": "/aws/lambda/test-function",
-                                    "logStream": "2024/03/14/[$LATEST]abc123",
-                                    "logEvents": [
-                                        {
-                                            "id": "123456789",
-                                            "timestamp": 1710428400000,
-                                            "message": "Test log message",
-                                        }
-                                    ],
-                                }
-                            ),
-                            "utf-8",
+        with patch.dict(os.environ, {"DD_SOURCE": "something"}):
+            reload(sys.modules["settings"])
+            reload(sys.modules["steps.common"])
+            # Create a minimal test event
+            event = {
+                "awslogs": {
+                    "data": base64.b64encode(
+                        gzip.compress(
+                            bytes(
+                                json.dumps(
+                                    {
+                                        "owner": "123456789012",
+                                        "logGroup": "/aws/lambda/test-function",
+                                        "logStream": "2024/03/14/[$LATEST]abc123",
+                                        "logEvents": [
+                                            {
+                                                "id": "123456789",
+                                                "timestamp": 1710428400000,
+                                                "message": "Test log message",
+                                            }
+                                        ],
+                                    }
+                                ),
+                                "utf-8",
+                            )
                         )
                     )
-                )
+                }
             }
-        }
 
-        # Create required args
-        context = Context()
-        mock_cache_init.return_value = None
-        cache_layer = CacheLayer("")
-        cache_layer._cloudwatch_log_group_cache.get = MagicMock(return_value=[])
+            # Create required args
+            context = Context()
+            mock_cache_init.return_value = None
+            cache_layer = CacheLayer("")
+            cache_layer._cloudwatch_log_group_cache.get = MagicMock(return_value=[])
 
-        # Process the event
-        awslogs_handler = AwsLogsHandler(context, cache_layer)
+            # Process the event
+            awslogs_handler = AwsLogsHandler(context, cache_layer)
 
-        # Verify
-        verify_as_json(
-            list(awslogs_handler.handle(event)),
-            options=Options().with_scrubber(self.scrubber),
-        )
+            # Verify
+            verify_as_json(
+                list(awslogs_handler.handle(event)),
+                options=Options().with_scrubber(self.scrubber),
+            )
+
+        reload(sys.modules["settings"])
+        reload(sys.modules["steps.common"])
 
     @patch("caching.cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.__init__")
     def test_awslogs_handler_rds_postgresql(self, mock_cache_init):
-        reload(sys.modules["settings"])
-        reload(sys.modules["steps.common"])
-
         event = {
             "awslogs": {
                 "data": base64.b64encode(
