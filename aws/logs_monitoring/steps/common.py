@@ -146,7 +146,7 @@ def generate_metadata(context):
     if DD_CUSTOM_SOURCE != "":
         metadata[DD_SOURCE] = DD_CUSTOM_SOURCE
         metadata[DD_CUSTOM_TAGS] = ",".join(
-            metadata.get(DD_CUSTOM_TAGS, "").split(",") + ["source_overriden:true"]
+            metadata.get(DD_CUSTOM_TAGS, "").split(",") + ["source_overridden:true"]
         )
 
     return metadata
