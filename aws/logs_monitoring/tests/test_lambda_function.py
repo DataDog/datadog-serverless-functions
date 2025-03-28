@@ -1,14 +1,15 @@
-from unittest.mock import MagicMock, patch
+import base64
+import gzip
+import json
 import os
 import sys
 import unittest
-import json
-import gzip
-import base64
-from botocore.exceptions import ClientError
-from approvaltests.approvals import verify_as_json, Options
-from approvaltests.scrubbers import create_regex_scrubber
 from importlib import reload
+from unittest.mock import MagicMock, patch
+
+from approvaltests.approvals import Options, verify_as_json
+from approvaltests.scrubbers import create_regex_scrubber
+from botocore.exceptions import ClientError
 
 sys.modules["trace_forwarder.connection"] = MagicMock()
 sys.modules["datadog_lambda.wrapper"] = MagicMock()
@@ -25,13 +26,14 @@ env_patch = patch.dict(
     },
 )
 env_patch.start()
+
+from caching.cache_layer import CacheLayer
 from lambda_function import invoke_additional_target_lambdas
 from steps.enrichment import enrich
-from steps.transformation import transform
-from steps.splitting import split
-from steps.parsing import parse, parse_event_type
 from steps.enums import AwsEventType
-from caching.cache_layer import CacheLayer
+from steps.parsing import parse, parse_event_type
+from steps.splitting import split
+from steps.transformation import transform
 
 env_patch.stop()
 

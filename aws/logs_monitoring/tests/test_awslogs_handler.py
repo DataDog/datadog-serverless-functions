@@ -4,6 +4,7 @@ import json
 import os
 import sys
 import unittest
+from importlib import reload
 from unittest.mock import MagicMock, patch
 
 from approvaltests.approvals import Options, verify_as_json
@@ -28,7 +29,6 @@ env_patch = patch.dict(
 )
 env_patch.start()
 
-
 env_patch.stop()
 
 
@@ -45,6 +45,56 @@ class TestAWSLogsHandler(unittest.TestCase):
             r"forwarder_version:\d+\.\d+\.\d+",
             "forwarder_version:<redacted>",
         )
+
+    @patch("caching.cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.__init__")
+    def test_handle_with_overridden_source(self, mock_cache_init):
+        with patch.dict(os.environ, {"DD_SOURCE": "something"}):
+            reload(sys.modules["settings"])
+            reload(sys.modules["steps.common"])
+            # Create a minimal test event
+            event = {
+                "awslogs": {
+                    "data": base64.b64encode(
+                        gzip.compress(
+                            bytes(
+                                json.dumps(
+                                    {
+                                        "owner": "123456789012",
+                                        "logGroup": "/aws/lambda/test-function",
+                                        "logStream": "2024/03/14/[$LATEST]abc123",
+                                        "logEvents": [
+                                            {
+                                                "id": "123456789",
+                                                "timestamp": 1710428400000,
+                                                "message": "Test log message",
+                                            }
+                                        ],
+                                    }
+                                ),
+                                "utf-8",
+                            )
+                        )
+                    )
+                }
+            }
+
+            # Create required args
+            context = Context()
+            mock_cache_init.return_value = None
+            cache_layer = CacheLayer("")
+            cache_layer._cloudwatch_log_group_cache.get = MagicMock(return_value=[])
+
+            # Process the event
+            awslogs_handler = AwsLogsHandler(context, cache_layer)
+
+            # Verify
+            verify_as_json(
+                list(awslogs_handler.handle(event)),
+                options=Options().with_scrubber(self.scrubber),
+            )
+
+        reload(sys.modules["settings"])
+        reload(sys.modules["steps.common"])
 
     @patch("caching.cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.__init__")
     def test_awslogs_handler_rds_postgresql(self, mock_cache_init):

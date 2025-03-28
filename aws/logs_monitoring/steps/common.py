@@ -1,23 +1,25 @@
 import re
-from steps.enums import (
-    AwsEventSource,
-    AwsEventType,
-    AwsEventTypeKeyword,
-    AwsCwEventSourcePrefix,
-    AwsS3EventSourceKeyword,
-)
+
 from settings import (
     AWS_STRING,
+    DD_CUSTOM_SOURCE,
     DD_CUSTOM_TAGS,
     DD_FORWARDER_VERSION,
     DD_SERVICE,
     DD_SOURCE,
     DD_TAGS,
-    FUNCTIONVERSION_STRING,
     FORWARDERNAME_STRING,
     FORWARDERVERSION_STRING,
+    FUNCTIONVERSION_STRING,
     INVOKEDFUNCTIONARN_STRING,
     SOURCECATEGORY_STRING,
+)
+from steps.enums import (
+    AwsCwEventSourcePrefix,
+    AwsEventSource,
+    AwsEventType,
+    AwsEventTypeKeyword,
+    AwsS3EventSourceKeyword,
 )
 
 CLOUDTRAIL_REGEX = re.compile(
@@ -140,6 +142,12 @@ def generate_metadata(context):
             ],
         )
     )
+
+    if DD_CUSTOM_SOURCE != "":
+        metadata[DD_SOURCE] = DD_CUSTOM_SOURCE
+        metadata[DD_CUSTOM_TAGS] = ",".join(
+            metadata.get(DD_CUSTOM_TAGS, "").split(",") + ["source_overridden:true"]
+        )
 
     return metadata
 
