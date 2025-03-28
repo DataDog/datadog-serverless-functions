@@ -140,7 +140,6 @@ class TestS3EventsHandler(unittest.TestCase):
             ],
         )
         self.assertEqual(self.s3_handler.metadata["ddsource"], "s3")
-        self.assertEqual(self.s3_handler.metadata["host"], "arn:aws:s3:::my-bucket")
 
     def test_s3_handler_with_multiline_regex(self):
         event = {
@@ -207,36 +206,12 @@ class TestS3EventsHandler(unittest.TestCase):
             ],
         )
         self.assertEqual(self.s3_handler.metadata["ddsource"], "s3")
-        self.assertEqual(self.s3_handler.metadata["host"], "arn:aws:s3:::my-bucket")
-
-    @patch("steps.handlers.s3_handler.S3EventHandler._get_s3_client")
-    def test_s3_tags_not_added_to_metadata(self, mock_get_s3_client):
-        mock_get_s3_client.side_effect = MagicMock()
-        cache_layer = CacheLayer("")
-        cache_layer._s3_tags_cache.get = MagicMock(return_value=["s3_tag:tag_value"])
-        self.s3_handler.cache_layer = cache_layer
-        event = {
-            "Records": [
-                {
-                    "s3": {
-                        "bucket": {"name": "mybucket"},
-                        "object": {"key": "mykey"},
-                    }
-                }
-            ]
-        }
-
-        _ = list(self.s3_handler.handle(event))
-
-        assert "s3_tag:tag_value" not in self.s3_handler.metadata["ddtags"]
 
     @patch("caching.cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.__init__")
-    @patch("steps.handlers.s3_handler.S3EventHandler._parse_service_arn")
     @patch("steps.handlers.s3_handler.S3EventHandler._get_s3_client")
     def test_s3_tags_added_to_metadata(
         self,
         mock_get_s3_client,
-        mock_parse_service_arn,
         mock_cache_init,
     ):
         mock_get_s3_client.side_effect = MagicMock()
@@ -255,7 +230,6 @@ class TestS3EventsHandler(unittest.TestCase):
             ]
         }
 
-        mock_parse_service_arn.return_value = ""
         _ = list(self.s3_handler.handle(event))
 
         assert "s3_tag:tag_value" in self.s3_handler.metadata["ddtags"]

@@ -1,11 +1,15 @@
-from unittest.mock import MagicMock, patch
+import copy
+import gzip
+import io
+import json
 import os
 import sys
 import unittest
-import json
-import copy
-import io
-import gzip
+from unittest.mock import MagicMock, patch
+
+import lambda_function
+from caching.cache_layer import CacheLayer
+from steps.parsing import parse
 
 sys.modules["trace_forwarder.connection"] = MagicMock()
 sys.modules["datadog_lambda.wrapper"] = MagicMock()
@@ -22,10 +26,6 @@ env_patch = patch.dict(
     },
 )
 env_patch.start()
-import lambda_function
-from steps.parsing import parse
-from caching.cache_layer import CacheLayer
-
 env_patch.stop()
 
 
