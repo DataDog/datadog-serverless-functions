@@ -20,7 +20,7 @@ Resources:
           KeyId: !Ref KMSKeyId
       Architectures:
         - arm64
-      Runtime: python3.12
+      Runtime: python3.13
       Timeout: 10
       KmsKeyArn:
         !Sub
