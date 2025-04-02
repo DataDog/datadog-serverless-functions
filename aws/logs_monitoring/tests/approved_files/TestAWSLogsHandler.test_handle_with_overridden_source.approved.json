@@ -1,0 +1,20 @@
+[
+    {
+        "aws": {
+            "awslogs": {
+                "logGroup": "/aws/lambda/test-function",
+                "logStream": "2024/03/14/[$LATEST]abc123",
+                "owner": "123456789012"
+            },
+            "invoked_function_arn": "invoked_function_arn"
+        },
+        "ddsource": "something",
+        "ddsourcecategory": "aws",
+        "ddtags": "forwardername:function_name,forwarder_version:<redacted>,source_overridden:true",
+        "host": "/aws/lambda/test-function",
+        "id": "123456789",
+        "message": "Test log message",
+        "service": "something",
+        "timestamp": 1710428400000
+    }
+]
