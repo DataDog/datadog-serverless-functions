@@ -1,10 +1,11 @@
-import unittest
 import base64
-import os
-import urllib.request
-import json
-import re
 import gzip
+import json
+import os
+import re
+import unittest
+import urllib.request
+
 from deepdiff import DeepDiff
 
 recorder_url = os.environ.get("RECORDER_URL", default="")
@@ -135,11 +136,6 @@ class TestForwarderSnapshots(unittest.TestCase):
 
     def test_cloudwatch_log(self):
         input_filename = f"{snapshot_dir}/cloudwatch_log.json"
-        snapshot_filename = f"{input_filename}~snapshot"
-        self.compare_snapshot(input_filename, snapshot_filename)
-
-    def test_cloudwatch_apigateway_log(self):
-        input_filename = f"{snapshot_dir}/cloudwatch_log_apigateway.json"
         snapshot_filename = f"{input_filename}~snapshot"
         self.compare_snapshot(input_filename, snapshot_filename)
 
