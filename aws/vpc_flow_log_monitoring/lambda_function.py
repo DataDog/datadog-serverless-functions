@@ -8,7 +8,6 @@ import gzip
 import json
 import time
 import base64
-import json
 from io import BufferedReader, BytesIO
 from collections import defaultdict, Counter
 from urllib.request import Request, urlopen
