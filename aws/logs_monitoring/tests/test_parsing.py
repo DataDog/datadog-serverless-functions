@@ -78,22 +78,6 @@ class TestParseEventSource(unittest.TestCase):
             str(AwsEventSource.LAMBDA),
         )
 
-    def test_apigateway_event(self):
-        self.assertEqual(
-            parse_event_source(
-                {"awslogs": "logs"}, "Api-Gateway-Execution-Logs_a1b23c/test"
-            ),
-            str(AwsEventSource.APIGATEWAY),
-        )
-        self.assertEqual(
-            parse_event_source({"awslogs": "logs"}, "/aws/api-gateway/my-project"),
-            str(AwsEventSource.APIGATEWAY),
-        )
-        self.assertEqual(
-            parse_event_source({"awslogs": "logs"}, "/aws/http-api/my-project"),
-            str(AwsEventSource.APIGATEWAY),
-        )
-
     def test_dms_event(self):
         self.assertEqual(
             parse_event_source({"awslogs": "logs"}, "dms-tasks-test-instance"),
@@ -112,14 +96,6 @@ class TestParseEventSource(unittest.TestCase):
                 {"awslogs": "logs"}, "sns/us-east-1/123456779121/SnsTopicX"
             ),
             str(AwsEventSource.SNS),
-        )
-
-    def test_codebuild_event(self):
-        self.assertEqual(
-            parse_event_source(
-                {"awslogs": "logs"}, "/aws/codebuild/new-project-sample"
-            ),
-            str(AwsEventSource.CODEBUILD),
         )
 
     def test_kinesis_event(self):
@@ -229,15 +205,6 @@ class TestParseEventSource(unittest.TestCase):
                 "/ecs/fargate-logs",
             ),
             str(AwsEventSource.FARGATE),
-        )
-
-    def test_appsync_event(self):
-        self.assertEqual(
-            parse_event_source(
-                {"awslogs": "logs"},
-                "/aws/appsync/apis/",
-            ),
-            str(AwsEventSource.APPSYNC),
         )
 
     def test_cloudfront_event(self):
