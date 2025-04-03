@@ -1,7 +1,7 @@
 import unittest
 import unittest.mock
 import os
-import sys
+import json
 
 
 class TestLambdaFunction(unittest.TestCase):
@@ -29,7 +29,8 @@ class TestLambdaFunction(unittest.TestCase):
 
         batches_length = 0
         for batch in batched_series:
-            self.assertLessEqual(sys.getsizeof(batch), 3200000)
+            batch_json = json.dumps(batch).encode("utf-8")
+            self.assertLessEqual(len(batch_json), 3200000)
             batches_length += len(batch)
 
         self.assertEqual(len(series), batches_length)
