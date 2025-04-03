@@ -47,4 +47,3 @@ You have two options to add custom tags to your logs:
 - Automatically with the `DD_TAGS` environment variable
 
 Learn more about Datadog tagging in our main [Tagging documentation](https://docs.datadoghq.com/tagging/).
- -->
