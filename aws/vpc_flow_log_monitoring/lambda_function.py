@@ -8,7 +8,6 @@ import gzip
 import json
 import time
 import base64
-import sys
 from io import BufferedReader, BytesIO
 from collections import defaultdict, Counter
 from urllib.request import Request, urlopen
@@ -353,7 +352,8 @@ class Stats(object):
         self._initialize()
         self.metric_prefix = "aws.vpc.flowlogs"
         # limit input size at 3.2MB see https://docs.datadoghq.com/api/latest/metrics/#submit-metrics
-        self.max_batch_size_bytes = 3200000
+        # set to 3MB to account for the overhead of the json encoding
+        self.max_batch_size_bytes = 3000000
 
     def increment(self, metric, value=1, timestamp=None, tags=None):
         metric_name = "%s.%s" % (self.metric_prefix, metric)
@@ -432,7 +432,7 @@ class Stats(object):
         batch = []
         size_bytes = 0
         for s in series:
-            item_size_bytes = sys.getsizeof(s)
+            item_size_bytes = self._sizeof_bytes(s)
             if size_bytes + item_size_bytes > self.max_batch_size_bytes:
                 batches.append(batch)
                 batch = []
@@ -446,6 +446,9 @@ class Stats(object):
         if size_bytes > 0:
             batches.append(batch)
         return batches
+
+    def _sizeof_bytes(self, item):
+        return len(str(item).encode("UTF-8"))
 
 
 stats = Stats()
