@@ -136,8 +136,6 @@ class AwsLogsHandler:
         match metadata_source:
             case AwsEventSource.CLOUDWATCH:
                 metadata[DD_HOST] = log_group
-            case AwsEventSource.APPSYNC:
-                metadata[DD_HOST] = log_group.split("/")[-1]
             case AwsEventSource.VERIFIED_ACCESS:
                 self.handle_verified_access_source(metadata, aws_attributes)
             case AwsEventSource.STEPFUNCTION:
