@@ -10,6 +10,7 @@ package apm
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"testing"
@@ -17,8 +18,6 @@ import (
 	"github.com/DataDog/datadog-agent/pkg/trace/obfuscate"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/assert"
-
-	"io/ioutil"
 )
 
 type integrationTestData struct {
@@ -28,7 +27,6 @@ type integrationTestData struct {
 }
 
 func CompareSnapshot(t *testing.T, inputFile, snapshotFile string, updateSnapshots bool) {
-
 	// Spew is used to serialize snapshots, for
 	sc := spew.NewDefaultConfig()
 	sc.DisablePointerAddresses = true
@@ -42,7 +40,7 @@ func CompareSnapshot(t *testing.T, inputFile, snapshotFile string, updateSnapsho
 	assert.NoError(t, err)
 	defer file.Close()
 
-	contents, err := ioutil.ReadAll(file)
+	contents, err := io.ReadAll(file)
 
 	assert.NoError(t, err, "Couldn't read contents of test file")
 
@@ -74,11 +72,11 @@ func CompareSnapshot(t *testing.T, inputFile, snapshotFile string, updateSnapsho
 	output := sc.Sdump(payload)
 
 	if updateSnapshots {
-		err = ioutil.WriteFile(snapshotFile, []byte(output), 0644)
+		err = os.WriteFile(snapshotFile, []byte(output), 0o644)
 		assert.NoError(t, err)
 		fmt.Printf("Updated Snapshot %s\n", snapshotFile)
 	} else {
-		snapshot, err := ioutil.ReadFile(snapshotFile)
+		snapshot, err := os.ReadFile(snapshotFile)
 		assert.NoError(t, err, "Missing snapshot file for test")
 		expected := string(snapshot)
 		assert.Equal(t, expected, output, fmt.Sprintf("Snapshot's didn't match for %s. To update run `$UPDATE_SNAPSHOTS=true go test ./...`", inputFile))
@@ -86,7 +84,7 @@ func CompareSnapshot(t *testing.T, inputFile, snapshotFile string, updateSnapsho
 }
 
 func TestSnapshotsMatch(t *testing.T) {
-	files, err := ioutil.ReadDir("testdata")
+	files, err := os.ReadDir("testdata")
 	assert.NoError(t, err)
 	us := os.Getenv("UPDATE_SNAPSHOTS")
 	updateSnapshots := strings.ToLower(us) == "true"
