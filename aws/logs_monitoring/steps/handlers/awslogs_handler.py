@@ -97,8 +97,6 @@ class AwsLogsHandler:
             source = str(AwsEventSource.CLOUDTRAIL)
         if str(AwsCwEventSourcePrefix.TRANSITGATEWAY) in log_stream:
             source = str(AwsEventSource.TRANSITGATEWAY)
-        if str(AwsCwEventSourcePrefix.BEDROCK) in log_stream:
-            source = str(AwsEventSource.BEDROCK)
         metadata[DD_SOURCE] = parse_event_source(event, source)
 
         # Special handling for customized log group of Lambda Functions and Step Functions
@@ -136,8 +134,6 @@ class AwsLogsHandler:
         match metadata_source:
             case AwsEventSource.CLOUDWATCH:
                 metadata[DD_HOST] = log_group
-            case AwsEventSource.APPSYNC:
-                metadata[DD_HOST] = log_group.split("/")[-1]
             case AwsEventSource.VERIFIED_ACCESS:
                 self.handle_verified_access_source(metadata, aws_attributes)
             case AwsEventSource.STEPFUNCTION:
