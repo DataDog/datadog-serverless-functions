@@ -14,10 +14,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring/trace_forwarder/internal/apm"
-
 	"github.com/DataDog/datadog-agent/pkg/trace/obfuscate"
 	"github.com/DataDog/datadog-agent/pkg/trace/pb"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring/trace_forwarder/internal/apm"
 )
 
 var (
@@ -38,8 +37,8 @@ type (
 func Configure(rootURL, apiKey string, InsecureSkipVerify bool) {
 	// Need to make a copy of these values, otherwise the underlying memory
 	// might be cleaned up by the runtime.
-	localRootURL := fmt.Sprintf("%s", rootURL)
-	localAPIKey := fmt.Sprintf("%s", apiKey)
+	localRootURL := rootURL
+	localAPIKey := apiKey
 
 	obfuscator = obfuscate.NewObfuscator(&obfuscate.Config{
 		ES: obfuscate.JSONSettings{
@@ -93,7 +92,6 @@ func ForwardTraces(serializedTraces string) int {
 func unmarshalSerializedTraces(serializedTraces string) ([]RawTracePayload, error) {
 	var rawTracePayloads []RawTracePayload
 	err := json.Unmarshal([]byte(serializedTraces), &rawTracePayloads)
-
 	if err != nil {
 		return rawTracePayloads, fmt.Errorf("Couldn't unmarshal serialized traces, %v", err)
 	}
