@@ -50,13 +50,6 @@
         "description": "The name of the function app "
       }
     },
-    "functionName": {
-      "type": "string",
-      "defaultValue": "datadog-function",
-      "metadata": {
-        "description": "The name of the function."
-      }
-    },
     "resourcesLocation": {
       "type": "string",
       "defaultValue": "[resourceGroup().location]",
@@ -130,9 +123,6 @@
           },
           "functionAppName": {
             "value": "[parameters('functionAppName')]"
-          },
-          "functionName": {
-            "value": "[parameters('functionName')]"
           },
           "apiKey": {
             "value": "[parameters('apiKey')]"
