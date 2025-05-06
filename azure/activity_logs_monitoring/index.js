@@ -5,7 +5,7 @@
 
 const { app, InvocationContext } = require('@azure/functions');
 
-const VERSION = '1.2.1';
+const VERSION = '2.0.0';
 
 const STRING = 'string'; // example: 'some message'
 const STRING_ARRAY = 'string-array'; // example: ['one message', 'two message', ...]
@@ -181,7 +181,7 @@ class HTTPClient {
                 try {
                     return await this.send(batch);
                 } catch (e) {
-                    this.context.log.error(e);
+                    this.context.error(e);
                 }
             })
         );
@@ -204,7 +204,7 @@ class HTTPClient {
             if (retries === 0) {
                 throw new Error(errMsg);
             }
-            this.context.log.warn(
+            this.context.warn(
                 `Unable to send request, with error: ${errMsg}. Retrying ${retries} more times`
             );
             retries--;
@@ -259,7 +259,7 @@ class Scrubber {
                     )
                 );
             } catch {
-                context.log.error(
+                context.error(
                     `Regexp for rule ${name} pattern ${settings['pattern']} is malformed, skipping. Please update the pattern for this rule to be applied.`
                 );
             }
@@ -414,10 +414,10 @@ class EventhubLogHandler {
                 this.handleJSONArrayLogs(logs, JSON_STRING_ARRAY);
                 break;
             case INVALID:
-                this.context.log.error('Log format is invalid: ', logs);
+                this.context.error('Log format is invalid: ', logs);
                 break;
             default:
-                this.context.log.error('Log format is invalid: ', logs);
+                this.context.error('Log format is invalid: ', logs);
                 break;
         }
         return this.records;
@@ -429,7 +429,7 @@ class EventhubLogHandler {
                 try {
                     message = JSON.parse(message);
                 } catch {
-                    this.context.log.warn(
+                    this.context.warn(
                         'log is malformed json, sending as string'
                     );
                     this.formatLog(STRING_TYPE, message);
@@ -441,7 +441,7 @@ class EventhubLogHandler {
                 try {
                     message = JSON.parse(message.toString());
                 } catch {
-                    this.context.log.warn(
+                    this.context.warn(
                         'log is malformed json, sending as string'
                     );
                     this.formatLog(STRING_TYPE, message.toString());
@@ -656,7 +656,7 @@ app.eventHub('datadog-function', {
     cardinality: 'many',
     handler: async (eventHubMessages, context) => {
         if (!DD_API_KEY || DD_API_KEY === '<DATADOG_API_KEY>') {
-            context.log.error(
+            context.error(
                 'You must configure your API key before starting this function (see ## Parameters section)'
             );
             return;
@@ -666,13 +666,13 @@ app.eventHub('datadog-function', {
             let handler = new EventhubLogHandler(context);
             parsedLogs = handler.handleLogs(eventHubMessages);
         } catch (err) {
-            context.log.error('Error raised when parsing logs: ', err);
+            context.error('Error raised when parsing logs: ', err);
             throw err;
         }
         let results = await new HTTPClient(context).sendAll(parsedLogs);
 
         if (results.every(v => v === true) !== true) {
-            context.log.error(
+            context.error(
                 'Some messages were unable to be sent. See other logs for details.'
             );
         }
