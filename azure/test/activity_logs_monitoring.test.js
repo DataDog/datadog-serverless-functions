@@ -12,7 +12,7 @@ function fakeContext() {
 }
 
 function setUp() {
-    var forwarder = new client.EventhubLogHandler(fakeContext());
+    const forwarder = new client.EventhubLogHandler(fakeContext());
 
     forwarder.addTagsToJsonLog = x => {
         return Object.assign({ ddsource: 'none' }, x);
