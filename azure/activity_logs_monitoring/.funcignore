@@ -1,0 +1,5 @@
+local.settings.json
+*.zip
+package-lock.json
+*.md
+node_modules

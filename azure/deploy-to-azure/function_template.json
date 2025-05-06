@@ -126,6 +126,10 @@
             {
               "name": "WEBSITE_NODE_DEFAULT_VERSION",
               "value": "~20"
+            },
+            {
+              "name": "SCM_DO_BUILD_DURING_DEPLOYMENT",
+              "value": "true"
             }
           ]
         }
@@ -136,7 +140,7 @@
       "apiVersion": "2021-02-01",
       "name": "[concat(parameters('functionAppName'), '/zipdeploy')]",
       "properties": {
-        "packageUri": "https://github.com/DataDog/datadog-serverless-functions/raw/refs/heads/ava.silver/azints/migrate-event-hub-forwarder-to-model-v4/azure/activity_logs_monitoring/deploy.zip"
+        "packageUri": "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/activity_logs_monitoring/deploy.zip"
       },
       "dependsOn": [
         "[resourceId('Microsoft.Web/sites', parameters('functionAppName'))]"
