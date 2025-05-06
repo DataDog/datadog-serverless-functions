@@ -1,12 +1,3 @@
 {
-  "bindings": [
-    {
-      "name": "blobContent",
-      "type": "blobTrigger",
-      "direction": "in",
-      "path": "<PATH_IN_STORAGE>/{name}",
-      "connection": "<CONNECTION_NAME>"
-    }
-  ],
   "disabled": false
 }

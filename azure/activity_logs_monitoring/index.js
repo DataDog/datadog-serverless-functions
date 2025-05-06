@@ -3,6 +3,8 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2025 Datadog, Inc.
 
+const { app, InvocationContext } = require('@azure/functions');
+
 const VERSION = '1.2.1';
 
 const STRING = 'string'; // example: 'some message'
@@ -648,29 +650,34 @@ class EventhubLogHandler {
     }
 }
 
-module.exports = async function(context, eventHubMessages) {
-    if (!DD_API_KEY || DD_API_KEY === '<DATADOG_API_KEY>') {
-        context.log.error(
-            'You must configure your API key before starting this function (see ## Parameters section)'
-        );
-        return;
-    }
-    let parsedLogs;
-    try {
-        let handler = new EventhubLogHandler(context);
-        parsedLogs = handler.handleLogs(eventHubMessages);
-    } catch (err) {
-        context.log.error('Error raised when parsing logs: ', err);
-        throw err;
-    }
-    let results = await new HTTPClient(context).sendAll(parsedLogs);
+app.eventHub('datadog-function', {
+    connection: 'EVENTHUB_CONNECTION_STRING',
+    eventHubName: process.env.EVENTHUB_NAME,
+    cardinality: 'many',
+    handler: async (eventHubMessages, context) => {
+        if (!DD_API_KEY || DD_API_KEY === '<DATADOG_API_KEY>') {
+            context.log.error(
+                'You must configure your API key before starting this function (see ## Parameters section)'
+            );
+            return;
+        }
+        let parsedLogs;
+        try {
+            let handler = new EventhubLogHandler(context);
+            parsedLogs = handler.handleLogs(eventHubMessages);
+        } catch (err) {
+            context.log.error('Error raised when parsing logs: ', err);
+            throw err;
+        }
+        let results = await new HTTPClient(context).sendAll(parsedLogs);
 
-    if (results.every(v => v === true) !== true) {
-        context.log.error(
-            'Some messages were unable to be sent. See other logs for details.'
-        );
+        if (results.every(v => v === true) !== true) {
+            context.log.error(
+                'Some messages were unable to be sent. See other logs for details.'
+            );
+        }
     }
-};
+});
 
 module.exports.forTests = {
     EventhubLogHandler,
