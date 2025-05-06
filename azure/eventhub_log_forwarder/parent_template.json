@@ -73,6 +73,7 @@
     },
     "functionPackageUri": {
       "type": "string",
+      "defaultValue": "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/activity_logs_monitoring/deploy.zip",
       "metadata": {
         "description": "Code (packaged into a .zip) for the function to run"
       }
