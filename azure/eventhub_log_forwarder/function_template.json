@@ -6,14 +6,7 @@
       "type": "string",
       "defaultValue": "[concat('datadog-functionapp-', newGuid())]",
       "metadata": {
-        "description": "The name of the function app "
-      }
-    },
-    "functionName": {
-      "type": "string",
-      "defaultValue": "datadog-function",
-      "metadata": {
-        "description": "The name of the function."
+        "description": "The name of the function app."
       }
     },
     "eventhubName": {
@@ -29,10 +22,10 @@
         "description": "The name of the eventhub namespace."
       }
     },
-    "functionCode": {
+    "functionPackageUri": {
       "type": "string",
       "metadata": {
-        "description": "Code for the function to run, saved into index.js"
+        "description": "Code (packaged into a .zip) for the function to run"
       }
     },
     "apiKey": {
@@ -46,13 +39,6 @@
       "defaultValue": "",
       "metadata": {
         "description": "Comma-separated list of tags"
-      }
-    },
-    "location": {
-      "type": "string",
-      "defaultValue": "[resourceGroup().location]",
-      "metadata": {
-        "description": "Location for all resources."
       }
     },
     "datadogSite": {
@@ -72,7 +58,6 @@
   },
   "variables": {
     "storageAccountName": "[concat(uniquestring(resourceGroup().id), 'storageacct')]",
-    "connectionStringKey": "[concat('Datadog-',parameters('eventhubNamespace'),'-AccessKey')]",
     "authRule": "[resourceId('Microsoft.EventHub/namespaces/authorizationRules', parameters('eventhubNamespace'),'RootManageSharedAccessKey')]"
   },
   "resources": [
@@ -80,7 +65,7 @@
       "type": "Microsoft.Storage/storageAccounts",
       "apiVersion": "2023-05-01",
       "name": "[variables('storageAccountName')]",
-      "location": "[parameters('location')]",
+      "location": "[deployment().location]",
       "kind": "StorageV2",
       "sku": {
         "name": "Standard_LRS"
@@ -93,7 +78,7 @@
       "apiVersion": "2024-04-01",
       "type": "Microsoft.Web/sites",
       "name": "[parameters('functionAppName')]",
-      "location": "[parameters('location')]",
+      "location": "[deployment().location]",
       "kind": "functionapp",
       "dependsOn": [
         "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
@@ -133,7 +118,11 @@
               "value": "node"
             },
             {
-              "name": "[variables('connectionStringKey')]",
+              "name": "EVENTHUB_NAME",
+              "value": "[parameters('eventhubName')]"
+            },
+            {
+              "name": "EVENTHUB_CONNECTION_STRING",
               "value": "[listKeys(variables('authRule'),'2017-04-01').primaryConnectionString]"
             },
             {
@@ -147,34 +136,21 @@
             {
               "name": "WEBSITE_NODE_DEFAULT_VERSION",
               "value": "~20"
+            },
+            {
+              "name": "SCM_DO_BUILD_DURING_DEPLOYMENT",
+              "value": "true"
             }
           ]
         }
       }
     },
     {
-      "name": "[concat(parameters('functionAppName'), '/', parameters('functionName'))]",
-      "type": "Microsoft.Web/sites/functions",
-      "apiVersion": "2024-04-01",
+      "type": "Microsoft.Web/sites/extensions",
+      "apiVersion": "2021-02-01",
+      "name": "[concat(parameters('functionAppName'), '/zipdeploy')]",
       "properties": {
-        "config": {
-          "bindings": [
-            {
-              "name": "eventHubMessages",
-              "type": "eventHubTrigger",
-              "direction": "in",
-              "eventHubName": "[parameters('eventhubName')]",
-              "connection": "[variables('connectionStringKey')]",
-              "cardinality": "many",
-              "dataType": "",
-              "consumerGroup": "$Default"
-            }
-          ],
-          "disabled": false
-        },
-        "files": {
-          "index.js": "[parameters('functionCode')]"
-        }
+        "packageUri": "[parameters('functionPackageUri')]"
       },
       "dependsOn": [
         "[resourceId('Microsoft.Web/sites', parameters('functionAppName'))]"
