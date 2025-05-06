@@ -498,7 +498,7 @@ class EventhubLogHandler {
 
     createDDTags(tags) {
         const forwarderNameTag =
-            'forwardername:' + this.context.executionContext.functionName;
+            'forwardername:' + this.context.functionName;
         const fowarderVersionTag = 'forwarderversion:' + VERSION;
         let ddTags = tags.concat([
             DD_TAGS,
