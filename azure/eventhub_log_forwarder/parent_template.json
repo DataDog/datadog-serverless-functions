@@ -60,6 +60,7 @@
     },
     "eventhubNamespace": {
       "type": "string",
+      "defaultValue": "[concat('datadog-ns-', newGuid())]",
       "metadata": {
         "description": "The name of the eventhub namespace."
       }
