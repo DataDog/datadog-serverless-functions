@@ -2,6 +2,12 @@
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
+    "location": {
+        "type": "string",
+        "metadata": {
+            "description": "Location for the eventhub"
+        }
+    },
     "eventHubNamespace": {
       "type": "string",
       "metadata": {
@@ -28,7 +34,7 @@
       "apiVersion": "2024-01-01",
       "name": "[parameters('eventHubNamespace')]",
       "type": "Microsoft.EventHub/namespaces",
-      "location": "[deployment().location]",
+      "location": "[parameters('location')]",
       "sku": {
         "name": "Standard",
         "tier": "Standard",

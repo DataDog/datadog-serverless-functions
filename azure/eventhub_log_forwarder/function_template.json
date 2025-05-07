@@ -2,6 +2,12 @@
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
+    "location": {
+      "type": "string",
+      "metadata": {
+        "description": "Location for the resources"
+      }
+    },
     "functionAppName": {
       "type": "string",
       "defaultValue": "[concat('datadog-functionapp-', newGuid())]",
@@ -65,7 +71,7 @@
       "type": "Microsoft.Storage/storageAccounts",
       "apiVersion": "2023-05-01",
       "name": "[variables('storageAccountName')]",
-      "location": "[deployment().location]",
+      "location": "[parameters('location')]",
       "kind": "StorageV2",
       "sku": {
         "name": "Standard_LRS"
@@ -78,7 +84,7 @@
       "apiVersion": "2024-04-01",
       "type": "Microsoft.Web/sites",
       "name": "[parameters('functionAppName')]",
-      "location": "[deployment().location]",
+      "location": "[parameters('location')]",
       "kind": "functionapp",
       "dependsOn": [
         "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
@@ -136,6 +142,10 @@
             {
               "name": "WEBSITE_NODE_DEFAULT_VERSION",
               "value": "~20"
+            },
+            {
+              "name": "WEBSITE_RUN_FROM_PACKAGE",
+              "value": "1"
             },
             {
               "name": "SCM_DO_BUILD_DURING_DEPLOYMENT",
