@@ -198,7 +198,9 @@
       },
       "dependsOn": [
         "[resourceId('Microsoft.Resources/deployments','functionAppTemplate')]"
-      ]
+      ],
+      "subscriptionId": "[subscription().subscriptionId]",
+      "location": "[parameters('resourcesLocation')]"
     }
   ],
   "outputs": {
