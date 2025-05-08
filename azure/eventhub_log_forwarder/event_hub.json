@@ -2,6 +2,12 @@
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
+    "location": {
+        "type": "string",
+        "metadata": {
+            "description": "Location for the eventhub"
+        }
+    },
     "eventHubNamespace": {
       "type": "string",
       "metadata": {
@@ -15,11 +21,11 @@
         "description": "Name of Event Hub"
       }
     },
-    "location": {
-      "type": "string",
-      "defaultValue": "[resourceGroup().location]",
+    "partitionCount": {
+      "type": "int",
+      "defaultValue": 32,
       "metadata": {
-        "description": "Location for all resources."
+        "description": "The number of event hub partitions"
       }
     }
   },
@@ -46,7 +52,9 @@
           "dependsOn": [
             "[resourceId('Microsoft.EventHub/namespaces/', parameters('eventHubNamespace'))]"
           ],
-          "properties": {}
+          "properties": {
+            "partitionCount": "[parameters('partitionCount')]"
+          }
         }
       ]
     }

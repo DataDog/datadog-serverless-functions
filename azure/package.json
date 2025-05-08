@@ -20,10 +20,13 @@
         "url": "https://github.com/DataDog/datadog-serverless-functions/issues"
     },
     "homepage": "https://github.com/DataDog/datadog-serverless-functions#readme",
+    "dependencies": {
+        "@azure/functions": "^4.7.0"
+    },
     "devDependencies": {
         "lodash": ">=4.17.21",
-        "mocha": "^7.2.0",
-        "prettier": "^1.19.1",
-        "sinon": "^9.2.4"
+        "mocha": "11.2.2",
+        "prettier": "3.5.3",
+        "sinon": "20.0.0"
     }
 }

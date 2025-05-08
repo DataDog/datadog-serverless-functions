@@ -6,3 +6,4 @@ base.zip
 .vscode
 **/node_modules
 .idea
+local.settings.json

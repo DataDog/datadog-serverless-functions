@@ -1,20 +1,18 @@
-var assert = require('assert');
-var client = require('../activity_logs_monitoring').forTests;
-var constants = client.constants;
-var sinon = require('sinon');
+const assert = require('assert');
+const client = require('../activity_logs_monitoring').forTests;
+const constants = client.constants;
+const sinon = require('sinon');
+const { InvocationContext } = require('@azure/functions');
 
 function fakeContext() {
-    // create a fake context object to pass into handleLogs
-    contextSpy = sinon.spy();
-    contextSpy.log = sinon.spy();
-    contextSpy.log.error = function(x) {}; // do nothing
-    contextSpy.log.warn = function(x) {}; // do nothing
-
-    return contextSpy;
+    return new InvocationContext({
+        functionName: 'testFunctionName',
+        invocationId: 'testInvocationId'
+    });
 }
 
 function setUp() {
-    var forwarder = new client.EventhubLogHandler(fakeContext());
+    const forwarder = new client.EventhubLogHandler(fakeContext());
 
     forwarder.addTagsToJsonLog = x => {
         return Object.assign({ ddsource: 'none' }, x);
@@ -616,24 +614,26 @@ describe('Batching', function() {
     });
 });
 
-describe('HTTPClient', function () {
+describe('HTTPClient', function() {
     let clientContext;
     let httpClient;
-    beforeEach(function () {
+    beforeEach(function() {
         clientContext = fakeContext();
-        clientContext.log.error = sinon.spy();
-        clientContext.log.warn = sinon.spy();
+        clientContext.error = sinon.spy();
+        clientContext.warn = sinon.spy();
         httpClient = new client.HTTPClient(clientContext);
     });
 
-    describe('#sendAll', function () {
-        it('should log any errors that occur when sending logs', async function () {
+    describe('#sendAll', function() {
+        it('should log any errors that occur when sending logs', async function() {
             const err = new Error('some error in the API');
             httpClient.send = sinon.stub().rejects(err);
-            httpClient.batcher.batch = sinon.stub().returns([{ batch: 'batch1' }, { batch: 'batch2' }]);
+            httpClient.batcher.batch = sinon
+                .stub()
+                .returns([{ batch: 'batch1' }, { batch: 'batch2' }]);
             await httpClient.sendAll([]); // we mock out the batcher so this argument doesnt matter
-            assert.equal(clientContext.log.error.callCount, 2);
-            assert(clientContext.log.error.calledWith(err));
+            assert.equal(clientContext.error.callCount, 2);
+            assert(clientContext.error.calledWith(err));
         });
-    })
+    });
 });
