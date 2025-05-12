@@ -163,9 +163,23 @@
       ]
     },
     {
-      "type": "Microsoft.Web/sites/syncfunctiontriggers",
-      "apiVersion": "2016-08-01",
-      "name": "[concat(parameters('functionAppName'), '/syncfunctiontriggers')]",
+      "type": "Microsoft.Resources/deploymentScripts",
+      "apiVersion": "2020-10-01",
+      "name": "[concat('syncFunctionTriggers-', parameters('functionAppName'))]",
+      "location": "[parameters('location')]",
+      "kind": "AzureCLI",
+      "properties": {
+        "azCliVersion": "2.67.0",
+        "scriptContent": "[format('az rest --method post --url ''https://management.azure.com{0}/syncfunctiontriggers?api-version=2024-04-01''', resourceId('Microsoft.Web/sites', parameters('functionAppName')))]",
+        "timeout": "PT30M",
+        "cleanupPreference": "OnSuccess",
+        "retentionInterval": "P1D",
+        "storageAccountSettings": {
+          "storageAccountName": "[variables('storageAccountName')]",
+          "storageAccountContainerName": "[concat('scripts-', parameters('functionAppName'))]",
+          "storageAccountAccessKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2021-04-01').keys[0].value]"
+        }
+      },
       "dependsOn": [
         "[resourceId('Microsoft.Web/sites/extensions', concat(parameters('functionAppName'), '/zipdeploy'))]"
       ]
