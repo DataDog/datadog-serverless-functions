@@ -51,6 +51,13 @@
         "description": "The name of the function app."
       }
     },
+    "appServicePlanName": {
+      "type": "string",
+      "defaultValue": "[concat('datadog-asp-', newGuid())]",
+      "metadata": {
+        "description": "The name of the app service plan."
+      }
+    },
     "eventhubName": {
       "type": "string",
       "defaultValue": "datadog-eventhub",
@@ -145,6 +152,9 @@
           },
           "eventHubName": {
             "value": "[parameters('eventHubName')]"
+          },
+          "appServicePlanName": {
+            "value": "[parameters('appServicePlanName')]"
           },
           "functionAppName": {
             "value": "[parameters('functionAppName')]"
