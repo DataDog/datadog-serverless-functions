@@ -161,6 +161,14 @@
       "dependsOn": [
         "[resourceId('Microsoft.Web/sites', parameters('functionAppName'))]"
       ]
+    },
+    {
+      "type": "Microsoft.Web/sites/syncfunctiontriggers",
+      "apiVersion": "2016-08-01",
+      "name": "[concat(parameters('functionAppName'), '/syncfunctiontriggers')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/sites/extensions', concat(parameters('functionAppName'), '/zipdeploy'))]"
+      ]
     }
   ]
 }
