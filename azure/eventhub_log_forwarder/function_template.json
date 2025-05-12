@@ -64,8 +64,7 @@
   },
   "variables": {
     "storageAccountName": "[concat(uniquestring(resourceGroup().id), 'storageacct')]",
-    "eventHubAuthRule": "[resourceId('Microsoft.EventHub/namespaces/authorizationRules', parameters('eventhubNamespace'),'RootManageSharedAccessKey')]",
-    "storageAccountConnectionString": "[concat('DefaultEndpointsProtocol=https;AccountName=',variables('storageAccountName'),';AccountKey=',listkeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2018-11-01').keys[0].value,';','EndpointSuffix=',parameters('endpointSuffix'),';')]"
+    "eventHubAuthRule": "[resourceId('Microsoft.EventHub/namespaces/authorizationRules', parameters('eventhubNamespace'),'RootManageSharedAccessKey')]"
   },
   "resources": [
     {
@@ -118,7 +117,7 @@
             },
             {
               "name": "AzureWebJobsStorage",
-              "value": "[variables('storageAccountConnectionString')]"
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=',variables('storageAccountName'),';AccountKey=',listkeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2018-11-01').keys[0].value,';','EndpointSuffix=',parameters('endpointSuffix'),';')]"
             },
             {
               "name": "FUNCTIONS_WORKER_RUNTIME",
@@ -134,7 +133,7 @@
             },
             {
               "name": "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING",
-              "value": "[variables('storageAccountConnectionString')]"
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=',variables('storageAccountName'),';AccountKey=',listkeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2018-11-01').keys[0].value,';','EndpointSuffix=',parameters('endpointSuffix'),';')]"
             },
             {
               "name": "WEBSITE_CONTENTSHARE",
@@ -177,7 +176,7 @@
         "retentionInterval": "P1D",
         "storageAccountSettings": {
           "storageAccountName": "[variables('storageAccountName')]",
-          "storageAccountKey": "[variables('storageAccountConnectionString')]"
+          "storageAccountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2019-06-01').keys[0].value]"
         }
       },
       "dependsOn": [
