@@ -195,7 +195,7 @@
       },
       "properties": {
         "azCliVersion": "2.67.0",
-        "scriptContent": "[format('az rest --url ''https://management.azure.com{0}/syncfunctiontriggers?api-version=2024-04-01'' --method post', resourceId('Microsoft.Web/sites', parameters('functionAppName')))]",
+        "scriptContent": "[format('az rest --url ''{0}{1}/syncfunctiontriggers?api-version=2024-04-01'' --method post', environment().resourceManager, resourceId('Microsoft.Web/sites', parameters('functionAppName')))]",
         "timeout": "PT30M",
         "cleanupPreference": "OnSuccess",
         "retentionInterval": "P1D",
