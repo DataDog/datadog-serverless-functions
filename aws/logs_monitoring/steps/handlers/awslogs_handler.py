@@ -37,6 +37,7 @@ class AwsLogsHandler:
         logs = self.extract_logs(event)
         # Build aws attributes
         aws_attributes = AwsAttributes(
+            self.context,
             logs.get("logGroup"),
             logs.get("logStream"),
             logs.get("logEvents"),

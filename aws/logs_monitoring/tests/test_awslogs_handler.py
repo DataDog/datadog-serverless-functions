@@ -33,6 +33,9 @@ env_patch.stop()
 
 
 class Context:
+    def __init__(self, invoked_function_arn="invoked_function_arn"):
+        self.invoked_function_arn = invoked_function_arn
+
     function_version = "$LATEST"
     invoked_function_arn = "invoked_function_arn"
     function_name = "function_name"
@@ -45,6 +48,7 @@ class TestAWSLogsHandler(unittest.TestCase):
             r"forwarder_version:\d+\.\d+\.\d+",
             "forwarder_version:<redacted>",
         )
+        self.context = Context()
 
     @patch("caching.cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.__init__")
     def test_handle_with_overridden_source(self, mock_cache_init):
@@ -79,13 +83,12 @@ class TestAWSLogsHandler(unittest.TestCase):
             }
 
             # Create required args
-            context = Context()
             mock_cache_init.return_value = None
             cache_layer = CacheLayer("")
             cache_layer._cloudwatch_log_group_cache.get = MagicMock(return_value=[])
 
             # Process the event
-            awslogs_handler = AwsLogsHandler(context, cache_layer)
+            awslogs_handler = AwsLogsHandler(self.context, cache_layer)
 
             # Verify
             verify_as_json(
@@ -127,14 +130,13 @@ class TestAWSLogsHandler(unittest.TestCase):
                 )
             }
         }
-        context = Context()
         mock_cache_init.return_value = None
         cache_layer = CacheLayer("")
         cache_layer._cloudwatch_log_group_cache.get = MagicMock(
             return_value=["test_tag_key:test_tag_value"]
         )
 
-        awslogs_handler = AwsLogsHandler(context, cache_layer)
+        awslogs_handler = AwsLogsHandler(self.context, cache_layer)
         verify_as_json(
             list(awslogs_handler.handle(event)),
             options=Options().with_scrubber(self.scrubber),
@@ -189,7 +191,6 @@ class TestAWSLogsHandler(unittest.TestCase):
                 )
             }
         }
-        context = Context()
         mock_forward_metrics.side_effect = MagicMock()
         mock_cache_init.return_value = None
         cache_layer = CacheLayer("")
@@ -198,7 +199,7 @@ class TestAWSLogsHandler(unittest.TestCase):
         )
         cache_layer._cloudwatch_log_group_cache.get = MagicMock()
 
-        awslogs_handler = AwsLogsHandler(context, cache_layer)
+        awslogs_handler = AwsLogsHandler(self.context, cache_layer)
         verify_as_json(
             list(awslogs_handler.handle(event)),
             options=Options().with_scrubber(self.scrubber),
@@ -252,7 +253,6 @@ class TestAWSLogsHandler(unittest.TestCase):
                 )
             }
         }
-        context = Context()
         mock_forward_metrics.side_effect = MagicMock()
         mock_cache_init.return_value = None
         cache_layer = CacheLayer("")
@@ -261,7 +261,7 @@ class TestAWSLogsHandler(unittest.TestCase):
         )
         cache_layer._cloudwatch_log_group_cache.get = MagicMock()
 
-        awslogs_handler = AwsLogsHandler(context, cache_layer)
+        awslogs_handler = AwsLogsHandler(self.context, cache_layer)
         # for some reasons, the below two are needed to update the context of the handler
         verify_as_json(
             list(awslogs_handler.handle(eventFromCustomizedLogGroup)),
@@ -304,14 +304,13 @@ class TestAWSLogsHandler(unittest.TestCase):
                 )
             }
         }
-        context = Context()
         cache_layer = CacheLayer("")
         cache_layer._cloudwatch_log_group_cache.get = MagicMock()
         cache_layer._lambda_cache.get = MagicMock(
             return_value=["service:customtags_service"]
         )
 
-        awslogs_handler = AwsLogsHandler(context, cache_layer)
+        awslogs_handler = AwsLogsHandler(self.context, cache_layer)
         verify_as_json(
             list(awslogs_handler.handle(event)),
             options=Options().with_scrubber(self.scrubber),
@@ -327,12 +326,12 @@ class TestAWSLogsHandler(unittest.TestCase):
         }
         metadata = {"ddsource": "postgresql", "ddtags": ""}
         aws_attributes = AwsAttributes(
+            self.context,
             stepfunction_loggroup.get("logGroup"),
             stepfunction_loggroup.get("logStream"),
             stepfunction_loggroup.get("owner"),
         )
-        context = Context()
-        aws_handler = AwsLogsHandler(context, CacheLayer(""))
+        aws_handler = AwsLogsHandler(self.context, CacheLayer(""))
 
         aws_handler.process_lambda_logs(metadata, aws_attributes)
         self.assertEqual(metadata, {"ddsource": "postgresql", "ddtags": ""})
@@ -346,13 +345,13 @@ class TestAWSLogsHandler(unittest.TestCase):
         }
         metadata = {"ddsource": "postgresql", "ddtags": "env:dev"}
         aws_attributes = AwsAttributes(
+            self.context,
             lambda_default_loggroup.get("logGroup"),
             lambda_default_loggroup.get("logStream"),
             lambda_default_loggroup.get("owner"),
         )
-        context = Context()
 
-        aws_handler = AwsLogsHandler(context, CacheLayer(""))
+        aws_handler = AwsLogsHandler(self.context, CacheLayer(""))
         aws_handler.process_lambda_logs(metadata, aws_attributes)
         self.assertEqual(
             metadata,
@@ -380,12 +379,13 @@ class TestAWSLogsHandler(unittest.TestCase):
 
 class TestLambdaCustomizedLogGroup(unittest.TestCase):
     def setUp(self):
-        self.aws_handler = AwsLogsHandler(None, None)
+        self.context = Context()
+        self.aws_handler = AwsLogsHandler(self.context, None)
 
     def test_get_lower_cased_lambda_function_name(self):
-        self.assertEqual(True, True)
         # Non Lambda log
         aws_attributes = AwsAttributes(
+            self.context,
             "/aws/vendedlogs/states/logs-to-traces-sequential-Logs",
             "states/logs-to-traces-sequential/2022-11-10-15-50/7851b2d9",
             [],
@@ -396,6 +396,7 @@ class TestLambdaCustomizedLogGroup(unittest.TestCase):
         )
 
         aws_attributes = AwsAttributes(
+            self.context,
             "/aws/lambda/test-lambda-default-log-group",
             "2023/11/06/[$LATEST]b25b1f977b3e416faa45a00f427e7acb",
             [],
@@ -406,6 +407,7 @@ class TestLambdaCustomizedLogGroup(unittest.TestCase):
         )
 
         aws_attributes = AwsAttributes(
+            self.context,
             "customizeLambdaGrop",
             "2023/11/06/test-customized-log-group1[$LATEST]13e304cba4b9446eb7ef082a00038990",
             [],
@@ -418,20 +420,23 @@ class TestLambdaCustomizedLogGroup(unittest.TestCase):
 
 class TestParsingStepFunctionLogs(unittest.TestCase):
     def setUp(self):
-        self.aws_handler = AwsLogsHandler(None, None)
+        self.context = Context()
+        self.aws_handler = AwsLogsHandler(self.context, None)
 
     def test_get_state_machine_arn(self):
         aws_attributes = AwsAttributes(
+            context=self.context,
             log_events=[
                 {
                     "message": json.dumps({"no_execution_arn": "xxxx/yyy"}),
                 }
-            ]
+            ],
         )
 
         self.assertEqual(self.aws_handler.get_state_machine_arn(aws_attributes), "")
 
         aws_attributes = AwsAttributes(
+            context=self.context,
             log_events=[
                 {
                     "message": json.dumps(
@@ -442,7 +447,7 @@ class TestParsingStepFunctionLogs(unittest.TestCase):
                         }
                     ),
                 }
-            ]
+            ],
         )
         self.assertEqual(
             self.aws_handler.get_state_machine_arn(aws_attributes),
@@ -450,6 +455,7 @@ class TestParsingStepFunctionLogs(unittest.TestCase):
         )
 
         aws_attributes = AwsAttributes(
+            context=self.context,
             log_events=[
                 {
                     "message": json.dumps(
@@ -460,7 +466,7 @@ class TestParsingStepFunctionLogs(unittest.TestCase):
                         }
                     )
                 }
-            ]
+            ],
         )
 
         self.assertEqual(
@@ -469,6 +475,7 @@ class TestParsingStepFunctionLogs(unittest.TestCase):
         )
 
         aws_attributes = AwsAttributes(
+            context=self.context,
             log_events=[
                 {
                     "message": json.dumps(
@@ -479,11 +486,64 @@ class TestParsingStepFunctionLogs(unittest.TestCase):
                         }
                     )
                 }
-            ]
+            ],
         )
         self.assertEqual(
             self.aws_handler.get_state_machine_arn(aws_attributes),
             "arn:aws:states:sa-east-1:425362996713:stateMachine:my-Various-States",
+        )
+
+
+class TestAwsPartitionExtraction(unittest.TestCase):
+    def test_get_log_group_aws_partition(self):
+        # default partition
+        context = Context(
+            invoked_function_arn="arn:aws:lambda:us-east-1:12345678910:function:test-lambda"
+        )
+        aws_attributes = AwsAttributes(
+            context=context,
+            log_group="my-log-group",
+        )
+
+        aws_attributes.set_account_region(
+            "arn:aws:lambda:us-east-1:12345678910:function:test-lambda"
+        )
+
+        self.assertEqual(
+            aws_attributes.get_log_group_arn(),
+            "arn:aws:logs:us-east-1:12345678910:log-group:my-log-group",
+        )
+
+        # aws-cn partition
+        context = Context(
+            invoked_function_arn="arn:aws-cn:lambda:cn-north-1:12345678910:function:test-lambda"
+        )
+        aws_attributes = AwsAttributes(
+            context=context,
+            log_group="my-log-group",
+        )
+        aws_attributes.set_account_region(
+            "arn:aws-cn:lambda:cn-north-1:12345678910:function:test-lambda"
+        )
+        self.assertEqual(
+            aws_attributes.get_log_group_arn(),
+            "arn:aws-cn:logs:cn-north-1:12345678910:log-group:my-log-group",
+        )
+
+        # aws-us-gov partition
+        context = Context(
+            invoked_function_arn="arn:aws-us-gov:lambda:us-gov-west-1:12345678910:function:test-lambda"
+        )
+        aws_attributes = AwsAttributes(
+            context=context,
+            log_group="my-log-group",
+        )
+        aws_attributes.set_account_region(
+            "arn:aws-us-gov:lambda:us-gov-west-1:12345678910:function:test-lambda"
+        )
+        self.assertEqual(
+            aws_attributes.get_log_group_arn(),
+            "arn:aws-us-gov:logs:us-gov-west-1:12345678910:log-group:my-log-group",
         )
 
 

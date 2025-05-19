@@ -2,14 +2,25 @@ from steps.common import merge_dicts
 
 
 class AwsAttributes:
-    def __init__(self, log_group=None, log_stream=None, log_events=None, owner=None):
+    def __init__(
+        self, context, log_group=None, log_stream=None, log_events=None, owner=None
+    ):
         self.log_group = log_group
         self.log_stream = log_stream
         self.log_events = log_events
         self.owner = owner
+        self.partition = self._get_aws_partition(context)
         self.lambda_arn = None
         self.account = None
         self.region = None
+
+    def _get_aws_partition(self, context):
+        if context.invoked_function_arn.startswith("arn:aws-cn:"):
+            return "aws-cn"
+        elif context.invoked_function_arn.startswith("arn:aws-us-gov:"):
+            return "aws-us-gov"
+        else:
+            return "aws"
 
     def to_dict(self):
         awslogs = {
@@ -30,7 +41,7 @@ class AwsAttributes:
         return self.log_group
 
     def get_log_group_arn(self):
-        return f"arn:aws:logs:{self.region}:{self.account}:log-group:{self.log_group}"
+        return f"arn:{self.partition}:logs:{self.region}:{self.account}:log-group:{self.log_group}"
 
     def get_log_stream(self):
         return self.log_stream
