@@ -192,15 +192,6 @@ class TestParseEventSource(unittest.TestCase):
             str(AwsEventSource.S3),
         )
 
-    def test_eks_event(self):
-        self.assertEqual(
-            parse_event_source(
-                {"awslogs": "logs"},
-                "/aws/eks/control-plane/cluster",
-            ),
-            str(AwsEventSource.EKS),
-        )
-
     def test_elasticsearch_event(self):
         self.assertEqual(
             parse_event_source({"awslogs": "logs"}, "/elasticsearch/domain"),

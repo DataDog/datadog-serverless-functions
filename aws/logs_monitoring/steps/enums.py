@@ -7,7 +7,6 @@ class AwsEventSource(Enum):
     CLOUDFRONT = "cloudfront"
     CLOUDTRAIL = "cloudtrail"
     CLOUDWATCH = "cloudwatch"
-    EKS = "eks"
     ELASTICSEARCH = "elasticsearch"
     ELB = "elb"
     FARGATE = "fargate"
@@ -88,8 +87,6 @@ class AwsCwEventSourcePrefix(Enum):
 
     # e.g. /aws/codebuild/my-project
     CLOUDTRAIL = ("_CloudTrail_", AwsEventSource.CLOUDTRAIL)
-    # e.g. /aws/eks/yourClusterName/profile
-    EKS = ("/aws/eks", AwsEventSource.EKS)
     # e.g. /aws/kinesisfirehose/dev
     KINESIS = ("/aws/kinesis", AwsEventSource.KINESIS)
     # e.g. /aws/lambda/helloDatadog
