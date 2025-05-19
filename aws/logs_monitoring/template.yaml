@@ -934,7 +934,7 @@ Resources:
         - !Ref PermissionsBoundaryArn
         - !Ref AWS::NoValue
       Policies:
-        - PolicyName: ForwarderZipCopierRolpePolicy0
+        - PolicyName: ForwarderZipCopierRolePolicy0
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
