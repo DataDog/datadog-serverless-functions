@@ -7,13 +7,9 @@ class AwsEventSource(Enum):
     CLOUDFRONT = "cloudfront"
     CLOUDTRAIL = "cloudtrail"
     CLOUDWATCH = "cloudwatch"
-    DMS = "dms"
-    DOCDB = "docdb"
-    EKS = "eks"
     ELASTICSEARCH = "elasticsearch"
     ELB = "elb"
     FARGATE = "fargate"
-    FSX = "aws.fsx"
     GUARDDUTY = "guardduty"
     IAMAUTHENTICATOR = "aws-iam-authenticator"
     KINESIS = "kinesis"
@@ -26,7 +22,6 @@ class AwsEventSource(Enum):
     MSK = "msk"
     MYSQL = "mysql"
     NETWORKFIREWALL = "network-firewall"
-    OPENSEARCH = "opensearch"
     POSTGRESQL = "postgresql"
     ROUTE53 = "route53"
     S3 = "s3"
@@ -68,8 +63,6 @@ class AwsS3EventSourceKeyword(Enum):
 
     # e.g. carbon-black-cloud-forwarder/alerts/org_key=*****/year=2021/month=7/day=19/hour=18/minute=15/second=41/8436e850-7e78-40e4-b3cd-6ebbc854d0a2.jsonl.gz
     CARBONBLACK = ("carbon-black", AwsEventSource.CARBONBLACK)
-    DMS = ("amazon_dms", AwsEventSource.DMS)
-    DOCDB = ("amazon_documentdb", AwsEventSource.DOCDB)
     # e.g. AWSLogs/123456779121/elasticloadbalancing/us-east-1/2020/10/02/123456779121_elasticloadbalancing_us-east-1_app.alb.xxxxx.xx.xxx.xxx_x.log.gz
     ELB = ("elasticloadbalancing", AwsEventSource.ELB)
     GUARDDUTY = ("guardduty", AwsEventSource.GUARDDUTY)
@@ -94,20 +87,10 @@ class AwsCwEventSourcePrefix(Enum):
 
     # e.g. /aws/codebuild/my-project
     CLOUDTRAIL = ("_CloudTrail_", AwsEventSource.CLOUDTRAIL)
-    # e.g. dms-tasks-test-instance
-    DMS = ("dms-tasks", AwsEventSource.DMS)
-    # e.g. /aws/docdb/yourClusterName/profile
-    DOCDB = ("/aws/docdb", AwsEventSource.DOCDB)
-    # e.g. /aws/eks/yourClusterName/profile
-    EKS = ("/aws/eks", AwsEventSource.EKS)
-    # e.g. /aws/fsx/windows/xxx
-    FSX = ("/aws/fsx/windows", AwsEventSource.FSX)
     # e.g. /aws/kinesisfirehose/dev
     KINESIS = ("/aws/kinesis", AwsEventSource.KINESIS)
     # e.g. /aws/lambda/helloDatadog
     LAMBDA = ("/aws/lambda", AwsEventSource.LAMBDA)
-    # e.g. /aws/opensearchservice/domains/my-cluster
-    OPENSEARCH = ("/aws/opensearchservice/domains/", AwsEventSource.OPENSEARCH)
     # e.g. sns/us-east-1/123456779121/SnsTopicX
     SNS = ("sns/", AwsEventSource.SNS)
     SSM = ("/aws/ssm/", AwsEventSource.SSM)

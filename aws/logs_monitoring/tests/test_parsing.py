@@ -78,18 +78,6 @@ class TestParseEventSource(unittest.TestCase):
             str(AwsEventSource.LAMBDA),
         )
 
-    def test_dms_event(self):
-        self.assertEqual(
-            parse_event_source({"awslogs": "logs"}, "dms-tasks-test-instance"),
-            str(AwsEventSource.DMS),
-        )
-        self.assertEqual(
-            parse_event_source(
-                {"Records": ["logs-from-s3"]}, "AWSLogs/amazon_dms/my-s3.json.gz"
-            ),
-            str(AwsEventSource.DMS),
-        )
-
     def test_sns_event(self):
         self.assertEqual(
             parse_event_source(
@@ -108,18 +96,6 @@ class TestParseEventSource(unittest.TestCase):
                 {"Records": ["logs-from-s3"]}, "AWSLogs/amazon_kinesis/my-s3.json.gz"
             ),
             str(AwsEventSource.KINESIS),
-        )
-
-    def test_docdb_event(self):
-        self.assertEqual(
-            parse_event_source({"awslogs": "logs"}, "/aws/docdb/testCluster/profile"),
-            str(AwsEventSource.DOCDB),
-        )
-        self.assertEqual(
-            parse_event_source(
-                {"Records": ["logs-from-s3"]}, "/amazon_documentdb/dev/123abc.zip"
-            ),
-            str(AwsEventSource.DOCDB),
         )
 
     def test_vpc_event(self):
@@ -216,15 +192,6 @@ class TestParseEventSource(unittest.TestCase):
             str(AwsEventSource.S3),
         )
 
-    def test_eks_event(self):
-        self.assertEqual(
-            parse_event_source(
-                {"awslogs": "logs"},
-                "/aws/eks/control-plane/cluster",
-            ),
-            str(AwsEventSource.EKS),
-        )
-
     def test_elasticsearch_event(self):
         self.assertEqual(
             parse_event_source({"awslogs": "logs"}, "/elasticsearch/domain"),
@@ -254,15 +221,6 @@ class TestParseEventSource(unittest.TestCase):
                 "carbon-black-cloud-forwarder/alerts/8436e850-7e78-40e4-b3cd-6ebbc854d0a2.jsonl.gz",
             ),
             str(AwsEventSource.CARBONBLACK),
-        )
-
-    def test_opensearch_event(self):
-        self.assertEqual(
-            parse_event_source(
-                {"awslogs": "logs"},
-                "/aws/OpenSearchService/domains/my-opensearch-cluster/ES_APPLICATION_LOGS",
-            ),
-            str(AwsEventSource.OPENSEARCH),
         )
 
     def test_cloudwatch_source_if_none_found(self):

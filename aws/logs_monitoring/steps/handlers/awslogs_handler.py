@@ -60,11 +60,6 @@ class AwsLogsHandler:
         # then rebuild the arn of the monitored lambda using that name.
         if metadata[DD_SOURCE] == str(AwsEventSource.LAMBDA):
             self.process_lambda_logs(metadata, aws_attributes)
-        # The EKS log group contains various sources from the K8S control plane.
-        # In order to have these automatically trigger the correct pipelines they
-        # need to send their events with the correct log source.
-        if metadata[DD_SOURCE] == str(AwsEventSource.EKS):
-            self.process_eks_logs(metadata, aws_attributes)
         # Create and send structured logs to Datadog
         for log in logs["logEvents"]:
             merged = merge_dicts(log, aws_attributes.to_dict())
@@ -182,20 +177,6 @@ class AwsLogsHandler:
         except Exception as e:
             logger.debug("Unable to get state_machine_arn: %s" % e)
         return ""
-
-    def process_eks_logs(self, metadata, aws_attributes):
-        log_stream = aws_attributes.get_log_stream()
-        if log_stream.startswith("kube-apiserver-audit-"):
-            metadata[DD_SOURCE] = "kubernetes.audit"
-        elif log_stream.startswith("kube-scheduler-"):
-            metadata[DD_SOURCE] = "kube_scheduler"
-        elif log_stream.startswith("kube-apiserver-"):
-            metadata[DD_SOURCE] = "kube-apiserver"
-        elif log_stream.startswith("kube-controller-manager-"):
-            metadata[DD_SOURCE] = "kube-controller-manager"
-        elif log_stream.startswith("authenticator-"):
-            metadata[DD_SOURCE] = "aws-iam-authenticator"
-        # In case the conditions above don't match we maintain eks as the source
 
     # Lambda logs can be from either default or customized log group
     def process_lambda_logs(self, metadata, aws_attributes):
