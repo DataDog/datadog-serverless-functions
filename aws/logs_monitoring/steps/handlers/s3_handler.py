@@ -59,8 +59,10 @@ class S3EventHandler:
         if self.metadata.get(DD_SOURCE) is None:
             self._set_source(event)
 
-        add_service_tag(self.metadata)
         self._add_s3_tags_from_cache()
+
+        add_service_tag(self.metadata)
+
         self._extract_data()
         yield from self._get_structured_lines_for_s3_handler()
 
