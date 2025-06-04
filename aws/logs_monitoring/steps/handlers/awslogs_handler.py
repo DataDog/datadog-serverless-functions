@@ -91,8 +91,6 @@ class AwsLogsHandler:
         # i.e. 123456779121_CloudTrail_us-east-1
         if str(AwsCwEventSourcePrefix.CLOUDTRAIL) in log_stream:
             source = str(AwsEventSource.CLOUDTRAIL)
-        if str(AwsCwEventSourcePrefix.TRANSITGATEWAY) in log_stream:
-            source = str(AwsEventSource.TRANSITGATEWAY)
         metadata[DD_SOURCE] = parse_event_source(event, source)
 
         # Special handling for customized log group of Lambda Functions and Step Functions
