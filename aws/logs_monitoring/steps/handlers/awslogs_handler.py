@@ -87,7 +87,7 @@ class AwsLogsHandler:
         log_group = aws_attributes.get_log_group()
         log_stream = aws_attributes.get_log_stream()
         source = log_group if log_group else str(AwsEventSource.CLOUDWATCH)
-        # Use the logStream to identify if this is a CloudTrail, TransitGateway, or Bedrock event
+        # Use the logStream to identify if this is a CloudTrail event
         # i.e. 123456779121_CloudTrail_us-east-1
         if str(AwsCwEventSourcePrefix.CLOUDTRAIL) in log_stream:
             source = str(AwsEventSource.CLOUDTRAIL)
