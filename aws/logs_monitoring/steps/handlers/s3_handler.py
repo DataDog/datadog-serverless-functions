@@ -19,7 +19,6 @@ from settings import (
     GOV_STRING,
 )
 from steps.common import add_service_tag, is_cloudtrail, merge_dicts, parse_event_source
-from steps.enums import AwsEventSource, AwsS3EventSourceKeyword
 
 
 class S3EventDataStore:
