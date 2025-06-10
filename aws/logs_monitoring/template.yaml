@@ -275,9 +275,16 @@ Parameters:
       - "true"
       - "false"
     Description: Set to false to disable trace forwarding.
+  DdEnhancedMetrics:
+    Type: String
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: Set to true to enable enhanced Lambda metrics. This will generate additional custom metrics for Lambda functions, including cold starts, estimated AWS costs, and custom tags. Default is false.
 Conditions:
-  IsAWSChina: !Equals [!Ref 'AWS::Partition', aws-cn]
-  IsGovCloud: !Equals [!Ref 'AWS::Partition', aws-us-gov]
+  IsAWSChina: !Equals [!Ref "AWS::Partition", aws-cn]
+  IsGovCloud: !Equals [!Ref "AWS::Partition", aws-us-gov]
   UseZipCopier: !Or
     - !Condition IsAWSChina
     - !And
@@ -285,8 +292,8 @@ Conditions:
       - !Not
         - !Condition SetLayerARN
   CreateDdApiKeySecret: !And
-    - !Equals [!Ref DdApiKeySecretArn, 'arn:aws:secretsmanager:DEFAULT']
-    - !Equals [!Ref DdApiKeySsmParameterName, '/my/parameter/path']
+    - !Equals [!Ref DdApiKeySecretArn, "arn:aws:secretsmanager:DEFAULT"]
+    - !Equals [!Ref DdApiKeySsmParameterName, "/my/parameter/path"]
   SetDDApiSsmParamName: !Not
     - !Equals [!Ref DdApiKeySsmParameterName, "/my/parameter/path"]
   SetFunctionName: !Not
@@ -368,7 +375,6 @@ Conditions:
     - !Equals [!Join ["", !Ref VPCSubnetIds], ""]
   SetDdLogLevel: !Not
     - !Equals [!Ref DdLogLevel, ""]
-  SetDdTraceEnabled: !Equals [!Ref DdTraceEnabled, false]
 Rules:
   MustSetDdApiKey:
     Assertions:
@@ -416,7 +422,7 @@ Resources:
             - !Ref DdForwarderExistingBucketName
           S3Key: !Sub
             - "aws-dd-forwarder-${DdForwarderVersion}.zip"
-            - {DdForwarderVersion: !FindInMap [Constants, DdForwarder, Version]}
+            - { DdForwarderVersion: !FindInMap [Constants, DdForwarder, Version] }
         - ZipFile: " "
       MemorySize: !Ref MemorySize
       Runtime: python3.12
@@ -428,7 +434,6 @@ Resources:
           Value: !FindInMap [Constants, DdForwarder, Version]
       Environment:
         Variables:
-          DD_ENHANCED_METRICS: "false"
           DD_API_KEY_SECRET_ARN: !If
             - SetDDApiSsmParamName
             - !Ref AWS::NoValue
@@ -572,10 +577,8 @@ Resources:
             - SetDdLogLevel
             - !Ref DdLogLevel
             - !Ref AWS::NoValue
-          DD_TRACE_ENABLED: !If
-            - SetDdTraceEnabled
-            - !Ref DdTraceEnabled
-            - "true"
+          DD_TRACE_ENABLED: !Ref DdTraceEnabled
+          DD_ENHANCED_METRICS: !Ref DdEnhancedMetrics
       ReservedConcurrentExecutions: !If
         - SetReservedConcurrentExecutions
         - !Ref ReservedConcurrency
@@ -616,8 +619,7 @@ Resources:
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
-              - !If
-                # Access the s3 bucket that is used by the forwarder as a datastore
+              - !If # Access the s3 bucket that is used by the forwarder as a datastore
                 - SetForwarderBucket
                 - Action:
                     - s3:GetObject
@@ -658,8 +660,7 @@ Resources:
                   - kms:Decrypt
                 Resource: "*"
                 Effect: Allow
-              - !If
-                # Access the Datadog API key from Secrets Manager
+              - !If # Access the Datadog API key from Secrets Manager
                 - SetDDApiSsmParamName
                 - !Ref AWS::NoValue
                 - Action:
@@ -678,16 +679,14 @@ Resources:
                   Resource: "*"
                   Effect: Allow
                 - !Ref AWS::NoValue
-              - !If
-                # Get tags for log groups and attach them to the logs sent to Datadog
+              - !If # Get tags for log groups and attach them to the logs sent to Datadog
                 - SetDdFetchLogGroupTags
                 - Action:
                     - logs:ListTagsForResource
                   Resource: "*"
                   Effect: Allow
                 - !Ref AWS::NoValue
-              - !If
-                # Required for Lambda deployed in VPC
+              - !If # Required for Lambda deployed in VPC
                 - UseVPC
                 - Action:
                     - ec2:CreateNetworkInterface
@@ -696,16 +695,14 @@ Resources:
                   Resource: "*"
                   Effect: Allow
                 - !Ref AWS::NoValue
-              - !If
-                # To invoke a follower Lambda with the same event received by the forwarder for dual-shipping
+              - !If # To invoke a follower Lambda with the same event received by the forwarder for dual-shipping
                 - SetAdditionalTargetLambdas
                 - Action:
                     - lambda:InvokeFunction
                   Resource: !Ref AdditionalTargetLambdaArns
                   Effect: Allow
                 - !Ref AWS::NoValue
-              - !If
-                # Access the Datadog API key from SSM
+              - !If # Access the Datadog API key from SSM
                 - SetDDApiSsmParamName
                 - Action:
                     - ssm:GetParameter
@@ -827,7 +824,7 @@ Resources:
         - !Ref SourceZipUrl
         - !Sub
           - "https://github.com/DataDog/datadog-serverless-functions/releases/download/aws-dd-forwarder-${DdForwarderVersion}/aws-dd-forwarder-${DdForwarderVersion}.zip"
-          - {DdForwarderVersion: !FindInMap [Constants, DdForwarder, Version]}
+          - { DdForwarderVersion: !FindInMap [Constants, DdForwarder, Version] }
   # The Forwarder's source code is too big to fit the inline code size limit for CloudFormation. In most of AWS
   # partitions and regions, the Forwarder is able to load its source code from a Lambda layer attached to it.
   # In places where Datadog can't/doesn't yet publish Lambda layers, use another Lambda to copy the source code
@@ -1040,6 +1037,7 @@ Metadata:
           - DdFetchLogGroupTags
           - DdFetchStepFunctionsTags
           - DdStepFunctionsTraceEnabled
+          - DdEnhancedMetrics
           - TagsCacheTTLSeconds
           - SourceZipUrl
           - InstallAsLayer
