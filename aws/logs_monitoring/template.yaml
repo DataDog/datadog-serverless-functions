@@ -376,7 +376,6 @@ Conditions:
   SetDdLogLevel: !Not
     - !Equals [!Ref DdLogLevel, ""]
   SetDdTraceEnabled: !Equals [!Ref DdTraceEnabled, false]
-  SetDdEnhancedMetrics: !Equals [!Ref DdEnhancedMetrics, true]
 Rules:
   MustSetDdApiKey:
     Assertions:
@@ -583,10 +582,7 @@ Resources:
             - SetDdTraceEnabled
             - !Ref DdTraceEnabled
             - "true"
-          DD_ENHANCED_METRICS: !If
-            - SetDdEnhancedMetrics
-            - !Ref DdEnhancedMetrics
-            - "false"
+          DD_ENHANCED_METRICS: !Ref DdEnhancedMetrics
       ReservedConcurrentExecutions: !If
         - SetReservedConcurrentExecutions
         - !Ref ReservedConcurrency
