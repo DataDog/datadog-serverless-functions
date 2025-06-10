@@ -436,7 +436,6 @@ Resources:
           Value: !FindInMap [Constants, DdForwarder, Version]
       Environment:
         Variables:
-          DD_ENHANCED_METRICS: !Ref DdEnhancedMetrics
           DD_API_KEY_SECRET_ARN: !If
             - SetDDApiSsmParamName
             - !Ref AWS::NoValue
@@ -584,6 +583,10 @@ Resources:
             - SetDdTraceEnabled
             - !Ref DdTraceEnabled
             - "true"
+          DD_ENHANCED_METRICS: !If
+            - SetDdEnhancedMetrics
+            - !Ref DdEnhancedMetrics
+            - "false"
       ReservedConcurrentExecutions: !If
         - SetReservedConcurrentExecutions
         - !Ref ReservedConcurrency
