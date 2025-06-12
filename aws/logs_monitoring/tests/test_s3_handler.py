@@ -300,26 +300,6 @@ class TestS3EventsHandler(unittest.TestCase):
             "s3",
         )
 
-    def test_set_source_transit_gateway(self):
-        self.s3_handler.data_store.key = "AWSLogs/1234566312/vpcflowlogs/us-east-1/2024/08/09/11/123455660991_vpcflowlogs_us-east-1_fl-01fb37"
-        self.s3_handler.data_store.bucket = "my-bucket-transit-gateway"
-        self.s3_handler._set_source(
-            {
-                "Records": [
-                    {
-                        "s3": {
-                            "bucket": {"name": "my-bucket-transit-gateway"},
-                            "object": {"key": self.s3_handler.data_store.key},
-                        }
-                    }
-                ]
-            }
-        )
-        self.assertEqual(
-            self.s3_handler.data_store.source,
-            "transitgateway",
-        )
-
 
 if __name__ == "__main__":
     unittest.main()

@@ -11,12 +11,7 @@ class AwsEventSource(Enum):
     ELB = "elb"
     FARGATE = "fargate"
     GUARDDUTY = "guardduty"
-    IAMAUTHENTICATOR = "aws-iam-authenticator"
     KINESIS = "kinesis"
-    KUBEAPISERVER = "kube-apiserver"
-    KUBECONTROLLERMANAGER = "kube-controller-manager"
-    KUBERNETESAUDIT = "kubernetes.audit"
-    KUBESCHEDULER = "kube_scheduler"
     LAMBDA = "lambda"
     MARIADB = "mariadb"
     MSK = "msk"
@@ -26,9 +21,7 @@ class AwsEventSource(Enum):
     ROUTE53 = "route53"
     S3 = "s3"
     SNS = "sns"
-    SSM = "ssm"
     STEPFUNCTION = "stepfunction"
-    TRANSITGATEWAY = "transitgateway"
     VERIFIED_ACCESS = "verified-access"
     VPC = "vpc"
     WAF = "waf"
@@ -46,7 +39,6 @@ class AwsEventSource(Enum):
             AwsEventSource.MSK,
             AwsEventSource.NETWORKFIREWALL,
             AwsEventSource.ROUTE53,
-            AwsEventSource.TRANSITGATEWAY,
             AwsEventSource.VERIFIED_ACCESS,
             AwsEventSource.VPC,
         ]
@@ -71,7 +63,6 @@ class AwsS3EventSourceKeyword(Enum):
     NETWORKFIREWALL = ("network-firewall", AwsEventSource.NETWORKFIREWALL)
     # e.g. AWSLogs/123456779121/vpcdnsquerylogs/vpc-********/2021/05/11/vpc-********_vpcdnsquerylogs_********_20210511T0910Z_71584702.log.gz
     ROUTE53 = ("vpcdnsquerylogs", AwsEventSource.ROUTE53)
-    TRANSITGATEWAY = ("transit-gateway", AwsEventSource.TRANSITGATEWAY)
     VERIFIED_ACCESS = ("verified-access", AwsEventSource.VERIFIED_ACCESS)
     # e.g. AWSLogs/123456779121/vpcflowlogs/us-east-1/2020/10/02/123456779121_vpcflowlogs_us-east-1_fl-xxxxx.log.gz
     VPC = ("vpcflowlogs", AwsEventSource.VPC)
@@ -93,8 +84,6 @@ class AwsCwEventSourcePrefix(Enum):
     LAMBDA = ("/aws/lambda", AwsEventSource.LAMBDA)
     # e.g. sns/us-east-1/123456779121/SnsTopicX
     SNS = ("sns/", AwsEventSource.SNS)
-    SSM = ("/aws/ssm/", AwsEventSource.SSM)
-    TRANSITGATEWAY = ("tgw-attach", AwsEventSource.TRANSITGATEWAY)
 
     def __str__(self):
         return f"{self.string}"

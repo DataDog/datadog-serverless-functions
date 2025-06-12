@@ -19,7 +19,6 @@ from settings import (
     GOV_STRING,
 )
 from steps.common import add_service_tag, is_cloudtrail, merge_dicts, parse_event_source
-from steps.enums import AwsEventSource, AwsS3EventSourceKeyword
 
 
 class S3EventDataStore:
@@ -83,8 +82,6 @@ class S3EventHandler:
 
     def _set_source(self, event):
         self.data_store.source = parse_event_source(event, self.data_store.key)
-        if str(AwsS3EventSourceKeyword.TRANSITGATEWAY) in self.data_store.bucket:
-            self.data_store.source = str(AwsEventSource.TRANSITGATEWAY)
         self.metadata[DD_SOURCE] = self.data_store.source
 
     def _get_s3_arn(self):
