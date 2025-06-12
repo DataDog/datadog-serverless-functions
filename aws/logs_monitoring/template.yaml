@@ -3,8 +3,8 @@ Description: Pushes logs, metrics and traces from AWS to Datadog.
 Mappings:
   Constants:
     DdForwarder:
-      Version: 4.6.0
-      LayerVersion: "81"
+      Version: 4.7.0
+      LayerVersion: "82"
 Parameters:
   DdApiKey:
     Type: String
@@ -422,7 +422,7 @@ Resources:
             - !Ref DdForwarderExistingBucketName
           S3Key: !Sub
             - "aws-dd-forwarder-${DdForwarderVersion}.zip"
-            - { DdForwarderVersion: !FindInMap [Constants, DdForwarder, Version] }
+            - {DdForwarderVersion: !FindInMap [Constants, DdForwarder, Version]}
         - ZipFile: " "
       MemorySize: !Ref MemorySize
       Runtime: python3.12
@@ -619,8 +619,8 @@ Resources:
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
-              - !If # Access the s3 bucket that is used by the forwarder as a datastore
-                - SetForwarderBucket
+              - !If
+                - SetForwarderBucket # Access the s3 bucket that is used by the forwarder as a datastore
                 - Action:
                     - s3:GetObject
                     - s3:PutObject
@@ -660,8 +660,8 @@ Resources:
                   - kms:Decrypt
                 Resource: "*"
                 Effect: Allow
-              - !If # Access the Datadog API key from Secrets Manager
-                - SetDDApiSsmParamName
+              - !If
+                - SetDDApiSsmParamName # Access the Datadog API key from Secrets Manager
                 - !Ref AWS::NoValue
                 - Action:
                     - secretsmanager:GetSecretValue
@@ -679,15 +679,15 @@ Resources:
                   Resource: "*"
                   Effect: Allow
                 - !Ref AWS::NoValue
-              - !If # Get tags for log groups and attach them to the logs sent to Datadog
-                - SetDdFetchLogGroupTags
+              - !If
+                - SetDdFetchLogGroupTags # Get tags for log groups and attach them to the logs sent to Datadog
                 - Action:
                     - logs:ListTagsForResource
                   Resource: "*"
                   Effect: Allow
                 - !Ref AWS::NoValue
-              - !If # Required for Lambda deployed in VPC
-                - UseVPC
+              - !If
+                - UseVPC # Required for Lambda deployed in VPC
                 - Action:
                     - ec2:CreateNetworkInterface
                     - ec2:DescribeNetworkInterfaces
@@ -695,15 +695,15 @@ Resources:
                   Resource: "*"
                   Effect: Allow
                 - !Ref AWS::NoValue
-              - !If # To invoke a follower Lambda with the same event received by the forwarder for dual-shipping
-                - SetAdditionalTargetLambdas
+              - !If
+                - SetAdditionalTargetLambdas # To invoke a follower Lambda with the same event received by the forwarder for dual-shipping
                 - Action:
                     - lambda:InvokeFunction
                   Resource: !Ref AdditionalTargetLambdaArns
                   Effect: Allow
                 - !Ref AWS::NoValue
-              - !If # Access the Datadog API key from SSM
-                - SetDDApiSsmParamName
+              - !If
+                - SetDDApiSsmParamName # Access the Datadog API key from SSM
                 - Action:
                     - ssm:GetParameter
                     - ssm:GetParameters
@@ -824,7 +824,7 @@ Resources:
         - !Ref SourceZipUrl
         - !Sub
           - "https://github.com/DataDog/datadog-serverless-functions/releases/download/aws-dd-forwarder-${DdForwarderVersion}/aws-dd-forwarder-${DdForwarderVersion}.zip"
-          - { DdForwarderVersion: !FindInMap [Constants, DdForwarder, Version] }
+          - {DdForwarderVersion: !FindInMap [Constants, DdForwarder, Version]}
   # The Forwarder's source code is too big to fit the inline code size limit for CloudFormation. In most of AWS
   # partitions and regions, the Forwarder is able to load its source code from a Lambda layer attached to it.
   # In places where Datadog can't/doesn't yet publish Lambda layers, use another Lambda to copy the source code
