@@ -17,7 +17,8 @@ class S3TagsCache(BaseTagsCache):
         )
 
     def should_fetch_tags(self):
-        return os.environ.get("DD_FETCH_S3_TAGS", "false").lower() == "true"
+        # set it to true if we don't have the environment variable set to keep the default behavior
+        return os.environ.get("DD_FETCH_S3_TAGS", "true").lower() == "true"
 
     def build_tags_cache(self):
         """Makes API calls to GetResources to get the live tags of the account's S3 buckets
