@@ -127,7 +127,7 @@ aws_login() {
 
     if [[ ${ACCOUNT} == "prod" ]]; then
         aws-vault exec sso-prod-lambda-admin -- ${cfg[@]}
-    elif [[  ${ACCOUNT} == "datadog" ]]; then
+    elif [[ ${ACCOUNT} == "datadog" ]]; then
         aws-vault exec sso-prod-lambda-admin -- ${cfg[@]}
     else
         if [[ ${DEPLOY_TO_SERVERLESS_SANDBOX:-} == "true" ]]; then
@@ -157,14 +157,14 @@ datadog_release() {
         ./tools/build_bundle.sh "${FORWARDER_VERSION}"
     fi
 
-     # Upload the bundle to S3 instead of GitHub for a org 2 release
+    # Upload the bundle to S3 instead of GitHub for a org 2 release
     log_info "Uploading a non-public version of Forwarder to S3..."
     aws_login aws s3 cp "${BUNDLE_PATH}" "s3://${BUCKET}/aws/forwarder-zip/aws-dd-forwarder-${FORWARDER_VERSION}.zip"
 
     # set urls
     TEMPLATE_URL="https://${BUCKET}.s3.amazonaws.com/aws/forwarder/${FORWARDER_VERSION}.yaml"
     FORWARDER_SOURCE_URL="s3://${BUCKET}/aws/forwarder-zip/aws-dd-forwarder-${FORWARDER_VERSION}.zip"
-    
+
     # don't publish layers we'll use the zip copier instead
 }
 
@@ -208,6 +208,7 @@ prod_release() {
     fi
 
     # Get the latest code
+    git checkout master
     git pull origin master
 
     log_info "Bumping the version number to ${FORWARDER_VERSION}..."
@@ -218,10 +219,27 @@ prod_release() {
     yq --inplace ".Mappings.Constants.DdForwarder.LayerVersion |= \"${LAYER_VERSION}\"" "template.yaml"
 
     if ! git diff --quiet; then
-        log_info "Committing version number change..."
+        BRANCH_NAME="layer_${LAYER_VERSION}"
+
+        log_info "Opening pull-request version number change on branch ${BRANCH_NAME}..."
+        git checkout -b "${BRANCH_NAME}"
+
         git add "settings.py" "template.yaml"
         git commit --signoff --message "ci(release): Update version from ${CURRENT_VERSION} to ${FORWARDER_VERSION}"
+
+        hub pull-request --browse --message "Update version from ${CURRENT_VERSION} to ${FORWARDER_VERSION}"
+
+        if ! user_confirm "Review and merge the pull-request before continuing. Continue"; then
+            log_error "Aborting... To restart, run the script with PROD_GITHUB_RESTART=true env variable."
+        fi
     fi
+
+    prod_asset_push
+}
+
+prod_asset_push() {
+    git checkout master
+    git pull origin master
 
     GIT_COMMIT="$(git rev-parse HEAD)"
     log_info "Using ${GIT_COMMIT} commit as the release target..."
@@ -236,9 +254,6 @@ prod_release() {
 
     log_info "Uploading layers..."
     ./tools/publish_prod.sh "${LAYER_VERSION}" "${FORWARDER_VERSION}"
-
-    log_info "Pushing version number change..."
-    git push origin master
 
     # Create a GitHub release
     log_info "Releasing aws-dd-forwarder-${FORWARDER_VERSION}, targetting commit ${GIT_COMMIT}, to GitHub..."
@@ -264,7 +279,11 @@ log_info "Validating template.yaml..."
 aws_login aws cloudformation validate-template --template-body "file://template.yaml"
 
 if [[ ${ACCOUNT} == "prod" ]]; then
-    prod_release
+    if [[ ${PROD_GITHUB_RESTART:-} == "true" ]]; then
+        prod_asset_push
+    else
+        prod_release
+    fi
 elif [[ ${ACCOUNT} == "datadog" ]]; then
     datadog_release
 else
