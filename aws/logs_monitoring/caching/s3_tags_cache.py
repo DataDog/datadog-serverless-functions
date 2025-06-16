@@ -1,3 +1,4 @@
+import os
 from botocore.exceptions import ClientError
 from caching.base_tags_cache import BaseTagsCache
 from caching.common import parse_get_resources_response_for_tags_by_arn
@@ -16,7 +17,8 @@ class S3TagsCache(BaseTagsCache):
         )
 
     def should_fetch_tags(self):
-        return True
+        # set it to true if we don't have the environment variable set to keep the default behavior
+        return os.environ.get("DD_FETCH_S3_TAGS", "true").lower() == "true"
 
     def build_tags_cache(self):
         """Makes API calls to GetResources to get the live tags of the account's S3 buckets
@@ -56,6 +58,13 @@ class S3TagsCache(BaseTagsCache):
         return tags_fetch_success, tags_by_arn_cache
 
     def get(self, bucket_arn):
+        if not self.should_fetch_tags():
+            self.logger.debug(
+                "Not fetching S3  tags because the env variable DD_FETCH_S3_TAGS is "
+                "not set to true"
+            )
+            return []
+
         if self._is_expired():
             send_forwarder_internal_metrics("local_s3_tags_cache_expired")
             self.logger.debug("Local cache expired, fetching cache from S3")

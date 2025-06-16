@@ -109,7 +109,7 @@ class S3EventHandler:
             self.metadata[DD_CUSTOM_TAGS] = (
                 ",".join(s3_tags)
                 if not self.metadata[DD_CUSTOM_TAGS]
-                else self.metadata[DD_CUSTOM_TAGS] + "," + ",".join(s3_tags)
+                else ",".join(s3_tags) + "," + self.metadata[DD_CUSTOM_TAGS]
             )
 
     def _extract_data(self):

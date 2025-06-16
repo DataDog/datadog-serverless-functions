@@ -96,6 +96,13 @@ Parameters:
       - true
       - false
     Description: Let the forwarder fetch Step Functions tags using GetResources API calls and apply them to logs, metrics and traces. If set to true, permission tag:GetResources will be automatically added to the Lambda execution IAM role. The tags are cached in memory and S3 so that they'll only be fetched when the function cold starts or when the TTL (1 hour) expires. The forwarder increments the aws.lambda.enhanced.get_resources_api_calls metric for each API call made.
+  DdFetchS3Tags:
+    Type: String
+    Default: true
+    AllowedValues:
+      - true
+      - false
+    Description: Let the forwarder fetch S3 buckets tags using GetResources API calls and apply them to S3 based logs. If set to true, permission tag:GetResources will be automatically added to the Lambda execution IAM role. The tags are cached in memory and S3 so that they'll only be fetched when the function cold starts or when the TTL (1 hour) expires. The forwarder increments the aws.lambda.enhanced.get_resources_api_calls metric for each API call made.
   DdUseTcp:
     Type: String
     Default: false
@@ -459,6 +466,7 @@ Resources:
             - SetDdFetchLambdaTags
             - !Ref DdFetchLambdaTags
             - !Ref AWS::NoValue
+          DD_FETCH_S3_TAGS: !Ref DdFetchS3Tags
           DD_FETCH_LOG_GROUP_TAGS: !If
             - SetDdFetchLogGroupTags
             - !Ref DdFetchLogGroupTags
@@ -1036,6 +1044,7 @@ Metadata:
           - DdFetchLambdaTags
           - DdFetchLogGroupTags
           - DdFetchStepFunctionsTags
+          - DdFetchS3Tags
           - DdStepFunctionsTraceEnabled
           - DdEnhancedMetrics
           - TagsCacheTTLSeconds
