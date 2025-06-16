@@ -227,6 +227,7 @@ prod_release() {
         git add "settings.py" "template.yaml"
         git commit --signoff --message "ci(release): Update version from ${CURRENT_VERSION} to ${FORWARDER_VERSION}"
 
+        git push origin "${BRANCH_NAME}"
         hub pull-request --browse --message "Update version from ${CURRENT_VERSION} to ${FORWARDER_VERSION}"
 
         if ! user_confirm "Review and merge the pull-request before continuing. Continue"; then
