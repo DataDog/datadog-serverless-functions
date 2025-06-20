@@ -637,3 +637,184 @@ describe('HTTPClient', function() {
         });
     });
 });
+
+describe('Log Splitting', function() {
+    function setUpWithLogSplittingConfig(config) {
+        const forwarder = new client.EventhubLogHandler(fakeContext());
+        
+        // Mock the log splitting configuration
+        forwarder.logSplittingConfig = config;
+        
+        // Mock addTagsToJsonLog to set ddsource for testing
+        forwarder.addTagsToJsonLog = x => {
+            return Object.assign({ 
+                ddsource: 'azure.datafactory',
+                ddsourcecategory: 'azure',
+                service: 'azure',
+                ddtags: 'forwardername:testFunctionName'
+            }, x);
+        };
+        
+        forwarder.addTagsToStringLog = x => {
+            return { 
+                ddsource: 'azure.datafactory',
+                ddsourcecategory: 'azure',
+                service: 'azure',
+                ddtags: 'forwardername:testFunctionName',
+                message: x 
+            };
+        };
+
+        return forwarder;
+    }
+
+    describe('#logSplitting with azure.datafactory configuration', function() {
+        beforeEach(function() {
+            this.testConfig = {
+                'azure.datafactory': {
+                    paths: [['properties', 'Output', 'value']],
+                    keep_original_log: true,
+                    preserve_fields: false
+                }
+            };
+            this.forwarder = setUpWithLogSplittingConfig(this.testConfig);
+        });
+
+        it('should split logs with correct field structure due', function() {
+            const inputLog = {
+                resourceId: '/subscriptions/test-sub/resourceGroups/test-rg/providers/Microsoft.DataFactory/factories/test-factory',
+                properties: {
+                    Output: {
+                        value: [
+                            { id: 1, name: 'item1', status: 'success' },
+                            { id: 2, name: 'item2', status: 'failed' },
+                            { id: 3, name: 'item3', status: 'success' }
+                        ]
+                    }
+                },
+                timestamp: '2023-01-01T00:00:00Z',
+                category: 'PipelineRuns'
+            };
+
+            const result = this.forwarder.handleLogs(inputLog);
+            
+            assert.equal(result.length, 4); // 3 split logs + 1 original
+            assert.equal(result[0].ddsource, 'azure.datafactory');
+            assert.ok(result[0].parsed_arrays);
+
+            // the first 3 logs should be split from the array
+            for (let i = 0; i < result.length -1; i++) {
+                assert.equal(result[i].ddsource, 'azure.datafactory');
+                assert.ok(!Array.isArray(result[i].parsed_arrays.properties['Output']['value']));
+            }
+
+            // The last log should be the original log
+            assert.equal(result[3].ddsource, 'azure.datafactory');
+            assert.ok(Array.isArray(result[3].properties['Output']['value']));
+        });
+
+        it('should preserve original log when path does not exist', function() {
+            const inputLog = {
+                properties: {
+                    SomeOtherField: 'value'
+                }
+            };
+
+            const result = this.forwarder.handleLogs(inputLog);
+            
+            // Should only have 1 log (original) since path doesn't exist
+            assert.equal(result.length, 1);
+            assert.equal(result[0].ddsource, 'azure.datafactory');
+            assert.equal(result[0].properties.SomeOtherField, 'value');
+        });
+
+        it('should handle null/undefined values in path gracefully', function() {
+            const inputLog = {
+                properties: {
+                    Output: null
+                }
+            };
+
+            const result = this.forwarder.handleLogs(inputLog);
+            
+            // Should only have 1 log (original) since path leads to null
+            assert.equal(result.length, 1);
+            assert.equal(result[0].ddsource, 'azure.datafactory');
+            assert.equal(result[0].properties.Output, null);
+        });
+    });
+
+    describe('#logSplitting with non-datafactory source', function() {
+        beforeEach(function() {
+            this.testConfig = {
+                'azure.datafactory': {
+                    paths: [['properties', 'Output', 'value']],
+                    keep_original_log: true,
+                    preserve_fields: true
+                }
+            };
+            this.forwarder = setUpWithLogSplittingConfig(this.testConfig);
+            
+            // Override to return different source
+            this.forwarder.addTagsToJsonLog = x => {
+                return Object.assign({ 
+                    ddsource: 'azure.storage',
+                    ddsourcecategory: 'azure',
+                    service: 'azure',
+                    ddtags: 'forwardername:testFunctionName'
+                }, x);
+            };
+        });
+
+        it('should not split logs from other sources', function() {
+            const inputLog = {
+                properties: {
+                    Output: {
+                        value: [
+                            { id: 1, name: 'item1' },
+                            { id: 2, name: 'item2' }
+                        ]
+                    }
+                }
+            };
+
+            const result = this.forwarder.handleLogs(inputLog);
+            
+            // Should only have 1 log (original) since source doesn't match config
+            assert.equal(result.length, 1);
+            assert.equal(result[0].ddsource, 'azure.storage');
+            assert.ok(!result[0].parsed_arrays);
+        });
+    });
+
+    describe('#findSplitRecords method behavior', function() {
+        beforeEach(function() {
+            this.forwarder = new client.EventhubLogHandler(fakeContext());
+        });
+
+        it('should return an object with the field at the end of of the chain in fields', function() {
+            const value = [1,2,3];
+            const fields = ['properties', 'Output', 'value'];
+            const record = {
+                properties: {
+                    Output: {
+                        value: value
+                    }
+                }
+            };
+
+            const result = this.forwarder.findSplitRecords(record, fields);
+            assert.equal(result, value);
+        });
+
+        it('should return null when path leads to null/undefined', function() {
+            const fields = ['properties', 'Output', 'value'];
+            const record = {
+                0: null
+            };
+
+            const result = this.forwarder.findSplitRecords(record, fields);
+            assert.equal(result, null);
+        });
+    });
+});

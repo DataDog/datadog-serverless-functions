@@ -5,7 +5,7 @@
 
 const { app, InvocationContext } = require('@azure/functions');
 
-const VERSION = '2.0.0';
+const VERSION = '2.1.0';
 
 const STRING = 'string'; // example: 'some message'
 const STRING_ARRAY = 'string-array'; // example: ['one message', 'two message', ...]
@@ -290,7 +290,8 @@ class EventhubLogHandler {
 
     findSplitRecords(record, fields) {
         let tempRecord = record;
-        for (const fieldName in fields) {
+        for (const fieldIndex in fields) {
+            const fieldName = fields[fieldIndex];
             // loop through the fields to find the one we want to split
             if (
                 tempRecord[fieldName] === undefined ||
