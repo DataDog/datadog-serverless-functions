@@ -13,7 +13,7 @@ exceptiongroup
 idna==3.7
 importlib-metadata
 opentelemetry-api
-protobuf
+protobuf>=6.31.1
 requests-futures
 requests
 six
