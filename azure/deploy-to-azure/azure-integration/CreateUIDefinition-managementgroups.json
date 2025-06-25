@@ -205,6 +205,10 @@
                   "value": "ap1.datadoghq.com"
                 },
                 {
+                  "label": "AP2",
+                  "value": "ap2.datadoghq.com"
+                },
+                {
                   "label": "US1-FED",
                   "value": "ddog-gov.com"
                 }
