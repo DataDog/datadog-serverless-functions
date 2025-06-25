@@ -11,7 +11,8 @@
         "us5.datadoghq.com",
         "datadoghq.eu",
         "ddog-gov.com",
-        "ap1.datadoghq.com"
+        "ap1.datadoghq.com",
+        "ap2.datadoghq.com"
       ],
       "metadata": {
         "description": "Datadog site to send logs"
