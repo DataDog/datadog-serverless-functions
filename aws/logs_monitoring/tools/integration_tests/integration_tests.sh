@@ -7,9 +7,9 @@
 
 set -e
 
-PYTHON_VERSION="python3.12"
-PYTHON_VERSION_TAG="3.12"
-PYTHON_IMAGE="python:3.12"
+PYTHON_VERSION="python3.13"
+PYTHON_VERSION_TAG="3.13"
+PYTHON_IMAGE="python:3.13"
 SKIP_FORWARDER_BUILD=false
 UPDATE_SNAPSHOTS=false
 LOG_LEVEL=info
@@ -36,7 +36,7 @@ for arg in "$@"; do
                 SKIP_FORWARDER_BUILD=true
                 shift
                 ;;
-                
+
 
         # -u or --update
         # Update the snapshots to reflect this test run
