@@ -3,8 +3,8 @@ Description: Pushes logs, metrics and traces from AWS to Datadog.
 Mappings:
   Constants:
     DdForwarder:
-      Version: 4.9.0
-      LayerVersion: "84"
+      Version: 4.10.0
+      LayerVersion: "85"
 Parameters:
   DdApiKey:
     Type: String
@@ -427,7 +427,7 @@ Resources:
             - !Ref DdForwarderExistingBucketName
           S3Key: !Sub
             - "aws-dd-forwarder-${DdForwarderVersion}.zip"
-            - { DdForwarderVersion: !FindInMap [Constants, DdForwarder, Version] }
+            - {DdForwarderVersion: !FindInMap [Constants, DdForwarder, Version]}
         - ZipFile: " "
       MemorySize: !Ref MemorySize
       Runtime: python3.12
@@ -830,7 +830,7 @@ Resources:
         - !Ref SourceZipUrl
         - !Sub
           - "https://github.com/DataDog/datadog-serverless-functions/releases/download/aws-dd-forwarder-${DdForwarderVersion}/aws-dd-forwarder-${DdForwarderVersion}.zip"
-          - { DdForwarderVersion: !FindInMap [Constants, DdForwarder, Version] }
+          - {DdForwarderVersion: !FindInMap [Constants, DdForwarder, Version]}
   # The Forwarder's source code is too big to fit the inline code size limit for CloudFormation. In most of AWS
   # partitions and regions, the Forwarder is able to load its source code from a Lambda layer attached to it.
   # In places where Datadog can't/doesn't yet publish Lambda layers, use another Lambda to copy the source code
