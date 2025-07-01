@@ -13,7 +13,7 @@ Parameters:
     Description: The Datadog API key, which can be found from the APIs page (/account/settings#api). It will be stored in AWS Secrets Manager securely. If DdApiKeySecretArn is also set, this value is ignored.
   DdApiKeySecretArn:
     Type: String
-    Description: The ARN of the secret storing the Datadog API key, if you already have it stored in Secrets Manager. You must store the secret as a plaintext, rather than a key-value pair. Supports full ARN of friendly name.
+    Description: The full ARN or name (if local) of the secret storing the Datadog API key, if you already have it stored in Secrets Manager. You must store the secret as a plaintext, rather than a key-value pair.
   DdApiKeySsmParameterName:
     Type: String
     Default: "/my/parameter/path"
