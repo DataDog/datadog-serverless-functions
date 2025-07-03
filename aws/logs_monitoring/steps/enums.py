@@ -3,7 +3,6 @@ from enum import Enum
 
 class AwsEventSource(Enum):
     AWS = "aws"
-    CLOUDFRONT = "cloudfront"
     CLOUDTRAIL = "cloudtrail"
     CLOUDWATCH = "cloudwatch"
     ELASTICSEARCH = "elasticsearch"
@@ -27,7 +26,6 @@ class AwsEventSource(Enum):
     @staticmethod
     def cloudwatch_sources():
         return [
-            AwsEventSource.CLOUDFRONT,
             AwsEventSource.CLOUDTRAIL,
             AwsEventSource.ELASTICSEARCH,
             AwsEventSource.FARGATE,
@@ -48,7 +46,6 @@ class AwsS3EventSourceKeyword(Enum):
     GUARDDUTY = ("guardduty", AwsEventSource.GUARDDUTY)
     KINESIS = ("amazon_kinesis", AwsEventSource.KINESIS)
     MSK = ("amazon_msk", AwsEventSource.MSK)
-    NETWORKFIREWALL = ("network-firewall", AwsEventSource.NETWORKFIREWALL)
     # e.g. AWSLogs/123456779121/vpcdnsquerylogs/vpc-********/2021/05/11/vpc-********_vpcdnsquerylogs_********_20210511T0910Z_71584702.log.gz
     ROUTE53 = ("vpcdnsquerylogs", AwsEventSource.ROUTE53)
 
