@@ -339,7 +339,7 @@ Otherwise, if you are using Web Proxy:
 
 The Datadog Forwarder is signed by Datadog. To verify the integrity of the Forwarder, use the manual installation method. [Create a Code Signing Configuration][19] that includes Datadog’s Signing Profile ARN (`arn:aws:signer:us-east-1:464622532012:/signing-profiles/DatadogLambdaSigningProfile/9vMI9ZAGLc`) and associate it with the Forwarder Lambda function before uploading the Forwarder ZIP file.
 
-## CloudFormation parameters
+## Parameters
 
 {{< tabs >}}
 {{% tab "CloudFormation and Terraform" %}}
