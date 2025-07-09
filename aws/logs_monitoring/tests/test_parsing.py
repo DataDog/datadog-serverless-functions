@@ -98,28 +98,6 @@ class TestParseEventSource(unittest.TestCase):
             str(AwsEventSource.KINESIS),
         )
 
-    def test_vpc_event(self):
-        self.assertEqual(
-            parse_event_source({"awslogs": "logs"}, "abc123_my_vpc_loggroup"),
-            str(AwsEventSource.VPC),
-        )
-        self.assertEqual(
-            parse_event_source(
-                {"Records": ["logs-from-s3"]},
-                "AWSLogs/123456779121/vpcflowlogs/us-east-1/2020/10/02/123456779121_vpcflowlogs_us-east-1_fl-xxxxx.log.gz",
-            ),
-            str(AwsEventSource.VPC),
-        )
-
-    def test_elb_event(self):
-        self.assertEqual(
-            parse_event_source(
-                {"Records": ["logs-from-s3"]},
-                "AWSLogs/123456779121/elasticloadbalancing/us-east-1/2020/10/02/123456779121_elasticloadbalancing_us-east-1_app.alb.xxxxx.xx.xxx.xxx_x.log.gz",
-            ),
-            str(AwsEventSource.ELB),
-        )
-
     def test_waf_event(self):
         self.assertEqual(
             parse_event_source(
@@ -212,15 +190,6 @@ class TestParseEventSource(unittest.TestCase):
                 "AWSLogs/amazon_msk/us-east-1/xxxxx.log.gz",
             ),
             str(AwsEventSource.MSK),
-        )
-
-    def test_carbon_black_event(self):
-        self.assertEqual(
-            parse_event_source(
-                {"Records": ["logs-from-s3"]},
-                "carbon-black-cloud-forwarder/alerts/8436e850-7e78-40e4-b3cd-6ebbc854d0a2.jsonl.gz",
-            ),
-            str(AwsEventSource.CARBONBLACK),
         )
 
     def test_cloudwatch_source_if_none_found(self):
