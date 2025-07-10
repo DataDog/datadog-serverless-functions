@@ -11,7 +11,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v3
         with:
-          python-version: "3.12"
+          python-version: "3.13"
 
       - name: Install pip
         run: |
@@ -33,7 +33,7 @@ jobs:
 
       - name: Install cfn-lint print version and check formatting
         run: |
-          pip install cfn-lint==1.11.1
+          pip install cfn-lint==1.19.0
           cfn-lint --version
           cfn-lint -t aws/logs_monitoring/template.yaml
           cfn-lint -t aws/rds_enhanced_monitoring/rds-enhanced-sam-template.yaml
