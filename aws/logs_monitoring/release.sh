@@ -261,10 +261,10 @@ prod_asset_push() {
     # Create a GitHub release
     log_info "Releasing aws-dd-forwarder-${FORWARDER_VERSION}, targetting commit ${GIT_COMMIT}, to GitHub..."
 
-    gh release create "aws-dd-forwarder-${FORWARDER_VERSION}" "${BUNDLE_PATH}#aws-dd-forwarder-${FORWARDER_VERSION}" \
+    gh release create "aws-dd-forwarder-${FORWARDER_VERSION}" "${BUNDLE_PATH}#aws-dd-forwarder-${FORWARDER_VERSION}.zip" \
         --title "aws-dd-forwarder-${FORWARDER_VERSION}" \
         --target "${GIT_COMMIT}" \
-        --draft
+        --generate-notes
 
     # Set vars for use in the installation test
     TEMPLATE_URL="https://${BUCKET}.s3.amazonaws.com/aws/forwarder/latest.yaml"
