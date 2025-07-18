@@ -3,12 +3,9 @@ from enum import Enum
 
 class AwsEventSource(Enum):
     AWS = "aws"
-    CARBONBLACK = "carbonblack"
-    CLOUDFRONT = "cloudfront"
     CLOUDTRAIL = "cloudtrail"
     CLOUDWATCH = "cloudwatch"
     ELASTICSEARCH = "elasticsearch"
-    ELB = "elb"
     FARGATE = "fargate"
     GUARDDUTY = "guardduty"
     KINESIS = "kinesis"
@@ -16,14 +13,11 @@ class AwsEventSource(Enum):
     MARIADB = "mariadb"
     MSK = "msk"
     MYSQL = "mysql"
-    NETWORKFIREWALL = "network-firewall"
     POSTGRESQL = "postgresql"
     ROUTE53 = "route53"
     S3 = "s3"
     SNS = "sns"
     STEPFUNCTION = "stepfunction"
-    VERIFIED_ACCESS = "verified-access"
-    VPC = "vpc"
     WAF = "waf"
 
     def __str__(self):
@@ -32,15 +26,11 @@ class AwsEventSource(Enum):
     @staticmethod
     def cloudwatch_sources():
         return [
-            AwsEventSource.CLOUDFRONT,
             AwsEventSource.CLOUDTRAIL,
             AwsEventSource.ELASTICSEARCH,
             AwsEventSource.FARGATE,
             AwsEventSource.MSK,
-            AwsEventSource.NETWORKFIREWALL,
             AwsEventSource.ROUTE53,
-            AwsEventSource.VERIFIED_ACCESS,
-            AwsEventSource.VPC,
         ]
 
 
@@ -53,19 +43,11 @@ class AwsS3EventSourceKeyword(Enum):
     WAF_0 = ("aws-waf-logs", AwsEventSource.WAF)
     WAF_1 = ("waflogs", AwsEventSource.WAF)
 
-    # e.g. carbon-black-cloud-forwarder/alerts/org_key=*****/year=2021/month=7/day=19/hour=18/minute=15/second=41/8436e850-7e78-40e4-b3cd-6ebbc854d0a2.jsonl.gz
-    CARBONBLACK = ("carbon-black", AwsEventSource.CARBONBLACK)
-    # e.g. AWSLogs/123456779121/elasticloadbalancing/us-east-1/2020/10/02/123456779121_elasticloadbalancing_us-east-1_app.alb.xxxxx.xx.xxx.xxx_x.log.gz
-    ELB = ("elasticloadbalancing", AwsEventSource.ELB)
     GUARDDUTY = ("guardduty", AwsEventSource.GUARDDUTY)
     KINESIS = ("amazon_kinesis", AwsEventSource.KINESIS)
     MSK = ("amazon_msk", AwsEventSource.MSK)
-    NETWORKFIREWALL = ("network-firewall", AwsEventSource.NETWORKFIREWALL)
     # e.g. AWSLogs/123456779121/vpcdnsquerylogs/vpc-********/2021/05/11/vpc-********_vpcdnsquerylogs_********_20210511T0910Z_71584702.log.gz
     ROUTE53 = ("vpcdnsquerylogs", AwsEventSource.ROUTE53)
-    VERIFIED_ACCESS = ("verified-access", AwsEventSource.VERIFIED_ACCESS)
-    # e.g. AWSLogs/123456779121/vpcflowlogs/us-east-1/2020/10/02/123456779121_vpcflowlogs_us-east-1_fl-xxxxx.log.gz
-    VPC = ("vpcflowlogs", AwsEventSource.VPC)
 
     def __str__(self):
         return f"{self.string}"
