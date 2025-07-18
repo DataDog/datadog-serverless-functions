@@ -85,8 +85,8 @@ if ! command -v yq >/dev/null 2>&1; then
     log_error "yq not found, please install it following instructions here https://github.com/mikefarah/yq#install"
 fi
 
-if ! command -v hub >/dev/null 2>&1; then
-    log_error "hub not found, please install it following instructions here https://github.com/github/hub#installation"
+if ! command -v gh >/dev/null 2>&1; then
+    log_error "gh not found, please install it following instructions here https://github.com/cli/cli?tab=readme-ov-file#installation"
 fi
 
 # Read the desired version
@@ -226,8 +226,11 @@ prod_release() {
 
         git add "settings.py" "template.yaml"
         git commit --signoff --message "ci(release): Update version from ${CURRENT_VERSION} to ${FORWARDER_VERSION}"
+        git push origin "${BRANCH_NAME}"
 
-        hub pull-request --push --browse --message "Update version from ${CURRENT_VERSION} to ${FORWARDER_VERSION}"
+        gh pr create --base master --head "${BRANCH_NAME}" \
+            --title "Update version from ${CURRENT_VERSION} to ${FORWARDER_VERSION}" \
+            --body "This PR updates the AWS Forwarder version to ${FORWARDER_VERSION} and the layer version to ${LAYER_VERSION}."
 
         if ! user_confirm "Review and merge the pull-request before continuing. Continue"; then
             log_error "Aborting... To restart, run the script with PROD_GITHUB_RESTART=true env variable."
@@ -257,7 +260,11 @@ prod_asset_push() {
 
     # Create a GitHub release
     log_info "Releasing aws-dd-forwarder-${FORWARDER_VERSION}, targetting commit ${GIT_COMMIT}, to GitHub..."
-    hub release create -a "${BUNDLE_PATH}" -m "aws-dd-forwarder-${FORWARDER_VERSION}" -t "${GIT_COMMIT}" "aws-dd-forwarder-${FORWARDER_VERSION}"
+
+    gh release create "aws-dd-forwarder-${FORWARDER_VERSION}" "${BUNDLE_PATH}#aws-dd-forwarder-${FORWARDER_VERSION}" \
+        --title "aws-dd-forwarder-${FORWARDER_VERSION}" \
+        --target "${GIT_COMMIT}" \
+        --draft
 
     # Set vars for use in the installation test
     TEMPLATE_URL="https://${BUCKET}.s3.amazonaws.com/aws/forwarder/latest.yaml"
