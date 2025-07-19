@@ -49,7 +49,7 @@ version, account, eni, source, destination, srcport, destport="22", protocol="6"
 
    - Create a `lambda_execution` role and attach this policy
 
-   - Create a lambda function: Skip the blueprint, name it `functionname`, set the Runtime to `Python 3.12`, the Architecture to `arm64`,, the handle to `lambda_function.lambda_handler`, and the role to `lambda_execution`.
+   - Create a lambda function: Skip the blueprint, name it `functionname`, set the Runtime to `Python 3.13`, the Architecture to `arm64`,, the handle to `lambda_function.lambda_handler`, and the role to `lambda_execution`.
 
    - Copy the content of `functionname/lambda_function.py` in the code section, make sure to update the `KMS_ENCRYPTED_KEYS` environment variable with the encrypted key generated in step 1
 
