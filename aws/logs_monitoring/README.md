@@ -115,7 +115,7 @@ resource "aws_cloudformation_stack" "datadog_forwarder" {
 
 If you can't install the Forwarder using the provided CloudFormation template, you can install the Forwarder manually following the steps below. Feel free to open an issue or pull request to let us know if there is anything we can improve to make the template work for you.
 
-1. Create a Python 3.12 Lambda function using `aws-dd-forwarder-<VERSION>.zip` from the latest [releases][101].
+1. Create a Python 3.13 Lambda function using `aws-dd-forwarder-<VERSION>.zip` from the latest [releases][101].
 2. Save your [Datadog API key][102] in AWS Secrets Manager, set environment variable `DD_API_KEY_SECRET_ARN` with the secret ARN on the Lambda function, and add the `secretsmanager:GetSecretValue` permission to the Lambda execution role.
 3. If you need to forward logs from S3 buckets, add the `s3:GetObject` permission to the Lambda execution role.
 4. Set the environment variable `DD_ENHANCED_METRICS` to `false` on the Forwarder. This stops the Forwarder from generating enhanced metrics itself, but it will still forward custom metrics from other lambdas.DdFetchLambdaTags
@@ -148,8 +148,11 @@ The <a href="#cloudformation-parameters">environment variables provided on this 
 
 If you encounter issues upgrading to the latest version, check the Troubleshooting section.
 
+### Upgrade an older verison to 4.12.0+
+Starting version 4.12.0+ Lambda function has been updated to require **Python 3.13**. If upgrading an older forwarder installation to 4.12.0+, ensure AWS Lambda function is configured to use Python 3.13
+
 ### Upgrade an older verison to 4.3.0+
-Starting verison 4.3.0 Lambda forwarder will support a single python version only. The supported Python version of this release is 3.12. 
+Starting verison 4.3.0 Lambda forwarder will support a single python version only. The supported Python version of this release is 3.12.
 
 ### Upgrade an older version to +4.0.0
 Starting version 4.0.0 `source`, `service` and `host` identification logic will be pulled out from the Lambda forwarder's code and set in directly in Datadog's backend. The first migrated log source is `RDS`.
@@ -748,7 +751,7 @@ The value of the `service` tag is determined based on multiple inputs. These inp
 1. Log message custom tags: If the log message has a `ddtags` key which contains a `service` tag value, it will be used to override the `service` tag in the log event.
 2. Lambda tags cache (applicable for Lambda logs only): Activating `DdFetchLambdaTags` will fetch and store all Lambda functions tags and will override the `service` tag if it wasn't set previously or was set to a default value i.e. `source` value.
 3. Cloudwatch log group tags cache (applicable for Cloudwatch logs only): Activating `DdFetchLogGroupTags` will fetch and store all Cloudwatch log groups tags which are added to the `ddtags` entry in the log event. If `service` tag value was set in the tags cache it will be used to set the `service` tag for the log event.
-4. Directly setting a `service` tag value in the forwarder's `ddtags` ENV var. 
+4. Directly setting a `service` tag value in the forwarder's `ddtags` ENV var.
 5. Default value equal to the `source` tag.
 
 

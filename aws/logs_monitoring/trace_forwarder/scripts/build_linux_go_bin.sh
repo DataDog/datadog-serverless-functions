@@ -17,7 +17,7 @@ rm -rf ./bin
 # between different python runtimes.
 
 if [[ $(docker image ls | grep -c golang) -lt 1 ]]; then
-    docker buildx build --platform linux/arm64 -t golang . --no-cache --build-arg "runtime=python:3.12"
+    docker buildx build --platform linux/arm64 -t golang . --no-cache --build-arg "runtime=python:3.13"
 fi
 
 id=$(docker create --platform linux/arm64 golang)
