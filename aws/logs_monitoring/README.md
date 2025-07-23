@@ -148,8 +148,11 @@ The <a href="#cloudformation-parameters">environment variables provided on this 
 
 If you encounter issues upgrading to the latest version, check the Troubleshooting section.
 
+### Upgrade an older verison to 4.12.0+
+The supported Python version of this release is 3.13.
+
 ### Upgrade an older verison to 4.3.0+
-Starting verison 4.3.0 Lambda forwarder will support a single python version only. The supported Python version of this release is 3.13.
+Starting verison 4.3.0 Lambda forwarder will support a single python version only. The supported Python version of this release is 3.12.
 
 ### Upgrade an older version to +4.0.0
 Starting version 4.0.0 `source`, `service` and `host` identification logic will be pulled out from the Lambda forwarder's code and set in directly in Datadog's backend. The first migrated log source is `RDS`.
