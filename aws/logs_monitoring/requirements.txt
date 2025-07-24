@@ -3,7 +3,7 @@ bytecode
 cattrs
 certifi
 charset-normalizer
-datadog-lambda==7.112.0
+datadog-lambda==6.107.0
 datadog==0.52.0
 ddsketch==3.0.1
 ddtrace==3.10.2
