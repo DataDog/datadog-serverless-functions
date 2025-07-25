@@ -1,4 +1,3 @@
 local.settings.json
 *.zip
 *.md
-node_modules

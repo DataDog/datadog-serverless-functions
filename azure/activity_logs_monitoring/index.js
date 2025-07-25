@@ -652,10 +652,17 @@ class EventhubLogHandler {
 }
 
 app.eventHub('datadog-function', {
-    connection: 'EVENTHUB_CONNECTION_STRING',
-    eventHubName: process.env.EVENTHUB_NAME,
-    cardinality: 'many',
+    trigger: {
+        type: 'eventHubTrigger',
+        name: 'eventHubMessages',
+        eventHubName: 'datadog-eventhub',
+        connection: 'EVENTHUB_CONNECTION_STRING',
+        cardinality: 'many',
+        consumerGroup: '$Default',
+        direction: 'in'
+    },
     handler: async (eventHubMessages, context) => {
+        
         if (!DD_API_KEY || DD_API_KEY === '<DATADOG_API_KEY>') {
             context.error(
                 'You must configure your API key before starting this function (see ## Parameters section)'
