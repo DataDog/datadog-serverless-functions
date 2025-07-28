@@ -5,6 +5,6 @@
     "author": "Datadog",
     "license": "Apache-2.0",
     "dependencies": {
-        "@azure/functions": "^4.7.0"
+        "@azure/functions": "^4.7.2"
     }
 }
