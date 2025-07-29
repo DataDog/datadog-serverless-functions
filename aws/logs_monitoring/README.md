@@ -305,7 +305,7 @@ You can run the Forwarder in a VPC private subnet and send data to Datadog over 
 3. When installing the Forwarder with the CloudFormation template:
    1. Set `DdUseVPC` to `true`.
    2. Set `VPCSecurityGroupIds` and `VPCSubnetIds` based on your VPC settings.
-   3. Set `DdFetchLambdaTags` to `false`, because AWS Resource Groups Tagging API doesn't support PrivateLink.
+   3. Set `DdFetchLambdaTags`, `DdFetchStepFunctionsTags` and `DdFetchS3Tags` to `false`, because AWS Resource Groups Tagging API doesn't support PrivateLink.
 
 #### DdUsePrivateLink is deprecated
 
@@ -326,7 +326,7 @@ If you must deploy the Forwarder to a VPC without direct public internet access,
 1. Unless the Forwarder is deployed to a public subnet, follow the [instructions][15] to add endpoints for Secrets Manager and S3 to the VPC, so that the Forwarder can access those services.
 2. Update your proxy with following configurations ([HAProxy][17] or [NGINX][18]). If you are using another proxy, or Web Proxy, allowlist the Datadog domain, for example: `.{{< region-param key="dd_site" code="true" >}}`.
 3. When installing the Forwarder with the CloudFormation template, set `DdUseVPC`, `VPCSecurityGroupIds`, and `VPCSubnetIds`.
-4. Ensure the `DdFetchLambdaTags` option is disabled, because AWS VPC does not yet offer an endpoint for the Resource Groups Tagging API.
+4. Ensure the `DdFetchLambdaTags`, `DdFetchStepFunctionsTags` and `DdFetchS3Tags` options are disabled, because AWS VPC does not yet offer an endpoint for the Resource Groups Tagging API.
 5. If you are using HAProxy or NGINX:
 
 - Set `DdApiUrl` to `http://<proxy_host>:3834` or `https://<proxy_host>:3834`.
@@ -455,6 +455,9 @@ To test different patterns against your logs, turn on [debug logs](#troubleshoot
 
 `DdFetchStepFunctionsTags`
 : Let the Forwarder fetch Step Functions tags using GetResources API calls and apply them to logs and traces (if Step Functions tracing is enabled). If set to true, permission `tag:GetResources` will be automatically added to the Lambda execution IAM role.
+
+`DdFetchS3Tags`
+: Let the Forwarder fetch S3 tags using GetResources API calls and apply them to logs and traces. If set to true, permission `tag:GetResources` will be automatically added to the Lambda execution IAM role.
 
 `DdStepFunctionsTraceEnabled`
 : Set to true to enable tracing for all Step Functions.
