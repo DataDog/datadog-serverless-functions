@@ -15,7 +15,7 @@ The Datadog Forwarder is an AWS Lambda function that ships logs from AWS to Data
 - Forward CloudWatch and S3 logs.
 - Forward logs from SNS, and Kinesis events to Datadog.
 - Kinesis data stream events support CloudWatch logs only.
-- Forward metrics, traces, and logs from AWS Lambda functions to Datadog. Datadog recommends to use [Datadog Lambda Extension][1] to monitor Lambda functions.
+- Forward metrics, traces, and logs from AWS Lambda functions to Datadog. However, instead of using a forwarder, Datadog recommends to use [Datadog Lambda Extension][1] to monitor Lambda functions.
 
 For Serverless customers using the Forwarder to forward metrics, traces, and logs from AWS Lambda logs to Datadog, you should [migrate to the Datadog Lambda Extension][3] to collect telemetry directly from the Lambda execution environments. The Forwarder is still available for use in Serverless Monitoring, but will not be updated to support the latest features.
 
