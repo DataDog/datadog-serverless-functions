@@ -148,8 +148,8 @@ The <a href="#cloudformation-parameters">environment variables provided on this 
 
 If you encounter issues upgrading to the latest version, check the Troubleshooting section.
 
-### Upgrade an older verison to 4.12.0+
-Starting version 4.12.0+ Lambda function has been updated to require **Python 3.13**. If upgrading an older forwarder installation to 4.12.0+, ensure AWS Lambda function is configured to use Python 3.13
+### Upgrade an older verison to >4.12.0
+Starting version >4.12.0 Lambda function has been updated to require **Python 3.13**. If upgrading an older forwarder installation to >4.12.0, ensure AWS Lambda function is configured to use Python 3.13.
 
 ### Upgrade an older verison to 4.3.0+
 Starting verison 4.3.0 Lambda forwarder will support a single python version only. The supported Python version of this release is 3.12.
