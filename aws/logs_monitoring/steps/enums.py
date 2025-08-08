@@ -14,7 +14,6 @@ class AwsEventSource(Enum):
     MSK = "msk"
     MYSQL = "mysql"
     POSTGRESQL = "postgresql"
-    ROUTE53 = "route53"
     S3 = "s3"
     SNS = "sns"
     STEPFUNCTION = "stepfunction"
@@ -30,7 +29,6 @@ class AwsEventSource(Enum):
             AwsEventSource.ELASTICSEARCH,
             AwsEventSource.FARGATE,
             AwsEventSource.MSK,
-            AwsEventSource.ROUTE53,
         ]
 
 
@@ -46,8 +44,6 @@ class AwsS3EventSourceKeyword(Enum):
     GUARDDUTY = ("guardduty", AwsEventSource.GUARDDUTY)
     KINESIS = ("amazon_kinesis", AwsEventSource.KINESIS)
     MSK = ("amazon_msk", AwsEventSource.MSK)
-    # e.g. AWSLogs/123456779121/vpcdnsquerylogs/vpc-********/2021/05/11/vpc-********_vpcdnsquerylogs_********_20210511T0910Z_71584702.log.gz
-    ROUTE53 = ("vpcdnsquerylogs", AwsEventSource.ROUTE53)
 
     def __str__(self):
         return f"{self.string}"

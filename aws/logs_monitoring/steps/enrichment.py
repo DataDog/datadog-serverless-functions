@@ -1,14 +1,10 @@
-import logging
 import json
+import logging
 import os
 import re
-from settings import (
-    DD_SOURCE,
-    DD_SERVICE,
-    DD_HOST,
-    DD_CUSTOM_TAGS,
-)
+
 from enhanced_lambda_metrics import parse_lambda_tags_from_arn
+from settings import DD_CUSTOM_TAGS, DD_HOST, DD_SERVICE, DD_SOURCE
 from steps.enums import AwsEventSource
 
 HOST_IDENTITY_REGEXP = re.compile(
@@ -30,7 +26,6 @@ def enrich(events, cache_layer):
         extract_ddtags_from_message(event)
         extract_host_from_cloudtrails(event)
         extract_host_from_guardduty(event)
-        extract_host_from_route53(event)
 
     return events
 
@@ -218,21 +213,5 @@ def extract_host_from_guardduty(event):
         host = event.get("detail", {}).get("resource")
         if isinstance(host, dict):
             host = host.get("instanceDetails", {}).get("instanceId")
-            if host is not None:
-                event[DD_HOST] = host
-
-
-def extract_host_from_route53(event):
-    if event is not None and event.get(DD_SOURCE) == str(AwsEventSource.ROUTE53):
-        message = event.get("message", {})
-        if isinstance(message, str):
-            try:
-                message = json.loads(message)
-            except json.JSONDecodeError:
-                logger.debug("Failed to decode Route53 message")
-                return
-
-        if isinstance(message, dict):
-            host = message.get("srcids", {}).get("instance")
             if host is not None:
                 event[DD_HOST] = host
