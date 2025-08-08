@@ -1,16 +1,15 @@
 import json
-
 import unittest
 from unittest.mock import MagicMock
 
-from caching.cache_layer import CacheLayer
 from approvaltests.approvals import verify_as_json
+
+from caching.cache_layer import CacheLayer
 from steps.enrichment import (
     add_metadata_to_lambda_log,
+    extract_ddtags_from_message,
     extract_host_from_cloudtrails,
     extract_host_from_guardduty,
-    extract_host_from_route53,
-    extract_ddtags_from_message,
 )
 
 
@@ -167,14 +166,6 @@ class TestExtractHostFromLogEvents(unittest.TestCase):
             "detail": {"resource": {"instanceDetails": {"instanceId": "i-99999999"}}},
         }
         extract_host_from_guardduty(event)
-        self.assertEqual(event["host"], "i-99999999")
-
-    def test_parse_source_route53(self):
-        event = {
-            "ddsource": "route53",
-            "message": {"srcids": {"instance": "i-99999999"}},
-        }
-        extract_host_from_route53(event)
         self.assertEqual(event["host"], "i-99999999")
 
 
