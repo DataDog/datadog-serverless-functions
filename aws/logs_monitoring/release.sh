@@ -94,7 +94,6 @@ if ! docker info > /dev/null 2>&1; then
     log_error "Docker is not running, please start it"
 fi
 
-
 # Read the desired version
 if [[ ! ${1} =~ [0-9]+\.[0-9]+\.[0-9]+ ]]; then
     log_error "You must use a semantic version (e.g. 3.1.4)"
