@@ -277,6 +277,9 @@ def parse_metrics_from_json_report_log(log_message):
     except json.JSONDecodeError:
         return []
 
+    if not isinstance(body, dict):
+        return []
+
     stage = body.get("type", "")
     record = body.get("record", {})
     record_metrics = record.get("metrics", {})
