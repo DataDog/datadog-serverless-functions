@@ -4,4 +4,3 @@ This repository contains our serverless functions that process streams and send 
 
 - For AWS, [go here](./aws/README.md)
 - For Azure, [go here](./azure/README.md)
-- For OCI, [go here](./oci/README.md)
