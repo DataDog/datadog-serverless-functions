@@ -29,7 +29,7 @@ const DD_SOURCE = process.env.DD_SOURCE || 'azure';
 const DD_SOURCE_CATEGORY = process.env.DD_SOURCE_CATEGORY || 'azure';
 const DD_PARSE_DEFENDER_LOGS = process.env.DD_PARSE_DEFENDER_LOGS; // Boolean whether to enable special parsing of Defender for Cloud logs. Set to 'false' to disable
 
-const EVENTHUB_NAME = process.env.EVENTHUB_NAME || 'datadog-eventhub';
+const EVENTHUB_NAME = process.env.EVENTHUB_NAME || 'datadog-eventhub'; // The event hub name inside your eventhub namespace
 
 const MAX_RETRIES = 4; // max number of times to retry a single http request
 const RETRY_INTERVAL = 250; // amount of time (milliseconds) to wait before retrying request, doubles after every retry
