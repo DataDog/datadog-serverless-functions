@@ -653,7 +653,8 @@ class EventhubLogHandler {
     }
 }
 
-app.eventHub('datadog-function', {
+// using a function-name with dashes can cause deployment errors on function update
+app.eventHub('datadogFunction', {
     trigger: {
         type: 'eventHubTrigger',
         name: 'eventHubMessages',
