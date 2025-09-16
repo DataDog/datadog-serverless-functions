@@ -267,7 +267,7 @@ prod_asset_push() {
     log_info "Releasing aws-dd-forwarder-${FORWARDER_VERSION}, targetting commit ${GIT_COMMIT}, to GitHub..."
 
     gh release create "aws-dd-forwarder-${FORWARDER_VERSION}" "${BUNDLE_PATH}#aws-dd-forwarder-${FORWARDER_VERSION}.zip" \
-        --title "aws-dd-forwarder-${FORWARDER_VERSION}" \
+        --title "aws-dd-forwarder-${FORWARDER_VERSION} (Layer v${LAYER_VERSION})" \
         --target "${GIT_COMMIT}" \
         --generate-notes
 
