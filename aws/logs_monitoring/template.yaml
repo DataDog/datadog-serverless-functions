@@ -75,6 +75,10 @@ Parameters:
     Type: String
     Default: ""
     Description: Add custom tags to forwarded logs, comma-delimited string, no trailing comma, e.g., env:prod,stack:classic
+  DdSource:
+    Type: String
+    Default: ""
+    Description: Define forwarded logs source (default to s3)
   DdFetchLambdaTags:
     Type: String
     Default: true
@@ -310,6 +314,8 @@ Conditions:
   SetS3SourceZip: !Equals [!Select [0, !Split [/, !Ref SourceZipUrl]], "s3:"]
   SetDdTags: !Not
     - !Equals [!Ref DdTags, ""]
+  SetDdSource: !Not
+    - !Equals [ !Ref DdSource, "" ]
   SetDdUseTcp: !Equals [!Ref DdUseTcp, true]
   SetDdNoSsl: !Equals [!Ref DdNoSsl, true]
   SetDdUrl: !Not
@@ -461,6 +467,10 @@ Resources:
           DD_TAGS: !If
             - SetDdTags
             - !Ref DdTags
+            - !Ref AWS::NoValue
+          DD_SOURCE: !If
+            - SetDdSource
+            - !Ref DdSource
             - !Ref AWS::NoValue
           DD_TAGS_CACHE_TTL_SECONDS: !Ref TagsCacheTTLSeconds
           DD_FETCH_LAMBDA_TAGS: !If
@@ -1017,6 +1027,7 @@ Metadata:
           default: Log Forwarding (Optional)
         Parameters:
           - DdTags
+          - DdSource
           - DdMultilineLogRegexPattern
           - DdUseTcp
           - DdNoSsl
