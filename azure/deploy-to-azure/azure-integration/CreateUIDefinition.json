@@ -226,7 +226,7 @@
                 "type": "Microsoft.Common.TextBox",
                 "label": "App Services Filters",
                 "defaultValue": "",
-                "toolTip": "This comma-separated list of Azure tags (in the form key:value) defines a filter that we will use when collecting metrics from Azure. Filters are applied to the tags on App Service Plans, Web Apps, Function Apps, and other resources under the Azure App Services (Microsoft.Web) resource provider. Filtering an App Service Plan applies to all Apps running on that plan. Wildcards, such as ? (for single characters) and * (for multiple characters) can also be used, and a given label can also be excluded by adding ! before the label.  Example: datadog:monitored,env:production,!env:staging,instance-type:c1.*",
+                "toolTip": "This comma-separated list of Azure tags (in the form key:value) defines a filter that we will use when collecting metrics from Azure. Filters are applied to the tags of App Service Plans and Consumption-based Function Apps. Filtering an App Service Plan will also filter all Apps and Functions running on the plan. The tags of the Apps and Functions running on App Service Plans are not used in filtering. Wildcards, such as ? (for single characters) and * (for multiple characters) can also be used, and a given label can also be excluded by adding ! before the label. Example: datadog:monitored,env:production,!env:staging,instance-type:c1.*",
                 "constraints": {
                   "required": false
                 },
@@ -237,7 +237,7 @@
                 "type": "Microsoft.Common.TextBox",
                 "label": "Container App Filters",
                 "defaultValue": "",
-                "toolTip": "This comma-separated list of Azure tags (in the form key:value) defines a filter that we will use when collecting metrics from Azure. Only Container Apps that match one of the defined labels will be imported into Datadog. The rest will be ignored. Wildcards, such as ? (for single characters) and * (for multiple characters) can also be used, and a given label can also be excluded by adding ! before the label.  Example: datadog:monitored,env:production,!env:staging,instance-type:c1.*",
+                "toolTip": "This comma-separated list of Azure tags (in the form key:value) defines a filter that we will use when collecting metrics from Azure. Only Container Apps that match one of the defined labels will be imported into Datadog. The rest will be ignored. Wildcards, such as ? (for single characters) and * (for multiple characters) can also be used, and a given label can also be excluded by adding ! before the label. Example: datadog:monitored,env:production,!env:staging,instance-type:c1.*",
                 "constraints": {
                   "required": false
                 },
