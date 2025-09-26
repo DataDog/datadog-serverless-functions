@@ -30,12 +30,14 @@ class DatadogMatcher(object):
 
     def match(self, log):
         try:
-            if self._exclude_regex is not None and re.search(self._exclude_regex, log):
+            if self._exclude_regex is not None and re.search(
+                self._exclude_regex, str(log)
+            ):
                 logger.debug("Exclude pattern matched, excluding log event")
                 return False
 
             if self._include_regex is not None and not re.search(
-                self._include_regex, log
+                self._include_regex, str(log)
             ):
                 logger.debug("Include pattern did not match, excluding log event")
                 return False

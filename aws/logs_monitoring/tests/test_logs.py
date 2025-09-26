@@ -65,6 +65,7 @@ class TestFilterLogs(unittest.TestCase):
         "This is not a REPORT log",
         "END RequestId: ...",
         "REPORT RequestId: ...",
+        {"message": "It should work"},
     ]
 
     def test_include_at_match(self):
@@ -90,6 +91,7 @@ class TestFilterLogs(unittest.TestCase):
             [
                 "This is not a REPORT log",
                 "REPORT RequestId: ...",
+                {"message": "It should work"},
             ],
         )
 

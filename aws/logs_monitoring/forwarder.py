@@ -95,7 +95,7 @@ class Forwarder(object):
 
             evaluated_log = log
 
-            # apply scrubbing rules to inner log message if exists
+            # apply scrubbing rules to inner log message
             if isinstance(log, dict) and log.get("message"):
                 try:
                     log["message"] = scrubber.scrub(log["message"])
