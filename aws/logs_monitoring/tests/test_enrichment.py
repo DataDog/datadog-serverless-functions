@@ -9,7 +9,6 @@ from steps.enrichment import (
     add_metadata_to_lambda_log,
     extract_ddtags_from_message,
     extract_host_from_cloudtrails,
-    extract_host_from_guardduty,
 )
 
 
@@ -158,14 +157,6 @@ class TestExtractHostFromLogEvents(unittest.TestCase):
             },
         }
         extract_host_from_cloudtrails(event)
-        self.assertEqual(event["host"], "i-99999999")
-
-    def test_parse_source_guardduty(self):
-        event = {
-            "ddsource": "guardduty",
-            "detail": {"resource": {"instanceDetails": {"instanceId": "i-99999999"}}},
-        }
-        extract_host_from_guardduty(event)
         self.assertEqual(event["host"], "i-99999999")
 
 
