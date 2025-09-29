@@ -4,20 +4,21 @@
 # Copyright 2021 Datadog, Inc.
 
 
-import os
 import logging
-
+import os
 from concurrent.futures import as_completed
-from requests_futures.sessions import FuturesSession
-from logs.helpers import compress_logs
-from logs.exceptions import ScrubbingException
 
+from requests_futures.sessions import FuturesSession
+
+from logs.exceptions import ScrubbingException
+from logs.helpers import compress_logs
 from settings import (
-    DD_USE_COMPRESSION,
     DD_COMPRESSION_LEVEL,
-    DD_MAX_WORKERS,
     DD_FORWARDER_VERSION,
+    DD_MAX_WORKERS,
+    DD_USE_COMPRESSION,
 )
+from steps.common import get_ddflags
 
 logger = logging.getLogger()
 logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
@@ -36,6 +37,7 @@ class DatadogHTTPClient(object):
 
     _HEADERS["DD-EVP-ORIGIN"] = "aws_forwarder"
     _HEADERS["DD-EVP-ORIGIN-VERSION"] = DD_FORWARDER_VERSION
+    _HEADERS["DD-FLAGS"] = get_ddflags()
 
     def __init__(
         self, host, port, no_ssl, skip_ssl_validation, api_key, scrubber, timeout=10

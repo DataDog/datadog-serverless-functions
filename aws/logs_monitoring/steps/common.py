@@ -8,6 +8,7 @@ from settings import (
     DD_SERVICE,
     DD_SOURCE,
     DD_TAGS,
+    DD_STORAGE_TAG,
     FORWARDERNAME_STRING,
     FORWARDERVERSION_STRING,
     FUNCTIONVERSION_STRING,
@@ -159,3 +160,12 @@ def generate_custom_tags(context):
     }
 
     return dd_custom_tags_data
+
+
+def get_ddflags():
+    ddflags = 0
+
+    if DD_STORAGE_TAG:
+        ddflags &= 1
+
+    return str(ddflags)

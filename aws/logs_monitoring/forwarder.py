@@ -4,34 +4,32 @@
 # Copyright 2021 Datadog, Inc.
 
 
-import logging
 import json
+import logging
 import os
 
-from telemetry import send_event_metric, send_log_metric
-from trace_forwarder.connection import TraceConnection
-from logs.datadog_http_client import DatadogHTTPClient
 from logs.datadog_batcher import DatadogBatcher
 from logs.datadog_client import DatadogClient
-from logs.datadog_tcp_client import DatadogTCPClient
+from logs.datadog_http_client import DatadogHTTPClient
 from logs.datadog_scrubber import DatadogScrubber
-from logs.helpers import filter_logs, add_retry_tag
-from retry.storage import Storage
+from logs.helpers import add_retry_tag, filter_logs
 from retry.enums import RetryPrefix
+from retry.storage import Storage
 from settings import (
     DD_API_KEY,
-    DD_USE_TCP,
-    DD_NO_SSL,
-    DD_SKIP_SSL_VALIDATION,
-    DD_URL,
-    DD_PORT,
-    DD_TRACE_INTAKE_URL,
     DD_FORWARD_LOG,
+    DD_NO_SSL,
+    DD_PORT,
+    DD_SKIP_SSL_VALIDATION,
     DD_STORE_FAILED_EVENTS,
-    SCRUBBING_RULE_CONFIGS,
-    INCLUDE_AT_MATCH,
+    DD_TRACE_INTAKE_URL,
+    DD_URL,
     EXCLUDE_AT_MATCH,
+    INCLUDE_AT_MATCH,
+    SCRUBBING_RULE_CONFIGS,
 )
+from telemetry import send_event_metric, send_log_metric
+from trace_forwarder.connection import TraceConnection
 
 logger = logging.getLogger()
 logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
@@ -103,14 +101,10 @@ class Forwarder(object):
             logs_to_forward, INCLUDE_AT_MATCH, EXCLUDE_AT_MATCH
         )
 
-        if DD_USE_TCP:
-            batcher = DatadogBatcher(256 * 1000, 256 * 1000, 1)
-            cli = DatadogTCPClient(DD_URL, DD_PORT, DD_NO_SSL, DD_API_KEY, scrubber)
-        else:
-            batcher = DatadogBatcher(512 * 1000, 4 * 1000 * 1000, 400)
-            cli = DatadogHTTPClient(
-                DD_URL, DD_PORT, DD_NO_SSL, DD_SKIP_SSL_VALIDATION, DD_API_KEY, scrubber
-            )
+        batcher = DatadogBatcher(512 * 1000, 4 * 1000 * 1000, 400)
+        cli = DatadogHTTPClient(
+            DD_URL, DD_PORT, DD_NO_SSL, DD_SKIP_SSL_VALIDATION, DD_API_KEY, scrubber
+        )
 
         failed_logs = []
         with DatadogClient(cli) as client:

@@ -1,11 +1,11 @@
 ---
 title: Datadog Forwarder
 dependencies:
-  - "https://github.com/DataDog/datadog-serverless-functions/blob/master/aws/logs_monitoring/README.md"
+    - "https://github.com/DataDog/datadog-serverless-functions/blob/master/aws/logs_monitoring/README.md"
 aliases:
-  - /serverless/troubleshooting/installing_the_forwarder/
-  - /serverless/forwarder/
-  - /serverless/libraries_integrations/forwarder/
+    - /serverless/troubleshooting/installing_the_forwarder/
+    - /serverless/forwarder/
+    - /serverless/libraries_integrations/forwarder/
 ---
 
 ## Overview
@@ -149,12 +149,15 @@ The <a href="#cloudformation-parameters">environment variables provided on this 
 If you encounter issues upgrading to the latest version, check the Troubleshooting section.
 
 ### Upgrade an older version to 4.13.0+
+
 Starting version 4.13.0+ Lambda function has been updated to require **Python 3.13**. If upgrading an older forwarder installation to 4.13.0+, ensure AWS Lambda function is configured to use Python 3.13
 
 ### Upgrade an older version to 4.3.0+
+
 Starting version 4.3.0 Lambda forwarder will support a single python version only. The supported Python version of this release is 3.12.
 
 ### Upgrade an older version to +4.0.0
+
 Starting version 4.0.0 `source`, `service` and `host` identification logic will be pulled out from the Lambda forwarder's code and set in directly in Datadog's backend. The first migrated log source is `RDS`.
 This is not a breaking change on how the `source`, `service` and `host` are set on the `Log explorer` side. Users should continue to have the same behavior as before.
 
@@ -193,8 +196,8 @@ Since version 3.0.0, the forwarder Lambda function is managed by CloudFormation.
 4. Ensure the new forwarder is working as expected, for example, being invoked regularly without errors.
 5. Ensure the logs from the migrated triggers (sources) are showing up in Datadog log explorer and look right to you.
 6. Migrate all triggers to the new forwarder.
-   - If you have been letting Datadog manage triggers [automatically][6] for you, update the forwarder Lambda ARN in AWS integration page **Log Collection** tab.
-   - If you have been manage the triggers [manually][7], then you have to migrate them manually (or using a script).
+    - If you have been letting Datadog manage triggers [automatically][6] for you, update the forwarder Lambda ARN in AWS integration page **Log Collection** tab.
+    - If you have been manage the triggers [manually][7], then you have to migrate them manually (or using a script).
 7. Ensure the old forwarder Lambda function's invocations count drops to zero.
 8. Delete the old forwarder Lambda function when you feel comfortable.
 9. If you have old forwarder Lambda functions installed in multiple AWS accounts and regions, repeat the steps above in every account and region combination.
@@ -248,42 +251,42 @@ We love pull requests. Here's a quick guide.
 
 1. If you would like to discuss a feature or bug fix before implementing, find us in the `#serverless` channel of the [Datadog Slack community][11].
 1. Fork, clone, and create a branch:
-   ```bash
-   git clone git@github.com:<your-username>/datadog-serverless-functions.git
-   git checkout -b <my-branch>
-   ```
+    ```bash
+    git clone git@github.com:<your-username>/datadog-serverless-functions.git
+    git checkout -b <my-branch>
+    ```
 1. Make code changes.
 1. Build with your local changes.
-   ```bash
-   cd aws/logs_monitoring
-   ./tools/build_bundle.sh <SEMANTIC_VERSION> # any unique version is fine
-   ```
+    ```bash
+    cd aws/logs_monitoring
+    ./tools/build_bundle.sh <SEMANTIC_VERSION> # any unique version is fine
+    ```
 1. Update your testing Forwarder with the modified code and test:
-   ```bash
-   # Upload in the AWS Lambda console if you don't have AWS CLI
-   aws lambda update-function-code \
-       --region <AWS_REGION> \
-       --function-name <FORWARDER_NAME> \
-       --zip-file fileb://.forwarder/aws-dd-forwarder-<SEMANTIC_VERSION>.zip
-   ```
+    ```bash
+    # Upload in the AWS Lambda console if you don't have AWS CLI
+    aws lambda update-function-code \
+        --region <AWS_REGION> \
+        --function-name <FORWARDER_NAME> \
+        --zip-file fileb://.forwarder/aws-dd-forwarder-<SEMANTIC_VERSION>.zip
+    ```
 1. Run unit tests.
-   ```
-   python -m unittest discover . # for code in Python
-   ./trace_forwarder/scripts/run_tests.sh # for code in Go
-   ```
+    ```
+    python -m unittest discover . # for code in Python
+    ./trace_forwarder/scripts/run_tests.sh # for code in Go
+    ```
 1. Run the integration tests.
 
-   ```bash
-   ./tools/integration_tests/integration_tests.sh
+    ```bash
+    ./tools/integration_tests/integration_tests.sh
 
-   # to update the snapshots if changes are expected
-   ./tools/integration_tests/integration_tests.sh --update
-   ```
+    # to update the snapshots if changes are expected
+    ./tools/integration_tests/integration_tests.sh --update
+    ```
 
 1. If you changes affect the CloudFormation template, run the installation test against your own AWS account.
-   ```bash
-   ./tools/installation_test.sh
-   ```
+    ```bash
+    ./tools/installation_test.sh
+    ```
 1. Push to your fork and [submit a pull request][12].
 
 ## Advanced
@@ -303,9 +306,9 @@ You can run the Forwarder in a VPC private subnet and send data to Datadog over 
 1. Follow [these instructions][14] to add the Datadog `api`, `http-logs.intake`, and `trace.agent` endpoints to your VPC.
 2. Follow the [instructions][15] to add the AWS Secrets Manager and S3 endpoints to your VPC.
 3. When installing the Forwarder with the CloudFormation template:
-   1. Set `DdUseVPC` to `true`.
-   2. Set `VPCSecurityGroupIds` and `VPCSubnetIds` based on your VPC settings.
-   3. Set `DdFetchLambdaTags`, `DdFetchStepFunctionsTags` and `DdFetchS3Tags` to `false`, because AWS Resource Groups Tagging API doesn't support PrivateLink.
+    1. Set `DdUseVPC` to `true`.
+    2. Set `VPCSecurityGroupIds` and `VPCSubnetIds` based on your VPC settings.
+    3. Set `DdFetchLambdaTags`, `DdFetchStepFunctionsTags` and `DdFetchS3Tags` to `false`, because AWS Resource Groups Tagging API doesn't support PrivateLink.
 
 #### DdUsePrivateLink is deprecated
 
@@ -386,10 +389,6 @@ Datadog recommends using at least 10 reserved concurrency, but this defaults to 
 `DdMultilineLogRegexPattern`
 : Use the supplied regular expression to detect for a new log line for multiline logs from S3, such as `\d{2}\/\d{2}\/\d{4}` for multiline logs beginning with pattern "11/10/2014".
 
-`DdUseTcp`
-: By default, the forwarder sends logs using HTTPS through the port 443. To send logs over an
-SSL encrypted TCP connection, set this parameter to true.
-
 `DdNoSsl`
 : Disable SSL when forwarding logs, set to true when forwarding logs through a proxy.
 
@@ -441,7 +440,7 @@ Some examples of regular expressions that can be used for log filtering:
 - Include CloudTrail error messages only: `errorMessage`.
 - Include only logs containing an HTTP 4XX or 5XX error code: `\b[4|5][0-9][0-9]\b`.
 - Include only CloudWatch logs where the `message` field contains a specific JSON key/value pair: `\"awsRegion\":\"us-east-1\"`.
-  - The message field of a CloudWatch log event is encoded as a string. For example,`{"awsRegion": "us-east-1"}` is encoded as `{\"awsRegion\":\"us-east-1\"}`. Therefore, the pattern you provide must include `\` escape characters, like this: `\"awsRegion\":\"us-east-1\"`.
+    - The message field of a CloudWatch log event is encoded as a string. For example,`{"awsRegion": "us-east-1"}` is encoded as `{\"awsRegion\":\"us-east-1\"}`. Therefore, the pattern you provide must include `\` escape characters, like this: `\"awsRegion\":\"us-east-1\"`.
 
 To test different patterns against your logs, turn on [debug logs](#troubleshooting).
 
@@ -492,11 +491,11 @@ To test different patterns against your logs, turn on [debug logs](#troubleshoot
 `LayerARN`
 : ARN for the layer containing the forwarder code. If empty, the script will use the version of the layer the forwarder was published with. Defaults to empty.
 
-
 [20]: https://app.datadoghq.com/organization-settings/api-keys
 [13]: https://docs.datadoghq.com/getting_started/site/
 [21]: https://docs.datadoghq.com/logs/processing/pipelines/
 [2]: https://docs.datadoghq.com/logs/guide/send-aws-services-logs-with-the-datadog-lambda-function/
+
 {{% /tab %}}
 {{% tab "Manual" %}}
 
@@ -538,10 +537,6 @@ Datadog recommends using at least 10 reserved concurrency, but this defaults to 
 
 `DD_MULTILINE_LOG_REGEX_PATTERN`
 : Use the supplied regular expression to detect for a new log line for multiline logs from S3, such as `\d{2}\/\d{2}\/\d{4}` for multiline logs beginning with pattern "11/10/2014".
-
-`DD_USE_TCP`
-: By default, the forwarder sends logs using HTTPS through the port 443. To send logs over an
-SSL encrypted TCP connection, set this parameter to true.
 
 `DD_NO_SSL`
 : Disable SSL when forwarding logs, set to true when forwarding logs through a proxy.
@@ -594,7 +589,7 @@ Some examples of regular expressions that can be used for log filtering:
 - Include CloudTrail error messages only: `errorMessage`.
 - Include only logs containing an HTTP 4XX or 5XX error code: `\b[4|5][0-9][0-9]\b`.
 - Include only CloudWatch logs where the `message` field contains a specific JSON key/value pair: `\"awsRegion\":\"us-east-1\"`.
-  - The message field of a CloudWatch log event is encoded as a string. For example,`{"awsRegion": "us-east-1"}` is encoded as `{\"awsRegion\":\"us-east-1\"}`. Therefore, the pattern you provide must include `\` escape characters, like this: `\"awsRegion\":\"us-east-1\"`.
+    - The message field of a CloudWatch log event is encoded as a string. For example,`{"awsRegion": "us-east-1"}` is encoded as `{\"awsRegion\":\"us-east-1\"}`. Therefore, the pattern you provide must include `\` escape characters, like this: `\"awsRegion\":\"us-east-1\"`.
 
 To test different patterns against your logs, turn on [debug logs](#troubleshooting).
 
@@ -646,6 +641,7 @@ To test different patterns against your logs, turn on [debug logs](#troubleshoot
 [13]: https://docs.datadoghq.com/getting_started/site/
 [21]: https://docs.datadoghq.com/logs/processing/pipelines/
 [2]: https://docs.datadoghq.com/logs/guide/send-aws-services-logs-with-the-datadog-lambda-function/
+
 {{% /tab %}}
 {{< /tabs >}}
 
@@ -657,33 +653,33 @@ To deploy the CloudFormation Stack with the default options, you need to have th
 
 ```json
 {
-  "Effect": "Allow",
-  "Action": [
-    "cloudformation:*",
-    "secretsmanager:CreateSecret",
-    "secretsmanager:TagResource",
-    "s3:CreateBucket",
-    "s3:GetObject",
-    "s3:PutEncryptionConfiguration",
-    "s3:PutBucketPublicAccessBlock",
-    "iam:CreateRole",
-    "iam:GetRole",
-    "iam:PassRole",
-    "iam:PutRolePolicy",
-    "iam:AttachRolePolicy",
-    "lambda:CreateFunction",
-    "lambda:GetFunction",
-    "lambda:GetFunctionConfiguration",
-    "lambda:GetLayerVersion",
-    "lambda:InvokeFunction",
-    "lambda:PutFunctionConcurrency",
-    "lambda:AddPermission",
-    "lambda:TagResource",
-    "logs:CreateLogGroup",
-    "logs:DescribeLogGroups",
-    "logs:PutRetentionPolicy"
-  ],
-  "Resource": "*"
+    "Effect": "Allow",
+    "Action": [
+        "cloudformation:*",
+        "secretsmanager:CreateSecret",
+        "secretsmanager:TagResource",
+        "s3:CreateBucket",
+        "s3:GetObject",
+        "s3:PutEncryptionConfiguration",
+        "s3:PutBucketPublicAccessBlock",
+        "iam:CreateRole",
+        "iam:GetRole",
+        "iam:PassRole",
+        "iam:PutRolePolicy",
+        "iam:AttachRolePolicy",
+        "lambda:CreateFunction",
+        "lambda:GetFunction",
+        "lambda:GetFunctionConfiguration",
+        "lambda:GetLayerVersion",
+        "lambda:InvokeFunction",
+        "lambda:PutFunctionConcurrency",
+        "lambda:AddPermission",
+        "lambda:TagResource",
+        "logs:CreateLogGroup",
+        "logs:DescribeLogGroups",
+        "logs:PutRetentionPolicy"
+    ],
+    "Resource": "*"
 }
 ```
 
@@ -700,25 +696,25 @@ The CloudFormation Stack creates following IAM roles:
 
 ```json
 [
-  {
-    "Effect": "Allow",
-    "Action": [
-      "logs:CreateLogGroup",
-      "logs:CreateLogStream",
-      "logs:PutLogEvents"
-    ],
-    "Resource": "*"
-  },
-  {
-    "Action": ["s3:GetObject"],
-    "Resource": "arn:aws:s3:::*",
-    "Effect": "Allow"
-  },
-  {
-    "Action": ["secretsmanager:GetSecretValue"],
-    "Resource": "<ARN of DdApiKeySecret>",
-    "Effect": "Allow"
-  }
+    {
+        "Effect": "Allow",
+        "Action": [
+            "logs:CreateLogGroup",
+            "logs:CreateLogStream",
+            "logs:PutLogEvents"
+        ],
+        "Resource": "*"
+    },
+    {
+        "Action": ["s3:GetObject"],
+        "Resource": "arn:aws:s3:::*",
+        "Effect": "Allow"
+    },
+    {
+        "Action": ["secretsmanager:GetSecretValue"],
+        "Resource": "<ARN of DdApiKeySecret>",
+        "Effect": "Allow"
+    }
 ]
 ```
 
@@ -728,35 +724,32 @@ The CloudFormation Stack creates following IAM roles:
 
 ```json
 [
-  {
-    "Effect": "Allow",
-    "Action": [
-      "logs:CreateLogGroup",
-      "logs:CreateLogStream",
-      "logs:PutLogEvents"
-    ],
-    "Resource": "*"
-  },
-  {
-    "Action": [
-      "s3:ListBucket",
-      "s3:PutObject",
-      "s3:DeleteObject"
-    ],
-    "Resource": "<S3Bucket to Store the Forwarder Zip>",
-    "Effect": "Allow"
-  }
+    {
+        "Effect": "Allow",
+        "Action": [
+            "logs:CreateLogGroup",
+            "logs:CreateLogStream",
+            "logs:PutLogEvents"
+        ],
+        "Resource": "*"
+    },
+    {
+        "Action": ["s3:ListBucket", "s3:PutObject", "s3:DeleteObject"],
+        "Resource": "<S3Bucket to Store the Forwarder Zip>",
+        "Effect": "Allow"
+    }
 ]
 ```
 
 ## Service Tag Setting
+
 The value of the `service` tag is determined based on multiple inputs. These inputs are ranked by priority from highest to lowest
+
 1. Log message custom tags: If the log message has a `ddtags` key which contains a `service` tag value, it will be used to override the `service` tag in the log event.
 2. Lambda tags cache (applicable for Lambda logs only): Activating `DdFetchLambdaTags` will fetch and store all Lambda functions tags and will override the `service` tag if it wasn't set previously or was set to a default value i.e. `source` value.
 3. Cloudwatch log group tags cache (applicable for Cloudwatch logs only): Activating `DdFetchLogGroupTags` will fetch and store all Cloudwatch log groups tags which are added to the `ddtags` entry in the log event. If `service` tag value was set in the tags cache it will be used to set the `service` tag for the log event.
 4. Directly setting a `service` tag value in the forwarder's `ddtags` ENV var.
 5. Default value equal to the `source` tag.
-
 
 ## Further Reading
 
