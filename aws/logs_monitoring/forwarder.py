@@ -4,34 +4,35 @@
 # Copyright 2021 Datadog, Inc.
 
 
-import logging
 import json
+import logging
 import os
 
-from telemetry import send_event_metric, send_log_metric
-from trace_forwarder.connection import TraceConnection
-from logs.datadog_http_client import DatadogHTTPClient
 from logs.datadog_batcher import DatadogBatcher
 from logs.datadog_client import DatadogClient
-from logs.datadog_tcp_client import DatadogTCPClient
+from logs.datadog_http_client import DatadogHTTPClient
+from logs.datadog_matcher import DatadogMatcher
 from logs.datadog_scrubber import DatadogScrubber
-from logs.helpers import filter_logs, add_retry_tag
-from retry.storage import Storage
+from logs.datadog_tcp_client import DatadogTCPClient
+from logs.helpers import add_retry_tag
 from retry.enums import RetryPrefix
+from retry.storage import Storage
 from settings import (
     DD_API_KEY,
-    DD_USE_TCP,
-    DD_NO_SSL,
-    DD_SKIP_SSL_VALIDATION,
-    DD_URL,
-    DD_PORT,
-    DD_TRACE_INTAKE_URL,
     DD_FORWARD_LOG,
+    DD_NO_SSL,
+    DD_PORT,
+    DD_SKIP_SSL_VALIDATION,
     DD_STORE_FAILED_EVENTS,
-    SCRUBBING_RULE_CONFIGS,
-    INCLUDE_AT_MATCH,
+    DD_TRACE_INTAKE_URL,
+    DD_URL,
+    DD_USE_TCP,
     EXCLUDE_AT_MATCH,
+    INCLUDE_AT_MATCH,
+    SCRUBBING_RULE_CONFIGS,
 )
+from telemetry import send_event_metric, send_log_metric
+from trace_forwarder.connection import TraceConnection
 
 logger = logging.getLogger()
 logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
@@ -83,25 +84,29 @@ class Forwarder(object):
             logger.debug(f"Forwarding {len(logs)} logs")
 
         scrubber = DatadogScrubber(SCRUBBING_RULE_CONFIGS)
+        matcher = DatadogMatcher(
+            include_pattern=INCLUDE_AT_MATCH, exclude_pattern=EXCLUDE_AT_MATCH
+        )
+
         logs_to_forward = []
         for log in logs:
             if key:
                 log = add_retry_tag(log)
 
-            # apply scrubbing rules to inner log message if exists
+            evaluated_log = log
+
+            # apply scrubbing rules to inner log message
             if isinstance(log, dict) and log.get("message"):
                 try:
                     log["message"] = scrubber.scrub(log["message"])
+                    evaluated_log = log["message"]
                 except Exception as e:
                     logger.exception(
                         f"Exception while scrubbing log message {log['message']}: {e}"
                     )
 
-            logs_to_forward.append(json.dumps(log, ensure_ascii=False))
-
-        logs_to_forward = filter_logs(
-            logs_to_forward, INCLUDE_AT_MATCH, EXCLUDE_AT_MATCH
-        )
+            if matcher.match(evaluated_log):
+                logs_to_forward.append(json.dumps(log, ensure_ascii=False))
 
         if DD_USE_TCP:
             batcher = DatadogBatcher(256 * 1000, 256 * 1000, 1)
