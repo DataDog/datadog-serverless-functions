@@ -53,60 +53,30 @@ If you had previously enabled your AWS Integration using the [following CloudFor
 
 ### Terraform
 
-Install the Forwarder using the Terraform resource [`aws_cloudformation_stack`][101] as a wrapper on top of the provided CloudFormation template.
-
-Datadog recommends creating separate Terraform configurations:
-
-- Use the first one to store the [Datadog API key][102] in the AWS Secrets Manager, and note down the secrets ARN from the output of apply.
-- Then, create a configuration for the forwarder and supply the secrets ARN through the `DdApiKeySecretArn` parameter.
-- Finally, create a configuration to [set up triggers on the Forwarder][103].
-
-By separating the configurations of the API key and the forwarder, you do not have to provide the Datadog API key when updating the forwarder. To update or upgrade the forwarder in the future, apply the forwarder configuration again.
+Install the Forwarder using the public Datadog Terraform module available at [https://registry.terraform.io/modules/DataDog/log-lambda-forwarder-datadog/aws/latest][201]. Once the Lambda function is deployed, [set up triggers on the Forwarder][202].
 
 #### Sample configuration
 
 ```tf
-# Store Datadog API key in AWS Secrets Manager
-variable "dd_api_key" {
-  type        = string
-  description = "Datadog API key"
-}
+module "datadog_forwarder" {
+  source  = "DataDog/log-lambda-forwarder-datadog/aws"
+  version = "~> 1.0"
 
-resource "aws_secretsmanager_secret" "dd_api_key" {
-  name        = "datadog_api_key"
-  description = "Encrypted Datadog API Key"
-}
-
-resource "aws_secretsmanager_secret_version" "dd_api_key" {
-  secret_id     = aws_secretsmanager_secret.dd_api_key.id
-  secret_string = var.dd_api_key
-}
-
-output "dd_api_key" {
-  value = aws_secretsmanager_secret.dd_api_key.arn
+  dd_api_key = var.dd_api_key
+  dd_site    = var.dd_site
 }
 ```
 
-```tf
-# Use the Datadog Forwarder to ship logs from S3 and CloudWatch, as well as observability data from Lambda functions to Datadog. For more information, see https://github.com/DataDog/datadog-serverless-functions/tree/master/aws/logs_monitoring
-resource "aws_cloudformation_stack" "datadog_forwarder" {
-  name         = "datadog-forwarder"
-  capabilities = ["CAPABILITY_IAM", "CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND"]
-  parameters   = {
-    DdApiKeySecretArn  = "REPLACE WITH DATADOG SECRETS ARN",
-    DdSite             = "REPLACE WITH DATADOG SITE",
-    FunctionName       = "datadog-forwarder"
-  }
-  template_url = "https://datadog-cloudformation-template.s3.amazonaws.com/aws/forwarder/latest.yaml"
-}
-```
+**Note**: Ensure that the `dd_site` parameter matches your [Datadog site][203]. Select your site on the right side of this page. Your Datadog site is {{< region-param key="dd_site" code="true" >}}.
+Your [Datadog API key][204] to use for `dd_api_key` can be found under **Organization Settings** > **API Keys**.
 
-**Note**: Ensure that the `DdSite` parameter matches your [Datadog site][104]. Select your site on the right side of this page. Replace `<SITE>` in the above sample configuration with {{< region-param key="dd_site" code="true" >}}.
+For all configuration options and details, including [Multi-Region deployment][205], see the [module documentation][201].
 
-[101]: https://www.terraform.io/docs/providers/aws/r/cloudformation_stack
-[102]: https://app.datadoghq.com/organization-settings/api-keys
-[103]: https://docs.datadoghq.com/logs/guide/send-aws-services-logs-with-the-datadog-lambda-function/#set-up-triggers
-[104]: https://docs.datadoghq.com/getting_started/site/#access-the-datadog-site
+[201]: https://registry.terraform.io/modules/DataDog/log-lambda-forwarder-datadog/aws/latest
+[202]: https://docs.datadoghq.com/logs/guide/send-aws-services-logs-with-the-datadog-lambda-function/#set-up-triggers
+[203]: https://docs.datadoghq.com/getting_started/site/#access-the-datadog-site
+[204]: https://app.datadoghq.com/organization-settings/api-keys
+[205]: https://registry.terraform.io/modules/DataDog/log-lambda-forwarder-datadog/aws/latest#multi-region-deployments
 
 {{% /tab %}}
 {{% tab "Manual" %}}
@@ -129,7 +99,7 @@ aws lambda invoke --function-name <function-name> --payload '{"retry":"true"}' o
 ```
 
 <div class="alert alert-warning">
-The <a href="#cloudformation-parameters">environment variables provided on this page</a> are formatted for CloudFormation and Terraform. If you are installing the Forwarder manually, convert these parameter names from Pascal case to screaming snake case. For example, <code>DdApiKey</code> becomes <code>DD_API_KEY</code>, and <code>ExcludeAtMatch</code> becomes <code>EXCLUDE_AT_MATCH</code>.
+The <a href="#cloudformation-parameters">environment variables provided on this page</a> are formatted for CloudFormation. If you are installing the Forwarder manually, convert these parameter names from Pascal case to screaming snake case. For example, <code>DdApiKey</code> becomes <code>DD_API_KEY</code>, and <code>ExcludeAtMatch</code> becomes <code>EXCLUDE_AT_MATCH</code>.
 </div>
 
 [101]: https://github.com/DataDog/datadog-serverless-functions/releases
@@ -347,7 +317,7 @@ The Datadog Forwarder is signed by Datadog. To verify the integrity of the Forwa
 ## Parameters
 
 {{< tabs >}}
-{{% tab "CloudFormation and Terraform" %}}
+{{% tab "CloudFormation" %}}
 
 ### Required
 
@@ -497,6 +467,23 @@ To test different patterns against your logs, turn on [debug logs](#troubleshoot
 [13]: https://docs.datadoghq.com/getting_started/site/
 [21]: https://docs.datadoghq.com/logs/processing/pipelines/
 [2]: https://docs.datadoghq.com/logs/guide/send-aws-services-logs-with-the-datadog-lambda-function/
+{{% /tab %}}
+{{% tab "Terraform" %}}
+
+### Required
+
+`dd_api_key`
+: Your [Datadog API key][204], which can be found under **Organization Settings** > **API Keys**. The API Key is stored in AWS Secrets Manager. If you already have a Datadog API Key stored in Secrets Manager, use `dd_api_key_secret_arn` instead.
+
+`dd_site`
+: The [Datadog site][203] that your metrics and logs will be sent to. Your Datadog site is {{< region-param key="dd_site" code="true" >}}.
+
+For all configuration options and details, including [Multi-Region deployment][205], see the [module documentation][201].
+
+[201]: https://registry.terraform.io/modules/DataDog/log-lambda-forwarder-datadog/aws/latest
+[203]: https://docs.datadoghq.com/getting_started/site/#access-the-datadog-site
+[204]: https://app.datadoghq.com/organization-settings/api-keys
+[205]: https://registry.terraform.io/modules/DataDog/log-lambda-forwarder-datadog/aws/latest#multi-region-deployments
 {{% /tab %}}
 {{% tab "Manual" %}}
 
