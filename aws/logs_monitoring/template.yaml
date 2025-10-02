@@ -103,13 +103,6 @@ Parameters:
       - true
       - false
     Description: Let the forwarder fetch S3 buckets tags using GetResources API calls and apply them to S3 based logs. If set to true, permission tag:GetResources will be automatically added to the Lambda execution IAM role. The tags are cached in memory and S3 so that they'll only be fetched when the function cold starts or when the TTL (1 hour) expires. The forwarder increments the aws.lambda.enhanced.get_resources_api_calls metric for each API call made.
-  DdUseTcp:
-    Type: String
-    Default: false
-    AllowedValues:
-      - true
-      - false
-    Description: By default, the forwarder sends logs using HTTPS through the port 443. To send logs over an SSL encrypted TCP connection, set this parameter to true.
   DdNoSsl:
     Type: String
     Default: false
@@ -310,7 +303,6 @@ Conditions:
   SetS3SourceZip: !Equals [!Select [0, !Split [/, !Ref SourceZipUrl]], "s3:"]
   SetDdTags: !Not
     - !Equals [!Ref DdTags, ""]
-  SetDdUseTcp: !Equals [!Ref DdUseTcp, true]
   SetDdNoSsl: !Equals [!Ref DdNoSsl, true]
   SetDdUrl: !Not
     - !Equals [!Ref DdUrl, ""]
@@ -475,10 +467,6 @@ Resources:
           DD_FETCH_STEP_FUNCTIONS_TAGS: !If
             - SetDdFetchStepFunctionsTags
             - !Ref DdFetchStepFunctionsTags
-            - !Ref AWS::NoValue
-          DD_USE_TCP: !If
-            - SetDdUseTcp
-            - !Ref DdUseTcp
             - !Ref AWS::NoValue
           DD_NO_SSL: !If
             - SetDdNoSsl
@@ -1018,7 +1006,6 @@ Metadata:
         Parameters:
           - DdTags
           - DdMultilineLogRegexPattern
-          - DdUseTcp
           - DdNoSsl
           - DdUrl
           - DdPort
