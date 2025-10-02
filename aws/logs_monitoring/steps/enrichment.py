@@ -25,7 +25,6 @@ def enrich(events, cache_layer):
         add_metadata_to_lambda_log(event, cache_layer)
         extract_ddtags_from_message(event)
         extract_host_from_cloudtrails(event)
-        extract_host_from_guardduty(event)
 
     return events
 
@@ -206,12 +205,3 @@ def extract_host_from_cloudtrails(event):
                 match = HOST_IDENTITY_REGEXP.match(arn)
                 if match is not None:
                     event[DD_HOST] = match.group("host")
-
-
-def extract_host_from_guardduty(event):
-    if event is not None and event.get(DD_SOURCE) == str(AwsEventSource.GUARDDUTY):
-        host = event.get("detail", {}).get("resource")
-        if isinstance(host, dict):
-            host = host.get("instanceDetails", {}).get("instanceId")
-            if host is not None:
-                event[DD_HOST] = host

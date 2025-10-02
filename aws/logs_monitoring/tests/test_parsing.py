@@ -134,15 +134,6 @@ class TestParseEventSource(unittest.TestCase):
             str(AwsEventSource.S3),
         )
 
-    def test_fargate_event(self):
-        self.assertEqual(
-            parse_event_source(
-                {"awslogs": "logs"},
-                "/ecs/fargate-logs",
-            ),
-            str(AwsEventSource.FARGATE),
-        )
-
     def test_cloudfront_event(self):
         self.assertEqual(
             parse_event_source(
@@ -150,28 +141,6 @@ class TestParseEventSource(unittest.TestCase):
                 "AWSLogs/cloudfront/123456779121/test/01.gz",
             ),
             str(AwsEventSource.S3),
-        )
-
-    def test_elasticsearch_event(self):
-        self.assertEqual(
-            parse_event_source({"awslogs": "logs"}, "/elasticsearch/domain"),
-            str(AwsEventSource.ELASTICSEARCH),
-        )
-
-    def test_msk_event(self):
-        self.assertEqual(
-            parse_event_source(
-                {"awslogs": "logs"},
-                "/myMSKLogGroup",
-            ),
-            str(AwsEventSource.MSK),
-        )
-        self.assertEqual(
-            parse_event_source(
-                {"Records": ["logs-from-s3"]},
-                "AWSLogs/amazon_msk/us-east-1/xxxxx.log.gz",
-            ),
-            str(AwsEventSource.MSK),
         )
 
     def test_cloudwatch_source_if_none_found(self):

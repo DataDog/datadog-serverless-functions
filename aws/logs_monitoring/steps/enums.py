@@ -5,15 +5,8 @@ class AwsEventSource(Enum):
     AWS = "aws"
     CLOUDTRAIL = "cloudtrail"
     CLOUDWATCH = "cloudwatch"
-    ELASTICSEARCH = "elasticsearch"
-    FARGATE = "fargate"
-    GUARDDUTY = "guardduty"
     KINESIS = "kinesis"
     LAMBDA = "lambda"
-    MARIADB = "mariadb"
-    MSK = "msk"
-    MYSQL = "mysql"
-    POSTGRESQL = "postgresql"
     S3 = "s3"
     SNS = "sns"
     STEPFUNCTION = "stepfunction"
@@ -26,9 +19,6 @@ class AwsEventSource(Enum):
     def cloudwatch_sources():
         return [
             AwsEventSource.CLOUDTRAIL,
-            AwsEventSource.ELASTICSEARCH,
-            AwsEventSource.FARGATE,
-            AwsEventSource.MSK,
         ]
 
 
@@ -41,9 +31,7 @@ class AwsS3EventSourceKeyword(Enum):
     WAF_0 = ("aws-waf-logs", AwsEventSource.WAF)
     WAF_1 = ("waflogs", AwsEventSource.WAF)
 
-    GUARDDUTY = ("guardduty", AwsEventSource.GUARDDUTY)
     KINESIS = ("amazon_kinesis", AwsEventSource.KINESIS)
-    MSK = ("amazon_msk", AwsEventSource.MSK)
 
     def __str__(self):
         return f"{self.string}"
