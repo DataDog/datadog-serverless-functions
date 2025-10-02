@@ -59,12 +59,6 @@ DD_API_KEY = "<YOUR_DATADOG_API_KEY>"
 #
 DD_FORWARD_LOG = get_env_var("DD_FORWARD_LOG", "true", boolean=True)
 
-## @param DD_USE_TCP - boolean - optional -default: false
-## Change this value to `true` to send your logs and metrics using the TCP network client
-## By default, it uses the HTTP client.
-#
-DD_USE_TCP = get_env_var("DD_USE_TCP", "false", boolean=True)
-
 ## @param DD_USE_COMPRESSION - boolean - optional -default: true
 ## Only valid when sending logs over HTTP
 ## Change this value to `false` to send your logs without any compression applied
@@ -117,19 +111,9 @@ DD_TRACE_INTAKE_URL = get_env_var(
     default="{}://trace.agent.{}".format("http" if DD_NO_SSL else "https", DD_SITE),
 )
 
-# The TCP transport has been deprecated, migrate to the HTTP intake.
-if DD_USE_TCP:
-    DD_URL = get_env_var("DD_URL", default="lambda-intake.logs." + DD_SITE)
-    try:
-        if "DD_SITE" in os.environ and DD_SITE == "datadoghq.eu":
-            DD_PORT = int(get_env_var("DD_PORT", default="443"))
-        else:
-            DD_PORT = int(get_env_var("DD_PORT", default="10516"))
-    except Exception:
-        DD_PORT = 10516
-else:
-    DD_URL = get_env_var("DD_URL", default="http-intake.logs." + DD_SITE)
-    DD_PORT = int(get_env_var("DD_PORT", default="443"))
+
+DD_URL = get_env_var("DD_URL", default="http-intake.logs." + DD_SITE)
+DD_PORT = int(get_env_var("DD_PORT", default="443"))
 
 ## @param DD_USE_VPC
 DD_USE_VPC = get_env_var("DD_USE_VPC", "false", boolean=True)
@@ -148,8 +132,6 @@ if DD_USE_PRIVATE_LINK:
     logger.debug("Private link enabled, overriding configuration settings")
     # Only the US Datadog site is supported when PrivateLink is enabled
     DD_SITE = "datadoghq.com"
-    # TCP isn't supported when PrivateLink is enabled
-    DD_USE_TCP = False
     DD_NO_SSL = False
     DD_PORT = 443
     # Override URLs
