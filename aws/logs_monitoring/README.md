@@ -310,18 +310,6 @@ You can run the Forwarder in a VPC private subnet and send data to Datadog over 
     2. Set `VPCSecurityGroupIds` and `VPCSubnetIds` based on your VPC settings.
     3. Set `DdFetchLambdaTags`, `DdFetchStepFunctionsTags` and `DdFetchS3Tags` to `false`, because AWS Resource Groups Tagging API doesn't support PrivateLink.
 
-#### DdUsePrivateLink is deprecated
-
-The `DdUsePrivateLink` option has been deprecated since [v3.41.0][16]. This option was previously used to instruct the Forwarder to use a special set of PrivateLink endpoints for data intake: `pvtlink.api.{{< region-param key="dd_site" code="true" >}}`, `api-pvtlink.logs.{{< region-param key="dd_site" code="true" >}}`, and `trace-pvtlink.agent.{{< region-param key="dd_site" code="true" >}}`. Since v3.41.0, the Forwarder can send data over PrivateLink to Datadog using the regular DNS names of intake endpoints: `api.{{< region-param key="dd_site" code="true" >}}`, `http-intake.logs.{{< region-param key="dd_site" code="true" >}}`, and `trace.agent.{{< region-param key="dd_site" code="true" >}}`. Therefore, the `DdUsePrivateLink` option is no longer needed.
-
-If you have an older deployment of the Forwarder with `DdUsePrivateLink` set to `true`, then you may find mismatches between your configured PrivateLink endpoints and the [ones documented in Datadog][14], which is expected. Although the older PrivateLink endpoints were removed from that doc, they remain to function. When upgrading the Forwarder, there is no change required, that is, you can keep `DdUsePrivateLink` enabled and continue to use the older endpoints.
-
-However, if you are interested in switching to the new endpoints, you need to follow the updated instructions above to:
-
-1. Set up the new endpoints to `api.{{< region-param key="dd_site" code="true" >}}`, `http-intake.logs.{{< region-param key="dd_site" code="true" >}}`, and `trace.agent.{{< region-param key="dd_site" code="true" >}}`.
-2. Set `DdUseVPC` to `true`.
-3. Set `DdUsePrivateLink` to `false`.
-
 ### AWS VPC and proxy support
 
 If you must deploy the Forwarder to a VPC without direct public internet access, and you cannot use AWS PrivateLink to connect to Datadog (for example, if your organization is hosted on the Datadog EU site: `datadoghq.eu`), then you can send data through a proxy.
@@ -467,9 +455,6 @@ To test different patterns against your logs, turn on [debug logs](#troubleshoot
 `PermissionsBoundaryArn`
 : ARN for the Permissions Boundary Policy.
 
-`DdUsePrivateLink` (DEPRECATED)
-: Set to true to enable sending logs and metrics through AWS PrivateLink. See [Connect to Datadog over AWS PrivateLink][2].
-
 `DdHttpProxyURL`
 : Sets the standard web proxy environment variables HTTP_PROXY and HTTPS_PROXY. These are the URL endpoints your proxy server exposes. Do not use this in combination with AWS Private Link. Make sure to also set `DdSkipSslValidation` to true.
 
@@ -612,9 +597,6 @@ To test different patterns against your logs, turn on [debug logs](#troubleshoot
 
 `PERMISSIONS_BOUNDARY_ARN`
 : ARN for the Permissions Boundary Policy.
-
-`DD_USE_PRIVATE_LINK` (DEPRECATED)
-: Set to true to enable sending logs and metrics through AWS PrivateLink. See [Connect to Datadog over AWS PrivateLink][2].
 
 `DD_HTTP_PROXY_URL`
 : Sets the standard web proxy environment variables HTTP_PROXY and HTTPS_PROXY. These are the URL endpoints your proxy server exposes. Do not use this in combination with AWS Private Link. Make sure to also set `DD_SKIP_SSL_VALIDATION` to true.

@@ -121,24 +121,6 @@ DD_USE_VPC = get_env_var("DD_USE_VPC", "false", boolean=True)
 ## @param DD_CUSTOM_SOURCE
 DD_CUSTOM_SOURCE = get_env_var("DD_SOURCE", "")
 
-# DEPRECATED. No longer need to use special endpoints, as you can now expose
-# regular Datadog API endpoints `api`, `http-intake.logs` and `trace.agent`
-# via PrivateLink. See https://docs.datadoghq.com/agent/guide/private-link/.
-# @param DD_USE_PRIVATE_LINK - whether to forward logs via PrivateLink
-# Overrides incompatible settings
-#
-DD_USE_PRIVATE_LINK = get_env_var("DD_USE_PRIVATE_LINK", "false", boolean=True)
-if DD_USE_PRIVATE_LINK:
-    logger.debug("Private link enabled, overriding configuration settings")
-    # Only the US Datadog site is supported when PrivateLink is enabled
-    DD_SITE = "datadoghq.com"
-    DD_NO_SSL = False
-    DD_PORT = 443
-    # Override URLs
-    DD_URL = "api-pvtlink.logs.datadoghq.com"
-    DD_API_URL = "https://pvtlink.api.datadoghq.com"
-    DD_TRACE_INTAKE_URL = "https://trace-pvtlink.agent.datadoghq.com"
-
 
 class ScrubbingRuleConfig(object):
     def __init__(self, name, pattern, placeholder, enabled=True):
