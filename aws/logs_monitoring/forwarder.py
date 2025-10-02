@@ -13,7 +13,6 @@ from logs.datadog_client import DatadogClient
 from logs.datadog_http_client import DatadogHTTPClient
 from logs.datadog_matcher import DatadogMatcher
 from logs.datadog_scrubber import DatadogScrubber
-from logs.datadog_tcp_client import DatadogTCPClient
 from logs.helpers import add_retry_tag
 from retry.enums import RetryPrefix
 from retry.storage import Storage
@@ -26,7 +25,6 @@ from settings import (
     DD_STORE_FAILED_EVENTS,
     DD_TRACE_INTAKE_URL,
     DD_URL,
-    DD_USE_TCP,
     EXCLUDE_AT_MATCH,
     INCLUDE_AT_MATCH,
     SCRUBBING_RULE_CONFIGS,
@@ -108,14 +106,10 @@ class Forwarder(object):
             if matcher.match(evaluated_log):
                 logs_to_forward.append(json.dumps(log, ensure_ascii=False))
 
-        if DD_USE_TCP:
-            batcher = DatadogBatcher(256 * 1000, 256 * 1000, 1)
-            cli = DatadogTCPClient(DD_URL, DD_PORT, DD_NO_SSL, DD_API_KEY, scrubber)
-        else:
-            batcher = DatadogBatcher(512 * 1000, 4 * 1000 * 1000, 400)
-            cli = DatadogHTTPClient(
-                DD_URL, DD_PORT, DD_NO_SSL, DD_SKIP_SSL_VALIDATION, DD_API_KEY, scrubber
-            )
+        batcher = DatadogBatcher(512 * 1000, 4 * 1000 * 1000, 400)
+        cli = DatadogHTTPClient(
+            DD_URL, DD_PORT, DD_NO_SSL, DD_SKIP_SSL_VALIDATION, DD_API_KEY, scrubber
+        )
 
         failed_logs = []
         with DatadogClient(cli) as client:
