@@ -180,13 +180,6 @@ Parameters:
       - true
       - false
     Description: Set to false to disable log compression. Only valid when sending logs over HTTP.
-  DdUsePrivateLink:
-    Type: String
-    Default: false
-    AllowedValues:
-      - true
-      - false
-    Description: DEPRECATED, DO NOT CHANGE. See README.md for details. Set to true to deploy the Forwarder to a VPC and send logs, metrics, and traces via AWS PrivateLink. When set to true, must also set VPCSecurityGroupIds and VPCSubnetIds.
   DdUseVPC:
     Type: String
     Default: false
@@ -205,11 +198,11 @@ Parameters:
   VPCSecurityGroupIds:
     Type: CommaDelimitedList
     Default: ""
-    Description: Comma separated list of VPC Security Group Ids. Used when DdUsePrivateLink or DdUseVPC is enabled.
+    Description: Comma separated list of VPC Security Group Ids. Used when DdUseVPC is enabled.
   VPCSubnetIds:
     Type: CommaDelimitedList
     Default: ""
-    Description: Comma separated list of VPC Subnet Ids. Used when DdUsePrivateLink or DdUseVPC is enabled.
+    Description: Comma separated list of VPC Subnet Ids. Used when DdUseVPC is enabled.
   DdCompressionLevel:
     Type: Number
     Default: 6
@@ -329,7 +322,6 @@ Conditions:
       - !Equals [!Ref DdFetchLogGroupTags, true]
       - !Equals [!Ref DdFetchLambdaTags, true]
     - !Equals [!Ref DdForwarderExistingBucketName, ""]
-  SetDdUsePrivateLink: !Equals [!Ref DdUsePrivateLink, true]
   SetDdUseVPC: !Equals [!Ref DdUseVPC, true]
   SetDdHttpProxyURL: !Not
     - !Equals [!Ref DdHttpProxyURL, ""]
@@ -337,11 +329,9 @@ Conditions:
     - !Equals [!Ref DdNoProxy, ""]
   SetLayerARN: !Not
     - !Equals [!Ref LayerARN, ""]
-  UseVPC: !Or
-    - !Condition SetDdUsePrivateLink
-    - !Condition SetDdUseVPC
   SetDdForwardLog: !Equals [!Ref DdForwardLog, false]
-  SetDdStepFunctionsTraceEnabled: !Equals [!Ref DdStepFunctionsTraceEnabled, true]
+  SetDdStepFunctionsTraceEnabled:
+    !Equals [!Ref DdStepFunctionsTraceEnabled, true]
   SetDdUseCompression: !Equals [!Ref DdUseCompression, false]
   SetDdCompressionLevel: !Not
     - !Equals [!Ref DdCompressionLevel, 6]
@@ -422,7 +412,10 @@ Resources:
             - !Ref DdForwarderExistingBucketName
           S3Key: !Sub
             - "aws-dd-forwarder-${DdForwarderVersion}.zip"
-            - {DdForwarderVersion: !FindInMap [Constants, DdForwarder, Version]}
+            - {
+                DdForwarderVersion:
+                  !FindInMap [Constants, DdForwarder, Version],
+              }
         - ZipFile: " "
       MemorySize: !Ref MemorySize
       Runtime: python3.13
@@ -536,12 +529,8 @@ Resources:
             - SetDdMaxWorkers
             - !Ref DdMaxWorkers
             - !Ref AWS::NoValue
-          DD_USE_PRIVATE_LINK: !If
-            - SetDdUsePrivateLink
-            - true
-            - false
           DD_USE_VPC: !If
-            - UseVPC
+            - SetDdUseVPC
             - true
             - false
           HTTP_PROXY: !If
@@ -581,7 +570,7 @@ Resources:
         - !Ref ReservedConcurrency
         - !Ref AWS::NoValue
       VpcConfig: !If
-        - UseVPC
+        - SetDdUseVPC
         - SecurityGroupIds: !If
             - SetVpcSecurityGroupIds
             - !Ref VPCSecurityGroupIds
@@ -684,7 +673,7 @@ Resources:
                   Effect: Allow
                 - !Ref AWS::NoValue
               - !If
-                - UseVPC # Required for Lambda deployed in VPC
+                - SetDdUseVPC # Required for Lambda deployed in VPC
                 - Action:
                     - ec2:CreateNetworkInterface
                     - ec2:DescribeNetworkInterfaces
@@ -821,7 +810,7 @@ Resources:
         - !Ref SourceZipUrl
         - !Sub
           - "https://github.com/DataDog/datadog-serverless-functions/releases/download/aws-dd-forwarder-${DdForwarderVersion}/aws-dd-forwarder-${DdForwarderVersion}.zip"
-          - {DdForwarderVersion: !FindInMap [Constants, DdForwarder, Version]}
+          - { DdForwarderVersion: !FindInMap [Constants, DdForwarder, Version] }
   # The Forwarder's source code is too big to fit the inline code size limit for CloudFormation. In most of AWS
   # partitions and regions, the Forwarder is able to load its source code from a Lambda layer attached to it.
   # In places where Datadog can't/doesn't yet publish Lambda layers, use another Lambda to copy the source code
@@ -1040,7 +1029,6 @@ Metadata:
           - InstallAsLayer
           - LayerARN
           - PermissionsBoundaryArn
-          - DdUsePrivateLink
           - DdUseVPC
           - DdHttpProxyURL
           - DdNoProxy
