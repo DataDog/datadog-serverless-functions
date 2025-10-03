@@ -13,6 +13,7 @@ from settings import (
     DD_S3_CACHE_DIRNAME,
     DD_S3_LOG_GROUP_CACHE_DIRNAME,
     DD_TAGS_CACHE_TTL_SECONDS,
+    get_fetch_log_group_tags,
 )
 from telemetry import send_forwarder_internal_metrics
 
@@ -61,7 +62,7 @@ class CloudwatchLogGroupTagsCache:
         return self._fetch_log_group_tags(log_group_arn)
 
     def _should_fetch_tags(self):
-        return os.environ.get("DD_FETCH_LOG_GROUP_TAGS", "false").lower() == "true"
+        return get_fetch_log_group_tags()
 
     def _fetch_log_group_tags(self, log_group_arn):
         # first, check in-memory cache

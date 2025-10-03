@@ -1,32 +1,34 @@
 import json
-import unittest
 import os
+import sys
+import unittest
+from importlib import reload
 from time import time
-from unittest.mock import patch, MagicMock
 from unittest import mock
+from unittest.mock import MagicMock, patch
+
 from approvaltests.approvals import verify_as_json
 
-from enhanced_lambda_metrics import (
-    parse_metrics_from_report_log,
-    parse_metrics_from_json_report_log,
-    parse_lambda_tags_from_arn,
-    generate_enhanced_lambda_metrics,
-    create_out_of_memory_enhanced_metric,
-)
-
 from caching.lambda_cache import LambdaTagsCache
+from enhanced_lambda_metrics import (
+    create_out_of_memory_enhanced_metric,
+    generate_enhanced_lambda_metrics,
+    parse_lambda_tags_from_arn,
+    parse_metrics_from_json_report_log,
+    parse_metrics_from_report_log,
+)
 
 
 class TestEnhancedLambdaMetrics(unittest.TestCase):
     maxDiff = None
     malformed_report = "REPORT invalid report log line"
     standard_report = (
-        "REPORT RequestId: 8edab1f8-7d34-4a8e-a965-15ccbbb78d4c	"
-        "Duration: 0.62 ms	Billed Duration: 100 ms	Memory Size: 128 MB	Max Memory Used: 51 MB"
+        "REPORT RequestId: 8edab1f8-7d34-4a8e-a965-15ccbbb78d4c "
+        "Duration: 0.62 ms  Billed Duration: 100 ms Memory Size: 128 MB Max Memory Used: 51 MB"
     )
     cold_start_report = (
-        "REPORT RequestId: 8edab1f8-7d34-4a8e-a965-15ccbbb78d4c	"
-        "Duration: 0.81 ms	Billed Duration: 100 ms	Memory Size: 128 MB	Max Memory Used: 90 MB	Init Duration: 1234 ms"
+        "REPORT RequestId: 8edab1f8-7d34-4a8e-a965-15ccbbb78d4c "
+        "Duration: 0.81 ms  Billed Duration: 100 ms Memory Size: 128 MB Max Memory Used: 90 MB  Init Duration: 1234 ms"
     )
     report_with_xray = (
         "REPORT RequestId: 814ba7cb-071e-4181-9a09-fa41db5bccad\tDuration: 1711.87 ms\t"
@@ -303,7 +305,10 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
 
     @patch("caching.base_tags_cache.send_forwarder_internal_metrics")
     @patch("caching.lambda_cache.send_forwarder_internal_metrics")
+    @patch.dict(os.environ, {"DD_FETCH_LAMBDA_TAGS": "true"})
     def test_generate_enhanced_lambda_metrics_refresh_s3_cache(self, mock1, mock2):
+        reload(sys.modules["settings"])
+
         tags_cache = LambdaTagsCache("")
         tags_cache.get_cache_from_s3 = MagicMock(return_value=({}, 1000))
         tags_cache.acquire_s3_cache_lock = MagicMock()
@@ -334,13 +339,12 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
             "timestamp": 10000,
         }
 
-        os.environ["DD_FETCH_LAMBDA_TAGS"] = "True"
         generate_enhanced_lambda_metrics(logs_input, tags_cache)
         tags_cache.get_cache_from_s3.assert_called_once()
         tags_cache.build_tags_cache.assert_called_once()
         tags_cache.write_cache_to_s3.assert_called_once()
-        del os.environ["DD_FETCH_LAMBDA_TAGS"]
 
+    @patch.dict(os.environ, {"DD_FETCH_LAMBDA_TAGS": "true"})
     @patch("caching.lambda_cache.LambdaTagsCache.release_s3_cache_lock")
     @patch("caching.lambda_cache.LambdaTagsCache.acquire_s3_cache_lock")
     @patch("caching.lambda_cache.LambdaTagsCache.get_resources_paginator")
@@ -358,6 +362,8 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
         mock_acquire_lock,
         mock_release_lock,
     ):
+        reload(sys.modules["settings"])
+
         mock_acquire_lock.return_value = True
         mock_get_s3_cache.return_value = (
             {},
@@ -391,7 +397,6 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
             "timestamp": 10000,
         }
 
-        os.environ["DD_FETCH_LAMBDA_TAGS"] = "True"
         generate_enhanced_lambda_metrics(logs_input, tags_cache)
         mock_get_s3_cache.assert_called_once()
         mock_get_s3_cache.reset_mock()
@@ -399,14 +404,16 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
         paginator.paginate.assert_called_once()
         assert mock_base_tags_cache_forward_metrics.call_count == 1
         assert mock_lambda_cache_forward_metrics.call_count == 2
-        del os.environ["DD_FETCH_LAMBDA_TAGS"]
 
     @patch("caching.lambda_cache.send_forwarder_internal_metrics")
     @patch("caching.base_tags_cache.send_forwarder_internal_metrics")
     @patch("caching.lambda_cache.LambdaTagsCache.get_cache_from_s3")
+    @patch.dict(os.environ, {"DD_FETCH_LAMBDA_TAGS": "true"})
     def test_generate_enhanced_lambda_metrics_timeout(
         self, mock_get_s3_cache, mock_forward_metrics, mock_base_forward_metrics
     ):
+        reload(sys.modules["settings"])
+
         mock_get_s3_cache.return_value = (
             {
                 "arn:aws:lambda:us-east-1:0:function:cloudwatch-event": [
@@ -437,17 +444,18 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
             "timestamp": 1591714946151,
         }
 
-        os.environ["DD_FETCH_LAMBDA_TAGS"] = "True"
         generated_metrics = generate_enhanced_lambda_metrics(logs_input, tags_cache)
         verify_as_json(generated_metrics)
-        del os.environ["DD_FETCH_LAMBDA_TAGS"]
 
     @patch("caching.lambda_cache.send_forwarder_internal_metrics")
     @patch("telemetry.send_forwarder_internal_metrics")
     @patch("caching.lambda_cache.LambdaTagsCache.get_cache_from_s3")
+    @patch.dict(os.environ, {"DD_FETCH_LAMBDA_TAGS": "true"})
     def test_generate_enhanced_lambda_metrics_out_of_memory(
         self, mock_get_s3_cache, mock_forward_metrics, mock_base_forward_metrics
     ):
+        reload(sys.modules["settings"])
+
         mock_get_s3_cache.return_value = (
             {
                 "arn:aws:lambda:us-east-1:0:function:cloudwatch-event": [
@@ -478,10 +486,8 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
             "timestamp": 1591714946151,
         }
 
-        os.environ["DD_FETCH_LAMBDA_TAGS"] = "True"
         generated_metrics = generate_enhanced_lambda_metrics(logs_input, tags_cache)
         verify_as_json(generated_metrics)
-        del os.environ["DD_FETCH_LAMBDA_TAGS"]
 
 
 if __name__ == "__main__":

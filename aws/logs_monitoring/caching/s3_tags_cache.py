@@ -1,13 +1,14 @@
-import os
 from botocore.exceptions import ClientError
+
 from caching.base_tags_cache import BaseTagsCache
 from caching.common import parse_get_resources_response_for_tags_by_arn
-from telemetry import send_forwarder_internal_metrics
 from settings import (
     DD_S3_TAGS_CACHE_FILENAME,
     DD_S3_TAGS_CACHE_LOCK_FILENAME,
     GET_RESOURCES_S3_FILTER,
+    get_fetch_s3_tags,
 )
+from telemetry import send_forwarder_internal_metrics
 
 
 class S3TagsCache(BaseTagsCache):
@@ -18,7 +19,7 @@ class S3TagsCache(BaseTagsCache):
 
     def should_fetch_tags(self):
         # set it to true if we don't have the environment variable set to keep the default behavior
-        return os.environ.get("DD_FETCH_S3_TAGS", "true").lower() == "true"
+        return get_fetch_s3_tags()
 
     def build_tags_cache(self):
         """Makes API calls to GetResources to get the live tags of the account's S3 buckets
