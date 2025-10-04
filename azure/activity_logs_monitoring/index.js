@@ -5,7 +5,7 @@
 
 const { app, InvocationContext } = require('@azure/functions');
 
-const VERSION = '2.1.0';
+const VERSION = '2.1.1';
 
 const STRING = 'string'; // example: 'some message'
 const STRING_ARRAY = 'string-array'; // example: ['one message', 'two message', ...]
@@ -28,6 +28,8 @@ const DD_SERVICE = process.env.DD_SERVICE || 'azure'; // Replace 'azure' with th
 const DD_SOURCE = process.env.DD_SOURCE || 'azure';
 const DD_SOURCE_CATEGORY = process.env.DD_SOURCE_CATEGORY || 'azure';
 const DD_PARSE_DEFENDER_LOGS = process.env.DD_PARSE_DEFENDER_LOGS; // Boolean whether to enable special parsing of Defender for Cloud logs. Set to 'false' to disable
+
+const EVENTHUB_NAME = process.env.EVENTHUB_NAME || 'datadog-eventhub'; // The event hub name inside your eventhub namespace
 
 const MAX_RETRIES = 4; // max number of times to retry a single http request
 const RETRY_INTERVAL = 250; // amount of time (milliseconds) to wait before retrying request, doubles after every retry
@@ -651,11 +653,12 @@ class EventhubLogHandler {
     }
 }
 
-app.eventHub('datadog-function', {
+// using a function-name with dashes can cause deployment errors on function update
+app.eventHub('datadogFunction', {
     trigger: {
         type: 'eventHubTrigger',
         name: 'eventHubMessages',
-        eventHubName: 'datadog-eventhub',
+        eventHubName: EVENTHUB_NAME,
         connection: 'EVENTHUB_CONNECTION_STRING',
         cardinality: 'many',
         consumerGroup: '$Default',
