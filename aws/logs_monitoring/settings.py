@@ -271,6 +271,37 @@ DD_MULTILINE_LOG_REGEX_PATTERN = get_env_var(
     "DD_MULTILINE_LOG_REGEX_PATTERN", default=None
 )
 
+DD_FETCH_S3_TAGS = get_env_var("DD_FETCH_S3_TAGS", default="true", boolean=True)
+
+DD_FETCH_LOG_GROUP_TAGS = get_env_var(
+    "DD_FETCH_LOG_GROUP_TAGS", default="true", boolean=True
+)
+
+DD_FETCH_LAMBDA_TAGS = get_env_var(
+    "DD_FETCH_LAMBDA_TAGS", default="false", boolean=True
+)
+
+DD_FETCH_STEP_FUNCTIONS_TAGS = get_env_var(
+    "DD_FETCH_STEP_FUNCTIONS_TAGS", default="false", boolean=True
+)
+
+
+def get_fetch_s3_tags():
+    return DD_FETCH_S3_TAGS
+
+
+def get_fetch_log_group_tags():
+    return DD_FETCH_LOG_GROUP_TAGS
+
+
+def get_fetch_lambda_tags():
+    return DD_FETCH_LAMBDA_TAGS
+
+
+def get_fetch_step_functions_tags():
+    return DD_FETCH_STEP_FUNCTIONS_TAGS
+
+
 DD_SOURCE = "ddsource"
 DD_CUSTOM_TAGS = "ddtags"
 DD_SERVICE = "service"

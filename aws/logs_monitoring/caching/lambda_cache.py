@@ -1,5 +1,3 @@
-import os
-
 from botocore.exceptions import ClientError
 
 from caching.base_tags_cache import BaseTagsCache
@@ -8,6 +6,7 @@ from settings import (
     DD_S3_LAMBDA_CACHE_FILENAME,
     DD_S3_LAMBDA_CACHE_LOCK_FILENAME,
     GET_RESOURCES_LAMBDA_FILTER,
+    get_fetch_lambda_tags,
 )
 from telemetry import send_forwarder_internal_metrics
 
@@ -19,7 +18,7 @@ class LambdaTagsCache(BaseTagsCache):
         )
 
     def should_fetch_tags(self):
-        return os.environ.get("DD_FETCH_LAMBDA_TAGS", "false").lower() == "true"
+        return get_fetch_lambda_tags()
 
     def build_tags_cache(self):
         """Makes API calls to GetResources to get the live tags of the account's Lambda functions
