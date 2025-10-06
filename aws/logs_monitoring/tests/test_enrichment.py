@@ -1,6 +1,9 @@
 import json
+import os
+import sys
 import unittest
-from unittest.mock import MagicMock
+from importlib import reload
+from unittest.mock import MagicMock, patch
 
 from approvaltests.approvals import verify_as_json
 
@@ -181,7 +184,10 @@ class TestLambdaMetadataEnrichment(unittest.TestCase):
         add_metadata_to_lambda_log(event, cache_layer)
         verify_as_json(event)
 
+    @patch.dict(os.environ, {"DD_FETCH_LAMBDA_TAGS": "false"})
     def test_lambda_event_wo_service(self):
+        reload(sys.modules["settings"])
+
         cache_layer = CacheLayer("")
         event = {
             "lambda": {
@@ -191,7 +197,10 @@ class TestLambdaMetadataEnrichment(unittest.TestCase):
         add_metadata_to_lambda_log(event, cache_layer)
         verify_as_json(event)
 
+    @patch.dict(os.environ, {"DD_FETCH_LAMBDA_TAGS": "true"})
     def test_lambda_event_w_custom_tags_wo_service(self):
+        reload(sys.modules["settings"])
+
         cache_layer = CacheLayer("")
         cache_layer._lambda_cache.get = MagicMock(
             return_value=["service:customtags_service"]
@@ -204,7 +213,10 @@ class TestLambdaMetadataEnrichment(unittest.TestCase):
         add_metadata_to_lambda_log(event, cache_layer)
         verify_as_json(event)
 
+    @patch.dict(os.environ, {"DD_FETCH_LAMBDA_TAGS": "true"})
     def test_lambda_event_w_custom_tags_w_service(self):
+        reload(sys.modules["settings"])
+
         cache_layer = CacheLayer("")
         cache_layer._lambda_cache.get = MagicMock(
             return_value=["service:customtags_service"]
@@ -218,7 +230,10 @@ class TestLambdaMetadataEnrichment(unittest.TestCase):
         add_metadata_to_lambda_log(event, cache_layer)
         verify_as_json(event)
 
+    @patch.dict(os.environ, {"DD_FETCH_LAMBDA_TAGS": "false"})
     def test_lambda_event_w_service(self):
+        reload(sys.modules["settings"])
+
         cache_layer = CacheLayer("")
         event = {
             "lambda": {
@@ -229,7 +244,10 @@ class TestLambdaMetadataEnrichment(unittest.TestCase):
         add_metadata_to_lambda_log(event, cache_layer)
         verify_as_json(event)
 
+    @patch.dict(os.environ, {"DD_FETCH_LAMBDA_TAGS": "false"})
     def test_lambda_event_w_service_and_ddtags(self):
+        reload(sys.modules["settings"])
+
         cache_layer = CacheLayer("")
         event = {
             "lambda": {
@@ -241,7 +259,10 @@ class TestLambdaMetadataEnrichment(unittest.TestCase):
         add_metadata_to_lambda_log(event, cache_layer)
         verify_as_json(event)
 
+    @patch.dict(os.environ, {"DD_FETCH_LAMBDA_TAGS": "true"})
     def test_lambda_event_w_custom_tags_env(self):
+        reload(sys.modules["settings"])
+
         cache_layer = CacheLayer("")
         cache_layer._lambda_cache.get = MagicMock(return_value=["env:customtags_env"])
         event = {
