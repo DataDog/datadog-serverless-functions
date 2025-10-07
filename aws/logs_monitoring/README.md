@@ -567,11 +567,17 @@ To test different patterns against your logs, turn on [debug logs](#troubleshoot
 
 ### Advanced (optional)
 
+`DD_ENRICH_S3_TAGS`
+: Instruct Datadog Backend to enrich a log coming from a S3 bucket with the tag attached to this bucket. It's the equivalent behavior of `DD_FETCH_S3_TAG` but done after ingestion. This require Resource Collection to be enabled. Enabled by default.
+
+`DD_ENRICH_CLOUDWATCH_TAGS`
+: Instruct Datadog Backend to enrich a log coming from a Cloudwatch logGroup with the tag attached to this logGroup. It's the equivalent behavior of `DD_FETCH_LOG_GROUP_TAGS` but done after ingestion. This require Resource Collection to be enabled.
+
 `DD_FETCH_LAMBDA_TAGS`
 : Let the Forwarder fetch Lambda tags using GetResources API calls and apply them to logs, metrics, and traces. If set to true, permission `tag:GetResources` will be automatically added to the Lambda execution IAM role.
 
 `DD_FETCH_LOG_GROUP_TAGS`
-: Let the forwarder fetch Log Group tags using ListTagsLogGroup and apply them to logs, metrics, and traces. If set to true, permission `logs:ListTagsForResource` will be automatically added to the Lambda execution IAM role.
+: [DEPRECATED, use DD_ENRICH_CLOUDWATCH_TAG] Let the forwarder fetch Log Group tags using ListTagsLogGroup and apply them to logs, metrics, and traces. If set to true, permission `logs:ListTagsForResource` will be automatically added to the Lambda execution IAM role.
 
 `DD_FETCH_STEP_FUNCTIONS_TAGS`
 : Let the Forwarder fetch Step Functions tags using GetResources API calls and apply them to logs and traces (if Step Functions tracing is enabled). If set to true, permission `tag:GetResources` will be automatically added to the Lambda execution IAM role.

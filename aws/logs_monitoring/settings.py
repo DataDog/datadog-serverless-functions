@@ -250,6 +250,13 @@ DD_FETCH_STEP_FUNCTIONS_TAGS = get_env_var(
 )
 
 
+DD_ENRICH_S3_TAGS = get_env_var("DD_ENRICH_S3_TAGS", default="true", boolean=True)
+
+DD_ENRICH_CLOUDWATCH_TAGS = get_env_var(
+    "DD_ENRICH_CLOUDWATCH_TAGS", default="false", boolean=True
+)
+
+
 def get_fetch_s3_tags():
     return DD_FETCH_S3_TAGS
 
@@ -264,6 +271,14 @@ def get_fetch_lambda_tags():
 
 def get_fetch_step_functions_tags():
     return DD_FETCH_STEP_FUNCTIONS_TAGS
+
+
+def get_enrich_s3_tags():
+    return DD_ENRICH_S3_TAGS
+
+
+def get_enrich_cloudwatch_tags():
+    return DD_ENRICH_CLOUDWATCH_TAGS
 
 
 DD_SOURCE = "ddsource"
