@@ -253,7 +253,7 @@ DD_FETCH_STEP_FUNCTIONS_TAGS = get_env_var(
 DD_ENRICH_S3_TAGS = get_env_var("DD_ENRICH_S3_TAGS", default="true", boolean=True)
 
 DD_ENRICH_CLOUDWATCH_TAGS = get_env_var(
-    "DD_ENRICH_CLOUDWATCH_TAGS", default="false", boolean=True
+    "DD_ENRICH_CLOUDWATCH_TAGS", default="true", boolean=True
 )
 
 
