@@ -274,7 +274,7 @@ DD_MULTILINE_LOG_REGEX_PATTERN = get_env_var(
 DD_FETCH_S3_TAGS = get_env_var("DD_FETCH_S3_TAGS", default="true", boolean=True)
 
 DD_FETCH_LOG_GROUP_TAGS = get_env_var(
-    "DD_FETCH_LOG_GROUP_TAGS", default="true", boolean=True
+    "DD_FETCH_LOG_GROUP_TAGS", default="false", boolean=True
 )
 
 DD_FETCH_LAMBDA_TAGS = get_env_var(
