@@ -50,6 +50,48 @@
             "device": null,
             "host": null,
             "interval": 10,
+            "metric": "aws.dd_forwarder.loggroup_cache_fetch_failure",
+            "points": "<redacted from snapshot>",
+            "tags": [
+              "forwardername:test_function",
+              "forwarder_memorysize:3008",
+              "forwarder_version:<redacted from snapshot>",
+              "event_type:awslogs"
+            ],
+            "type": "distribution"
+          },
+          {
+            "device": null,
+            "host": null,
+            "interval": 10,
+            "metric": "aws.dd_forwarder.list_tags_log_group_api_call",
+            "points": "<redacted from snapshot>",
+            "tags": [
+              "forwardername:test_function",
+              "forwarder_memorysize:3008",
+              "forwarder_version:<redacted from snapshot>",
+              "event_type:awslogs"
+            ],
+            "type": "distribution"
+          },
+          {
+            "device": null,
+            "host": null,
+            "interval": 10,
+            "metric": "aws.dd_forwarder.loggroup_cache_write_failure",
+            "points": "<redacted from snapshot>",
+            "tags": [
+              "forwardername:test_function",
+              "forwarder_memorysize:3008",
+              "forwarder_version:<redacted from snapshot>",
+              "event_type:awslogs"
+            ],
+            "type": "distribution"
+          },
+          {
+            "device": null,
+            "host": null,
+            "interval": 10,
             "metric": "aws.dd_forwarder.incoming_events",
             "points": "<redacted from snapshot>",
             "tags": [
