@@ -4,68 +4,11 @@
 
 ### Overview
 
-Version 5.0.0 of the Datadog Lambda Forwarder introduces several breaking changes that remove deprecated features and improve log filtering behavior. This release simplifies the forwarder configuration and aligns with modern AWS integration patterns.
-
-### Breaking Changes
-
-#### 1. Removed TCP Transport Support
-
-**What Changed:**
-
-- Removed the `DD_USE_TCP` / `DdUseTcp` environment variable and parameter
-- Deleted the TCP client implementation
-- All logs now **must** be sent via HTTP/HTTPS
-
-**Migration Required:**
-
-- Remove any configuration setting `DD_USE_TCP=true` or `DdUseTcp=true`
-- The forwarder will now exclusively use HTTP transport
-- If you were using TCP with custom ports (10516), these configurations will be ignored
-- The default HTTP endpoint is now `http-intake.logs.<DD_SITE>` on port 443
-
----
-
-#### 2. Removed Deprecated PrivateLink Environment Variable
-
-**What Changed:**
-
-- Removed the `DD_USE_PRIVATE_LINK` / `DdUsePrivateLink` environment variable and parameter
-
-**Migration Required:**
-
-- Remove any configuration setting `DD_USE_PRIVATE_LINK=true`
-- **AWS PrivateLink is still fully supported**, but you must follow [PrivateLink documentation](https://docs.datadoghq.com/agent/guide/private-link/):
-    1. Set up VPC endpoints for `api`, `http-logs.intake`, and `trace.agent` as documented
-    2. Configure the forwarder with `DdUseVPC=true`
-    3. Set `VPCSecurityGroupIds` and `VPCSubnetIds`
-
-**Why This Changed:**
-
-- The variable was deprecated since 4 years, we use the major release opportunity to cleanup with a breaking change.
-
----
-
-#### 3. Changed Regex Matching Behavior for Log Filtering
-
-**What Changed:**
-
-- `IncludeAtMatch` / `INCLUDE_AT_MATCH` and `ExcludeAtMatch` / `EXCLUDE_AT_MATCH` regex patterns now match **only against the log message** itself
-- Previously, these patterns matched against the **entire JSON-formatted log**
-
-**Migration Required:**
-
-- **Review and update your filtering regex patterns**
-- If your patterns relied on matching against JSON structure or metadata fields, they will need to be rewritten
-- Example changes needed:
-    - **Before (v4)**: `\"awsRegion\":\"us-east-1\"` (matched JSON with escaped quotes)
-    - **After (v5)**: `"awsRegion":"us-east-1"` (matches the message content directly)
-- Patterns that matched the `message` field content should continue to work with minimal changes
-
----
+Version 5.0.0 of the Datadog Lambda Forwarder introduces several breaking changes that remove deprecated features and improve log filtering behavior. This release introduce a new way to enrich your logs with tags that would reduce AWS Lambda related cost (S3, KMS and Lambda).
 
 ### New Features
 
-#### 4. Backend Storage Tag Enrichment
+#### 1. Backend Storage Tag Enrichment
 
 **Added:**
 
@@ -85,6 +28,63 @@ Version 5.0.0 of the Datadog Lambda Forwarder introduces several breaking change
 - `DdFetchS3Tags` is now marked as **DEPRECATED** in favor of `DdEnrichS3Tags`
 - `DdFetchLogGroupTags` is now marked as **DEPRECATED** in favor of `DdEnrichCloudwatchTags`
 - `DD_FETCH_S3_TAGS` now defaults to `false` (previously `true`)
+
+---
+
+### Breaking Changes
+
+#### 1. Changed Regex Matching Behavior for Log Filtering
+
+**What Changed:**
+
+- `IncludeAtMatch` / `INCLUDE_AT_MATCH` and `ExcludeAtMatch` / `EXCLUDE_AT_MATCH` regex patterns now match **only against the log message** itself
+- Previously, these patterns matched against the **entire JSON-formatted log**
+
+**Migration Required:**
+
+- **Review and update your filtering regex patterns**
+- If your patterns relied on matching against JSON structure or metadata fields, they will need to be rewritten
+- Example changes needed:
+    - **Before (v4)**: `\"awsRegion\":\"us-east-1\"` (matched JSON with escaped quotes)
+    - **After (v5)**: `"awsRegion":"us-east-1"` (matches the message content directly)
+- Patterns that matched the `message` field content should continue to work with minimal changes
+
+---
+
+#### 2. Removed TCP Transport Support
+
+**What Changed:**
+
+- Removed the `DD_USE_TCP` / `DdUseTcp` environment variable and parameter
+- Deleted the TCP client implementation
+- All logs now **must** be sent via HTTP/HTTPS
+
+**Migration Required:**
+
+- Remove any configuration setting `DD_USE_TCP=true` or `DdUseTcp=true`
+- The forwarder will now exclusively use HTTP transport
+- If you were using TCP with custom ports (10516), these configurations will be ignored
+- The default HTTP endpoint is now `http-intake.logs.<DD_SITE>` on port 443
+
+---
+
+#### 3. Removed Deprecated PrivateLink Environment Variable
+
+**What Changed:**
+
+- Removed the `DD_USE_PRIVATE_LINK` / `DdUsePrivateLink` environment variable and parameter
+
+**Migration Required:**
+
+- Remove any configuration setting `DD_USE_PRIVATE_LINK=true`
+- **AWS PrivateLink is still fully supported**, but you must follow [PrivateLink documentation](https://docs.datadoghq.com/agent/guide/private-link/):
+    1. Set up VPC endpoints for `api`, `http-logs.intake`, and `trace.agent` as documented
+    2. Configure the forwarder with `DdUseVPC=true`
+    3. Set `VPCSecurityGroupIds` and `VPCSubnetIds`
+
+**Why This Changed:**
+
+- The variable was deprecated since 4 years, we use the major release opportunity to cleanup with a breaking change.
 
 ---
 
