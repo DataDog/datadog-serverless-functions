@@ -75,6 +75,20 @@ Parameters:
     Type: String
     Default: ""
     Description: Add custom tags to forwarded logs, comma-delimited string, no trailing comma, e.g., env:prod,stack:classic
+  DdEnrichS3Tags:
+    Type: String
+    Default: true
+    AllowedValues:
+      - true
+      - false
+    Description: Instruct Datadog backend to enrich a log coming from a S3 bucket with the tag attached to this bucket. Datadog AWS Resource Collection needs to be enabled.
+  DdEnrichCloudwatchTags:
+    Type: String
+    Default: true
+    AllowedValues:
+      - true
+      - false
+    Description: Instruct Datadog backend to enrich a log coming from a Cloudwatch logGroup with the tag attached to this logGroup. Datadog AWS Resource Collection needs to be enabled.
   DdFetchLambdaTags:
     Type: String
     Default: true
@@ -88,7 +102,7 @@ Parameters:
     AllowedValues:
       - true
       - false
-    Description: Let the forwarder fetch Log Group tags using ListTagsLogGroup and apply them to logs, metrics and traces. If set to true, permission logs:ListTagsLogGroup will be automatically added to the Lambda execution IAM role. The tags are cached in memory and S3 so that they'll only be fetched when the function cold starts or when the TTL (1 hour) expires. The forwarder increments the aws.lambda.enhanced.list_tags_log_group_api_call metric for each API call made.
+    Description: (DEPRECATED in favor of DdEnrichCloudwatchTags) Let the forwarder fetch Log Group tags using ListTagsLogGroup and apply them to logs, metrics and traces. If set to true, permission logs:ListTagsLogGroup will be automatically added to the Lambda execution IAM role. The tags are cached in memory and S3 so that they'll only be fetched when the function cold starts or when the TTL (1 hour) expires. The forwarder increments the aws.lambda.enhanced.list_tags_log_group_api_call metric for each API call made.
   DdFetchStepFunctionsTags:
     Type: String
     Default: true
@@ -98,11 +112,11 @@ Parameters:
     Description: Let the forwarder fetch Step Functions tags using GetResources API calls and apply them to logs, metrics and traces. If set to true, permission tag:GetResources will be automatically added to the Lambda execution IAM role. The tags are cached in memory and S3 so that they'll only be fetched when the function cold starts or when the TTL (1 hour) expires. The forwarder increments the aws.lambda.enhanced.get_resources_api_calls metric for each API call made.
   DdFetchS3Tags:
     Type: String
-    Default: true
+    Default: false
     AllowedValues:
       - true
       - false
-    Description: Let the forwarder fetch S3 buckets tags using GetResources API calls and apply them to S3 based logs. If set to true, permission tag:GetResources will be automatically added to the Lambda execution IAM role. The tags are cached in memory and S3 so that they'll only be fetched when the function cold starts or when the TTL (1 hour) expires. The forwarder increments the aws.lambda.enhanced.get_resources_api_calls metric for each API call made.
+    Description: (DEPRECATED in favor of DdEnrichS3Tags) Let the forwarder fetch S3 buckets tags using GetResources API calls and apply them to S3 based logs. If set to true, permission tag:GetResources will be automatically added to the Lambda execution IAM role. The tags are cached in memory and S3 so that they'll only be fetched when the function cold starts or when the TTL (1 hour) expires. The forwarder increments the aws.lambda.enhanced.get_resources_api_calls metric for each API call made.
   DdNoSsl:
     Type: String
     Default: false
@@ -448,11 +462,13 @@ Resources:
             - !Ref DdTags
             - !Ref AWS::NoValue
           DD_TAGS_CACHE_TTL_SECONDS: !Ref TagsCacheTTLSeconds
+          DD_ENRICH_S3_TAGS: !Ref DdEnrichS3Tags
+          DD_ENRICH_CLOUDWATCH_TAGS: !Ref DdEnrichCloudwatchTags
+          DD_FETCH_S3_TAGS: !Ref DdFetchS3Tags
           DD_FETCH_LAMBDA_TAGS: !If
             - SetDdFetchLambdaTags
             - !Ref DdFetchLambdaTags
             - !Ref AWS::NoValue
-          DD_FETCH_S3_TAGS: !Ref DdFetchS3Tags
           DD_FETCH_LOG_GROUP_TAGS: !If
             - SetDdFetchLogGroupTags
             - !Ref DdFetchLogGroupTags
@@ -1018,6 +1034,8 @@ Metadata:
       - Label:
           default: Advanced (Optional)
         Parameters:
+          - DdEnrichS3Tags
+          - DdEnrichCloudwatchTags
           - DdFetchLambdaTags
           - DdFetchLogGroupTags
           - DdFetchStepFunctionsTags

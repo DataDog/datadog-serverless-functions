@@ -4,23 +4,39 @@
 # Copyright 2021 Datadog, Inc.
 
 
-import os
 import logging
-
+import os
 from concurrent.futures import as_completed
-from requests_futures.sessions import FuturesSession
-from logs.helpers import compress_logs
-from logs.exceptions import ScrubbingException
 
+from requests_futures.sessions import FuturesSession
+
+from logs.exceptions import ScrubbingException
+from logs.helpers import compress_logs
 from settings import (
-    DD_USE_COMPRESSION,
     DD_COMPRESSION_LEVEL,
-    DD_MAX_WORKERS,
     DD_FORWARDER_VERSION,
+    DD_MAX_WORKERS,
+    DD_USE_COMPRESSION,
+    get_enrich_cloudwatch_tags,
+    get_enrich_s3_tags,
 )
 
 logger = logging.getLogger()
 logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
+
+
+def get_dd_storage_tag_header():
+    storage_tag = ""
+
+    if get_enrich_s3_tags():
+        storage_tag += "s3"
+
+    if get_enrich_cloudwatch_tags():
+        if storage_tag != "":
+            storage_tag += ","
+        storage_tag += "cloudwatch"
+
+    return storage_tag
 
 
 class DatadogHTTPClient(object):
@@ -36,6 +52,10 @@ class DatadogHTTPClient(object):
 
     _HEADERS["DD-EVP-ORIGIN"] = "aws_forwarder"
     _HEADERS["DD-EVP-ORIGIN-VERSION"] = DD_FORWARDER_VERSION
+
+    storage_tag = get_dd_storage_tag_header()
+    if storage_tag != "":
+        _HEADERS["DD-STORAGE-TAG"] = storage_tag
 
     def __init__(
         self, host, port, no_ssl, skip_ssl_validation, api_key, scrubber, timeout=10
