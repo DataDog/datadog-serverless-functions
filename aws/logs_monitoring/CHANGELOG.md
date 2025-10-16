@@ -4,7 +4,7 @@
 
 ### Overview
 
-Version 5.0.0 of the Datadog Lambda Forwarder introduces several breaking changes that remove deprecated features and improve log filtering behavior. This release introduce a new way to enrich your logs with tags that would reduce AWS Lambda related cost (S3, KMS and Lambda).
+Version 5.0.0 of the Datadog Lambda Forwarder introduces several breaking changes that remove deprecated features and improve log filtering behavior. This release introduces a new way to enrich your logs with tags that will reduce AWS Lambda related cost (S3, KMS and Lambda).
 
 ### New Features
 
