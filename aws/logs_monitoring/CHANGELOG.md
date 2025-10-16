@@ -84,11 +84,13 @@ Version 5.0.0 of the Datadog Lambda Forwarder introduces several breaking change
 
 **Why This Changed:**
 
-- The variable was deprecated since 4 years, we use the major release opportunity to cleanup with a breaking change.
+- The variable was previously deprecated but not removed from past versions.
 
 ---
 
 ### Upgrade Instructions
+
+Follow the usual [documentation](https://docs.datadoghq.com/logs/guide/forwarder/?tab=cloudformation#upgrade-to-a-new-version) about upgrading your Lambda Forwarder.
 
 #### Pre-Upgrade Checklist
 
