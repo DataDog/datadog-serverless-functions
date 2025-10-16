@@ -568,10 +568,10 @@ To test different patterns against your logs, turn on [debug logs](#troubleshoot
 ### Advanced (optional)
 
 `DD_ENRICH_S3_TAGS`
-: Instruct Datadog backend to enrich a log coming from a S3 bucket with the tag attached to this bucket. It's the equivalent behavior of `DD_FETCH_S3_TAG` but done after ingestion. This require Resource Collection to be enabled. Flag is enabled by default.
+: Enabled by default. When enabled, instructs the Datadog backend to automatically enrich logs originating from S3 buckets with the tags associated with those buckets. This approach offers the same tag enrichment as `DD_FETCH_S3_TAGS` but defers the operation after log ingestion, reducing Forwarder overhead. Requires https://docs.datadoghq.com/integrations/amazon-web-services/#resource-collection to be enabled in your AWS integration.
 
 `DD_ENRICH_CLOUDWATCH_TAGS`
-: Instruct Datadog backend to enrich a log coming from a Cloudwatch logGroup with the tag attached to this logGroup. It's the equivalent behavior of `DD_FETCH_LOG_GROUP_TAGS` but done after ingestion. This require Resource Collection to be enabled. Flag is enabled by default.
+: Enabled by default. When enabled, instructs the Datadog backend to automatically enrich logs originating from Cloudwatch LogGrouo with the tags associated with those log groups. This approach offers the same tag enrichment as `DD_FETCH_LOG_GROUP_TAGS` but defers the operation after log ingestion, reducing Forwarder overhead. Requires https://docs.datadoghq.com/integrations/amazon-web-services/#resource-collection to be enabled in your AWS integration.
 
 `DD_FETCH_LAMBDA_TAGS`
 : Let the Forwarder fetch Lambda tags using GetResources API calls and apply them to logs, metrics, and traces. If set to true, permission `tag:GetResources` will be automatically added to the Lambda execution IAM role.
