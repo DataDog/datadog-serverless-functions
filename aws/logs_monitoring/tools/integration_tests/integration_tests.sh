@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Unless explicitly stated otherwise all files in this repository are licensed
 # under the Apache License Version 2.0.
@@ -21,6 +21,7 @@ SNAPS=($SNAPSHOT_DIR)
 ADDITIONAL_LAMBDA=false
 CACHE_TEST=false
 DD_FETCH_LAMBDA_TAGS="true"
+DD_FETCH_LOG_GROUP_TAGS="true"
 DD_FETCH_STEP_FUNCTIONS_TAGS="true"
 
 script_start_time=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
@@ -36,7 +37,6 @@ for arg in "$@"; do
                 SKIP_FORWARDER_BUILD=true
                 shift
                 ;;
-
 
         # -u or --update
         # Update the snapshots to reflect this test run
@@ -152,6 +152,7 @@ LOG_LEVEL=${LOG_LEVEL} \
         AWS_ACCOUNT_ID=${AWS_ACCOUNT_ID} \
         SNAPSHOTS_DIR_NAME="./${SNAPSHOTS_DIR_NAME}" \
         DD_FETCH_LAMBDA_TAGS=${DD_FETCH_LAMBDA_TAGS} \
+        DD_FETCH_LOG_GROUP_TAGS=${DD_FETCH_LOG_GROUP_TAGS} \
         DD_FETCH_STEP_FUNCTIONS_TAGS=${DD_FETCH_STEP_FUNCTIONS_TAGS} \
         docker compose up --build --abort-on-container-exit
 

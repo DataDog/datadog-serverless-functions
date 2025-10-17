@@ -12,45 +12,8 @@ import re
 
 from settings import DD_CUSTOM_TAGS, DD_RETRY_KEYWORD
 
-from logs.exceptions import ScrubbingException
-
 logger = logging.getLogger()
 logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
-
-
-def filter_logs(logs, include_pattern=None, exclude_pattern=None):
-    """
-    Applies log filtering rules.
-    If no filtering rules exist, return all the logs.
-    """
-    if include_pattern is None and exclude_pattern is None:
-        return logs
-
-    logger.debug(f"Applying exclude pattern: {exclude_pattern}")
-    exclude_regex = compileRegex("EXCLUDE_AT_MATCH", exclude_pattern)
-
-    logger.debug(f"Applying include pattern: {include_pattern}")
-    include_regex = compileRegex("INCLUDE_AT_MATCH", include_pattern)
-
-    # Add logs that should be sent to logs_to_send
-    logs_to_send = []
-
-    for log in logs:
-        try:
-            if exclude_regex is not None and re.search(exclude_regex, log):
-                logger.debug("Exclude pattern matched, excluding log event")
-                continue
-
-            if include_regex is not None and not re.search(include_regex, log):
-                logger.debug("Include pattern did not match, excluding log event")
-                continue
-
-            logs_to_send.append(log)
-
-        except ScrubbingException:
-            raise Exception("could not filter the payload")
-
-    return logs_to_send
 
 
 def compress_logs(batch, level):

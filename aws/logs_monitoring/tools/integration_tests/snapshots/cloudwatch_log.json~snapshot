@@ -48,6 +48,7 @@
         "DD-API-KEY": "abcdefghijklmnopqrstuvwxyz012345",
         "DD-EVP-ORIGIN": "aws_forwarder",
         "DD-EVP-ORIGIN-VERSION": "<redacted from snapshot>",
+        "DD-STORAGE-TAG": "s3,cloudwatch",
         "Host": "recorder:8080",
         "User-Agent": "<redacted from snapshot>",
         "traceparent": "<redacted from snapshot>",

@@ -75,6 +75,20 @@ Parameters:
     Type: String
     Default: ""
     Description: Add custom tags to forwarded logs, comma-delimited string, no trailing comma, e.g., env:prod,stack:classic
+  DdEnrichS3Tags:
+    Type: String
+    Default: true
+    AllowedValues:
+      - true
+      - false
+    Description: Instruct Datadog backend to enrich a log coming from a S3 bucket with the tag attached to this bucket. Datadog AWS Resource Collection needs to be enabled.
+  DdEnrichCloudwatchTags:
+    Type: String
+    Default: true
+    AllowedValues:
+      - true
+      - false
+    Description: Instruct Datadog backend to enrich a log coming from a Cloudwatch logGroup with the tag attached to this logGroup. Datadog AWS Resource Collection needs to be enabled.
   DdFetchLambdaTags:
     Type: String
     Default: true
@@ -84,11 +98,11 @@ Parameters:
     Description: Let the forwarder fetch Lambda tags using GetResources API calls and apply them to logs, metrics and traces. If set to true, permission tag:GetResources will be automatically added to the Lambda execution IAM role. The tags are cached in memory and S3 so that they'll only be fetched when the function cold starts or when the TTL (1 hour) expires. The forwarder increments the aws.lambda.enhanced.get_resources_api_calls metric for each API call made.
   DdFetchLogGroupTags:
     Type: String
-    Default: true
+    Default: false
     AllowedValues:
       - true
       - false
-    Description: Let the forwarder fetch Log Group tags using ListTagsLogGroup and apply them to logs, metrics and traces. If set to true, permission logs:ListTagsLogGroup will be automatically added to the Lambda execution IAM role. The tags are cached in memory and S3 so that they'll only be fetched when the function cold starts or when the TTL (1 hour) expires. The forwarder increments the aws.lambda.enhanced.list_tags_log_group_api_call metric for each API call made.
+    Description: (DEPRECATED in favor of DdEnrichCloudwatchTags) Let the forwarder fetch Log Group tags using ListTagsLogGroup and apply them to logs, metrics and traces. If set to true, permission logs:ListTagsLogGroup will be automatically added to the Lambda execution IAM role. The tags are cached in memory and S3 so that they'll only be fetched when the function cold starts or when the TTL (1 hour) expires. The forwarder increments the aws.lambda.enhanced.list_tags_log_group_api_call metric for each API call made.
   DdFetchStepFunctionsTags:
     Type: String
     Default: true
@@ -98,18 +112,11 @@ Parameters:
     Description: Let the forwarder fetch Step Functions tags using GetResources API calls and apply them to logs, metrics and traces. If set to true, permission tag:GetResources will be automatically added to the Lambda execution IAM role. The tags are cached in memory and S3 so that they'll only be fetched when the function cold starts or when the TTL (1 hour) expires. The forwarder increments the aws.lambda.enhanced.get_resources_api_calls metric for each API call made.
   DdFetchS3Tags:
     Type: String
-    Default: true
-    AllowedValues:
-      - true
-      - false
-    Description: Let the forwarder fetch S3 buckets tags using GetResources API calls and apply them to S3 based logs. If set to true, permission tag:GetResources will be automatically added to the Lambda execution IAM role. The tags are cached in memory and S3 so that they'll only be fetched when the function cold starts or when the TTL (1 hour) expires. The forwarder increments the aws.lambda.enhanced.get_resources_api_calls metric for each API call made.
-  DdUseTcp:
-    Type: String
     Default: false
     AllowedValues:
       - true
       - false
-    Description: By default, the forwarder sends logs using HTTPS through the port 443. To send logs over an SSL encrypted TCP connection, set this parameter to true.
+    Description: (DEPRECATED in favor of DdEnrichS3Tags) Let the forwarder fetch S3 buckets tags using GetResources API calls and apply them to S3 based logs. If set to true, permission tag:GetResources will be automatically added to the Lambda execution IAM role. The tags are cached in memory and S3 so that they'll only be fetched when the function cold starts or when the TTL (1 hour) expires. The forwarder increments the aws.lambda.enhanced.get_resources_api_calls metric for each API call made.
   DdNoSsl:
     Type: String
     Default: false
@@ -187,13 +194,6 @@ Parameters:
       - true
       - false
     Description: Set to false to disable log compression. Only valid when sending logs over HTTP.
-  DdUsePrivateLink:
-    Type: String
-    Default: false
-    AllowedValues:
-      - true
-      - false
-    Description: DEPRECATED, DO NOT CHANGE. See README.md for details. Set to true to deploy the Forwarder to a VPC and send logs, metrics, and traces via AWS PrivateLink. When set to true, must also set VPCSecurityGroupIds and VPCSubnetIds.
   DdUseVPC:
     Type: String
     Default: false
@@ -212,11 +212,11 @@ Parameters:
   VPCSecurityGroupIds:
     Type: CommaDelimitedList
     Default: ""
-    Description: Comma separated list of VPC Security Group Ids. Used when DdUsePrivateLink or DdUseVPC is enabled.
+    Description: Comma separated list of VPC Security Group Ids. Used when DdUseVPC is enabled.
   VPCSubnetIds:
     Type: CommaDelimitedList
     Default: ""
-    Description: Comma separated list of VPC Subnet Ids. Used when DdUsePrivateLink or DdUseVPC is enabled.
+    Description: Comma separated list of VPC Subnet Ids. Used when DdUseVPC is enabled.
   DdCompressionLevel:
     Type: Number
     Default: 6
@@ -310,7 +310,6 @@ Conditions:
   SetS3SourceZip: !Equals [!Select [0, !Split [/, !Ref SourceZipUrl]], "s3:"]
   SetDdTags: !Not
     - !Equals [!Ref DdTags, ""]
-  SetDdUseTcp: !Equals [!Ref DdUseTcp, true]
   SetDdNoSsl: !Equals [!Ref DdNoSsl, true]
   SetDdUrl: !Not
     - !Equals [!Ref DdUrl, ""]
@@ -337,7 +336,6 @@ Conditions:
       - !Equals [!Ref DdFetchLogGroupTags, true]
       - !Equals [!Ref DdFetchLambdaTags, true]
     - !Equals [!Ref DdForwarderExistingBucketName, ""]
-  SetDdUsePrivateLink: !Equals [!Ref DdUsePrivateLink, true]
   SetDdUseVPC: !Equals [!Ref DdUseVPC, true]
   SetDdHttpProxyURL: !Not
     - !Equals [!Ref DdHttpProxyURL, ""]
@@ -345,11 +343,9 @@ Conditions:
     - !Equals [!Ref DdNoProxy, ""]
   SetLayerARN: !Not
     - !Equals [!Ref LayerARN, ""]
-  UseVPC: !Or
-    - !Condition SetDdUsePrivateLink
-    - !Condition SetDdUseVPC
   SetDdForwardLog: !Equals [!Ref DdForwardLog, false]
-  SetDdStepFunctionsTraceEnabled: !Equals [!Ref DdStepFunctionsTraceEnabled, true]
+  SetDdStepFunctionsTraceEnabled:
+    !Equals [!Ref DdStepFunctionsTraceEnabled, true]
   SetDdUseCompression: !Equals [!Ref DdUseCompression, false]
   SetDdCompressionLevel: !Not
     - !Equals [!Ref DdCompressionLevel, 6]
@@ -430,7 +426,10 @@ Resources:
             - !Ref DdForwarderExistingBucketName
           S3Key: !Sub
             - "aws-dd-forwarder-${DdForwarderVersion}.zip"
-            - {DdForwarderVersion: !FindInMap [Constants, DdForwarder, Version]}
+            - {
+                DdForwarderVersion:
+                  !FindInMap [Constants, DdForwarder, Version],
+              }
         - ZipFile: " "
       MemorySize: !Ref MemorySize
       Runtime: python3.13
@@ -463,11 +462,13 @@ Resources:
             - !Ref DdTags
             - !Ref AWS::NoValue
           DD_TAGS_CACHE_TTL_SECONDS: !Ref TagsCacheTTLSeconds
+          DD_ENRICH_S3_TAGS: !Ref DdEnrichS3Tags
+          DD_ENRICH_CLOUDWATCH_TAGS: !Ref DdEnrichCloudwatchTags
+          DD_FETCH_S3_TAGS: !Ref DdFetchS3Tags
           DD_FETCH_LAMBDA_TAGS: !If
             - SetDdFetchLambdaTags
             - !Ref DdFetchLambdaTags
             - !Ref AWS::NoValue
-          DD_FETCH_S3_TAGS: !Ref DdFetchS3Tags
           DD_FETCH_LOG_GROUP_TAGS: !If
             - SetDdFetchLogGroupTags
             - !Ref DdFetchLogGroupTags
@@ -475,10 +476,6 @@ Resources:
           DD_FETCH_STEP_FUNCTIONS_TAGS: !If
             - SetDdFetchStepFunctionsTags
             - !Ref DdFetchStepFunctionsTags
-            - !Ref AWS::NoValue
-          DD_USE_TCP: !If
-            - SetDdUseTcp
-            - !Ref DdUseTcp
             - !Ref AWS::NoValue
           DD_NO_SSL: !If
             - SetDdNoSsl
@@ -548,12 +545,8 @@ Resources:
             - SetDdMaxWorkers
             - !Ref DdMaxWorkers
             - !Ref AWS::NoValue
-          DD_USE_PRIVATE_LINK: !If
-            - SetDdUsePrivateLink
-            - true
-            - false
           DD_USE_VPC: !If
-            - UseVPC
+            - SetDdUseVPC
             - true
             - false
           HTTP_PROXY: !If
@@ -593,7 +586,7 @@ Resources:
         - !Ref ReservedConcurrency
         - !Ref AWS::NoValue
       VpcConfig: !If
-        - UseVPC
+        - SetDdUseVPC
         - SecurityGroupIds: !If
             - SetVpcSecurityGroupIds
             - !Ref VPCSecurityGroupIds
@@ -696,7 +689,7 @@ Resources:
                   Effect: Allow
                 - !Ref AWS::NoValue
               - !If
-                - UseVPC # Required for Lambda deployed in VPC
+                - SetDdUseVPC # Required for Lambda deployed in VPC
                 - Action:
                     - ec2:CreateNetworkInterface
                     - ec2:DescribeNetworkInterfaces
@@ -833,7 +826,7 @@ Resources:
         - !Ref SourceZipUrl
         - !Sub
           - "https://github.com/DataDog/datadog-serverless-functions/releases/download/aws-dd-forwarder-${DdForwarderVersion}/aws-dd-forwarder-${DdForwarderVersion}.zip"
-          - {DdForwarderVersion: !FindInMap [Constants, DdForwarder, Version]}
+          - { DdForwarderVersion: !FindInMap [Constants, DdForwarder, Version] }
   # The Forwarder's source code is too big to fit the inline code size limit for CloudFormation. In most of AWS
   # partitions and regions, the Forwarder is able to load its source code from a Lambda layer attached to it.
   # In places where Datadog can't/doesn't yet publish Lambda layers, use another Lambda to copy the source code
@@ -1018,7 +1011,6 @@ Metadata:
         Parameters:
           - DdTags
           - DdMultilineLogRegexPattern
-          - DdUseTcp
           - DdNoSsl
           - DdUrl
           - DdPort
@@ -1042,6 +1034,8 @@ Metadata:
       - Label:
           default: Advanced (Optional)
         Parameters:
+          - DdEnrichS3Tags
+          - DdEnrichCloudwatchTags
           - DdFetchLambdaTags
           - DdFetchLogGroupTags
           - DdFetchStepFunctionsTags
@@ -1053,7 +1047,6 @@ Metadata:
           - InstallAsLayer
           - LayerARN
           - PermissionsBoundaryArn
-          - DdUsePrivateLink
           - DdUseVPC
           - DdHttpProxyURL
           - DdNoProxy

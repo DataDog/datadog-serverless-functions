@@ -1,12 +1,12 @@
-import unittest
 import os
 import sys
-from importlib import reload
+import unittest
 import unittest.mock
+from importlib import reload
 
-from logs.datadog_scrubber import DatadogScrubber
 from logs.datadog_batcher import DatadogBatcher
-from logs.helpers import filter_logs
+from logs.datadog_matcher import DatadogMatcher
+from logs.datadog_scrubber import DatadogScrubber
 
 
 class TestScrubLogs(unittest.TestCase):
@@ -65,10 +65,13 @@ class TestFilterLogs(unittest.TestCase):
         "This is not a REPORT log",
         "END RequestId: ...",
         "REPORT RequestId: ...",
+        {"message": "It should work"},
     ]
 
     def test_include_at_match(self):
-        filtered_logs = filter_logs(self.example_logs, include_pattern=r"^(START|END)")
+        filtered_logs = filter_logs(
+            DatadogMatcher(include_pattern="^(START|END)"), self.example_logs
+        )
 
         self.assertEqual(
             filtered_logs,
@@ -79,19 +82,23 @@ class TestFilterLogs(unittest.TestCase):
         )
 
     def test_exclude_at_match(self):
-        filtered_logs = filter_logs(self.example_logs, exclude_pattern=r"^(START|END)")
+        filtered_logs = filter_logs(
+            DatadogMatcher(exclude_pattern="^(START|END)"), self.example_logs
+        )
 
         self.assertEqual(
             filtered_logs,
             [
                 "This is not a REPORT log",
                 "REPORT RequestId: ...",
+                {"message": "It should work"},
             ],
         )
 
     def test_exclude_overrides_include(self):
         filtered_logs = filter_logs(
-            self.example_logs, include_pattern=r"^(START|END)", exclude_pattern=r"^END"
+            DatadogMatcher(include_pattern="^(START|END)", exclude_pattern="^END"),
+            self.example_logs,
         )
 
         self.assertEqual(
@@ -102,8 +109,18 @@ class TestFilterLogs(unittest.TestCase):
         )
 
     def test_no_filtering_rules(self):
-        filtered_logs = filter_logs(self.example_logs)
+        filtered_logs = filter_logs(DatadogMatcher(), self.example_logs)
         self.assertEqual(filtered_logs, self.example_logs)
+
+
+def filter_logs(matcher, logs):
+    filtered = []
+
+    for log in logs:
+        if matcher.match(log):
+            filtered.append(log)
+
+    return filtered
 
 
 if __name__ == "__main__":

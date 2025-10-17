@@ -37,13 +37,12 @@ services:
       DD_TRACE_INTAKE_URL: http://recorder:8080
       DD_NO_SSL: "true"
       DD_SKIP_SSL_VALIDATION: "true"
-      DD_USE_TCP: "false"
       DD_USE_COMPRESSION: "false"
       DD_ADDITIONAL_TARGET_LAMBDAS: "${EXTERNAL_LAMBDAS}"
       DD_S3_BUCKET_NAME: "${DD_S3_BUCKET_NAME}"
-      DD_FETCH_LAMBDA_TAGS: "true"
-      DD_FETCH_LOG_GROUP_TAGS: "true"
-      DD_FETCH_STEP_FUNCTIONS_TAGS: "false"  # intentionally set false to allow integration test for step function logs to run without hitting aws
+      DD_FETCH_LAMBDA_TAGS: "${DD_FETCH_LAMBDA_TAGS:-false}"
+      DD_FETCH_LOG_GROUP_TAGS: "${DD_FETCH_LOG_GROUP_TAGS:-false}"
+      DD_FETCH_STEP_FUNCTIONS_TAGS: "${DD_FETCH_STEP_FUNCTIONS_TAGS:-false}"
       DD_STORE_FAILED_EVENTS: "false"
       DD_TRACE_ENABLED: "true"
     expose:
