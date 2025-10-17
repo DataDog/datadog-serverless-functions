@@ -94,7 +94,7 @@ Follow the usual [documentation](https://docs.datadoghq.com/logs/guide/forwarder
 
 #### Pre-Upgrade Checklist
 
-1. **Verify you're not using TCP transport:**
+1. **Verify that TCP transport is not used:**
 
     ```bash
     aws lambda get-function-configuration --function-name "<YOUR_FORWARDER>" --query 'Environment.Variables.DD_USE_TCP'
