@@ -107,7 +107,7 @@ Follow Datadog's official [documentation](https://docs.datadoghq.com/logs/guide/
     ```
 
 3. **Review log filtering patterns:**
-    - If using `IncludeAtMatch` or `ExcludeAtMatch`, test your patterns against log messages only
+    - When using `IncludeAtMatch` or `ExcludeAtMatch`, test the patterns against log messages only
     - Remove any JSON escaping (e.g., `\"` → `"`)
 
 #### Testing
