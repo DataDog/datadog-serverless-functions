@@ -90,7 +90,7 @@ Version 5.0.0 of the Datadog Lambda Forwarder introduces several breaking change
 
 ### Upgrade Instructions
 
-Follow the usual [documentation](https://docs.datadoghq.com/logs/guide/forwarder/?tab=cloudformation#upgrade-to-a-new-version) about upgrading your Lambda Forwarder.
+Follow Datadog's official [documentation](https://docs.datadoghq.com/logs/guide/forwarder/?tab=cloudformation#upgrade-to-a-new-version) for upgrading Lambda Forwarder.
 
 #### Pre-Upgrade Checklist
 
