@@ -4,7 +4,7 @@
 
 ### Overview
 
-Version 5.0.0 of the Datadog Lambda Forwarder introduces several breaking changes that remove deprecated features and improve log filtering behavior. This release introduces a new way to enrich your logs with tags that will reduce AWS Lambda related cost (S3, KMS and Lambda).
+Version 5.0.0 of the Datadog Lambda Forwarder introduces several breaking changes that remove deprecated features and improve log filtering behavior. This release introduces a new way to enrich logs with tags that will reduce AWS Lambda related cost (S3, KMS and Lambda).
 
 ### New Features
 
@@ -42,7 +42,7 @@ Version 5.0.0 of the Datadog Lambda Forwarder introduces several breaking change
 
 **Migration Required:**
 
-- **Review and update your filtering regex patterns**
+- **Review and update filtering regex patterns**
 - If your patterns relied on matching against JSON structure or metadata fields, they will need to be rewritten
 - Example changes needed:
     - **Before (v4)**: `\"awsRegion\":\"us-east-1\"` (matched JSON with escaped quotes)
@@ -62,7 +62,7 @@ Version 5.0.0 of the Datadog Lambda Forwarder introduces several breaking change
 **Migration Required:**
 
 - Remove any configuration setting `DD_USE_TCP=true` or `DdUseTcp=true`
-- The forwarder will now exclusively use HTTP transport
+- The forwarder will now exclusively use HTTP protocol
 - If you were using TCP with custom ports (10516), these configurations will be ignored
 - The default HTTP endpoint is now `http-intake.logs.<DD_SITE>` on port 443
 
