@@ -106,7 +106,7 @@ Follow Datadog's official [documentation](https://docs.datadoghq.com/logs/guide/
     aws lambda get-function-configuration --function-name "<YOUR_FORWARDER>" --query 'Environment.Variables.DD_USE_PRIVATE_LINK'
     ```
 
-3. **Review your log filtering patterns:**
+3. **Review log filtering patterns:**
     - If using `IncludeAtMatch` or `ExcludeAtMatch`, test your patterns against log messages only
     - Remove any JSON escaping (e.g., `\"` → `"`)
 
