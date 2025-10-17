@@ -100,7 +100,7 @@ Follow Datadog's official [documentation](https://docs.datadoghq.com/logs/guide/
     aws lambda get-function-configuration --function-name "<YOUR_FORWARDER>" --query 'Environment.Variables.DD_USE_TCP'
     ```
 
-2. **Verify you're not using the deprecated PrivateLink variable:**
+2. **Verify that deprecated PrivateLink variable is not used:**
 
     ```bash
     aws lambda get-function-configuration --function-name "<YOUR_FORWARDER>" --query 'Environment.Variables.DD_USE_PRIVATE_LINK'
