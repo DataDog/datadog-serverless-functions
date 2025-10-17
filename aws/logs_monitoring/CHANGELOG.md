@@ -77,7 +77,7 @@ Version 5.0.0 of the Datadog Lambda Forwarder introduces several breaking change
 **Migration Required:**
 
 - Remove any configuration setting `DD_USE_PRIVATE_LINK=true`
-- **AWS PrivateLink is still fully supported**, but you must follow [PrivateLink documentation](https://docs.datadoghq.com/agent/guide/private-link/):
+- **AWS PrivateLink is still fully supported**, follow [PrivateLink documentation](https://docs.datadoghq.com/agent/guide/private-link/) for more information about the setup:
     1. Set up VPC endpoints for `api`, `http-logs.intake`, and `trace.agent` as documented
     2. Configure the forwarder with `DdUseVPC=true`
     3. Set `VPCSecurityGroupIds` and `VPCSubnetIds`
