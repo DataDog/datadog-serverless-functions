@@ -118,6 +118,24 @@ The <a href="#cloudformation-parameters">environment variables provided on this 
 
 If you encounter issues upgrading to the latest version, check the Troubleshooting section.
 
+### Upgrade to v5.0.0+
+
+**Version 5.0.0 is a major release with breaking changes.** Before upgrading, review the [CHANGELOG.md][25] for detailed information about breaking changes and migration requirements.
+
+Key breaking changes in v5.0.0:
+
+- **Log filtering behavior changed**: `IncludeAtMatch` and `ExcludeAtMatch` now match against the log message only, not the entire JSON structure
+- **TCP transport removed**: `DD_USE_TCP` parameter removed, all logs must use HTTP/HTTPS
+- **PrivateLink variable removed**: `DD_USE_PRIVATE_LINK` removed (PrivateLink is still supported via `DdUseVPC`)
+- **New tag enrichment**: Backend-based tag enrichment enabled by default via `DdEnrichS3Tags` and `DdEnrichCloudwatchTags`, reducing forwarder costs
+
+Before upgrading:
+
+1. Review and update any log filtering regex patterns
+2. Remove any `DD_USE_TCP` or `DD_USE_PRIVATE_LINK` environment variables
+3. Ensure [Resource Collection][26] is enabled in your AWS integration for tag enrichment features
+4. Review the complete breaking changes in [CHANGELOG.md][25]
+
 ### Upgrade an older version to 4.13.0+
 
 Starting version 4.13.0+ Lambda function has been updated to require **Python 3.13**. If upgrading an older forwarder installation to 4.13.0+, ensure AWS Lambda function is configured to use Python 3.13
@@ -762,3 +780,5 @@ Additional helpful documentation, links, and articles:
 [22]: https://docs.datadoghq.com/agent/guide/private-link/
 [23]: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/transform-aws-serverless.html
 [24]: https://docs.datadoghq.com/logs/log_configuration/processors/?tab=ui#log-date-remapper
+[25]: https://github.com/DataDog/datadog-serverless-functions/blob/master/aws/logs_monitoring/CHANGELOG.md
+[26]: https://docs.datadoghq.com/integrations/amazon-web-services/#resource-collection
