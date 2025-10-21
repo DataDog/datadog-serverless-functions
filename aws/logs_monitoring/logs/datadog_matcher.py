@@ -44,5 +44,8 @@ class DatadogMatcher(object):
 
             return True
 
+        except ScrubbingException as e:
+            raise Exception(f"Failed to filter log: {e}")
+
         except Exception as e:
             raise Exception(f"Failed to filter log: {e}")
