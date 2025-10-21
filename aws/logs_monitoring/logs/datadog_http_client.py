@@ -95,8 +95,8 @@ class DatadogHTTPClient(object):
         """
         try:
             data = self._scrubber.scrub("[{}]".format(",".join(logs)))
-        except ScrubbingException:
-            raise Exception("could not scrub the payload")
+        except ScrubbingException as e:
+            raise Exception(f"could not scrub the payload: {e}")
         if DD_USE_COMPRESSION:
             data = compress_logs(data, DD_COMPRESSION_LEVEL)
 

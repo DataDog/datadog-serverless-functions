@@ -43,8 +43,8 @@ class LambdaTagsCache(BaseTagsCache):
 
         except ClientError as e:
             self.logger.exception(
-                "Encountered a ClientError when trying to fetch tags. You may need to give "
-                "this Lambda's role the 'tag:GetResources' permission"
+                f"Failed to fetch Lambda tags: {e}. "
+                "Add 'tag:GetResources' permission to the Forwarder's IAM role."
             )
             additional_tags = [
                 f"http_status_code:{e.response['ResponseMetadata']['HTTPStatusCode']}"
