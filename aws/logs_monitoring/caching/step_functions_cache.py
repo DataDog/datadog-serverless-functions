@@ -49,7 +49,7 @@ class StepFunctionsTagsCache(BaseTagsCache):
                 tags_fetch_success = True
 
         except ClientError as e:
-            self.logger.exception(
+            self.logger.error(
                 "Encountered a ClientError when trying to fetch tags. You may need to give "
                 f"this Lambda's role the 'tag:GetResources' permission: {e}"
             )
@@ -131,7 +131,7 @@ class StepFunctionsTagsCache(BaseTagsCache):
                 ResourceARNList=[state_machine_arn]
             )
         except Exception as e:
-            self.logger.exception(f"Failed to get Step Functions tags due to {e}")
+            self.logger.error(f"Failed to get Step Functions tags due to {e}")
 
         if response and len(response.get("ResourceTagMappingList", {})) > 0:
             resource_dict = response.get("ResourceTagMappingList")[0]

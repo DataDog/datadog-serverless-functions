@@ -99,7 +99,7 @@ class Forwarder(object):
                     log["message"] = scrubber.scrub(log["message"])
                     evaluated_log = log["message"]
                 except Exception as e:
-                    logger.exception(
+                    logger.error(
                         f"Exception while scrubbing log message {log['message']}: {e}"
                     )
 
@@ -117,9 +117,7 @@ class Forwarder(object):
                 try:
                     client.send(batch)
                 except Exception as e:
-                    logger.exception(
-                        f"Exception while forwarding log batch {batch}: {e}"
-                    )
+                    logger.error(f"Exception while forwarding log batch {batch}: {e}")
                     failed_logs.extend(batch)
                 else:
                     if logger.isEnabledFor(logging.DEBUG):
@@ -145,7 +143,7 @@ class Forwarder(object):
             try:
                 send_log_metric(metric)
             except Exception as e:
-                logger.exception(
+                logger.error(
                     f"Exception while forwarding metric {json.dumps(metric)}: {e}"
                 )
                 failed_metrics.append(metric)
@@ -171,7 +169,7 @@ class Forwarder(object):
             serialized_trace_paylods = json.dumps(traces)
             self.trace_connection.send_traces(serialized_trace_paylods)
         except Exception as e:
-            logger.exception(
+            logger.error(
                 f"Exception while forwarding traces {serialized_trace_paylods}: {e}"
             )
             if DD_STORE_FAILED_EVENTS and not key:

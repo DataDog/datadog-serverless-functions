@@ -42,7 +42,7 @@ class LambdaTagsCache(BaseTagsCache):
                 tags_fetch_success = True
 
         except ClientError as e:
-            self.logger.exception(
+            self.logger.error(
                 f"Failed to fetch Lambda tags: {e}. "
                 "Add 'tag:GetResources' permission to the Forwarder's IAM role."
             )

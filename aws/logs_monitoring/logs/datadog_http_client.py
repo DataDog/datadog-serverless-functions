@@ -84,8 +84,8 @@ class DatadogHTTPClient(object):
         for future in as_completed(self._futures):
             try:
                 future.result()
-            except Exception:
-                logger.exception("Exception while forwarding logs")
+            except Exception as e:
+                logger.error(f"Exception while forwarding logs: {e}")
 
         self._session.close()
 

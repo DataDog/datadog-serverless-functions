@@ -115,7 +115,7 @@ def init_cache_layer(function_prefix):
             if cache_layer is None:
                 cache_layer = CacheLayer(function_prefix)
         except Exception as e:
-            logger.exception(f"Failed to create cache layer due to {e}")
+            logger.error(f"Failed to create cache layer due to {e}")
             raise
 
 
@@ -144,7 +144,7 @@ def invoke_additional_target_lambdas(event):
                 Payload=lambda_payload,
             )
         except Exception as e:
-            logger.exception(
+            logger.error(
                 f"Failed to invoke additional target lambda {lambda_arn} due to {e}"
             )
 

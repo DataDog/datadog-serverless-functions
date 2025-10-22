@@ -105,7 +105,7 @@ class CloudwatchLogGroupTagsCache:
             last_modified_unix_time = int(response.get("LastModified").timestamp())
         except Exception as e:
             send_forwarder_internal_metrics("loggroup_cache_fetch_failure")
-            self.logger.exception(
+            self.logger.error(
                 f"Failed to get log group tags from cache: {e}", exc_info=True
             )
             return None, -1
@@ -122,7 +122,7 @@ class CloudwatchLogGroupTagsCache:
             )
         except Exception as e:
             send_forwarder_internal_metrics("loggroup_cache_write_failure")
-            self.logger.exception(
+            self.logger.error(
                 f"Failed to update log group tags cache: {e}", exc_info=True
             )
 
@@ -151,7 +151,7 @@ class CloudwatchLogGroupTagsCache:
                 resourceArn=log_group_arn
             )
         except Exception as e:
-            self.logger.exception(f"Failed to get log group tags: {e}", exc_info=True)
+            self.logger.error(f"Failed to get log group tags: {e}", exc_info=True)
         formatted_tags = None
         if response is not None:
             formatted_tags = [
