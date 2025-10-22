@@ -103,10 +103,10 @@ class CloudwatchLogGroupTagsCache:
             )
             tags_cache = json.loads(response.get("Body").read().decode("utf-8"))
             last_modified_unix_time = int(response.get("LastModified").timestamp())
-        except Exception:
+        except Exception as e:
             send_forwarder_internal_metrics("loggroup_cache_fetch_failure")
-            self.logger.exception(
-                "Failed to get log group tags from cache", exc_info=True
+            self.logger.error(
+                f"Failed to get log group tags from cache: {e}", exc_info=True
             )
             return None, -1
 
@@ -120,10 +120,10 @@ class CloudwatchLogGroupTagsCache:
                 Key=cache_file_name,
                 Body=(bytes(json.dumps(tags).encode("UTF-8"))),
             )
-        except Exception:
+        except Exception as e:
             send_forwarder_internal_metrics("loggroup_cache_write_failure")
-            self.logger.exception(
-                "Failed to update log group tags cache", exc_info=True
+            self.logger.error(
+                f"Failed to update log group tags cache: {e}", exc_info=True
             )
 
     def _is_expired(self, last_modified):
@@ -150,8 +150,8 @@ class CloudwatchLogGroupTagsCache:
             response = self.cloudwatch_logs_client.list_tags_for_resource(
                 resourceArn=log_group_arn
             )
-        except Exception:
-            self.logger.exception("Failed to get log group tags", exc_info=True)
+        except Exception as e:
+            self.logger.error(f"Failed to get log group tags: {e}", exc_info=True)
         formatted_tags = None
         if response is not None:
             formatted_tags = [

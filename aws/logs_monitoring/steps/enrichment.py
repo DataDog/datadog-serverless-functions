@@ -152,9 +152,9 @@ def extract_ddtags_from_message(event):
                 message_dict = json.loads(event["message"])
                 extracted_ddtags = message_dict.pop(DD_CUSTOM_TAGS)
                 event["message"] = json.dumps(message_dict)
-            except Exception:
+            except Exception as e:
                 if logger.isEnabledFor(logging.DEBUG):
-                    logger.debug(f"Failed to extract ddtags from: {event}")
+                    logger.debug(f"Failed to extract ddtags from: {event}: {e}")
                 return
 
         # strip and cleanup spaces from extracted tags:
@@ -191,8 +191,8 @@ def extract_host_from_cloudtrails(event):
         if isinstance(message, str):
             try:
                 message = json.loads(message)
-            except json.JSONDecodeError:
-                logger.debug("Failed to decode cloudtrail message")
+            except json.JSONDecodeError as e:
+                logger.debug(f"Failed to decode cloudtrail message: {e}")
                 return
 
         # deal with s3 input type events

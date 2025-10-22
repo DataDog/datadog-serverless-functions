@@ -34,16 +34,16 @@ def compileRegex(rule, pattern):
     if pattern == "":
         # If pattern is an empty string, raise exception
         raise Exception(
-            "No pattern provided:\nAdd pattern or remove {} environment variable".format(
-                rule
-            )
+            f"Empty pattern for {rule}. Set a valid regex pattern or remove the {rule} environment variable."
         )
     try:
         return re.compile(pattern)
-    except Exception:
+    except re.error as e:
         raise Exception(
-            "could not compile {} regex with pattern: {}".format(rule, pattern)
+            f"Invalid regex pattern for {rule}: '{pattern}'. Regex error: {e}"
         )
+    except Exception as e:
+        raise Exception(f"Failed to compile {rule} regex pattern '{pattern}': {e}")
 
 
 def add_retry_tag(log):

@@ -40,14 +40,14 @@ class Storage(object):
             self.s3_client.put_object(
                 Bucket=self.bucket_name, Key=key, Body=serialized_data
             )
-        except ClientError:
-            logger.error(f"Failed to store retry data for prefix {prefix}")
+        except ClientError as e:
+            logger.error(f"Failed to store retry data for prefix {prefix}: {e}")
 
     def delete_data(self, key):
         try:
             self.s3_client.delete_object(Bucket=self.bucket_name, Key=key)
-        except ClientError:
-            logger.error(f"Failed to delete retry data for key {key}")
+        except ClientError as e:
+            logger.error(f"Failed to delete retry data for key {key}: {e}")
 
     def _list_keys(self, prefix):
         key_prefix = self._get_key_prefix(prefix)
@@ -68,8 +68,8 @@ class Storage(object):
             body = response.get("Body")
             data = body.read()
             return self._deserialize(data)
-        except ClientError:
-            logger.error(f"Failed to fetch retry data for key {key}")
+        except ClientError as e:
+            logger.error(f"Failed to fetch retry data for key {key}: {e}")
             return None
         except Exception as e:
             logger.error(
