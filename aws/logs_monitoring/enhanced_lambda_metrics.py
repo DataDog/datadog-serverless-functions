@@ -170,9 +170,7 @@ def parse_and_submit_enhanced_metrics(logs, cache_layer):
                 enhanced_metric.submit_to_dd()
         except Exception as e:
             logger.error(
-                "Encountered an error while trying to parse and submit enhanced metrics for log %s: %s",
-                log,
-                str(e),
+                f"Encountered an error while trying to parse and submit enhanced metrics for log {log}: {e}",
             )
 
 
