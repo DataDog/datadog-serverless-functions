@@ -43,7 +43,10 @@ if DD_API_KEY == "<YOUR_DATADOG_API_KEY>" or DD_API_KEY == "":
 if len(DD_API_KEY) != 32:
     raise Exception(
         f"Invalid Datadog API key format. Expected 32 characters, received {len(DD_API_KEY)}. "
-        f"Verify your API key at https://app.{DD_SITE}/organization-settings/api-keys"
+        f'''
+        Invalid Datadog API key format. Expected 32 characters, received {len(DD_API_KEY)}.
+        Verify your API key at https://app.{DD_SITE}/organization-settings/api-keys
+        '''
     )
 # Validate the API key
 logger.debug("Validating the Datadog API key")
