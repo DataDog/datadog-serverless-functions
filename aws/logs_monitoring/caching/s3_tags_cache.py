@@ -40,9 +40,9 @@ class S3TagsCache(BaseTagsCache):
                 tags_by_arn_cache.update(page_tags_by_arn)
                 tags_fetch_success = True
         except ClientError as e:
-            self.logger.exception(
+            self.logger.error(
                 "Encountered a ClientError when trying to fetch tags. You may need to give "
-                "this Lambda's role the 'tag:GetResources' permission"
+                f"this Lambda's role the 'tag:GetResources' permission: {e}"
             )
             additional_tags = [
                 f"http_status_code:{e.response['ResponseMetadata']['HTTPStatusCode']}"

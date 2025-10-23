@@ -4,34 +4,33 @@
 # Copyright 2021 Datadog, Inc.
 
 
-import logging
 import json
+import logging
 import os
 
-from telemetry import send_event_metric, send_log_metric
-from trace_forwarder.connection import TraceConnection
-from logs.datadog_http_client import DatadogHTTPClient
 from logs.datadog_batcher import DatadogBatcher
 from logs.datadog_client import DatadogClient
-from logs.datadog_tcp_client import DatadogTCPClient
+from logs.datadog_http_client import DatadogHTTPClient
+from logs.datadog_matcher import DatadogMatcher
 from logs.datadog_scrubber import DatadogScrubber
-from logs.helpers import filter_logs, add_retry_tag
-from retry.storage import Storage
+from logs.helpers import add_retry_tag
 from retry.enums import RetryPrefix
+from retry.storage import Storage
 from settings import (
     DD_API_KEY,
-    DD_USE_TCP,
-    DD_NO_SSL,
-    DD_SKIP_SSL_VALIDATION,
-    DD_URL,
-    DD_PORT,
-    DD_TRACE_INTAKE_URL,
     DD_FORWARD_LOG,
+    DD_NO_SSL,
+    DD_PORT,
+    DD_SKIP_SSL_VALIDATION,
     DD_STORE_FAILED_EVENTS,
-    SCRUBBING_RULE_CONFIGS,
-    INCLUDE_AT_MATCH,
+    DD_TRACE_INTAKE_URL,
+    DD_URL,
     EXCLUDE_AT_MATCH,
+    INCLUDE_AT_MATCH,
+    SCRUBBING_RULE_CONFIGS,
 )
+from telemetry import send_event_metric, send_log_metric
+from trace_forwarder.connection import TraceConnection
 
 logger = logging.getLogger()
 logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
@@ -83,42 +82,42 @@ class Forwarder(object):
             logger.debug(f"Forwarding {len(logs)} logs")
 
         scrubber = DatadogScrubber(SCRUBBING_RULE_CONFIGS)
+        matcher = DatadogMatcher(
+            include_pattern=INCLUDE_AT_MATCH, exclude_pattern=EXCLUDE_AT_MATCH
+        )
+
         logs_to_forward = []
         for log in logs:
             if key:
                 log = add_retry_tag(log)
 
-            # apply scrubbing rules to inner log message if exists
+            evaluated_log = log
+
+            # apply scrubbing rules to inner log message
             if isinstance(log, dict) and log.get("message"):
                 try:
                     log["message"] = scrubber.scrub(log["message"])
+                    evaluated_log = log["message"]
                 except Exception as e:
-                    logger.exception(
+                    logger.error(
                         f"Exception while scrubbing log message {log['message']}: {e}"
                     )
 
-            logs_to_forward.append(json.dumps(log, ensure_ascii=False))
+            if matcher.match(evaluated_log):
+                logs_to_forward.append(json.dumps(log, ensure_ascii=False))
 
-        logs_to_forward = filter_logs(
-            logs_to_forward, INCLUDE_AT_MATCH, EXCLUDE_AT_MATCH
+        batcher = DatadogBatcher(512 * 1000, 4 * 1000 * 1000, 400)
+        cli = DatadogHTTPClient(
+            DD_URL, DD_PORT, DD_NO_SSL, DD_SKIP_SSL_VALIDATION, DD_API_KEY, scrubber
         )
-
-        if DD_USE_TCP:
-            batcher = DatadogBatcher(256 * 1000, 256 * 1000, 1)
-            cli = DatadogTCPClient(DD_URL, DD_PORT, DD_NO_SSL, DD_API_KEY, scrubber)
-        else:
-            batcher = DatadogBatcher(512 * 1000, 4 * 1000 * 1000, 400)
-            cli = DatadogHTTPClient(
-                DD_URL, DD_PORT, DD_NO_SSL, DD_SKIP_SSL_VALIDATION, DD_API_KEY, scrubber
-            )
 
         failed_logs = []
         with DatadogClient(cli) as client:
             for batch in batcher.batch(logs_to_forward):
                 try:
                     client.send(batch)
-                except Exception:
-                    logger.exception(f"Exception while forwarding log batch {batch}")
+                except Exception as e:
+                    logger.error(f"Exception while forwarding log batch {batch}: {e}")
                     failed_logs.extend(batch)
                 else:
                     if logger.isEnabledFor(logging.DEBUG):
@@ -143,9 +142,9 @@ class Forwarder(object):
         for metric in metrics:
             try:
                 send_log_metric(metric)
-            except Exception:
-                logger.exception(
-                    f"Exception while forwarding metric {json.dumps(metric)}"
+            except Exception as e:
+                logger.error(
+                    f"Exception while forwarding metric {json.dumps(metric)}: {e}"
                 )
                 failed_metrics.append(metric)
             else:
@@ -169,9 +168,9 @@ class Forwarder(object):
         try:
             serialized_trace_paylods = json.dumps(traces)
             self.trace_connection.send_traces(serialized_trace_paylods)
-        except Exception:
-            logger.exception(
-                f"Exception while forwarding traces {serialized_trace_paylods}"
+        except Exception as e:
+            logger.error(
+                f"Exception while forwarding traces {serialized_trace_paylods}: {e}"
             )
             if DD_STORE_FAILED_EVENTS and not key:
                 self.storage.store_data(RetryPrefix.TRACES, traces)

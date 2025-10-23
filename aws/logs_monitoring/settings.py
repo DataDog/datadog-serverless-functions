@@ -59,12 +59,6 @@ DD_API_KEY = "<YOUR_DATADOG_API_KEY>"
 #
 DD_FORWARD_LOG = get_env_var("DD_FORWARD_LOG", "true", boolean=True)
 
-## @param DD_USE_TCP - boolean - optional -default: false
-## Change this value to `true` to send your logs and metrics using the TCP network client
-## By default, it uses the HTTP client.
-#
-DD_USE_TCP = get_env_var("DD_USE_TCP", "false", boolean=True)
-
 ## @param DD_USE_COMPRESSION - boolean - optional -default: true
 ## Only valid when sending logs over HTTP
 ## Change this value to `false` to send your logs without any compression applied
@@ -117,45 +111,15 @@ DD_TRACE_INTAKE_URL = get_env_var(
     default="{}://trace.agent.{}".format("http" if DD_NO_SSL else "https", DD_SITE),
 )
 
-# The TCP transport has been deprecated, migrate to the HTTP intake.
-if DD_USE_TCP:
-    DD_URL = get_env_var("DD_URL", default="lambda-intake.logs." + DD_SITE)
-    try:
-        if "DD_SITE" in os.environ and DD_SITE == "datadoghq.eu":
-            DD_PORT = int(get_env_var("DD_PORT", default="443"))
-        else:
-            DD_PORT = int(get_env_var("DD_PORT", default="10516"))
-    except Exception:
-        DD_PORT = 10516
-else:
-    DD_URL = get_env_var("DD_URL", default="http-intake.logs." + DD_SITE)
-    DD_PORT = int(get_env_var("DD_PORT", default="443"))
+
+DD_URL = get_env_var("DD_URL", default="http-intake.logs." + DD_SITE)
+DD_PORT = int(get_env_var("DD_PORT", default="443"))
 
 ## @param DD_USE_VPC
 DD_USE_VPC = get_env_var("DD_USE_VPC", "false", boolean=True)
 
 ## @param DD_CUSTOM_SOURCE
 DD_CUSTOM_SOURCE = get_env_var("DD_SOURCE", "")
-
-# DEPRECATED. No longer need to use special endpoints, as you can now expose
-# regular Datadog API endpoints `api`, `http-intake.logs` and `trace.agent`
-# via PrivateLink. See https://docs.datadoghq.com/agent/guide/private-link/.
-# @param DD_USE_PRIVATE_LINK - whether to forward logs via PrivateLink
-# Overrides incompatible settings
-#
-DD_USE_PRIVATE_LINK = get_env_var("DD_USE_PRIVATE_LINK", "false", boolean=True)
-if DD_USE_PRIVATE_LINK:
-    logger.debug("Private link enabled, overriding configuration settings")
-    # Only the US Datadog site is supported when PrivateLink is enabled
-    DD_SITE = "datadoghq.com"
-    # TCP isn't supported when PrivateLink is enabled
-    DD_USE_TCP = False
-    DD_NO_SSL = False
-    DD_PORT = 443
-    # Override URLs
-    DD_URL = "api-pvtlink.logs.datadoghq.com"
-    DD_API_URL = "https://pvtlink.api.datadoghq.com"
-    DD_TRACE_INTAKE_URL = "https://trace-pvtlink.agent.datadoghq.com"
 
 
 class ScrubbingRuleConfig(object):
@@ -271,7 +235,7 @@ DD_MULTILINE_LOG_REGEX_PATTERN = get_env_var(
     "DD_MULTILINE_LOG_REGEX_PATTERN", default=None
 )
 
-DD_FETCH_S3_TAGS = get_env_var("DD_FETCH_S3_TAGS", default="true", boolean=True)
+DD_FETCH_S3_TAGS = get_env_var("DD_FETCH_S3_TAGS", default="false", boolean=True)
 
 DD_FETCH_LOG_GROUP_TAGS = get_env_var(
     "DD_FETCH_LOG_GROUP_TAGS", default="false", boolean=True
@@ -284,6 +248,23 @@ DD_FETCH_LAMBDA_TAGS = get_env_var(
 DD_FETCH_STEP_FUNCTIONS_TAGS = get_env_var(
     "DD_FETCH_STEP_FUNCTIONS_TAGS", default="false", boolean=True
 )
+
+
+DD_ENRICH_S3_TAGS = get_env_var("DD_ENRICH_S3_TAGS", default="true", boolean=True)
+
+DD_ENRICH_CLOUDWATCH_TAGS = get_env_var(
+    "DD_ENRICH_CLOUDWATCH_TAGS", default="true", boolean=True
+)
+
+if DD_FETCH_S3_TAGS and DD_ENRICH_S3_TAGS:
+    logger.warn(
+        "Enabling both DD_FETCH_S3_TAGS and DD_ENRICH_S3_TAGS might be unwanted"
+    )
+
+if DD_FETCH_LOG_GROUP_TAGS and DD_ENRICH_CLOUDWATCH_TAGS:
+    logger.warn(
+        "Enabling both DD_FETCH_LOG_GROUP_TAGS and DD_ENRICH_CLOUDWATCH_TAGS might be unwanted"
+    )
 
 
 def get_fetch_s3_tags():
@@ -300,6 +281,14 @@ def get_fetch_lambda_tags():
 
 def get_fetch_step_functions_tags():
     return DD_FETCH_STEP_FUNCTIONS_TAGS
+
+
+def get_enrich_s3_tags():
+    return DD_ENRICH_S3_TAGS
+
+
+def get_enrich_cloudwatch_tags():
+    return DD_ENRICH_CLOUDWATCH_TAGS
 
 
 DD_SOURCE = "ddsource"

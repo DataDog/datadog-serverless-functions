@@ -60,5 +60,5 @@ class AwsAttributes:
             parts = arn.split(":")
             self.account = parts[4]
             self.region = parts[3]
-        except Exception:
-            raise Exception("Failed to parse account and region from ARN")
+        except Exception as e:
+            raise Exception(f"Failed to parse account and region from ARN: {e}")

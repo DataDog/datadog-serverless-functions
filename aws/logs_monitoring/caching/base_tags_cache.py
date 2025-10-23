@@ -60,9 +60,9 @@ class BaseTagsCache(object):
                 DD_S3_BUCKET_NAME, self.get_cache_name_with_prefix()
             )
             s3_object.put(Body=(bytes(json.dumps(data).encode("UTF-8"))))
-        except ClientError:
+        except ClientError as e:
             send_forwarder_internal_metrics("s3_cache_write_failure")
-            self.logger.debug("Unable to write new cache to S3", exc_info=True)
+            self.logger.debug(f"Unable to write new cache to S3: {e}", exc_info=True)
 
     def acquire_s3_cache_lock(self):
         """Acquire cache lock"""
@@ -76,16 +76,16 @@ class BaseTagsCache(object):
             last_modified_unix_time = get_last_modified_time(file_content)
             if last_modified_unix_time + DD_S3_CACHE_LOCK_TTL_SECONDS >= time():
                 return False
-        except Exception:
-            self.logger.debug("Unable to get cache lock file")
+        except Exception as e:
+            self.logger.debug(f"Unable to get cache lock file: {e}")
 
         # lock file doesn't exist, create file to acquire lock
         try:
             cache_lock_object.put(Body=(bytes("lock".encode("UTF-8"))))
             send_forwarder_internal_metrics("s3_cache_lock_acquired")
             self.logger.debug("S3 cache lock acquired")
-        except ClientError:
-            self.logger.debug("Unable to write S3 cache lock file", exc_info=True)
+        except ClientError as e:
+            self.logger.debug(f"Unable to write S3 cache lock file: {e}", exc_info=True)
             return False
 
         return True
@@ -99,9 +99,9 @@ class BaseTagsCache(object):
             cache_lock_object.delete()
             send_forwarder_internal_metrics("s3_cache_lock_released")
             self.logger.debug("S3 cache lock released")
-        except ClientError:
+        except ClientError as e:
             send_forwarder_internal_metrics("s3_cache_lock_release_failure")
-            self.logger.debug("Unable to release S3 cache lock", exc_info=True)
+            self.logger.debug(f"Unable to release S3 cache lock: {e}", exc_info=True)
 
     def get_cache_from_s3(self):
         """Retrieves tags cache from s3 and returns the body along with
@@ -113,9 +113,9 @@ class BaseTagsCache(object):
             file_content = cache_object.get()
             tags_cache = json.loads(file_content["Body"].read().decode("utf-8"))
             last_modified_unix_time = get_last_modified_time(file_content)
-        except:
+        except Exception as e:
             send_forwarder_internal_metrics("s3_cache_fetch_failure")
-            self.logger.debug("Unable to fetch cache from S3", exc_info=True)
+            self.logger.debug(f"Unable to fetch cache from S3: {e}", exc_info=True)
             return {}, -1
 
         return tags_cache, last_modified_unix_time

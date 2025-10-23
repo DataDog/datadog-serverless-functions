@@ -4,41 +4,48 @@
 # Copyright 2021 Datadog, Inc.
 
 import json
-import os
-import boto3
 import logging
-import requests
+import os
 from hashlib import sha1
 
-from datadog_lambda.wrapper import datadog_lambda_wrapper
+import boto3
+import requests
 from datadog import api
-from enhanced_lambda_metrics import parse_and_submit_enhanced_metrics
-from steps.parsing import parse
-from steps.enrichment import enrich
-from steps.transformation import transform
-from steps.splitting import split
+from datadog_lambda.wrapper import datadog_lambda_wrapper
+
 from caching.cache_layer import CacheLayer
+from enhanced_lambda_metrics import parse_and_submit_enhanced_metrics
 from forwarder import Forwarder
 from settings import (
+    DD_ADDITIONAL_TARGET_LAMBDAS,
     DD_API_KEY,
-    DD_SKIP_SSL_VALIDATION,
     DD_API_URL,
     DD_FORWARDER_VERSION,
-    DD_ADDITIONAL_TARGET_LAMBDAS,
     DD_RETRY_KEYWORD,
+    DD_SITE,
+    DD_SKIP_SSL_VALIDATION,
 )
+from steps.enrichment import enrich
+from steps.parsing import parse
+from steps.splitting import split
+from steps.transformation import transform
 
 logger = logging.getLogger()
 logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
 
 # DD_API_KEY must be set
 if DD_API_KEY == "<YOUR_DATADOG_API_KEY>" or DD_API_KEY == "":
-    raise Exception("Missing Datadog API key")
+    raise Exception(
+        "Missing Datadog API key. Set DD_API_KEY environment variable. "
+        "See: https://docs.datadoghq.com/serverless/forwarder/"
+    )
 # Check if the API key is the correct number of characters
 if len(DD_API_KEY) != 32:
     raise Exception(
-        "The API key is not the expected length. "
-        "Please confirm that your API key is correct"
+        f"""
+        Invalid Datadog API key format. Expected 32 characters, received {len(DD_API_KEY)}.
+        Verify your API key at https://app.{DD_SITE}/organization-settings/api-keys
+        """
     )
 # Validate the API key
 logger.debug("Validating the Datadog API key")
@@ -57,7 +64,11 @@ with requests.Session() as s:
         timeout=10,
     )
     if not validation_res.ok:
-        raise Exception("The API key is not valid.")
+        raise Exception(
+            f"Datadog API key validation failed (HTTP {validation_res.status_code}). "
+            f"Verify your API key is correct and DD_SITE matches your Datadog account region (current: {DD_SITE}). "
+            "See: https://docs.datadoghq.com/getting_started/site/"
+        )
 
 # Force the layer to use the exact same API key and host as the forwarder
 api._api_key = DD_API_KEY
@@ -106,7 +117,7 @@ def init_cache_layer(function_prefix):
             if cache_layer is None:
                 cache_layer = CacheLayer(function_prefix)
         except Exception as e:
-            logger.exception(f"Failed to create cache layer due to {e}")
+            logger.error(f"Failed to create cache layer due to {e}")
             raise
 
 
@@ -135,7 +146,7 @@ def invoke_additional_target_lambdas(event):
                 Payload=lambda_payload,
             )
         except Exception as e:
-            logger.exception(
+            logger.error(
                 f"Failed to invoke additional target lambda {lambda_arn} due to {e}"
             )
 
