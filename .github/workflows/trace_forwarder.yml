@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout source
-        uses: actions/checkout@v3
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
       - name: Run trace forwarder tests
         run: |
           ./aws/logs_monitoring/trace_forwarder/scripts/run_tests.sh
