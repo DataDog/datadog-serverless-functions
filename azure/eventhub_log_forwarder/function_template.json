@@ -92,12 +92,8 @@
       "properties": {
         "name": "[parameters('functionAppName')]",
         "clientAffinityEnabled": false,
+        "httpsOnly": true,
         "siteConfig": {
-          "cors": {
-            "allowedOrigins": [
-              "*"
-            ]
-          },
           "appSettings": [
             {
               "name": "FUNCTIONS_EXTENSION_VERSION",
