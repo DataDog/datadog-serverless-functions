@@ -818,3 +818,37 @@ describe('Log Splitting', function() {
         });
     });
 });
+describe('EventhubLogHandler Fix Properties Json String', function() {
+	
+    beforeEach(function() {
+        this.forwarder = setUp();
+    });
+
+	it('parses properties string with single quotes into object', function() {
+		const record = { properties: "{'key':'value'}" };
+        const result = this.forwarder.fixPropertiesJsonString(record);
+        assert.equal(
+            'object',
+            typeof result.properties
+        )
+	});
+
+	it("leaves properties string unchanged when it doesn't match the malformed pattern", function() {
+		const record = { properties: 'some plain string without colons' };
+		const result = this.forwarder.fixPropertiesJsonString(record);
+        assert.equal(
+            'string',
+            typeof result.properties
+        )
+	});
+
+	it('logs an error and returns original record when replacement results in invalid JSON', function() {
+		// includes the "':'" marker so the function attempts replacement, but JSON remains invalid
+		const badRecord = { properties: "Look i know i shouldn't but, i will do this ':' " };
+		const result = this.forwarder.fixPropertiesJsonString(badRecord);
+        assert.equal(
+            'string',
+            typeof result.properties
+        )
+	});
+});
