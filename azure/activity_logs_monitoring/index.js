@@ -390,27 +390,18 @@ class EventhubLogHandler {
     }
 
     fixPropertiesJsonString(record) {
-        try {
-            // Check if properties field is a string
-            if (typeof record.properties === 'string') {
-                // If it is a string, check if it is a malformed JSON String
-                // By checking for ':'
-                if (record.properties.includes("':'")) {
-                    // If the check is true, find / replace single quotes
-                    // with double quotes, to make a proper JSON
-                    // which is then converted into a JSON Object
-                    record.properties = JSON.parse(record.properties.replace(/'/g, '"'));
-                    return record;
-                }else {
-                    return record;
-                }
-            } else {
-                return record;
+        // Check if properties field is a malformed JSON String
+        if (Object.hasOwn(record, 'properties') && (typeof record.properties === 'string') && (record.properties.includes("':'"))) {
+            try {
+                // If the check is true, find and replace single quotes
+                // with double quotes, to make a proper JSON
+                // which is then converted into a JSON Object
+                parsedProperties = JSON.parse(record.properties.replace(/'/g, '"'));
+                record.properties = parsedProperties;
+            } catch {
+                this.context.error('Unable to fix properties field to JSON Object');
             }
-        } catch {
-            this.context.error('Unable to fix properties field to JSON Object');
-            return record;
-        }
+        return record;
     }
 
     handleLogs(logs) {
