@@ -2,3 +2,5 @@
 azure/                          @DataDog/azure-integrations
 # AWS Integrations
 aws/                            @DataDog/aws-ints-context
+# Documentation
+aws/logs_monitoring/README.md   @DataDog/documentation
