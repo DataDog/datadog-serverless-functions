@@ -289,6 +289,13 @@ Parameters:
       - "true"
       - "false"
     Description: Set to true to enable enhanced Lambda metrics. This will generate additional custom metrics for Lambda functions, including cold starts, estimated AWS costs, and custom tags. Default is false.
+  DdAwsUseFipsEndpoints:
+    Type: String
+    Default: false
+    AllowedValues:
+      - true
+      - false
+    Description: Set to true to force AWS SDK calls from the Forwarder to use AWS FIPS endpoints.
 Conditions:
   IsAWSChina: !Equals [!Ref "AWS::Partition", aws-cn]
   IsGovCloud: !Equals [!Ref "AWS::Partition", aws-us-gov]
@@ -378,6 +385,7 @@ Conditions:
     - !Equals [!Join ["", !Ref VPCSubnetIds], ""]
   SetDdLogLevel: !Not
     - !Equals [!Ref DdLogLevel, ""]
+  SetDdAwsUseFipsEndpoints: !Equals [!Ref DdAwsUseFipsEndpoints, true]
 Rules:
   MustSetDdApiKey:
     Assertions:
@@ -577,6 +585,14 @@ Resources:
             - !Ref AWS::NoValue
           DD_TRACE_ENABLED: !Ref DdTraceEnabled
           DD_ENHANCED_METRICS: !Ref DdEnhancedMetrics
+          AWS_USE_FIPS_ENDPOINT: !If
+            - SetDdAwsUseFipsEndpoints
+            - "true"
+            - !Ref AWS::NoValue
+          DD_AWS_USE_FIPS_ENDPOINTS: !If
+            - SetDdAwsUseFipsEndpoints
+            - "true"
+            - !Ref AWS::NoValue
       ReservedConcurrentExecutions: !If
         - SetReservedConcurrentExecutions
         - !Ref ReservedConcurrency
@@ -1055,6 +1071,7 @@ Metadata:
           - DdForwarderBucketName
           - DdStoreFailedEvents
           - DdLogLevel
+          - DdAwsUseFipsEndpoints
     ParameterLabels:
       DdApiKey:
         default: "DdApiKey *"

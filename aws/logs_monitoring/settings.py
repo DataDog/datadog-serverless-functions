@@ -27,6 +27,17 @@ def get_env_var(envvar, default, boolean=False):
     return value
 
 
+## @param DD_AWS_USE_FIPS_ENDPOINTS - boolean - optional - default: false
+## When set to true, forces all AWS SDK (boto3) clients to use AWS FIPS endpoints.
+## This sets the AWS_USE_FIPS_ENDPOINT environment variable for the process and
+## adds use_fips_endpoint=True to the default boto3 Config used where applicable.
+DD_AWS_USE_FIPS_ENDPOINTS = get_env_var(
+    "DD_AWS_USE_FIPS_ENDPOINTS", "false", boolean=True
+)
+if DD_AWS_USE_FIPS_ENDPOINTS:
+    # Ensure botocore picks this up for all clients created in this process
+    os.environ["AWS_USE_FIPS_ENDPOINT"] = "true"
+
 ## @param DD_API_KEY - String - conditional - default: none
 ## The Datadog API key associated with your Datadog Account
 ## It can be found here:
@@ -157,10 +168,15 @@ SCRUBBING_RULE_CONFIGS = [
 INCLUDE_AT_MATCH = get_env_var("INCLUDE_AT_MATCH", default=None)
 EXCLUDE_AT_MATCH = get_env_var("EXCLUDE_AT_MATCH", default=None)
 
-# Set boto3 timeout
-boto3_config = botocore.config.Config(
-    connect_timeout=5, read_timeout=5, retries={"max_attempts": 2}
-)
+# Set boto3 timeout (and FIPS if enabled)
+boto3_config_kwargs = {
+    "connect_timeout": 5,
+    "read_timeout": 5,
+    "retries": {"max_attempts": 2},
+}
+if DD_AWS_USE_FIPS_ENDPOINTS:
+    boto3_config_kwargs["use_fips_endpoint"] = True
+boto3_config = botocore.config.Config(**boto3_config_kwargs)
 # DD API Key
 # Check if the DD_API_KEY_SECRET_ARN environment variable is set
 if "DD_API_KEY_SECRET_ARN" in os.environ:
