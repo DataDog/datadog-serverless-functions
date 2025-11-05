@@ -289,6 +289,9 @@ Parameters:
       - "true"
       - "false"
     Description: Set to true to enable enhanced Lambda metrics. This will generate additional custom metrics for Lambda functions, including cold starts, estimated AWS costs, and custom tags. Default is false.
+  KmsKeyList:
+    Type: CommaDelimitedList
+    Description: List of KMS Key ARNs the Lambda forwarder function can use to decrypt, seperated by comma  
 Conditions:
   IsAWSChina: !Equals [!Ref "AWS::Partition", aws-cn]
   IsGovCloud: !Equals [!Ref "AWS::Partition", aws-us-gov]
@@ -378,6 +381,8 @@ Conditions:
     - !Equals [!Join ["", !Ref VPCSubnetIds], ""]
   SetDdLogLevel: !Not
     - !Equals [!Ref DdLogLevel, ""]
+  SetDdForwarderDecrypt: !Not
+    - !Equals [!Join ["", !Ref KmsKeyList], ""]
 Rules:
   MustSetDdApiKey:
     Assertions:
@@ -654,10 +659,13 @@ Resources:
                 Effect: Allow
               # To get object from encrypted s3 buckets. Use PermissionsBoundaryArn to limit access if needed.
               # https://aws.amazon.com/premiumsupport/knowledge-center/s3-troubleshoot-403/#AWS_KMS_encryption
-              - Action:
-                  - kms:Decrypt
-                Resource: "*"
-                Effect: Allow
+              - !If
+                - SetDdForwarderDecrypt
+                - Action:
+                    - kms:Decrypt
+                  Resource: !Ref KmsKeyList
+                  Effect: Allow
+                - !Ref AWS::NoValue
               - !If
                 - SetDDApiSsmParamName # Access the Datadog API key from Secrets Manager
                 - !Ref AWS::NoValue
