@@ -383,11 +383,29 @@ class EventhubLogHandler {
                     this.records.push(originalRecord);
                 }
             } else {
-                this.records.push(originalRecord);
+                this.records.push(this.fixPropertiesJsonString(originalRecord));
             }
         } else {
             record = this.addTagsToStringLog(record);
             this.records.push(record);
+        }
+    }
+
+    fixPropertiesJsonString(record) {
+        // Check if properties field is a malformed JSON String
+        if (Object.hasOwn(record, 'properties') && (typeof record.properties === 'string') && (record.properties.includes("':'"))) {
+            try {
+                // If the check is true, find and replace single quotes
+                // with double quotes, to make a proper JSON
+                // which is then converted into a JSON Object
+                record.properties = JSON.parse(record.properties.replace(/'/g, '"'));
+                return record;
+            } catch {
+                this.context.error('Unable to fix properties field to JSON Object');
+                return record;
+            }
+        } else {
+            return record;
         }
     }
 

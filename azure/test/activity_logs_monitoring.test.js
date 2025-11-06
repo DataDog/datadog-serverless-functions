@@ -818,3 +818,84 @@ describe('Log Splitting', function() {
         });
     });
 });
+describe('EventhubLogHandler Fix Properties Json String', function() {
+	
+    beforeEach(function() {
+        this.forwarder = setUp();
+    });
+
+	it('parses properties string with single quotes into object', function() {
+		const record = { properties: "{'key':'value'}" };
+        const result = this.forwarder.fixPropertiesJsonString(record);
+
+        const expectedProperties = { properties: { key: "value" } };
+
+        assert.deepEqual(
+            expectedProperties,
+            result
+        );
+        assert.equal(
+            'object',
+            typeof result.properties
+        )
+	});
+
+    it('parses object that doesnt have properties', function() {
+		const record = { hostname: "server_name", subObject: { key:"value"} };
+        const result = this.forwarder.fixPropertiesJsonString(record);
+
+        assert.deepEqual(
+            record,
+            result
+        );
+        assert.equal(
+            'object',
+            typeof result
+        )
+	});
+
+	it('parses properties string with nested objects', function() {
+		const record = { properties: "{'key':'value','subObj':{ 'subKey' : 'subValue' }}" };
+        const result = this.forwarder.fixPropertiesJsonString(record);
+
+        const expectedProperties = { properties: { key: "value", subObj: { subKey: "subValue"} } };
+
+        assert.deepEqual(
+            expectedProperties,
+            result
+        );
+        assert.equal(
+            'object',
+            typeof result.properties
+        )
+	});
+
+	it("leaves properties string unchanged when it doesn't match the malformed pattern", function() {
+		const record = { properties: 'some plain string without colons' };
+		const result = this.forwarder.fixPropertiesJsonString(record);
+
+        assert.deepEqual(
+            record,
+            result
+        );
+        assert.equal(
+            'string',
+            typeof result.properties
+        )
+	});
+
+	it('logs an error and returns original record when replacement results in invalid JSON', function() {
+		// includes the "':'" marker so the function attempts replacement, but JSON remains invalid
+		const badRecord = { properties: "Look i know i shouldn't but, i will do this ':' " };
+		const result = this.forwarder.fixPropertiesJsonString(badRecord);
+        
+        assert.deepEqual(
+            badRecord,
+            result
+        );
+        assert.equal(
+            'string',
+            typeof result.properties
+        )
+	});
+});
