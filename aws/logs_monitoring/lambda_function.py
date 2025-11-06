@@ -52,7 +52,7 @@ logger.debug("Validating the Datadog API key")
 
 with requests.Session() as s:
     retries = requests.adapters.Retry(
-        total=5, backoff_factor=1, status_forcelist=[500, 502, 503, 504]
+        total=5, backoff_factor=1, status_forcelist=[429, 500, 502, 503, 504]
     )
 
     s.mount("http://", requests.adapters.HTTPAdapter(max_retries=retries))
