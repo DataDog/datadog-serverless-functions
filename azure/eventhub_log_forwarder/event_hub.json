@@ -16,7 +16,7 @@
     },
     "eventHubName": {
       "type": "string",
-      "defaultValue": "datadog-eventhub",
+      "defaultValue": "datadogEventhub",
       "metadata": {
         "description": "Name of Event Hub"
       }
