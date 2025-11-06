@@ -401,7 +401,7 @@ Datadog recommends using at least 10 reserved concurrency, but this defaults to 
 `IncludeAtMatch`
 : Only send logs matching the supplied regular expression, and not excluded by `ExcludeAtMatch`.
 
-Filtering rules are applied to the message log. However, transformations applied by [log pipelines][21], which occur after logs are sent to Datadog, cannot be used to filter logs in the Forwarder. Using an inefficient regular expression, such as `.*`, may slow down the Forwarder.
+Filtering rules are applied to the log message. However, transformations applied by [log pipelines][21], which occur after logs are sent to Datadog, cannot be used to filter logs in the Forwarder. Using an inefficient regular expression, such as `.*`, may slow down the Forwarder.
 
 Some examples of regular expressions that can be used for log filtering:
 
