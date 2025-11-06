@@ -401,15 +401,14 @@ Datadog recommends using at least 10 reserved concurrency, but this defaults to 
 `IncludeAtMatch`
 : Only send logs matching the supplied regular expression, and not excluded by `ExcludeAtMatch`.
 
-Filtering rules are applied to the full JSON-formatted log, including any metadata that is automatically added by the Forwarder. However, transformations applied by [log pipelines][21], which occur after logs are sent to Datadog, cannot be used to filter logs in the Forwarder. Using an inefficient regular expression, such as `.*`, may slow down the Forwarder.
+Filtering rules are applied to the log message. However, transformations applied by [log pipelines][21], which occur after logs are sent to Datadog, cannot be used to filter logs in the Forwarder. Using an inefficient regular expression, such as `.*`, may slow down the Forwarder.
 
 Some examples of regular expressions that can be used for log filtering:
 
-- Include (or exclude) Lambda platform logs: `"(START|END) RequestId:\s`. The preceding `"` is needed to match the start of the log message, which is in a JSON blob (`{"message": "START RequestId...."}`). Datadog recommends keeping the `REPORT` logs, as they are used to populate the invocations list in the serverless function views.
+- Include (or exclude) Lambda platform logs: `(START|END) RequestId:\s`. Datadog recommends keeping the `REPORT` logs, as they are used to populate the invocations list in the serverless function views.
 - Include CloudTrail error messages only: `errorMessage`.
 - Include only logs containing an HTTP 4XX or 5XX error code: `\b[4|5][0-9][0-9]\b`.
-- Include only CloudWatch logs where the `message` field contains a specific JSON key/value pair: `\"awsRegion\":\"us-east-1\"`.
-    - The message field of a CloudWatch log event is encoded as a string. For example,`{"awsRegion": "us-east-1"}` is encoded as `{\"awsRegion\":\"us-east-1\"}`. Therefore, the pattern you provide must include `\` escape characters, like this: `\"awsRegion\":\"us-east-1\"`.
+- Include only CloudWatch logs where the `message` field contains a specific JSON key/value pair: `"awsRegion":"us-east-1"`.
 
 To test different patterns against your logs, turn on [debug logs](#troubleshooting).
 
