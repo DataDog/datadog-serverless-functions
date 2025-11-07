@@ -23,7 +23,7 @@
         },
         "eventHubName": {
             "type": "string",
-            "defaultValue": "datadogEventhub",
+            "defaultValue": "datadog-eventhub",
             "metadata": {
                 "description": "Name of the EventHub to which the Activity logs will be sent."
             }
