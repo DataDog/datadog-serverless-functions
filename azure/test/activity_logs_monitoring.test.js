@@ -818,7 +818,7 @@ describe('Log Splitting', function() {
         });
     });
 });
-describe('EventhubLogHandler Fix Properties Json String', function() {
+describe('EventhubLogHandler Parse Properties', function() {
 	
     beforeEach(function() {
         this.forwarder = setUp();
@@ -826,7 +826,7 @@ describe('EventhubLogHandler Fix Properties Json String', function() {
 
 	it('parses properties string with single quotes into object', function() {
 		const record = { properties: "{'key':'value'}" };
-        const result = this.forwarder.fixPropertiesJsonString(record);
+        const result = this.forwarder.parseProperties(record);
 
         const expectedProperties = { properties: { key: "value" } };
 
@@ -842,7 +842,7 @@ describe('EventhubLogHandler Fix Properties Json String', function() {
 
     it('parses object that doesnt have properties', function() {
 		const record = { hostname: "server_name", subObject: { key:"value"} };
-        const result = this.forwarder.fixPropertiesJsonString(record);
+        const result = this.forwarder.parseProperties(record);
 
         assert.deepEqual(
             record,
@@ -856,7 +856,7 @@ describe('EventhubLogHandler Fix Properties Json String', function() {
 
 	it('parses properties string with nested objects', function() {
 		const record = { properties: "{'key':'value','subObj':{ 'subKey' : 'subValue' }}" };
-        const result = this.forwarder.fixPropertiesJsonString(record);
+        const result = this.forwarder.parseProperties(record);
 
         const expectedProperties = { properties: { key: "value", subObj: { subKey: "subValue"} } };
 
@@ -872,7 +872,7 @@ describe('EventhubLogHandler Fix Properties Json String', function() {
 
 	it("leaves properties string unchanged when it doesn't match the malformed pattern", function() {
 		const record = { properties: 'some plain string without colons' };
-		const result = this.forwarder.fixPropertiesJsonString(record);
+		const result = this.forwarder.parseProperties(record);
 
         assert.deepEqual(
             record,
@@ -887,7 +887,7 @@ describe('EventhubLogHandler Fix Properties Json String', function() {
 	it('logs an error and returns original record when replacement results in invalid JSON', function() {
 		// includes the "':'" marker so the function attempts replacement, but JSON remains invalid
 		const badRecord = { properties: "Look i know i shouldn't but, i will do this ':' " };
-		const result = this.forwarder.fixPropertiesJsonString(badRecord);
+		const result = this.forwarder.parseProperties(badRecord);
         
         assert.deepEqual(
             badRecord,
