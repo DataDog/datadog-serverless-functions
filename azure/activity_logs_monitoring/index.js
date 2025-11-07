@@ -383,7 +383,7 @@ class EventhubLogHandler {
                     this.records.push(originalRecord);
                 }
             } else {
-                this.records.push(this.formatProperties(originalRecord));
+                this.records.push(this.parseProperties(originalRecord));
             }
         } else {
             record = this.addTagsToStringLog(record);
@@ -391,7 +391,7 @@ class EventhubLogHandler {
         }
     }
 
-    formatProperties(record) {
+    parseProperties(record) {
         // Check if properties field is a malformed JSON String
         if (Object.hasOwn(record, 'properties') && (typeof record.properties === 'string') && (record.properties.includes("':'"))) {
             try {
