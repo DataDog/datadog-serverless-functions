@@ -27,50 +27,54 @@ services:
       AWS_SECURITY_TOKEN: "${AWS_SECURITY_TOKEN}"
       AWS_SESSION_TOKEN: "${AWS_SESSION_TOKEN}"
       AWS_DEFAULT_REGION: us-east-1
-      DD_LOG_LEVEL: ${LOG_LEVEL:-info}
-      DD_API_KEY: abcdefghijklmnopqrstuvwxyz012345 # Must be 32 characters exactly
-      DD_URL: recorder # Used for logs intake
-      DD_PORT: 8080 # API port to use
-      DD_SITE: datadog.com
-      DD_API_URL: http://recorder:8080
-      DD_LOGS_INTAKE_URL: recorder:8080
-      DD_TRACE_INTAKE_URL: http://recorder:8080
-      DD_NO_SSL: "true"
-      DD_SKIP_SSL_VALIDATION: "true"
-      DD_USE_COMPRESSION: "false"
       DD_ADDITIONAL_TARGET_LAMBDAS: "${EXTERNAL_LAMBDAS}"
-      DD_S3_BUCKET_NAME: "${DD_S3_BUCKET_NAME}"
+      DD_API_KEY: abcdefghijklmnopqrstuvwxyz012345 # Must be 32 characters exactly
+      DD_API_URL: http://recorder:8080
       DD_FETCH_LAMBDA_TAGS: "${DD_FETCH_LAMBDA_TAGS:-false}"
       DD_FETCH_LOG_GROUP_TAGS: "${DD_FETCH_LOG_GROUP_TAGS:-false}"
       DD_FETCH_STEP_FUNCTIONS_TAGS: "${DD_FETCH_STEP_FUNCTIONS_TAGS:-false}"
-      DD_STORE_FAILED_EVENTS: "false"
+      DD_LOG_LEVEL: ${LOG_LEVEL:-info}
+      DD_LOGS_INTAKE_URL: recorder:8080
+      DD_NO_SSL: "true"
+      DD_PORT: 8080 # API port to use
+      DD_S3_BUCKET_NAME: "${DD_S3_BUCKET_NAME}"
+      DD_SITE: datadog.com
+      DD_SKIP_SSL_VALIDATION: "true"
+      DD_STORE_FAILED_EVENTS: "${DD_STORE_FAILED_EVENTS:-true}"
       DD_TRACE_ENABLED: "true"
+      DD_TRACE_INTAKE_URL: http://recorder:8080
+      DD_URL: recorder # Used for logs intake
+      DD_USE_COMPRESSION: "false"
     expose:
       - 8080
     depends_on:
       recorder:
         condition: service_healthy
     healthcheck:
-        test: ["CMD", "curl", "-f", "http://localhost:8080/2015-03-31/functions/function/invocations"]
-        interval: 10s
-        timeout: 5s
-        retries: 3
-
+      test:
+        [
+          "CMD",
+          "curl",
+          "-f",
+          "http://localhost:8080/2015-03-31/functions/function/invocations",
+        ]
+      interval: 10s
+      timeout: 5s
 
   tester:
     image: ${PYTHON_BASE}
     command: /bin/sh -c 'pip install "deepdiff<6" && python -m unittest discover'
     volumes:
       - ./tester:/tester
-      - ${SNAPSHOTS_DIR_NAME}:/snapshots
+      - "${SNAPSHOTS_DIR_NAME}:/snapshots"
     working_dir: /tester
     environment:
-      RECORDER_URL: http://recorder:8080/recording
       FORWARDER_URL: http://forwarder:8080/2015-03-31/functions/function/invocations
-      UPDATE_SNAPSHOTS: ${UPDATE_SNAPSHOTS:-false}
-      SNAPSHOTS_DIR_NAME: ${SNAPSHOTS_DIR_NAME}
+      RECORDER_URL: http://recorder:8080/recording
+      SNAPSHOTS_DIR_NAME: "${SNAPSHOTS_DIR_NAME}"
+      UPDATE_SNAPSHOTS: "${UPDATE_SNAPSHOTS:-false}"
     depends_on:
-        forwarder:
-            condition: service_healthy
-        recorder:
-            condition: service_healthy
+      forwarder:
+        condition: service_healthy
+      recorder:
+        condition: service_healthy

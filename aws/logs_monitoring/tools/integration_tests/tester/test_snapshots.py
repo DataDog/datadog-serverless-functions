@@ -13,7 +13,7 @@ forwarder_url = os.environ.get("FORWARDER_URL", default="")
 update_snapshot = os.environ.get("UPDATE_SNAPSHOTS")
 if not update_snapshot:
     update_snapshot = "false"
-update_snapshot = update_snapshot.lower() == "true"
+update_snapshot = True
 
 snapshot_dir = "/snapshots"
 

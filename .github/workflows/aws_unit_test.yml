@@ -18,6 +18,7 @@ jobs:
           AWS_DEFAULT_REGION: us-east-1
           DD_API_KEY: "11111111111111111111111111111111"
           DD_ADDITIONAL_TARGET_LAMBDAS: "ironmaiden,megadeth"
+          DD_STORE_FAILED_EVENTS: "true"
         run: |
           pip install boto3 mock approvaltests
           python -m unittest discover ./aws/logs_monitoring/
