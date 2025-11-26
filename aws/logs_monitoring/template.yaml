@@ -261,6 +261,17 @@ Parameters:
       - true
       - false
     Description: Set to true to enable the forwarder to store events that failed to send to Datadog.
+  DdScheduleRetryFailedEvents:
+    Type: String
+    Default: false
+    AllowedValues:
+      - true
+      - false
+    Description: Set to true to enable a scheduled forwarder invocation (via AWS EventBridge) to process stored failed events.
+  DdScheduleRetryInterval:
+    Type: Number
+    Default: 6
+    Description: Interval in hours for scheduled forwarder invocation (via AWS EventBridge).
   DdForwarderExistingBucketName:
     Type: String
     Default: ""
@@ -292,7 +303,7 @@ Parameters:
   KmsKeyList:
     Type: CommaDelimitedList
     Default: ""
-    Description: List of KMS Key ARNs the Lambda forwarder function can use to decrypt, seperated by comma  
+    Description: List of KMS Key ARNs the Lambda forwarder function can use to decrypt, seperated by comma
 Conditions:
   IsAWSChina: !Equals [!Ref "AWS::Partition", aws-cn]
   IsGovCloud: !Equals [!Ref "AWS::Partition", aws-us-gov]
@@ -348,7 +359,8 @@ Conditions:
   SetLayerARN: !Not
     - !Equals [!Ref LayerARN, ""]
   SetDdForwardLog: !Equals [!Ref DdForwardLog, false]
-  SetDdStepFunctionsTraceEnabled: !Equals [!Ref DdStepFunctionsTraceEnabled, true]
+  SetDdStepFunctionsTraceEnabled:
+    !Equals [!Ref DdStepFunctionsTraceEnabled, true]
   SetDdUseCompression: !Equals [!Ref DdUseCompression, false]
   SetDdCompressionLevel: !Not
     - !Equals [!Ref DdCompressionLevel, 6]
@@ -384,6 +396,7 @@ Conditions:
     - !Equals [!Ref DdLogLevel, ""]
   SetDdForwarderDecryptKeys: !Not
     - !Equals [!Join ["", !Ref KmsKeyList], ""]
+  CreateRetryScheduler: !Equals [!Ref DdScheduleRetryFailedEvents, true]
 Rules:
   MustSetDdApiKey:
     Assertions:
@@ -431,7 +444,10 @@ Resources:
             - !Ref DdForwarderExistingBucketName
           S3Key: !Sub
             - "aws-dd-forwarder-${DdForwarderVersion}.zip"
-            - {DdForwarderVersion: !FindInMap [Constants, DdForwarder, Version]}
+            - {
+                DdForwarderVersion:
+                  !FindInMap [Constants, DdForwarder, Version],
+              }
         - ZipFile: " "
       MemorySize: !Ref MemorySize
       Runtime: python3.13
@@ -831,7 +847,7 @@ Resources:
         - !Ref SourceZipUrl
         - !Sub
           - "https://github.com/DataDog/datadog-serverless-functions/releases/download/aws-dd-forwarder-${DdForwarderVersion}/aws-dd-forwarder-${DdForwarderVersion}.zip"
-          - {DdForwarderVersion: !FindInMap [Constants, DdForwarder, Version]}
+          - { DdForwarderVersion: !FindInMap [Constants, DdForwarder, Version] }
   # The Forwarder's source code is too big to fit the inline code size limit for CloudFormation. In most of AWS
   # partitions and regions, the Forwarder is able to load its source code from a Lambda layer attached to it.
   # In places where Datadog can't/doesn't yet publish Lambda layers, use another Lambda to copy the source code
@@ -970,6 +986,50 @@ Resources:
                       - - "arn:*:s3:::"
                         - !Select [1, !Split ["s3://", !Ref SourceZipUrl]]
                 - !Ref AWS::NoValue
+  SchedulerRole:
+    Type: AWS::IAM::Role
+    Condition: CreateRetryScheduler
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: !If
+                - IsAWSChina
+                - "scheduler.amazonaws.com.cn"
+                - "scheduler.amazonaws.com"
+      PermissionsBoundary: !If
+        - SetPermissionsBoundary
+        - !Ref PermissionsBoundaryArn
+        - !Ref AWS::NoValue
+      Policies:
+        - PolicyName: ForwarderZipCopierRolePolicy0
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource:
+                  - !GetAtt
+                    - Forwarder
+                    - Arn
+  Scheduler:
+    Type: AWS::Scheduler::Schedule
+    Condition: CreateRetryScheduler
+    Properties:
+      Name: !Sub "${AWS::StackName}-retry"
+      Description: Retry the failed events from the Datadog Lambda Forwarder
+      ScheduleExpression: !Sub "rate(${DdScheduleRetryInterval} hours)"
+      FlexibleTimeWindow:
+        Mode: "OFF"
+      Target:
+        Arn: !GetAtt "Forwarder.Arn"
+        RoleArn: !GetAtt "SchedulerRole.Arn"
+        Input: '{"retry": true}'
 Outputs:
   DatadogForwarderArn:
     Description: Datadog Forwarder Lambda Function ARN

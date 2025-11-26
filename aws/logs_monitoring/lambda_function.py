@@ -62,6 +62,15 @@ def datadog_forwarder(event, context):
     init_cache_layer(function_prefix)
     init_forwarder(function_prefix)
 
+    if len(event) == 1 and str(event.get(DD_RETRY_KEYWORD, "false")).lower() == "true":
+        try:
+            forwarder.retry()
+        except Exception as e:
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(f"Failed to retry forwarding {e}")
+
+        return
+
     parsed = parse(event, context, cache_layer)
     enriched = enrich(parsed, cache_layer)
     transformed = transform(enriched)
@@ -71,12 +80,11 @@ def datadog_forwarder(event, context):
     parse_and_submit_enhanced_metrics(logs, cache_layer)
 
     try:
-        if bool(event.get(DD_RETRY_KEYWORD, False)) is True:
+        if str(event.get(DD_RETRY_KEYWORD, "false")).lower() == "true":
             forwarder.retry()
     except Exception as e:
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug(f"Failed to retry forwarding {e}")
-        pass
 
 
 def init_cache_layer(function_prefix):
