@@ -9,7 +9,6 @@ import os
 from hashlib import sha1
 
 import boto3
-import requests
 from datadog import api
 from datadog_lambda.wrapper import datadog_lambda_wrapper
 
@@ -22,8 +21,9 @@ from settings import (
     DD_API_URL,
     DD_FORWARDER_VERSION,
     DD_RETRY_KEYWORD,
-    DD_SITE,
     DD_SKIP_SSL_VALIDATION,
+    DD_STORE_FAILED_EVENTS,
+    is_api_key_valid,
 )
 from steps.enrichment import enrich
 from steps.parsing import parse
@@ -33,42 +33,12 @@ from steps.transformation import transform
 logger = logging.getLogger()
 logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
 
-# DD_API_KEY must be set
-if DD_API_KEY == "<YOUR_DATADOG_API_KEY>" or DD_API_KEY == "":
+
+if not is_api_key_valid() and not DD_STORE_FAILED_EVENTS:
     raise Exception(
-        "Missing Datadog API key. Set DD_API_KEY environment variable. "
-        "See: https://docs.datadoghq.com/serverless/forwarder/"
-    )
-# Check if the API key is the correct number of characters
-if len(DD_API_KEY) != 32:
-    raise Exception(
-        f"""
-        Invalid Datadog API key format. Expected 32 characters, received {len(DD_API_KEY)}.
-        Verify your API key at https://app.{DD_SITE}/organization-settings/api-keys
-        """
-    )
-# Validate the API key
-logger.debug("Validating the Datadog API key")
-
-with requests.Session() as s:
-    retries = requests.adapters.Retry(
-        total=5, backoff_factor=1, status_forcelist=[429, 500, 502, 503, 504]
+        "Failed to check if API Key is valid and no storage of failed events, aborting."
     )
 
-    s.mount("http://", requests.adapters.HTTPAdapter(max_retries=retries))
-    s.mount("https://", requests.adapters.HTTPAdapter(max_retries=retries))
-
-    validation_res = s.get(
-        "{}/api/v1/validate?api_key={}".format(DD_API_URL, DD_API_KEY),
-        verify=(not DD_SKIP_SSL_VALIDATION),
-        timeout=10,
-    )
-    if not validation_res.ok:
-        raise Exception(
-            f"Datadog API key validation failed (HTTP {validation_res.status_code}). "
-            f"Verify your API key is correct and DD_SITE matches your Datadog account region (current: {DD_SITE}). "
-            "See: https://docs.datadoghq.com/getting_started/site/"
-        )
 
 # Force the layer to use the exact same API key and host as the forwarder
 api._api_key = DD_API_KEY

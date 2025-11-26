@@ -128,6 +128,9 @@ class Forwarder(object):
         if DD_STORE_FAILED_EVENTS and len(failed_logs) > 0 and not key:
             self.storage.store_data(RetryPrefix.LOGS, failed_logs)
 
+        if len(failed_logs) > 0:
+            send_event_metric("logs_failed", failed_logs)
+
         send_event_metric("logs_forwarded", len(logs_to_forward) - len(failed_logs))
 
     def _forward_metrics(self, metrics, key=None):
@@ -155,6 +158,9 @@ class Forwarder(object):
 
         if DD_STORE_FAILED_EVENTS and len(failed_metrics) > 0 and not key:
             self.storage.store_data(RetryPrefix.METRICS, failed_metrics)
+
+        if len(failed_metrics) > 0:
+            send_event_metric("metrics_failed", failed_metrics)
 
         send_event_metric("metrics_forwarded", len(metrics) - len(failed_metrics))
 

@@ -23,6 +23,7 @@ CACHE_TEST=false
 DD_FETCH_LAMBDA_TAGS="true"
 DD_FETCH_LOG_GROUP_TAGS="true"
 DD_FETCH_STEP_FUNCTIONS_TAGS="true"
+DD_STORE_FAILED_EVENTS="true"
 
 script_start_time=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 echo "Starting script time: $script_start_time"
@@ -154,6 +155,7 @@ LOG_LEVEL=${LOG_LEVEL} \
         DD_FETCH_LAMBDA_TAGS=${DD_FETCH_LAMBDA_TAGS} \
         DD_FETCH_LOG_GROUP_TAGS=${DD_FETCH_LOG_GROUP_TAGS} \
         DD_FETCH_STEP_FUNCTIONS_TAGS=${DD_FETCH_STEP_FUNCTIONS_TAGS} \
+        DD_STORE_FAILED_EVENTS=${DD_STORE_FAILED_EVENTS} \
         docker compose up --build --abort-on-container-exit
 
 if [ $ADDITIONAL_LAMBDA == true ]; then

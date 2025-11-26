@@ -68,6 +68,7 @@ class DatadogHTTPClient(object):
         self._session = None
         self._ssl_validation = not skip_ssl_validation
         self._futures = []
+
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug(
                 f"Initialized http client for logs intake: "

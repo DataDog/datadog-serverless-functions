@@ -95,7 +95,7 @@ If you can't install the Forwarder using the provided CloudFormation template, y
 8. Set environment variable `DD_STORE_FAILED_EVENTS` to `true` to enable the forwarder to also store event data in the S3 bucket. In case of exceptions when sending logs, metrics or traces to intake, the forwarder will store relevant data in the S3 bucket. On custom invocations i.e. on receiving an event with the `retry` keyword set to a non empty string (which can be manually triggered - see below), the forwarder will retry sending the stored events. When successful it will clear up the storage in the bucket.
 
 ```bash
-aws lambda invoke --function-name <function-name> --payload '{"retry":"true"}' out
+aws lambda invoke --function-name <function-name> --payload '{"retry":"true"}' --cli-binary-format raw-in-base64-out --log-type Tail /dev/stdout
 ```
 
 <div class="alert alert-warning">
