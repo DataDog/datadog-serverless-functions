@@ -23,7 +23,7 @@ For more information about sending AWS services logs with the Datadog Forwarder,
 
 ## Installation
 
-Datadog recommends using [CloudFormation](#cloudformation) to automatically install the Forwarder. You can also complete the setup process using [Terraform](#terraform) or [manually](#manual). Once installed, you can subscribe the Forwarder to log sources such as S3 buckets or CloudWatch log groups by [setting up triggers][4].
+Datadog recommends using [CloudFormation](#cloudformation) to automatically install the Forwarder. You can also complete the setup process using [Terraform](#terraform) or [manually](#manual). For multi-region or multi-account deployments, see [Multi-Region & Multi-Account](#multi-region-multi-account) for CloudFormation StackSets or use the [Terraform](#terraform) module. Once installed, you can subscribe the Forwarder to log sources such as S3 buckets or CloudWatch log groups by [setting up triggers][4].
 
 **Note**: Forwarder v4.1.0+ does not support x86_64 architecture. If you are using x86_64, you must migrate to ARM64 to use the Datadog Forwarder.
 
@@ -49,11 +49,45 @@ If you had previously enabled your AWS Integration using the [following CloudFor
 [102]: https://github.com/DataDog/cloudformation-template/tree/master/aws
 
 {{% /tab %}}
+{{% tab "Multi-Region & Multi-Account" %}}
+
+### Multi-Region & Multi-Account
+
+Use CloudFormation StackSets to deploy the Forwarder across multiple AWS regions and/or accounts automatically.
+
+#### Single account, multiple regions
+
+1. Deploy the Forwarder template using [CloudFormation StackSets][151] in the AWS Console.
+2. In the **Permissions** section, optionally provide an IAM admin role ARN, or leave the default IAM execution role name (`AWSCloudFormationStackSetExecutionRole`).
+3. Select **Amazon S3 URL** and enter the Forwarder template URL: `https://datadog-cloudformation-template.s3.amazonaws.com/aws/forwarder/latest.yaml`. Click **Next**.
+4. Fill in Stack set name, `DdApiKey` and select the appropriate `DdSite`. All other parameters are optional. Click **Next**.
+5. Optionally configure stack set options. Check the box under **Capabilities** and click **Next**.
+6. On the **Set deployment options** page, select **Deploy stacks in accounts** and enter your AWS account ID. Under **Specify regions**, add target regions where you want to deploy the Forwarder. Click **Next**.
+7. Review and click **Submit**.
+
+#### Multiple accounts (AWS Organizations)
+
+**Prerequisites**: You must be logged into your **AWS Organizations management account** to use this deployment method.
+
+1. Enable [trusted access for CloudFormation StackSets][153] in AWS Organizations (one-time setup).
+2. Deploy from the organization management account using [CloudFormation StackSets][151].
+3. In the **Permissions** section, choose **Service-managed permissions**. This option allows CloudFormation StackSets to create the necessary IAM roles in target accounts automatically.
+4. Select **Amazon S3 URL** and enter the Forwarder template URL: `https://datadog-cloudformation-template.s3.amazonaws.com/aws/forwarder/latest.yaml`. Click **Next**.
+5. Fill in Stack set name, `DdApiKey` and select the appropriate `DdSite`. All other parameters are optional. Click **Next**.
+6. Choose **Deploy to organization** and specify target organizational units (OUs) or individual accounts, along with the regions where you want to deploy the Forwarder.
+
+**Note**: For both deployment methods, you'll still need to [set up triggers][155] after the Forwarder is deployed.
+
+[151]: https://console.aws.amazon.com/cloudformation/home#/stacksets/create
+[153]: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/stacksets-orgs-activate-trusted-access.html
+[155]: https://docs.datadoghq.com/logs/guide/send-aws-services-logs-with-the-datadog-lambda-function/#set-up-triggers
+
+{{% /tab %}}
 {{% tab "Terraform" %}}
 
 ### Terraform
 
-Install the Forwarder using the public Datadog Terraform module available at [https://registry.terraform.io/modules/DataDog/log-lambda-forwarder-datadog/aws/latest][201]. Once the Lambda function is deployed, [set up triggers on the Forwarder][202].
+Install the Forwarder using the public Datadog Terraform module available at [https://registry.terraform.io/modules/DataDog/log-lambda-forwarder-datadog/aws/latest][201]. The Terraform module can be used to support both multi-region and multi-account deployments. Once the Lambda function is deployed, [set up triggers on the Forwarder][202].
 
 #### Sample configuration
 
@@ -70,7 +104,7 @@ module "datadog_forwarder" {
 **Note**: Ensure that the `dd_site` parameter matches your [Datadog site][203]. Select your site on the right side of this page. Your Datadog site is {{< region-param key="dd_site" code="true" >}}.
 Your [Datadog API key][204] to use for `dd_api_key` can be found under **Organization Settings** > **API Keys**.
 
-For all configuration options and details, including [Multi-Region deployment][205], see the [module documentation][201].
+For all configuration options and details, including [multi-region and multi-account deployments][205], see the [module documentation][201].
 
 [201]: https://registry.terraform.io/modules/DataDog/log-lambda-forwarder-datadog/aws/latest
 [202]: https://docs.datadoghq.com/logs/guide/send-aws-services-logs-with-the-datadog-lambda-function/#set-up-triggers
