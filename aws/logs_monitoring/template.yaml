@@ -1006,7 +1006,7 @@ Resources:
         - !Ref PermissionsBoundaryArn
         - !Ref AWS::NoValue
       Policies:
-        - PolicyName: ForwarderZipCopierRolePolicy0
+        - PolicyName: SchedulerRolePolicy0
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
