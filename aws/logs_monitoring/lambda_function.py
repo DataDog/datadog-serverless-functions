@@ -63,6 +63,8 @@ def datadog_forwarder(event, context):
     init_forwarder(function_prefix)
 
     if len(event) == 1 and str(event.get(DD_RETRY_KEYWORD, "false")).lower() == "true":
+        logger.info("Retry-only invocation")
+
         try:
             forwarder.retry()
         except Exception as e:
