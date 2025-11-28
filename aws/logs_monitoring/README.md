@@ -92,10 +92,14 @@ If you can't install the Forwarder using the provided CloudFormation template, y
 5. Some AWS accounts are configured such that triggers will not automatically create resource-based policies allowing Cloudwatch log groups to invoke the forwarder. Reference the [CloudWatchLogPermissions][103] to see which permissions are required for the forwarder to be invoked by Cloudwatch Log Events.
 6. [Configure triggers][104].
 7. Create an S3 bucket, and set environment variable `DD_S3_BUCKET_NAME` to the bucket name. Also provide `s3:GetObject`, `s3:PutObject`, `s3:ListBucket`, and `s3:DeleteObject` permissions on this bucket to the Lambda execution role. This bucket is used to store the different tags cache i.e. Lambda, S3, Step Function and Log Group. Additionally, this bucket will be used to store unforwarded events incase of forwarding exceptions.
-8. Set environment variable `DD_STORE_FAILED_EVENTS` to `true` to enable the forwarder to also store event data in the S3 bucket. In case of exceptions when sending logs, metrics or traces to intake, the forwarder will store relevant data in the S3 bucket. On custom invocations i.e. on receiving an event with the `retry` keyword set to a non empty string (which can be manually triggered - see below), the forwarder will retry sending the stored events. When successful it will clear up the storage in the bucket.
+8. Set the environment variable `DD_STORE_FAILED_EVENTS` to `true`, so you can enable the forwarder to also store event data in the S3 bucket. If an exception occurs when sending logs, metrics, or traces to intake, the forwarder stores relevant data in the S3 bucket. On custom invocations, such as on receiving an event with the `retry` keyword explicitly set to `true`, the forwarder retries sending the stored events. Upon a successful forwarding, the forwarder cleans up the stored logs.
 
 ```bash
-aws lambda invoke --function-name <function-name> --payload '{"retry":"true"}' --cli-binary-format raw-in-base64-out --log-type Tail /dev/stdout
+aws lambda invoke --function-name <function-name> \
+    --payload '{"retry":true}' \
+    --cli-binary-format raw-in-base64-out \
+    --log-type Tail /dev/stdout |
+        jq -r 'select(.LogResult) | .LogResult' | base64 -d | xargs -0 printf "%s"
 ```
 
 <div class="alert alert-warning">
@@ -312,6 +316,14 @@ Otherwise, if you are using Web Proxy:
 7. Set `DdNoSsl` to `true` if connecting to the proxy using `http`.
 8. Set `DdSkipSslValidation` to `true` if connecting to the proxy using `https` with a self-signed certificate.
 
+### Scheduled retry
+
+When you enable `DdStoreFailedEvents`, the Lambda forwarder stores any events that couldn’t be sent to Datadog in an S3 bucket. These events can be logs, metrics, or traces. They aren’t automatically re‑processed on each Lambda invocation; instead, you must trigger a [manual Lambda run](https://docs.datadoghq.com/logs/guide/forwarder/?tab=manual) to process them again.
+
+You can automate this re‑processing by enabling `DdScheduleRetryFailedEvents` parameter, creating a scheduled Lambda invocation through [AWS EventBridge](https://docs.aws.amazon.com/lambda/latest/dg/with-eventbridge-scheduler.html). By default, the forwarder attempts re‑processing every six hours.
+
+Keep in mind that log events can only be submitted with [timestamps up to 18 hours in the past](https://docs.datadoghq.com/logs/log_collection/?tab=host#custom-log-forwarding); older timestamps will cause the events to be discarded.
+
 ### Code signing
 
 The Datadog Forwarder is signed by Datadog. To verify the integrity of the Forwarder, use the manual installation method. [Create a Code Signing Configuration][19] that includes Datadog’s Signing Profile ARN (`arn:aws:signer:us-east-1:464622532012:/signing-profiles/DatadogLambdaSigningProfile/9vMI9ZAGLc`) and associate it with the Forwarder Lambda function before uploading the Forwarder ZIP file.
@@ -455,6 +467,15 @@ To test different patterns against your logs, turn on [debug logs](#troubleshoot
 
 `AdditionalTargetLambdaArns`
 : Comma separated list of Lambda ARNs that will get called asynchronously with the same `event` the Datadog Forwarder receives.
+
+`DdStoreFailedEvents`
+: Set to true to enable the forwarder to store events that failed to send to Datadog.
+
+`DdScheduleRetryFailedEvents`
+: Set to true to enable a scheduled forwarder invocation (via AWS EventBridge) to process stored failed events.
+
+`DdScheduleRetryInterval`
+: Interval in hours for scheduled forwarder invocation (via AWS EventBridge).
 
 `InstallAsLayer`
 : Whether to use the layer-based installation flow. Set to false to use the legacy installation flow, which installs a second function that copies the forwarder code from GitHub to an S3 bucket. Defaults to true.
@@ -621,6 +642,9 @@ To test different patterns against your logs, turn on [debug logs](#troubleshoot
 
 `ADDITIONAL_TARGET_LAMBDA_ARNS`
 : Comma separated list of Lambda ARNs that will get called asynchronously with the same `event` the Datadog Forwarder receives.
+
+`DD_STORE_FAILED_EVENTS`
+: Set to true to enable the forwarder to store events that failed to send to Datadog.
 
 `INSTALL_AS_LAYER`
 : Whether to use the layer-based installation flow. Set to false to use the legacy installation flow, which installs a second function that copies the forwarder code from GitHub to an S3 bucket. Defaults to true.
