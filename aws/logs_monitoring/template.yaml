@@ -396,7 +396,9 @@ Conditions:
     - !Equals [!Ref DdLogLevel, ""]
   SetDdForwarderDecryptKeys: !Not
     - !Equals [!Join ["", !Ref KmsKeyList], ""]
-  CreateRetryScheduler: !Equals [!Ref DdScheduleRetryFailedEvents, true]
+  CreateRetryScheduler: !And
+    - !Equals [!Ref DdStoreFailedEvents, true]
+    - !Equals [!Ref DdScheduleRetryFailedEvents, true]
 Rules:
   MustSetDdApiKey:
     Assertions:
