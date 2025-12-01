@@ -69,7 +69,10 @@ Use CloudFormation StackSets to deploy the Forwarder across multiple AWS regions
    1. Select the appropriate Datadog site in the `DdSite` field. 
    1. Optionally, configure other parameters.
    1. Click **Next**.
-5. Optionally configure stack set options. Check the box under **Capabilities** and click **Next**.
+5. In the **Configure stack set options** section:
+   1. Optionally, configure the provided options.
+   1. Check the box under **Capabilities**.
+   1. Click **Next**.
 6. On the **Set deployment options** page, select **Deploy stacks in accounts** and enter your AWS account ID. Under **Specify regions**, add target regions where you want to deploy the Forwarder. Click **Next**.
 7. Review the details, and click **Submit**.
 
