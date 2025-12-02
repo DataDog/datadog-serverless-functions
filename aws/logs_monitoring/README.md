@@ -49,11 +49,11 @@ If you had previously enabled your AWS Integration using the [following CloudFor
 [102]: https://github.com/DataDog/cloudformation-template/tree/master/aws
 
 {{% /tab %}}
-{{% tab "Multi-Region & Multi-Account" %}}
+{{% tab "Multi-Region & Multi-Account (AWS Organizations)" %}}
 
 ### Multi-Region & Multi-Account
 
-Use CloudFormation StackSets to deploy the Forwarder across multiple AWS regions and accounts automatically.
+If you're using AWS Organizations, you can use CloudFormation StackSets to deploy the Forwarder across multiple AWS regions and accounts automatically.
 
 #### Single account, multiple regions
 
@@ -73,10 +73,13 @@ Use CloudFormation StackSets to deploy the Forwarder across multiple AWS regions
    1. Optionally, configure the provided options.
    1. Check the box under **Capabilities**.
    1. Click **Next**.
-6. On the **Set deployment options** page, select **Deploy stacks in accounts** and enter your AWS account ID. Under **Specify regions**, add target regions where you want to deploy the Forwarder. Click **Next**.
+6. On the **Set deployment options** page:
+   1. Select **Deploy stacks in accounts** and enter your AWS account IDs. 
+   1. Under **Specify regions**, add target regions where you want to deploy the Forwarder.
+   1. Click **Next**.
 7. Review the details, and click **Submit**.
 
-#### Multiple accounts (AWS Organizations)
+#### Multiple accounts
 
 **Prerequisite**: You must be logged into your **AWS Organizations management account** to use this deployment method.
 
