@@ -23,7 +23,7 @@ For more information about sending AWS services logs with the Datadog Forwarder,
 
 ## Installation
 
-Datadog recommends using [CloudFormation](?tab=cloudformation#cloudformation) to automatically install the Forwarder. You can also complete the setup process using [Terraform](?tab=terraform#terraform) or [manually](?tab=manual#manual). For multi-region or multi-account deployments, see [Multi-Region & Multi-Account](?tab=multiregionmultiaccount#multi-region-multi-account) for CloudFormation StackSets or use the [Terraform](?tab=terraform#terraform) module. Once installed, you can subscribe the Forwarder to log sources such as S3 buckets or CloudWatch log groups by [setting up triggers][4].
+Datadog recommends using [CloudFormation](?tab=cloudformation#cloudformation) to automatically install the Forwarder. You can also complete the setup process using [Terraform](?tab=terraform#terraform) or [manually](?tab=manual#manual). For multi-region or multi-account deployments, see [Multi-Region & Multi-Account](?tab=multiregionmultiaccountawsorganizations#multi-region-multi-account) for CloudFormation StackSets or use the [Terraform](?tab=terraform#terraform) module. Once installed, you can subscribe the Forwarder to log sources such as S3 buckets or CloudWatch log groups by [setting up triggers][4].
 
 **Note**: Forwarder v4.1.0+ does not support x86_64 architecture. If you are using x86_64, you must migrate to ARM64 to use the Datadog Forwarder.
 
