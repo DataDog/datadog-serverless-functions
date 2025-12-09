@@ -292,7 +292,7 @@ Parameters:
     AllowedValues:
       - "true"
       - "false"
-    Description: Set to false to disable trace creation and forwarding. See https://docs.datadoghq.com/tracing/trace_collection/library_config/python/#traces
+    Description: Set to false to disable trace creation and forwarding for the forwarder itself. Enabling this may incur additional Serverless APM charges. See https://docs.datadoghq.com/tracing/trace_collection/library_config/python/#traces
   DdEnhancedMetrics:
     Type: String
     Default: "false"
