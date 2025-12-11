@@ -19,7 +19,7 @@ requests
 setuptools>=80.9.0
 six
 typing-extensions
-urllib3>=2.5.0,<3.0
+urllib3>=2.6.0,<3.0
 wrapt==1.14.0
 xmltodict
 zipp
