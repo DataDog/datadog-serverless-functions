@@ -53,6 +53,21 @@ make_path_absolute() {
     )/$(basename "$1")"
 }
 
+# Make us of Docker or apple/container seamless
+docker_build() {
+    docker buildx build "${@}"
+}
+
+if command -v container >/dev/null 2>&1; then
+    docker() {
+        container "${@}"
+    }
+
+    docker_build() {
+        container build "${@}"
+    }
+fi
+
 ../trace_forwarder/scripts/build_linux_go_bin.sh
 
 docker_build_zip() {
@@ -64,7 +79,7 @@ docker_build_zip() {
     # between different python runtimes.
     temp_dir=$(mktemp -d)
 
-    docker buildx build --platform linux/arm64 --file "${DIR}/Dockerfile_bundle" -t "datadog-bundle:$1" .. --no-cache --build-arg "runtime=${PYTHON_VERSION}"
+    docker_build --platform linux/arm64 --file "${DIR}/Dockerfile_bundle" -t "datadog-bundle:$1" .. --no-cache --build-arg "runtime=${PYTHON_VERSION}"
 
     # Run the image by runtime tag, tar its generated `python` directory to sdout,
     # then extract it to a temp directory.
