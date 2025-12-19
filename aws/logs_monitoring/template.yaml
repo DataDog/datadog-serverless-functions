@@ -75,6 +75,10 @@ Parameters:
     Type: String
     Default: ""
     Description: Add custom tags to forwarded logs, comma-delimited string, no trailing comma, e.g., env:prod,stack:classic
+  DdSource:
+    Type: String
+    Default: ""
+    Description: Override the source attribute for all logs forwarded by Lambda Forwarder. By default, the Forwarder automatically detects the source based on the log origin (e.g., lambda, s3, cloudwatch, rds). When set, all logs will use the specified source value instead, and a source_overridden:true tag will be added to the logs.
   DdEnrichS3Tags:
     Type: String
     Default: true
@@ -325,6 +329,8 @@ Conditions:
   SetS3SourceZip: !Equals [!Select [0, !Split [/, !Ref SourceZipUrl]], "s3:"]
   SetDdTags: !Not
     - !Equals [!Ref DdTags, ""]
+  SetDdSource: !Not
+    - !Equals [!Ref DdSource, ""]
   SetDdNoSsl: !Equals [!Ref DdNoSsl, true]
   SetDdUrl: !Not
     - !Equals [!Ref DdUrl, ""]
@@ -476,6 +482,10 @@ Resources:
           DD_TAGS: !If
             - SetDdTags
             - !Ref DdTags
+            - !Ref AWS::NoValue
+          DD_SOURCE: !If
+            - SetDdSource
+            - !Ref DdSource
             - !Ref AWS::NoValue
           DD_TAGS_CACHE_TTL_SECONDS: !Ref TagsCacheTTLSeconds
           DD_ENRICH_S3_TAGS: !Ref DdEnrichS3Tags
