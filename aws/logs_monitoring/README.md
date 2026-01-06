@@ -504,7 +504,7 @@ To test different patterns against your logs, turn on [debug logs](#troubleshoot
 : **[DEPRECATED, use DdEnrichS3Tags]** Let the Forwarder fetch S3 tags using GetResources API calls and apply them to logs and traces. If set to true, permission `tag:GetResources` will be automatically added to the Lambda execution IAM role.
 
 `DdStepFunctionsTraceEnabled`
-: Set to true to enable tracing for all Step Functions.
+: Datadog can generate traces from Step Functions logs. Set to true to enable tracing.
 
 `SourceZipUrl`
 : Do not change unless you know what you are doing. Override the default location of the function source code.
