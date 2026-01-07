@@ -3,10 +3,10 @@ bytecode
 cattrs
 certifi
 charset-normalizer
-datadog-lambda==6.107.0
+datadog-lambda==8.120.0
 datadog==0.52.0
 ddsketch==3.0.1
-ddtrace==3.10.2
+ddtrace==3.16.2
 deprecated
 envier
 exceptiongroup
