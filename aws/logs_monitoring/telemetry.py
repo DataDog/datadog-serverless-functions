@@ -4,7 +4,7 @@
 # Copyright 2021 Datadog, Inc.
 
 try:
-    from datadog_lambda.metric import lambda_metric
+    from datadog_lambda.metric import lambda_stats
 
     DD_SUBMIT_ENHANCED_METRICS = True
 except ImportError:
@@ -34,7 +34,7 @@ def send_forwarder_internal_metrics(name, additional_tags=[]):
         return
 
     """Send forwarder's internal metrics to DD"""
-    lambda_metric(
+    lambda_stats.distribution(
         "{}.{}".format(DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX, name),
         1,
         tags=DD_FORWARDER_TELEMETRY_TAGS + additional_tags,
@@ -45,7 +45,7 @@ def send_event_metric(metric_name, metric_value):
     if not DD_SUBMIT_ENHANCED_METRICS:
         return
 
-    lambda_metric(
+    lambda_stats.distribution(
         "{}.{}".format(DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX, metric_name),
         metric_value,
         tags=DD_FORWARDER_TELEMETRY_TAGS,
@@ -56,4 +56,6 @@ def send_log_metric(metric):
     if not DD_SUBMIT_ENHANCED_METRICS:
         return
 
-    lambda_metric(metric["m"], metric["v"], timestamp=metric["e"], tags=metric["t"])
+    lambda_stats.distribution(
+        metric["m"], metric["v"], timestamp=metric["e"], tags=metric["t"]
+    )

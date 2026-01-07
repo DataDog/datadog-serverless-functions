@@ -101,8 +101,7 @@
               "forwardername:test_function",
               "forwarder_memorysize:3008",
               "forwarder_version:<redacted from snapshot>",
-              "event_type:awslogs",
-              "dd_lambda_layer:datadog-python313_8.120.0"
+              "event_type:awslogs"
             ],
             "type": "distribution"
           },
@@ -116,8 +115,7 @@
               "forwardername:test_function",
               "forwarder_memorysize:3008",
               "forwarder_version:<redacted from snapshot>",
-              "event_type:awslogs",
-              "dd_lambda_layer:datadog-python313_8.120.0"
+              "event_type:awslogs"
             ],
             "type": "distribution"
           },
@@ -131,8 +129,7 @@
               "forwardername:test_function",
               "forwarder_memorysize:3008",
               "forwarder_version:<redacted from snapshot>",
-              "event_type:awslogs",
-              "dd_lambda_layer:datadog-python313_8.120.0"
+              "event_type:awslogs"
             ],
             "type": "distribution"
           },
@@ -146,8 +143,7 @@
               "forwardername:test_function",
               "forwarder_memorysize:3008",
               "forwarder_version:<redacted from snapshot>",
-              "event_type:awslogs",
-              "dd_lambda_layer:datadog-python313_8.120.0"
+              "event_type:awslogs"
             ],
             "type": "distribution"
           },
@@ -161,8 +157,7 @@
               "forwardername:test_function",
               "forwarder_memorysize:3008",
               "forwarder_version:<redacted from snapshot>",
-              "event_type:awslogs",
-              "dd_lambda_layer:datadog-python313_8.120.0"
+              "event_type:awslogs"
             ],
             "type": "distribution"
           },
@@ -176,8 +171,7 @@
               "forwardername:test_function",
               "forwarder_memorysize:3008",
               "forwarder_version:<redacted from snapshot>",
-              "event_type:awslogs",
-              "dd_lambda_layer:datadog-python313_8.120.0"
+              "event_type:awslogs"
             ],
             "type": "distribution"
           }
