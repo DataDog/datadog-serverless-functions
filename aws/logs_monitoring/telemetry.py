@@ -56,6 +56,4 @@ def send_log_metric(metric):
     if not DD_SUBMIT_ENHANCED_METRICS:
         return
 
-    lambda_metric(
-        metric["m"], metric["v"], timestamp=metric["e"], tags=metric["t"]
-    )
+    lambda_metric(metric["m"], metric["v"], timestamp=metric["e"], tags=metric["t"])
