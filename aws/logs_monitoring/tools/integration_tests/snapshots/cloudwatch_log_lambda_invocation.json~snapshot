@@ -728,7 +728,8 @@
               "forwardername:test_function",
               "forwarder_memorysize:3008",
               "forwarder_version:<redacted from snapshot>",
-              "event_type:awslogs"
+              "event_type:awslogs",
+              "dd_lambda_layer:datadog-python313_8.120.0"
             ],
             "type": "distribution"
           },
@@ -742,7 +743,8 @@
               "forwardername:test_function",
               "forwarder_memorysize:3008",
               "forwarder_version:<redacted from snapshot>",
-              "event_type:awslogs"
+              "event_type:awslogs",
+              "dd_lambda_layer:datadog-python313_8.120.0"
             ],
             "type": "distribution"
           },
@@ -756,7 +758,8 @@
               "forwardername:test_function",
               "forwarder_memorysize:3008",
               "forwarder_version:<redacted from snapshot>",
-              "event_type:awslogs"
+              "event_type:awslogs",
+              "dd_lambda_layer:datadog-python313_8.120.0"
             ],
             "type": "distribution"
           },
@@ -770,7 +773,8 @@
               "forwardername:test_function",
               "forwarder_memorysize:3008",
               "forwarder_version:<redacted from snapshot>",
-              "event_type:awslogs"
+              "event_type:awslogs",
+              "dd_lambda_layer:datadog-python313_8.120.0"
             ],
             "type": "distribution"
           },
@@ -784,7 +788,8 @@
               "forwardername:test_function",
               "forwarder_memorysize:3008",
               "forwarder_version:<redacted from snapshot>",
-              "event_type:awslogs"
+              "event_type:awslogs",
+              "dd_lambda_layer:datadog-python313_8.120.0"
             ],
             "type": "distribution"
           },
@@ -798,7 +803,8 @@
               "forwardername:test_function",
               "forwarder_memorysize:3008",
               "forwarder_version:<redacted from snapshot>",
-              "event_type:awslogs"
+              "event_type:awslogs",
+              "dd_lambda_layer:datadog-python313_8.120.0"
             ],
             "type": "distribution"
           },
@@ -812,7 +818,8 @@
               "forwardername:test_function",
               "forwarder_memorysize:3008",
               "forwarder_version:<redacted from snapshot>",
-              "event_type:awslogs"
+              "event_type:awslogs",
+              "dd_lambda_layer:datadog-python313_8.120.0"
             ],
             "type": "distribution"
           },
@@ -836,7 +843,8 @@
               "aws_account:012345678912",
               "functionname:hello-dog-node-dev-hello12x",
               "region:us-east-1",
-              "service:hello-dog-node-dev-hello12x"
+              "service:hello-dog-node-dev-hello12x",
+              "dd_lambda_layer:datadog-python313_8.120.0"
             ],
             "type": "distribution"
           },
@@ -855,7 +863,8 @@
               "aws_account:012345678912",
               "functionname:hello-dog-node-dev-hello12x",
               "region:us-east-1",
-              "service:hello-dog-node-dev-hello12x"
+              "service:hello-dog-node-dev-hello12x",
+              "dd_lambda_layer:datadog-python313_8.120.0"
             ],
             "type": "distribution"
           },
