@@ -320,7 +320,7 @@ def parse_metrics_from_json_report_log(log_message):
     else:
         tags.append("cold_start:false")
 
-    # Billed duration only available for On-Demand Lambda functions, 
+    # Billed duration only available for On-Demand Lambda functions,
     # for Managed Instances, this is no longer available.
     billed_duration = record_metrics.get(BILLED_DURATION_RECORD_KEY)
     if billed_duration is not None and memory_allocated is not None:

@@ -96,8 +96,16 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
                     "durationMs": 2.524,
                 },
                 "spans": [
-                    {"name": "responseLatency", "start": "2026-01-08T18:22:35.342Z", "durationMs": 0.642},
-                    {"name": "responseDuration", "start": "2026-01-08T18:22:35.343Z", "durationMs": 0.075},
+                    {
+                        "name": "responseLatency",
+                        "start": "2026-01-08T18:22:35.342Z",
+                        "durationMs": 0.642,
+                    },
+                    {
+                        "name": "responseDuration",
+                        "start": "2026-01-08T18:22:35.343Z",
+                        "durationMs": 0.075,
+                    },
                 ],
                 "status": "success",
             },
@@ -148,7 +156,9 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
 
     def test_parse_metrics_from_partial_metrics_json_report_log(self):
         """Test that JSON report logs with partial/incomplete metrics don't raise KeyError"""
-        parsed_metrics = parse_metrics_from_json_report_log(self.managed_instances_metrics_json_report)
+        parsed_metrics = parse_metrics_from_json_report_log(
+            self.managed_instances_metrics_json_report
+        )
         # Should only return metrics that are present (duration in this case)
         # Should not raise KeyError for missing billedDurationMs, maxMemoryUsedMB, memorySizeMB
         assert len(parsed_metrics) == 1  # Only duration metric
