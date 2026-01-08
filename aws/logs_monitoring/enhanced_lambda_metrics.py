@@ -289,7 +289,9 @@ def parse_metrics_from_json_report_log(log_message):
     metrics = []
 
     for record_key, metric_name in RUNTIME_METRICS_BY_RECORD_KEY.items():
-        metric_point_value = record_metrics[record_key]
+        metric_point_value = record_metrics.get(record_key)
+        if metric_point_value is None:
+            continue
 
         if metric_name in METRIC_ADJUSTMENT_FACTORS:
             metric_point_value *= METRIC_ADJUSTMENT_FACTORS[metric_name]
@@ -301,9 +303,10 @@ def parse_metrics_from_json_report_log(log_message):
             )
         )
 
-    tags = [
-        f"{MEMORY_ALLOCATED_FIELD_NAME}:{record_metrics[MEMORY_ALLOCATED_RECORD_KEY]}"
-    ]
+    tags = []
+    memory_allocated = record_metrics.get(MEMORY_ALLOCATED_RECORD_KEY)
+    if memory_allocated is not None:
+        tags.append(f"{MEMORY_ALLOCATED_FIELD_NAME}:{memory_allocated}")
 
     init_duration = record_metrics.get(INIT_DURATION_RECORD_KEY)
     if init_duration:
@@ -317,15 +320,19 @@ def parse_metrics_from_json_report_log(log_message):
     else:
         tags.append("cold_start:false")
 
-    metrics.append(
-        DatadogMetricPoint(
-            f"{ENHANCED_METRICS_NAMESPACE_PREFIX}.{ESTIMATED_COST_METRIC_NAME}",
-            calculate_estimated_cost(
-                record_metrics[BILLED_DURATION_RECORD_KEY],
-                record_metrics[MEMORY_ALLOCATED_RECORD_KEY],
-            ),
+    # Billed duration only available for On-Demand Lambda functions, for Managed Instances,
+    # billed duration is no longer available.
+    billed_duration = record_metrics.get(BILLED_DURATION_RECORD_KEY)
+    if billed_duration is not None and memory_allocated is not None:
+        metrics.append(
+            DatadogMetricPoint(
+                f"{ENHANCED_METRICS_NAMESPACE_PREFIX}.{ESTIMATED_COST_METRIC_NAME}",
+                calculate_estimated_cost(
+                    billed_duration,
+                    memory_allocated,
+                ),
+            )
         )
-    )
 
     if record.get("status") == "timeout":
         metrics.append(
