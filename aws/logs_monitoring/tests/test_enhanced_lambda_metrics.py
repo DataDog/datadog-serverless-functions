@@ -86,6 +86,31 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
             },
         }
     )
+    managed_instances_metrics_json_report = json.dumps(
+        {
+            "time": "2026-01-08T18:22:35.343Z",
+            "type": "platform.report",
+            "record": {
+                "requestId": "4f423807-598d-47ae-9652-4f7ee31d4d10",
+                "metrics": {
+                    "durationMs": 2.524,
+                },
+                "spans": [
+                    {
+                        "name": "responseLatency",
+                        "start": "2026-01-08T18:22:35.342Z",
+                        "durationMs": 0.642,
+                    },
+                    {
+                        "name": "responseDuration",
+                        "start": "2026-01-08T18:22:35.343Z",
+                        "durationMs": 0.075,
+                    },
+                ],
+                "status": "success",
+            },
+        }
+    )
 
     def test_parse_lambda_tags_from_arn(self):
         verify_as_json(
@@ -128,6 +153,21 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
     def test_parse_metrics_from_timeout_json_report_log(self):
         parsed_metrics = parse_metrics_from_json_report_log(self.timeout_json_report)
         verify_as_json(parsed_metrics)
+
+    def test_parse_metrics_from_partial_metrics_json_report_log(self):
+        """Test that JSON report logs with partial/incomplete metrics don't raise KeyError"""
+        parsed_metrics = parse_metrics_from_json_report_log(
+            self.managed_instances_metrics_json_report
+        )
+        # Should only return metrics that are present (duration in this case)
+        # Should not raise KeyError for missing billedDurationMs, maxMemoryUsedMB, memorySizeMB
+        assert len(parsed_metrics) == 1  # Only duration metric
+        assert parsed_metrics[0].name == "aws.lambda.enhanced.duration"
+        # Duration should be converted from ms to seconds (2.524 * 0.001 = 0.002524)
+        assert parsed_metrics[0].value == 0.002524
+        # Tags should include cold_start:false but NOT memorysize since it's missing
+        assert "cold_start:false" in parsed_metrics[0].tags
+        assert not any(tag.startswith("memorysize:") for tag in parsed_metrics[0].tags)
 
     def test_create_out_of_memory_enhanced_metric(self):
         go_out_of_memory_error = "fatal error: runtime: out of memory"
