@@ -300,6 +300,31 @@ class TestS3EventsHandler(unittest.TestCase):
             "s3",
         )
 
+    def test_vpc_flowlog_skips_header_line(self):
+        """Test that VPC flow logs skip the first header line"""
+        key = "AWSLogs/123456789012/vpcflowlogs/us-east-1/2024/01/01/123456789012_vpcflowlogs_us-east-1_fl-abc123.log.gz"
+        source = "vpc"
+        data = (
+            "version account-id interface-id srcaddr dstaddr srcport dstport protocol packets bytes start end action log-status\n"
+            "2 123456789012 eni-abc123 10.0.0.1 10.0.0.2 443 49152 6 10 840 1620000000 1620000060 ACCEPT OK\n"
+            "2 123456789012 eni-abc123 10.0.0.2 10.0.0.1 49152 443 6 8 640 1620000000 1620000060 ACCEPT OK"
+        )
+        structured_lines = self.parse_lines(data, key, source)
+
+        self.assertEqual(len(structured_lines), 2)
+        self.assertIn("10.0.0.1", structured_lines[0]["message"])
+        self.assertNotIn("version account-id", structured_lines[0]["message"])
+
+    def test_non_vpc_flowlog_includes_first_line(self):
+        """Test that non-VPC flow logs include all lines"""
+        key = "AWSLogs/123456789012/elasticloadbalancing/us-east-1/2024/01/01/log.gz"
+        source = "elb"
+        data = "first line of data\n" "second line of data\n" "third line of data"
+        structured_lines = self.parse_lines(data, key, source)
+
+        self.assertEqual(len(structured_lines), 3)
+        self.assertEqual(structured_lines[0]["message"], "first line of data")
+
 
 if __name__ == "__main__":
     unittest.main()

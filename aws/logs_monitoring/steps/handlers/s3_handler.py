@@ -18,7 +18,13 @@ from settings import (
     DD_USE_VPC,
     GOV_STRING,
 )
-from steps.common import add_service_tag, is_cloudtrail, merge_dicts, parse_event_source
+from steps.common import (
+    add_service_tag,
+    is_cloudtrail,
+    is_vpc_flowlog,
+    merge_dicts,
+    parse_event_source,
+)
 
 
 class S3EventDataStore:
@@ -63,6 +69,7 @@ class S3EventHandler:
         add_service_tag(self.metadata)
 
         self._extract_data()
+
         yield from self._get_structured_lines_for_s3_handler()
 
     def _extract_event(self, event):
@@ -178,6 +185,9 @@ class S3EventHandler:
             self.logger.debug("Unable to parse cloudtrail log: %s" % e)
 
     def _extract_other_logs(self):
+        # VPC flow logs have a header line that should be skipped
+        skip_first_line = is_vpc_flowlog(self.data_store.key)
+
         # Check if using multiline log regex pattern
         # and determine whether line or pattern separated logs
         if self.multiline_regex_start_pattern and self.multiline_regex_pattern:
@@ -197,7 +207,9 @@ class S3EventHandler:
                 )
                 self.data_store.data = self.data_store.data.splitlines()
 
-            for line in self.data_store.data:
+            for i, line in enumerate(self.data_store.data):
+                if skip_first_line and i == 0:
+                    continue
                 yield self._format_event(line)
 
         else:
@@ -206,7 +218,10 @@ class S3EventHandler:
             #
             # https://docs.python.org/3/library/stdtypes.html#str.splitlines
             # https://docs.python.org/3/library/stdtypes.html#bytes.splitlines
-            for line in self.data_store.data.splitlines():
+            for i, line in enumerate(self.data_store.data.splitlines()):
+                if skip_first_line and i == 0:
+                    continue
+
                 line = line.decode("utf-8", errors="ignore").strip()
                 if len(line) == 0:
                     continue

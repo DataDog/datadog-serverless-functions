@@ -56,6 +56,10 @@ def is_cloudtrail(key):
     return bool(match)
 
 
+def is_vpc_flowlog(key):
+    return "vpcflowlogs" in key
+
+
 def find_cloudwatch_source(log_group):
     for prefix in AwsCwEventSourcePrefix:
         if log_group.startswith(str(prefix)):
