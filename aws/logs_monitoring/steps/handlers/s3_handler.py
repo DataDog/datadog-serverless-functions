@@ -18,7 +18,13 @@ from settings import (
     DD_USE_VPC,
     GOV_STRING,
 )
-from steps.common import add_service_tag, is_cloudtrail, is_vpc_flowlog, merge_dicts, parse_event_source
+from steps.common import (
+    add_service_tag,
+    is_cloudtrail,
+    is_vpc_flowlog,
+    merge_dicts,
+    parse_event_source,
+)
 
 
 class S3EventDataStore:
@@ -63,7 +69,7 @@ class S3EventHandler:
         add_service_tag(self.metadata)
 
         self._extract_data()
-        
+
         yield from self._get_structured_lines_for_s3_handler()
 
     def _extract_event(self, event):

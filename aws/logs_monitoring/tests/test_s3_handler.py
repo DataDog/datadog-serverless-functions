@@ -311,7 +311,6 @@ class TestS3EventsHandler(unittest.TestCase):
         )
         structured_lines = self.parse_lines(data, key, source)
 
-
         self.assertEqual(len(structured_lines), 2)
         self.assertIn("10.0.0.1", structured_lines[0]["message"])
         self.assertNotIn("version account-id", structured_lines[0]["message"])
@@ -320,13 +319,8 @@ class TestS3EventsHandler(unittest.TestCase):
         """Test that non-VPC flow logs include all lines"""
         key = "AWSLogs/123456789012/elasticloadbalancing/us-east-1/2024/01/01/log.gz"
         source = "elb"
-        data = (
-            "first line of data\n"
-            "second line of data\n"
-            "third line of data"
-        )
+        data = "first line of data\n" "second line of data\n" "third line of data"
         structured_lines = self.parse_lines(data, key, source)
-
 
         self.assertEqual(len(structured_lines), 3)
         self.assertEqual(structured_lines[0]["message"], "first line of data")
