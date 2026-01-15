@@ -1,53 +1,96 @@
 {
   "events": [
     {
+      "data": [
+        {
+          "aws": {
+            "awslogs": {
+              "logGroup": "/aws/lambda/storms-cloudwatch-event",
+              "logStream": "2020/06/04/[$LATEST]af2b1e1843b84a2d80c67840ae3ffa72",
+              "owner": "601427279990"
+            },
+            "invoked_function_arn": "arn:aws:lambda:us-east-1:012345678912:function:test_function"
+          },
+          "ddsource": "lambda",
+          "ddsourcecategory": "aws",
+          "ddtags": "forwardername:test_function,forwarder_version:<redacted from snapshot>,env:none,aws_account:012345678912,functionname:storms-cloudwatch-event,region:us-east-1,service:storms-cloudwatch-event",
+          "host": "arn:aws:lambda:us-east-1:012345678912:function:storms-cloudwatch-event",
+          "id": "35486831490800643125153606102923171443962457178576257024",
+          "lambda": {
+            "arn": "arn:aws:lambda:us-east-1:012345678912:function:storms-cloudwatch-event"
+          },
+          "message": "START RequestId: <redacted from snapshot> Version: $LATEST\\n",
+          "service": "storms-cloudwatch-event",
+          "timestamp": 1591284559098
+        },
+        {
+          "aws": {
+            "awslogs": {
+              "logGroup": "/aws/lambda/storms-cloudwatch-event",
+              "logStream": "2020/06/04/[$LATEST]af2b1e1843b84a2d80c67840ae3ffa72",
+              "owner": "601427279990"
+            },
+            "invoked_function_arn": "arn:aws:lambda:us-east-1:012345678912:function:test_function"
+          },
+          "ddsource": "lambda",
+          "ddsourcecategory": "aws",
+          "ddtags": "forwardername:test_function,forwarder_version:<redacted from snapshot>,env:none,aws_account:012345678912,functionname:storms-cloudwatch-event,region:us-east-1,service:storms-cloudwatch-event",
+          "host": "arn:aws:lambda:us-east-1:012345678912:function:storms-cloudwatch-event",
+          "id": "35486831490867545360749197972347778598780402263094198273",
+          "lambda": {
+            "arn": "arn:aws:lambda:us-east-1:012345678912:function:storms-cloudwatch-event"
+          },
+          "message": "END RequestId: <redacted from snapshot>\\n",
+          "service": "storms-cloudwatch-event",
+          "timestamp": 1591284559101
+        },
+        {
+          "aws": {
+            "awslogs": {
+              "logGroup": "/aws/lambda/storms-cloudwatch-event",
+              "logStream": "2020/06/04/[$LATEST]af2b1e1843b84a2d80c67840ae3ffa72",
+              "owner": "601427279990"
+            },
+            "invoked_function_arn": "arn:aws:lambda:us-east-1:012345678912:function:test_function"
+          },
+          "ddsource": "lambda",
+          "ddsourcecategory": "aws",
+          "ddtags": "forwardername:test_function,forwarder_version:<redacted from snapshot>,env:none,aws_account:012345678912,functionname:storms-cloudwatch-event,region:us-east-1,service:storms-cloudwatch-event",
+          "host": "arn:aws:lambda:us-east-1:012345678912:function:storms-cloudwatch-event",
+          "id": "35486831490867545360749197972347778598780402263094198274",
+          "lambda": {
+            "arn": "arn:aws:lambda:us-east-1:012345678912:function:storms-cloudwatch-event"
+          },
+          "message": "REPORT RequestId: <redacted from snapshot>\\tDuration: 1.76 ms\\tBilled Duration: 100 ms\\tMemory Size: 128 MB\\tMax Memory Used: 48 MB\\tInit Duration: 120.96 ms\\t\\n",
+          "service": "storms-cloudwatch-event",
+          "timestamp": 1591284559101
+        }
+      ],
+      "headers": {
+        "Accept": "*/*",
+        "Accept-Encoding": "gzip, deflate",
+        "Connection": "keep-alive",
+        "Content-Length": "<redacted from snapshot>",
+        "Content-type": "application/json",
+        "DD-API-KEY": "abcdefghijklmnopqrstuvwxyz012345",
+        "DD-EVP-ORIGIN": "aws_forwarder",
+        "DD-EVP-ORIGIN-VERSION": "<redacted from snapshot>",
+        "DD-STORAGE-TAG": "s3,cloudwatch",
+        "Host": "recorder:8080",
+        "User-Agent": "<redacted from snapshot>",
+        "traceparent": "<redacted from snapshot>",
+        "tracestate": "<redacted from snapshot>",
+        "x-datadog-parent-id": "<redacted from snapshot>",
+        "x-datadog-sampling-priority": "1",
+        "x-datadog-tags": "<redacted from snapshot>",
+        "x-datadog-trace-id": "<redacted from snapshot>"
+      },
+      "path": "/api/v2/logs",
+      "verb": "POST"
+    },
+    {
       "data": {
         "series": [
-          {
-            "device": null,
-            "host": null,
-            "interval": 10,
-            "metric": "aws.dd_forwarder.loggroup_cache_fetch_failure",
-            "points": "<redacted from snapshot>",
-            "tags": [
-              "forwardername:test_function",
-              "forwarder_memorysize:3008",
-              "forwarder_version:<redacted from snapshot>",
-              "event_type:awslogs",
-              "dd_lambda_layer:<redacted from snapshot>"
-            ],
-            "type": "distribution"
-          },
-          {
-            "device": null,
-            "host": null,
-            "interval": 10,
-            "metric": "aws.dd_forwarder.list_tags_log_group_api_call",
-            "points": "<redacted from snapshot>",
-            "tags": [
-              "forwardername:test_function",
-              "forwarder_memorysize:3008",
-              "forwarder_version:<redacted from snapshot>",
-              "event_type:awslogs",
-              "dd_lambda_layer:<redacted from snapshot>"
-            ],
-            "type": "distribution"
-          },
-          {
-            "device": null,
-            "host": null,
-            "interval": 10,
-            "metric": "aws.dd_forwarder.loggroup_cache_write_failure",
-            "points": "<redacted from snapshot>",
-            "tags": [
-              "forwardername:test_function",
-              "forwarder_memorysize:3008",
-              "forwarder_version:<redacted from snapshot>",
-              "event_type:awslogs",
-              "dd_lambda_layer:<redacted from snapshot>"
-            ],
-            "type": "distribution"
-          },
           {
             "device": null,
             "host": null,
@@ -67,7 +110,7 @@
             "device": null,
             "host": null,
             "interval": 10,
-            "metric": "aws.dd_forwarder.local_lambda_cache_expired",
+            "metric": "aws.dd_forwarder.logs_forwarded",
             "points": "<redacted from snapshot>",
             "tags": [
               "forwardername:test_function",
@@ -82,22 +125,7 @@
             "device": null,
             "host": null,
             "interval": 10,
-            "metric": "aws.dd_forwarder.s3_cache_fetch_failure",
-            "points": "<redacted from snapshot>",
-            "tags": [
-              "forwardername:test_function",
-              "forwarder_memorysize:3008",
-              "forwarder_version:<redacted from snapshot>",
-              "event_type:awslogs",
-              "dd_lambda_layer:<redacted from snapshot>"
-            ],
-            "type": "distribution"
-          },
-          {
-            "device": null,
-            "host": null,
-            "interval": 10,
-            "metric": "aws.dd_forwarder.s3_cache_expired",
+            "metric": "aws.dd_forwarder.metrics_forwarded",
             "points": "<redacted from snapshot>",
             "tags": [
               "forwardername:test_function",
