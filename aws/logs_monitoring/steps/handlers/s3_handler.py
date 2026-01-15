@@ -58,6 +58,42 @@ class S3EventHandler:
         # a private data store for event attributes
         self.data_store = S3EventDataStore()
 
+    def _transform_eventbridge_to_s3_format(self, event):
+        """
+        Transform EventBridge S3 event to standard S3 event format.
+
+        EventBridge format:
+        {
+            "version": "0",
+            "detail-type": "Object Created",
+            "source": "aws.s3",
+            "detail": {
+                "bucket": {"name": "bucket-name"},
+                "object": {"key": "object-key", "size": 1234}
+            }
+        }
+
+        Standard S3 format:
+        {
+            "Records": [{
+                "s3": {
+                    "bucket": {"name": "bucket-name"},
+                    "object": {"key": "object-key"}
+                }
+            }]
+        }
+        """
+        return {
+            "Records": [{
+                "s3": {
+                    "bucket": event["detail"]["bucket"],
+                    "object": {
+                        "key": event["detail"]["object"]["key"]
+                    }
+                }
+            }]
+        }
+
     def handle(self, event):
         event = self._extract_event(event)
 
@@ -73,6 +109,9 @@ class S3EventHandler:
         yield from self._get_structured_lines_for_s3_handler()
 
     def _extract_event(self, event):
+        # if this is an EventBridge S3 event, transform it to standard S3 format
+        if event.get("source") == "aws.s3" and "detail" in event:
+            event = self._transform_eventbridge_to_s3_format(event)
         # if this is a S3 event carried in a SNS message, extract it and override the event
         if "Sns" in event.get("Records")[0]:
             event = json.loads(event.get("Records")[0].get("Sns").get("Message"))
