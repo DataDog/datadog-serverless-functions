@@ -161,7 +161,9 @@ def extract_ddtags_from_message(event):
         extracted_ddtags = extracted_ddtags.replace(" ", "")
 
         # Extract service tag from message.ddtags if exists
-        service_tags = [tag for tag in extracted_ddtags.split(",") if tag.startswith("service:")]
+        service_tags = [
+            tag for tag in extracted_ddtags.split(",") if tag.startswith("service:")
+        ]
         if service_tags:
             event[DD_SERVICE] = service_tags[0][8:]
             event[DD_CUSTOM_TAGS] = ",".join(
