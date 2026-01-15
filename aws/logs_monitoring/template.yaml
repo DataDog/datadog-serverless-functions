@@ -783,6 +783,7 @@ Resources:
       Principal: "sns.amazonaws.com"
       SourceAccount: !Ref "AWS::AccountId"
   CloudWatchEventsPermission:
+    # Allows invocations from CloudWatch Events and EventBridge (including EventBridge S3 events)
     Type: AWS::Lambda::Permission
     Properties:
       FunctionName: !Ref "Forwarder"
