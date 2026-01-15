@@ -32,7 +32,7 @@ fi
 # between different python runtimes.
 
 if [[ $(docker image ls | grep -c golang) -lt 1 ]]; then
-    docker_build --platform linux/arm64 -t golang . --no-cache --build-arg "runtime=python:3.13"
+    docker_build --platform linux/arm64 -t golang . --no-cache --build-arg "runtime=python:3.14"
 fi
 
 docker run --rm --platform linux/arm64 --volume "$(pwd):/root/bin" golang cp -r /go/src/github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring/trace_forwarder/bin /root/bin
