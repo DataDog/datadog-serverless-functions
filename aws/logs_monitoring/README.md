@@ -349,7 +349,7 @@ You can run the Forwarder in a VPC private subnet and send data to Datadog over 
 3. When installing the Forwarder with the CloudFormation template:
     1. Set `DdUseVPC` to `true`.
     2. Set `VPCSecurityGroupIds` and `VPCSubnetIds` based on your VPC settings.
-    3. If you set any of `DdFetchLambdaTags`, `DdFetchStepFunctionsTags`, or `DdFetchS3Tags` to `true`, add the [AWS Resource Groups Tagging API endpoint][26] to your VPC. If you set `DdFetchLogGroupTags` to `true`, add the Amazon CloudWatch Logs endpoint to your VPC. 
+    3. If you set any of `DdFetchLambdaTags`, `DdFetchStepFunctionsTags`, or `DdFetchS3Tags` to `true`, add the [AWS Resource Groups Tagging API endpoint][26] to your VPC. If you set `DdFetchLogGroupTags` to `true`, add the [Amazon CloudWatch Logs endpoint][26] to your VPC. Check [this link][27] for further information on how to create required Datadog endpoints, and [this link][28] for creating AWS services endpoints.
 
 ### AWS VPC and proxy support
 
@@ -860,3 +860,5 @@ Additional helpful documentation, links, and articles:
 [24]: https://docs.datadoghq.com/logs/log_configuration/processors/?tab=ui#log-date-remapper
 [25]: https://github.com/DataDog/datadog-serverless-functions/blob/master/aws/logs_monitoring/CHANGELOG.md
 [26]: https://docs.aws.amazon.com/vpc/latest/privatelink/aws-services-privatelink-support.html
+[27]: https://docs.datadoghq.com/agent/guide/private-link/?tab=crossregionprivatelinkendpoints#create-your-vpc-endpoint
+[28]: https://docs.aws.amazon.com/vpc/latest/privatelink/create-interface-endpoint.html#create-interface-endpoint
