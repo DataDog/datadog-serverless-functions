@@ -28,4 +28,4 @@ jobs:
 
       - name: AWS Python integration tests
         run: |
-          ./aws/logs_monitoring/tools/integration_tests/integration_tests.sh --python-version=3.13
+          ./aws/logs_monitoring/tools/integration_tests/integration_tests.sh --python-version=3.14

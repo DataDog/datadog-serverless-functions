@@ -23,7 +23,7 @@
       ],
       "headers": {
         "Accept": "*/*",
-        "Accept-Encoding": "gzip, deflate",
+        "Accept-Encoding": "gzip, deflate, zstd",
         "Connection": "keep-alive",
         "Content-Length": "<redacted from snapshot>",
         "Content-type": "application/json",
@@ -95,7 +95,7 @@
       },
       "headers": {
         "Accept": "*/*",
-        "Accept-Encoding": "gzip, deflate",
+        "Accept-Encoding": "gzip, deflate, zstd",
         "Connection": "keep-alive",
         "Content-Encoding": "deflate",
         "Content-Length": "<redacted from snapshot>",

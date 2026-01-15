@@ -12,10 +12,10 @@ setup(
     author="Datadog, Inc.",
     author_email="dev@datadoghq.com",
     classifiers=[
-        "Programming Language :: Python :: 3.13",
+        "Programming Language :: Python :: 3.14",
     ],
     keywords="datadog aws lambda layer",
-    python_requires=">=3.13, <3.14",
+    python_requires=">=3.14, <3.15",
     extras_require={
         "dev": ["nose2==0.9.1", "flake8==3.7.9", "requests==2.22.0", "boto3==1.10.33"]
     },

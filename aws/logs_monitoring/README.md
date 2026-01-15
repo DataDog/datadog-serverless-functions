@@ -178,6 +178,10 @@ The <a href="#cloudformation-parameters">environment variables provided on this 
 
 If you encounter issues upgrading to the latest version, check the Troubleshooting section.
 
+### Upgrade to 5.2.0+
+
+Starting version 5.2.0+ Lambda function has been updated to require **Python 3.14**. If upgrading an older forwarder installation to 5.2.0+, ensure AWS Lambda function is configured to use Python 3.14
+
 ### Upgrade to v5.0.0+
 
 **Version 5.0.0 is a major release with breaking changes.** Before upgrading, review the [CHANGELOG.md][25] for detailed information about breaking changes and migration requirements.
