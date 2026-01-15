@@ -144,7 +144,7 @@ class Forwarder(object):
     def _forward_metrics(self, metrics, key=None):
         """
         Forward custom metrics submitted via logs to Datadog in a background thread
-        using `lambda_stats` that is provided by the Datadog Python Lambda Layer.
+        using `lambda_metric` that is provided by the Datadog Python Lambda Layer.
         """
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug(f"Forwarding {len(metrics)} metrics")
