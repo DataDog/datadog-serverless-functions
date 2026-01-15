@@ -75,7 +75,7 @@
               "forwarder_memorysize:3008",
               "forwarder_version:<redacted from snapshot>",
               "event_type:awslogs",
-              "dd_lambda_layer:datadog-python313_8.120.0"
+              "dd_lambda_layer:<redacted from snapshot>"
             ],
             "type": "distribution"
           },
@@ -90,7 +90,7 @@
               "forwarder_memorysize:3008",
               "forwarder_version:<redacted from snapshot>",
               "event_type:awslogs",
-              "dd_lambda_layer:datadog-python313_8.120.0"
+              "dd_lambda_layer:<redacted from snapshot>"
             ],
             "type": "distribution"
           },
@@ -105,7 +105,7 @@
               "forwarder_memorysize:3008",
               "forwarder_version:<redacted from snapshot>",
               "event_type:awslogs",
-              "dd_lambda_layer:datadog-python313_8.120.0"
+              "dd_lambda_layer:<redacted from snapshot>"
             ],
             "type": "distribution"
           },
@@ -120,7 +120,7 @@
               "forwarder_memorysize:3008",
               "forwarder_version:<redacted from snapshot>",
               "event_type:awslogs",
-              "dd_lambda_layer:datadog-python313_8.120.0"
+              "dd_lambda_layer:<redacted from snapshot>"
             ],
             "type": "distribution"
           },
@@ -135,7 +135,7 @@
               "forwarder_memorysize:3008",
               "forwarder_version:<redacted from snapshot>",
               "event_type:awslogs",
-              "dd_lambda_layer:datadog-python313_8.120.0"
+              "dd_lambda_layer:<redacted from snapshot>"
             ],
             "type": "distribution"
           },
@@ -150,7 +150,7 @@
               "forwarder_memorysize:3008",
               "forwarder_version:<redacted from snapshot>",
               "event_type:awslogs",
-              "dd_lambda_layer:datadog-python313_8.120.0"
+              "dd_lambda_layer:<redacted from snapshot>"
             ],
             "type": "distribution"
           }

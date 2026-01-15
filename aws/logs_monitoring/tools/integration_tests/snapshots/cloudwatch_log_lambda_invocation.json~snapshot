@@ -712,7 +712,7 @@
         "Host": "recorder:8080",
         "User-Agent": "<redacted from snapshot>"
       },
-      "path": "/api/v0.2/traces",
+      "path": "/api/v0.4/traces",
       "verb": "POST"
     },
     {
@@ -729,7 +729,7 @@
               "forwarder_memorysize:3008",
               "forwarder_version:<redacted from snapshot>",
               "event_type:awslogs",
-              "dd_lambda_layer:datadog-python313_8.120.0"
+              "dd_lambda_layer:<redacted from snapshot>"
             ],
             "type": "distribution"
           },
@@ -744,7 +744,7 @@
               "forwarder_memorysize:3008",
               "forwarder_version:<redacted from snapshot>",
               "event_type:awslogs",
-              "dd_lambda_layer:datadog-python313_8.120.0"
+              "dd_lambda_layer:<redacted from snapshot>"
             ],
             "type": "distribution"
           },
@@ -759,7 +759,7 @@
               "forwarder_memorysize:3008",
               "forwarder_version:<redacted from snapshot>",
               "event_type:awslogs",
-              "dd_lambda_layer:datadog-python313_8.120.0"
+              "dd_lambda_layer:<redacted from snapshot>"
             ],
             "type": "distribution"
           },
@@ -774,7 +774,7 @@
               "forwarder_memorysize:3008",
               "forwarder_version:<redacted from snapshot>",
               "event_type:awslogs",
-              "dd_lambda_layer:datadog-python313_8.120.0"
+              "dd_lambda_layer:<redacted from snapshot>"
             ],
             "type": "distribution"
           },
@@ -789,7 +789,7 @@
               "forwarder_memorysize:3008",
               "forwarder_version:<redacted from snapshot>",
               "event_type:awslogs",
-              "dd_lambda_layer:datadog-python313_8.120.0"
+              "dd_lambda_layer:<redacted from snapshot>"
             ],
             "type": "distribution"
           },
@@ -804,7 +804,7 @@
               "forwarder_memorysize:3008",
               "forwarder_version:<redacted from snapshot>",
               "event_type:awslogs",
-              "dd_lambda_layer:datadog-python313_8.120.0"
+              "dd_lambda_layer:<redacted from snapshot>"
             ],
             "type": "distribution"
           },
@@ -819,7 +819,7 @@
               "forwarder_memorysize:3008",
               "forwarder_version:<redacted from snapshot>",
               "event_type:awslogs",
-              "dd_lambda_layer:datadog-python313_8.120.0"
+              "dd_lambda_layer:<redacted from snapshot>"
             ],
             "type": "distribution"
           },
@@ -844,7 +844,7 @@
               "functionname:hello-dog-node-dev-hello12x",
               "region:us-east-1",
               "service:hello-dog-node-dev-hello12x",
-              "dd_lambda_layer:datadog-python313_8.120.0"
+              "dd_lambda_layer:<redacted from snapshot>"
             ],
             "type": "distribution"
           },
@@ -855,7 +855,7 @@
             "metric": "hello.js10x.dog-2",
             "points": "<redacted from snapshot>",
             "tags": [
-              "dd_lambda_layer:datadog-nodev12.14.1",
+              "dd_lambda_layer:<redacted from snapshot>",
               "function_arn:arn:aws:lambda:us-east-1:012345678912:function:hello-dog-node-dev-hello12x",
               "forwardername:test_function",
               "forwarder_version:<redacted from snapshot>",
@@ -864,7 +864,7 @@
               "functionname:hello-dog-node-dev-hello12x",
               "region:us-east-1",
               "service:hello-dog-node-dev-hello12x",
-              "dd_lambda_layer:datadog-python313_8.120.0"
+              "dd_lambda_layer:<redacted from snapshot>"
             ],
             "type": "distribution"
           },
@@ -879,7 +879,8 @@
               "cold_start:false",
               "region:us-east-1",
               "aws_account:012345678912",
-              "functionname:hello-dog-node-dev-hello12x"
+              "functionname:hello-dog-node-dev-hello12x",
+              "dd_lambda_layer:<redacted from snapshot>"
             ],
             "type": "distribution"
           },
@@ -894,7 +895,8 @@
               "cold_start:false",
               "region:us-east-1",
               "aws_account:012345678912",
-              "functionname:hello-dog-node-dev-hello12x"
+              "functionname:hello-dog-node-dev-hello12x",
+              "dd_lambda_layer:<redacted from snapshot>"
             ],
             "type": "distribution"
           },
@@ -909,7 +911,8 @@
               "cold_start:false",
               "region:us-east-1",
               "aws_account:012345678912",
-              "functionname:hello-dog-node-dev-hello12x"
+              "functionname:hello-dog-node-dev-hello12x",
+              "dd_lambda_layer:<redacted from snapshot>"
             ],
             "type": "distribution"
           },
@@ -924,7 +927,8 @@
               "cold_start:false",
               "region:us-east-1",
               "aws_account:012345678912",
-              "functionname:hello-dog-node-dev-hello12x"
+              "functionname:hello-dog-node-dev-hello12x",
+              "dd_lambda_layer:<redacted from snapshot>"
             ],
             "type": "distribution"
           }
