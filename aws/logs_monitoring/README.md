@@ -349,7 +349,7 @@ You can run the Forwarder in a VPC private subnet and send data to Datadog over 
 3. When installing the Forwarder with the CloudFormation template:
     1. Set `DdUseVPC` to `true`.
     2. Set `VPCSecurityGroupIds` and `VPCSubnetIds` based on your VPC settings.
-    3. Set `DdFetchLambdaTags`, `DdFetchStepFunctionsTags`, and `DdFetchS3Tags` to `false`, because AWS Resource Groups Tagging API doesn't support PrivateLink.
+    3. If you set any of `DdFetchLambdaTags`, `DdFetchStepFunctionsTags`, or `DdFetchS3Tags` to `true`, add the [AWS Resource Groups Tagging API endpoint][26] to your VPC. If you set `DdFetchLogGroupTags` to `true`, add the Amazon CloudWatch Logs endpoint to your VPC. 
 
 ### AWS VPC and proxy support
 
@@ -859,3 +859,4 @@ Additional helpful documentation, links, and articles:
 [23]: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/transform-aws-serverless.html
 [24]: https://docs.datadoghq.com/logs/log_configuration/processors/?tab=ui#log-date-remapper
 [25]: https://github.com/DataDog/datadog-serverless-functions/blob/master/aws/logs_monitoring/CHANGELOG.md
+[26]: https://docs.aws.amazon.com/vpc/latest/privatelink/aws-services-privatelink-support.html
