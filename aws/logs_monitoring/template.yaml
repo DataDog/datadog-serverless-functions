@@ -296,9 +296,10 @@ Parameters:
     AllowedValues:
       - "true"
       - "false"
-    Description: Set to true to enable trace creation for the forwarder itself.
-    Lambda forwarder should be instrumented to forward these traces to Datadog, see https://docs.datadoghq.com/serverless/aws_lambda/.
-    Enabling this may incur additional Serverless APM charges. See https://docs.datadoghq.com/tracing/trace_collection/library_config/python/#traces.
+    Description: |
+      Set to true to enable trace creation for the forwarder itself.
+      Lambda forwarder should be instrumented to forward these traces to Datadog, see https://docs.datadoghq.com/serverless/aws_lambda/.
+      Enabling this may incur additional Serverless APM charges. See https://docs.datadoghq.com/tracing/trace_collection/library_config/python/#traces.
   DdEnhancedMetrics:
     Type: String
     Default: "false"
