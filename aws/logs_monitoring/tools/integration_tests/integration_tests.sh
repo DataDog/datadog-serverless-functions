@@ -20,10 +20,10 @@ SNAPSHOT_DIR="${INTEGRATION_TESTS_DIR}/${SNAPSHOTS_DIR_NAME}/*"
 SNAPS=($SNAPSHOT_DIR)
 ADDITIONAL_LAMBDA=false
 CACHE_TEST=false
-DD_FETCH_LAMBDA_TAGS="true"
-DD_FETCH_LOG_GROUP_TAGS="true"
-DD_FETCH_STEP_FUNCTIONS_TAGS="true"
-DD_STORE_FAILED_EVENTS="true"
+DD_FETCH_LAMBDA_TAGS="false"
+DD_FETCH_LOG_GROUP_TAGS="false"
+DD_FETCH_STEP_FUNCTIONS_TAGS="false"
+DD_STORE_FAILED_EVENTS="false"
 
 script_start_time=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 echo "Starting script time: $script_start_time"
@@ -85,6 +85,8 @@ if [ $CACHE_TEST == true ]; then
 
         SNAPSHOTS_DIR_NAME="snapshots-cache-test"
         DD_FETCH_LAMBDA_TAGS="true"
+        DD_FETCH_LOG_GROUP_TAGS="true"
+        DD_FETCH_STEP_FUNCTIONS_TAGS="true"
 
         # Deploy test lambda function with tags
         AWS_LAMBDA_FUNCTION_INVOKED="cache_test_lambda"

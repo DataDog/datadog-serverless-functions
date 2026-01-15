@@ -74,6 +74,12 @@ class TestForwarderSnapshots(unittest.TestCase):
             "forwarder_version:<redacted from snapshot>",
             snapshot,
         )
+        # Lambda layer version in tags
+        snapshot = re.sub(
+            r"dd_lambda_layer:[^,\s\"]+",
+            "dd_lambda_layer:<redacted from snapshot>",
+            snapshot,
+        )
         # Forwarder version in trace payloads
         snapshot = re.sub(
             r"\"forwarder_version\":\s\"\d+\.\d+\.\d+\"",

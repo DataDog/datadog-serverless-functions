@@ -116,21 +116,6 @@
             "device": null,
             "host": null,
             "interval": 10,
-            "metric": "aws.dd_forwarder.loggroup_local_cache_hit",
-            "points": "<redacted from snapshot>",
-            "tags": [
-              "forwardername:test_function",
-              "forwarder_memorysize:3008",
-              "forwarder_version:<redacted from snapshot>",
-              "event_type:awslogs",
-              "dd_lambda_layer:datadog-python313_8.120.0"
-            ],
-            "type": "distribution"
-          },
-          {
-            "device": null,
-            "host": null,
-            "interval": 10,
             "metric": "aws.dd_forwarder.incoming_events",
             "points": "<redacted from snapshot>",
             "tags": [
@@ -138,7 +123,7 @@
               "forwarder_memorysize:3008",
               "forwarder_version:<redacted from snapshot>",
               "event_type:awslogs",
-              "dd_lambda_layer:datadog-python313_8.120.0"
+              "dd_lambda_layer:<redacted from snapshot>"
             ],
             "type": "distribution"
           },
@@ -153,7 +138,7 @@
               "forwarder_memorysize:3008",
               "forwarder_version:<redacted from snapshot>",
               "event_type:awslogs",
-              "dd_lambda_layer:datadog-python313_8.120.0"
+              "dd_lambda_layer:<redacted from snapshot>"
             ],
             "type": "distribution"
           },
@@ -168,7 +153,7 @@
               "forwarder_memorysize:3008",
               "forwarder_version:<redacted from snapshot>",
               "event_type:awslogs",
-              "dd_lambda_layer:datadog-python313_8.120.0"
+              "dd_lambda_layer:<redacted from snapshot>"
             ],
             "type": "distribution"
           },
@@ -181,7 +166,8 @@
             "tags": [
               "region:us-east-1",
               "aws_account:012345678912",
-              "functionname:storms-cloudwatch-event"
+              "functionname:storms-cloudwatch-event",
+              "dd_lambda_layer:<redacted from snapshot>"
             ],
             "type": "distribution"
           }

@@ -85,7 +85,7 @@ logger = logging.getLogger()
 logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
 
 try:
-    from datadog_lambda.metric import lambda_stats
+    from datadog_lambda.metric import lambda_metric
 
     DD_SUBMIT_ENHANCED_METRICS = True
 except ImportError:
@@ -136,9 +136,7 @@ class DatadogMetricPoint(object):
         logger.debug(
             "Submitting metric {} {} {}".format(self.name, self.value, self.tags)
         )
-        lambda_stats.distribution(
-            self.name, self.value, timestamp=timestamp, tags=self.tags
-        )
+        lambda_metric(self.name, self.value, timestamp=timestamp, tags=self.tags)
 
 
 def get_last_modified_time(s3_file):
