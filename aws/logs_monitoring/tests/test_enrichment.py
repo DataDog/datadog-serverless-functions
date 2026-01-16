@@ -146,6 +146,31 @@ class TestMergeMessageTags(unittest.TestCase):
             "my_custom_service",
         )
 
+    def test_extract_ddtags_service_substring_not_prefix(self):
+        """Test that service tag extraction handles cases where 'service:' appears
+        as a substring but not as a tag prefix (e.g., in 'myservice:api').
+
+        Before the fix (old code):
+        - "service:" in extracted_ddtags would be True
+        - But next() would raise StopIteration since no tag starts with "service:"
+
+        After the fix (new code):
+        - List comprehension returns empty list when no tag starts with "service:"
+        - No exception is raised, service field is not set
+        """
+        loaded_message_tags = {"ddtags": "env:prod,myservice:api,foo:bar"}
+        event = {"message": loaded_message_tags, "ddtags": "custom_tag:value"}
+
+        extract_ddtags_from_message(event)
+
+        # Service should not be set since no tag actually starts with "service:"
+        self.assertNotIn("service", event)
+        # All tags should be preserved in the correct order
+        self.assertEqual(
+            event["ddtags"],
+            "custom_tag:value,env:prod,myservice:api,foo:bar",
+        )
+
 
 class TestExtractHostFromLogEvents(unittest.TestCase):
     def test_parse_source_cloudtrail(self):
