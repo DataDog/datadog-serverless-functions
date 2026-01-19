@@ -226,11 +226,7 @@ full_message_example = """
             "rss": 441652
         }]
     }
-""".replace(
-    " ", ""
-).replace(
-    "\n", ""
-)
+""".replace(" ", "").replace("\n", "")
 
 
 class TestRDSEnhancedMetrics(unittest.TestCase):

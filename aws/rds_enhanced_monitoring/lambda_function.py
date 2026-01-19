@@ -17,7 +17,6 @@ from urllib.parse import urlencode
 import botocore
 import boto3
 
-
 DD_SITE = os.getenv("DD_SITE", default="datadoghq.com")
 
 
