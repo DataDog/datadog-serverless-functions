@@ -51,11 +51,11 @@ class AwsLogsHandler:
 
         # Add custom tags from cache
         self.add_cloudwatch_tags_from_cache(metadata, aws_attributes)
+        # Set host as log group where cloudwatch is source
+        self.set_host(metadata, aws_attributes)
         # Set service from custom tags, which may include the tags set on the log group
         # Returns DD_SOURCE by default
         add_service_tag(metadata)
-        # Set host as log group where cloudwatch is source
-        self.set_host(metadata, aws_attributes)
         # For Lambda logs we want to extract the function name,
         # then rebuild the arn of the monitored lambda using that name.
         if metadata[DD_SOURCE] == str(AwsEventSource.LAMBDA):

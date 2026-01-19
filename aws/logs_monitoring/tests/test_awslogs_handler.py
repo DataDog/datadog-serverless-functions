@@ -195,7 +195,7 @@ class TestAWSLogsHandler(unittest.TestCase):
         mock_cache_init.return_value = None
         cache_layer = CacheLayer("")
         cache_layer._step_functions_cache.get = MagicMock(
-            return_value=["test_tag_key:test_tag_value"]
+            return_value=["test_tag_key:test_tag_value", "service:customservice"]
         )
         cache_layer._cloudwatch_log_group_cache.get = MagicMock()
 
