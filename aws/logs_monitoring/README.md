@@ -828,9 +828,10 @@ The value of the `service` tag is determined based on multiple inputs. These inp
 
 1. Log message custom tags: If the log message has a `ddtags` key which contains a `service` tag value, it will be used to override the `service` tag in the log event.
 2. Lambda tags cache (applicable for Lambda logs only): Activating `DdFetchLambdaTags` will fetch and store all Lambda functions tags and will override the `service` tag if it wasn't set previously or was set to a default value i.e. `source` value.
-3. Cloudwatch log group tags cache (applicable for Cloudwatch logs only): Activating `DdFetchLogGroupTags` will fetch and store all Cloudwatch log groups tags which are added to the `ddtags` entry in the log event. If `service` tag value was set in the tags cache it will be used to set the `service` tag for the log event.
-4. Directly setting a `service` tag value in the forwarder's `ddtags` ENV var.
-5. Default value equal to the `source` tag.
+3. Directly setting a `service` tag value in the forwarder's `ddtags` ENV var.
+4. Step Function tags cache (applicable for step Functions logs only): Activating `DdFetchStepFunctionsTags` will fetch and store all Step Functions tags and override `service` tag if wasn't set previously.
+5. Cloudwatch log group tags cache (applicable for Cloudwatch logs only): Activating `DdFetchLogGroupTags` will fetch and store all Cloudwatch log groups tags which are added to the `ddtags` entry in the log event. If `service` tag value was set in the tags cache it will be used to set the `service` tag for the log event.
+6. Default value equal to the `source` tag.
 
 ## Further Reading
 

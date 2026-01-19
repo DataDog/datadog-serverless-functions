@@ -16,7 +16,6 @@ from urllib.parse import urlencode
 import boto3
 import botocore
 
-
 logger = logging.getLogger()
 logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
 
