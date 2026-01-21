@@ -334,12 +334,12 @@ To use EventBridge for S3 event notifications:
        --targets "Id"="1","Arn"="arn:aws:lambda:REGION:ACCOUNT:function:datadog-forwarder"
    ```
 
-   Or using the AWS Console:
-   - Navigate to Amazon EventBridge
-   - Create a new rule
-   - Set **Event source** to `aws.s3`
-   - Set **Detail type** to `Object Created`
-   - Add your Datadog Forwarder Lambda as a target
+   Using the AWS Console:
+   - Navigate to Amazon EventBridge.
+   - Create a new rule.
+   - Set **Event source** to `aws.s3`.
+   - Set **Detail type** to `Object Created`.
+   - Add your Datadog Forwarder Lambda as a target.
 
 3. **Add advanced filtering (optional):**
 
