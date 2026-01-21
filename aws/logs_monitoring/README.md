@@ -314,9 +314,9 @@ To use EventBridge for S3 event notifications:
    ```
 
    Using the AWS Console:
-   - Navigate to your S3 bucket
-   - Go to **Properties** > **Event notifications**
-   - Enable **Amazon EventBridge**
+   - Navigate to your S3 bucket.
+   - Go to **Properties** > **Event notifications**.
+   - Enable **Amazon EventBridge**.
 
 2. **Create an EventBridge rule to trigger the Forwarder:**
 
