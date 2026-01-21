@@ -296,7 +296,7 @@ The Datadog Forwarder supports S3 event notifications delivered through Amazon E
 
 #### Supported event types
 
-- `Object Created` events from S3 via EventBridge
+- `Object Created` events from S3 delivered through EventBridge
 
 #### Configuration
 
