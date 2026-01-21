@@ -366,7 +366,7 @@ To use EventBridge for S3 event notifications:
 - **Advanced filtering**: Filter events based on bucket names, object key patterns, object size, and more
 - **Multiple targets**: Route the same S3 events to multiple Lambda functions or services
 - **Cross-account routing**: Forward events across AWS accounts
-- **Better delivery guarantees**: EventBridge provides built-in retry and dead-letter queue capabilities
+- **Better delivery guarantees**: Use built-in retry and dead-letter queue capabilities
 
 #### Backward compatibility
 
