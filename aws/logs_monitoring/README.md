@@ -292,7 +292,7 @@ An error occurred when creating the trigger: Configuration is ambiguously define
 
 ### Using EventBridge for S3 event notifications
 
-The Datadog Forwarder supports S3 event notifications delivered via Amazon EventBridge in addition to direct S3 event notifications. EventBridge provides advanced filtering capabilities and better integration options for complex architectures.
+The Datadog Forwarder supports S3 event notifications delivered through Amazon EventBridge, in addition to direct S3 event notifications. EventBridge provides advanced filtering and supports more complex integration patterns.
 
 #### Supported event types
 
