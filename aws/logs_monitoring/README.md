@@ -313,7 +313,7 @@ To use EventBridge for S3 event notifications:
        }'
    ```
 
-   Or using the AWS Console:
+   Using the AWS Console:
    - Navigate to your S3 bucket
    - Go to **Properties** > **Event notifications**
    - Enable **Amazon EventBridge**
