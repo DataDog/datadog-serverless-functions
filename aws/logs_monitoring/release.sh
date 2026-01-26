@@ -178,9 +178,18 @@ generate_versions_json() {
             {
                 layer_version: $layer.layer,
                 forwarder_version: $forwarder.version,
-                release_date: (.publishedAt | split("T")[0])
+                release_date: (.publishedAt | split("T")[0]),
+                published_at: .publishedAt
             }
         ] |
+
+        # Group by layer_version and keep only the most recent forwarder version for each layer
+        group_by(.layer_version) |
+        map({
+            layer_version: .[0].layer_version,
+            forwarder_version: (sort_by(.published_at) | reverse | .[0].forwarder_version),
+            release_date: (sort_by(.published_at) | reverse | .[0].release_date)
+        }) |
 
         sort_by(.layer_version | tonumber) | reverse |
 
@@ -206,8 +215,7 @@ generate_versions_json() {
 upload_versions_json() {
     log_info "Uploading versions.json to s3://${VERSIONS_BUCKET}/forwarder/versions.json..."
 
-    aws_login aws s3 cp "${VERSIONS_JSON_PATH}" "s3://${VERSIONS_BUCKET}/forwarder/versions.json" \
-        --grants "read=uri=http://acs.amazonaws.com/groups/global/AllUsers"
+    aws_login aws s3 cp "${VERSIONS_JSON_PATH}" "s3://${VERSIONS_BUCKET}/forwarder/versions.json"
 
     log_success "Uploaded versions.json to S3!"
 }
@@ -387,12 +395,12 @@ log_success "Forwarder release process complete!"
 
 if [[ ${ACCOUNT} == "prod" ]]; then
     log_info "Generating and uploading versions.json for the new release..."
-    
+
     generate_versions_json
     upload_versions_json
 
     log_success "Done generating and uploading versions.json!"
-    
+
     log_info "Don't forget to add release notes in GitHub!"
     log_info "\thttps://github.com/DataDog/datadog-serverless-functions/releases"
 fi
