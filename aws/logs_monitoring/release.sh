@@ -199,7 +199,6 @@ generate_versions_json() {
         }
     ')
 
-    # Write to file
     echo "${versions_json}" > "${VERSIONS_JSON_PATH}"
     log_success "Generated ${VERSIONS_JSON_PATH}"
 }
