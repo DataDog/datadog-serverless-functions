@@ -363,6 +363,15 @@ else
     sandbox_release
 fi
 
+if [[ ${ACCOUNT} == "prod" ]]; then
+    log_info "Generating and uploading versions.json"
+    
+    generate_versions_json
+    upload_versions_json
+
+    log_success "Done generating and uploading versions.json!"
+fi
+
 log_info "Uploading template.yaml to s3://${BUCKET}/aws/forwarder/${FORWARDER_VERSION}.yaml"
 
 if [[ ${ACCOUNT} == "prod" ]]; then
@@ -389,7 +398,4 @@ log_success "Forwarder release process complete!"
 if [[ ${ACCOUNT} == "prod" ]]; then
     log_info "Don't forget to add release notes in GitHub!"
     log_info "\thttps://github.com/DataDog/datadog-serverless-functions/releases"
-
-    generate_versions_json
-    upload_versions_json
 fi
