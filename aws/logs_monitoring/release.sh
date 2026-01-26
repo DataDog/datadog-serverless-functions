@@ -390,7 +390,6 @@ if [[ ${ACCOUNT} == "prod" ]]; then
     log_info "Don't forget to add release notes in GitHub!"
     log_info "\thttps://github.com/DataDog/datadog-serverless-functions/releases"
 
-    # Generate and upload versions.json for Terraform module consumption
     generate_versions_json
     upload_versions_json
 fi
