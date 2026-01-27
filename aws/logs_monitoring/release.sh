@@ -400,6 +400,8 @@ if [[ ${ACCOUNT} == "prod" ]]; then
     upload_versions_json
 
     log_success "Done generating and uploading versions.json!"
+    log_info "Please verify the uploaded file:"
+    log_info "\thttps://${VERSIONS_BUCKET}.s3.amazonaws.com/forwarder/versions.json"
 
     log_info "Don't forget to add release notes in GitHub!"
     log_info "\thttps://github.com/DataDog/datadog-serverless-functions/releases"
