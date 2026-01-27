@@ -125,6 +125,8 @@ CURRENT_VERSION=$(yq '.Mappings.Constants.DdForwarder.Version' "template.yaml")
 
 LAYER_NAME="Datadog-Forwarder"
 BUNDLE_PATH=".forwarder/aws-dd-forwarder-${FORWARDER_VERSION}.zip"
+VERSIONS_JSON_PATH=".forwarder/versions.json"
+VERSIONS_BUCKET="datadog-opensource-asset-versions"
 
 aws_login() {
     cfg=("$@")
@@ -150,6 +152,72 @@ get_max_layer_version() {
     else
         echo "${last_layer_version}"
     fi
+}
+
+generate_versions_json() {
+    log_info "Generating versions.json from GitHub release data..."
+
+    local releases_json
+    releases_json=$(gh release list --repo DataDog/datadog-serverless-functions --limit 200 --json tagName,name,publishedAt)
+
+    local versions_json
+    versions_json=$(echo "${releases_json}" | jq -r '
+        [
+            .[] |
+            select(.tagName | startswith("aws-dd-forwarder-")) |
+
+            # Extract forwarder version from tag (e.g., aws-dd-forwarder-5.1.0 -> 5.1.0)
+            (.tagName | capture("aws-dd-forwarder-(?<version>[0-9]+\\.[0-9]+\\.[0-9]+)")) as $forwarder |
+
+            # Extract layer version from name (e.g., "aws-dd-forwarder-5.1.0 (Layer v92)" -> 92)
+            (.name | capture("\\(Layer v(?<layer>[0-9]+)\\)")) as $layer |
+
+            # Only include if both extractions succeeded
+            select($forwarder != null and $layer != null) |
+
+            {
+                layer_version: $layer.layer,
+                forwarder_version: $forwarder.version,
+                release_date: (.publishedAt | split("T")[0]),
+                published_at: .publishedAt
+            }
+        ] |
+
+        # Group by layer_version and keep only the most recent forwarder version for each layer
+        group_by(.layer_version) |
+        map({
+            layer_version: .[0].layer_version,
+            forwarder_version: (sort_by(.published_at) | reverse | .[0].forwarder_version),
+            release_date: (sort_by(.published_at) | reverse | .[0].release_date)
+        }) |
+
+        sort_by(.layer_version | tonumber) | reverse |
+
+        {
+            latest: {
+                layer_version: .[0].layer_version,
+                forwarder_version: .[0].forwarder_version,
+                release_date: .[0].release_date
+            },
+            mappings: (
+                reduce .[] as $item (
+                    {};
+                    . + {($item.layer_version): $item.forwarder_version}
+                )
+            )
+        }
+    ')
+
+    echo "${versions_json}" > "${VERSIONS_JSON_PATH}"
+    log_success "Generated ${VERSIONS_JSON_PATH}"
+}
+
+upload_versions_json() {
+    log_info "Uploading versions.json to s3://${VERSIONS_BUCKET}/forwarder/versions.json..."
+
+    aws_login aws s3 cp "${VERSIONS_JSON_PATH}" "s3://${VERSIONS_BUCKET}/forwarder/versions.json"
+
+    log_success "Uploaded versions.json to S3!"
 }
 
 datadog_release() {
@@ -326,6 +394,15 @@ log_success ""
 log_success "Forwarder release process complete!"
 
 if [[ ${ACCOUNT} == "prod" ]]; then
+    log_info "Generating and uploading versions.json for the new release..."
+
+    generate_versions_json
+    upload_versions_json
+
+    log_success "Done generating and uploading versions.json!"
+    log_info "Please verify the uploaded file:"
+    log_info "\thttps://${VERSIONS_BUCKET}.s3.amazonaws.com/forwarder/versions.json"
+
     log_info "Don't forget to add release notes in GitHub!"
     log_info "\thttps://github.com/DataDog/datadog-serverless-functions/releases"
 fi
