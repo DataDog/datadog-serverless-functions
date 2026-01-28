@@ -300,5 +300,58 @@ class TestLambdaFunctionEndToEnd(unittest.TestCase):
         return encoded_data
 
 
+class TestParseEventType(unittest.TestCase):
+    def test_parse_eventbridge_s3_event_type(self):
+        """Test that EventBridge S3 events are correctly identified as S3 type"""
+        eventbridge_s3_event = {
+            "version": "0",
+            "id": "test-event-id",
+            "detail-type": "Object Created",
+            "source": "aws.s3",
+            "account": "123456789012",
+            "time": "2024-01-15T12:00:00Z",
+            "region": "us-east-1",
+            "resources": ["arn:aws:s3:::my-bucket"],
+            "detail": {
+                "bucket": {"name": "my-bucket"},
+                "object": {"key": "my-key.log"},
+            },
+        }
+
+        event_type = parse_event_type(eventbridge_s3_event)
+        self.assertEqual(event_type, AwsEventType.S3)
+
+    def test_parse_direct_s3_event_type(self):
+        """Test that direct S3 events are still correctly identified as S3 type"""
+        direct_s3_event = {
+            "Records": [
+                {
+                    "s3": {
+                        "bucket": {"name": "my-bucket"},
+                        "object": {"key": "my-key"},
+                    }
+                }
+            ]
+        }
+
+        event_type = parse_event_type(direct_s3_event)
+        self.assertEqual(event_type, AwsEventType.S3)
+
+    def test_parse_non_s3_eventbridge_event_type(self):
+        """Test that non-S3 EventBridge events are identified as EVENTS type"""
+        eventbridge_other_event = {
+            "version": "0",
+            "detail-type": "EC2 Instance State-change Notification",
+            "source": "aws.ec2",
+            "detail": {
+                "instance-id": "i-1234567890abcdef0",
+                "state": "terminated"
+            },
+        }
+
+        event_type = parse_event_type(eventbridge_other_event)
+        self.assertEqual(event_type, AwsEventType.EVENTS)
+
+
 if __name__ == "__main__":
     unittest.main()

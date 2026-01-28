@@ -290,6 +290,88 @@ In case you encounter the following error when creating S3 triggers, we recommen
 An error occurred when creating the trigger: Configuration is ambiguously defined. Cannot have overlapping suffixes in two rules if the prefixes are overlapping for the same event type.
 ```
 
+### Using EventBridge for S3 event notifications
+
+The Datadog Forwarder supports S3 event notifications delivered through Amazon EventBridge, in addition to direct S3 event notifications. EventBridge provides advanced filtering and supports more complex integration patterns.
+
+#### Supported event types
+
+- `Object Created` events from S3 delivered through EventBridge
+
+#### Configuration
+
+To use EventBridge for S3 event notifications:
+
+1. **Enable EventBridge notifications on your S3 bucket:**
+
+   Using AWS CLI:
+   ```bash
+   aws s3api put-bucket-notification-configuration \
+       --bucket my-bucket \
+       --notification-configuration '{
+           "EventBridgeConfiguration": {}
+       }'
+   ```
+
+   Using the AWS Console:
+   - Navigate to your S3 bucket.
+   - Go to **Properties** > **Event notifications**.
+   - Enable **Amazon EventBridge**.
+
+2. **Create an EventBridge rule to trigger the Forwarder:**
+
+   Using AWS CLI:
+   ```bash
+   aws events put-rule \
+       --name s3-logs-to-datadog \
+       --event-pattern '{
+           "source": ["aws.s3"],
+           "detail-type": ["Object Created"]
+       }'
+
+   aws events put-targets \
+       --rule s3-logs-to-datadog \
+       --targets "Id"="1","Arn"="arn:aws:lambda:REGION:ACCOUNT:function:datadog-forwarder"
+   ```
+
+   Using the AWS Console:
+   - Navigate to Amazon EventBridge.
+   - Create a new rule.
+   - Set **Event source** to `aws.s3`.
+   - Set **Detail type** to `Object Created`.
+   - Add your Datadog Forwarder Lambda as a target.
+
+3. **Add advanced filtering (optional):**
+
+   You can filter events by bucket name or object key patterns:
+   ```json
+   {
+     "source": ["aws.s3"],
+     "detail-type": ["Object Created"],
+     "detail": {
+       "bucket": {
+         "name": ["my-logs-bucket"]
+       },
+       "object": {
+         "key": [{
+           "prefix": "logs/"
+         }]
+       }
+     }
+   }
+   ```
+
+#### Benefits of using EventBridge
+
+- **Advanced filtering**: Filter events based on bucket names, object key patterns, object size, and more
+- **Multiple targets**: Route the same S3 events to multiple Lambda functions or services
+- **Cross-account routing**: Forward events across AWS accounts
+- **Better delivery guarantees**: Use built-in retry and dead-letter queue capabilities
+
+#### Backward compatibility
+
+Direct S3 event notifications and SNS-wrapped S3 events continue to work without any changes. You can use EventBridge alongside existing triggers.
+
 ## Contributing
 
 We love pull requests. Here's a quick guide.
