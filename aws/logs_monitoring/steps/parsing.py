@@ -37,6 +37,7 @@ def parse(event, context, cache_layer):
                 events = aws_handler.handle(event)
                 return collect_and_count(events)
             case AwsEventType.S3:
+                event = _reformat_eventbridge_s3_event(event)
                 s3_handler = S3EventHandler(context, metadata, cache_layer)
                 events = s3_handler.handle(event)
             case AwsEventType.EVENTS:
@@ -84,6 +85,47 @@ def parse_event_type(event):
             return AwsEventType.S3
         return AwsEventType.EVENTS
     raise Exception("Event type not supported (see #Event supported section)")
+
+
+def _reformat_eventbridge_s3_event(event):
+    """
+    Transform EventBridge S3 event to standard S3 event format.
+
+    EventBridge format:
+    {
+        "version": "0",
+        "detail-type": "Object Created",
+        "source": "aws.s3",
+        "detail": {
+            "bucket": {"name": "bucket-name"},
+            "object": {"key": "object-key", "size": 1234}
+        }
+    }
+
+    Standard S3 format:
+    {
+        "Records": [{
+            "s3": {
+                "bucket": {"name": "bucket-name"},
+                "object": {"key": "object-key"}
+            }
+        }]
+    }
+    """
+    if event.get("source") == "aws.s3" and "detail" in event:
+        return {
+            "Records": [
+                {
+                    "s3": {
+                        "bucket": event["detail"]["bucket"],
+                        "object": {
+                            "key": event["detail"]["object"]["key"],
+                        },
+                    }
+                }
+            ]
+        }
+    return event
 
 
 # Handle Cloudwatch Events
