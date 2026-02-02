@@ -1,8 +1,10 @@
 import unittest
+from unittest.mock import MagicMock, patch
 
 from settings import DD_CUSTOM_TAGS, DD_SOURCE
 from steps.common import get_service_from_tags_and_remove_duplicates, parse_event_source
 from steps.enums import AwsEventSource
+from steps.parsing import parse
 
 
 class TestParseEventSource(unittest.TestCase):
@@ -180,6 +182,47 @@ class TestGetServiceFromTags(unittest.TestCase):
         self.assertEqual(get_service_from_tags_and_remove_duplicates(metadata), "web")
         self.assertEqual(
             metadata[DD_CUSTOM_TAGS], "env:dev,tag,stack:aws:ecs,service:web,version:v1"
+        )
+
+
+class TestEventBridgeS3Parsing(unittest.TestCase):
+    class Context:
+        function_version = "$LATEST"
+        invoked_function_arn = "arn:aws:lambda:us-east-1:123456789012:function:datadog-forwarder"
+        function_name = "datadog-forwarder"
+        memory_limit_in_mb = "128"
+
+    @patch("steps.parsing.S3EventHandler")
+    def test_parse_normalizes_eventbridge_s3_event_before_s3_handler(self, mock_s3_handler_cls):
+        # Arrange: handler yields one log line; we only care about the input event it received
+        mock_s3_handler = mock_s3_handler_cls.return_value
+        mock_s3_handler.handle.return_value = iter([{"message": "ok"}])
+
+        eventbridge_event = {
+            "version": "0",
+            "detail-type": "Object Created",
+            "source": "aws.s3",
+            "detail": {
+                "bucket": {"name": "my-bucket"},
+                "object": {"key": "my-key.log", "size": 1234},
+            },
+        }
+
+        cache_layer = MagicMock()
+
+        # Act
+        _ = parse(eventbridge_event, self.Context(), cache_layer)
+
+        # Assert: parse() passed a canonical S3-shaped event into the S3 handler
+        mock_s3_handler.handle.assert_called_once()
+        (normalized_event,) = mock_s3_handler.handle.call_args.args
+
+        self.assertIn("Records", normalized_event)
+        self.assertEqual(
+            normalized_event["Records"][0]["s3"]["bucket"]["name"], "my-bucket"
+        )
+        self.assertEqual(
+            normalized_event["Records"][0]["s3"]["object"]["key"], "my-key.log"
         )
 
 
