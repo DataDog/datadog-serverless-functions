@@ -353,5 +353,115 @@ class TestParseEventType(unittest.TestCase):
         self.assertEqual(event_type, AwsEventType.EVENTS)
 
 
+class TestEventBridgeS3Parsing(unittest.TestCase):
+    def setUp(self):
+        self.context = Context()
+        # Minimal cache layer mock for S3 handler
+        self.cache_layer = MagicMock()
+        s3_tags_cache = MagicMock()
+        s3_tags_cache.get.return_value = []
+        self.cache_layer.get_s3_tags_cache.return_value = s3_tags_cache
+
+    @patch("steps.handlers.s3_handler.boto3")
+    def test_parse_eventbridge_s3_object_created_end_to_end(self, mock_boto3):
+        """EventBridge S3 Object Created event is normalized and processed via parse()."""
+        mock_s3_client = MagicMock()
+        mock_s3_client.get_object.return_value = {
+            "Body": MagicMock(read=MagicMock(return_value=b"test log line"))
+        }
+        mock_boto3.client.return_value = mock_s3_client
+
+        eventbridge_event = {
+            "version": "0",
+            "id": "test-event-id",
+            "detail-type": "Object Created",
+            "source": "aws.s3",
+            "account": "123456789012",
+            "time": "2024-01-15T12:00:00Z",
+            "region": "us-east-1",
+            "resources": ["arn:aws:s3:::my-bucket"],
+            "detail": {
+                "bucket": {"name": "my-bucket"},
+                "object": {"key": "my-key.log"},
+            },
+        }
+
+        logs = parse(eventbridge_event, self.context, self.cache_layer)
+
+        self.assertEqual(len(logs), 1)
+        self.assertEqual(logs[0]["message"], "test log line")
+        self.assertEqual(logs[0]["aws"]["s3"]["bucket"], "my-bucket")
+        self.assertEqual(logs[0]["aws"]["s3"]["key"], "my-key.log")
+
+    @patch("steps.handlers.s3_handler.boto3")
+    def test_parse_eventbridge_s3_with_gzip_file_end_to_end(self, mock_boto3):
+        """EventBridge S3 event with gzipped file is handled via parse()."""
+        mock_s3_client = MagicMock()
+        gzip_data = gzip.compress(b"gzipped log line")
+        mock_s3_client.get_object.return_value = {
+            "Body": MagicMock(read=MagicMock(return_value=gzip_data))
+        }
+        mock_boto3.client.return_value = mock_s3_client
+
+        eventbridge_event = {
+            "version": "0",
+            "detail-type": "Object Created",
+            "source": "aws.s3",
+            "detail": {
+                "bucket": {"name": "my-bucket"},
+                "object": {"key": "my-key.log.gz"},
+            },
+        }
+
+        logs = parse(eventbridge_event, self.context, self.cache_layer)
+
+        self.assertEqual(len(logs), 1)
+        self.assertEqual(logs[0]["message"], "gzipped log line")
+        self.assertEqual(logs[0]["aws"]["s3"]["bucket"], "my-bucket")
+        self.assertEqual(logs[0]["aws"]["s3"]["key"], "my-key.log.gz")
+
+    @patch("steps.handlers.s3_handler.boto3")
+    def test_parse_eventbridge_s3_cloudtrail_end_to_end(self, mock_boto3):
+        """EventBridge S3 event carrying CloudTrail logs is handled via parse()."""
+        mock_s3_client = MagicMock()
+        cloudtrail_data = {
+            "Records": [
+                {
+                    "eventVersion": "1.05",
+                    "eventName": "AssumeRole",
+                    "eventSource": "sts.amazonaws.com",
+                }
+            ]
+        }
+        mock_s3_client.get_object.return_value = {
+            "Body": MagicMock(
+                read=MagicMock(
+                    return_value=gzip.compress(
+                        bytes(str(cloudtrail_data).replace("'", '"'), "utf-8")
+                    )
+                )
+            )
+        }
+        mock_boto3.client.return_value = mock_s3_client
+
+        eventbridge_event = {
+            "version": "0",
+            "detail-type": "Object Created",
+            "source": "aws.s3",
+            "detail": {
+                "bucket": {"name": "my-bucket"},
+                "object": {
+                    "key": "123456779121_CloudTrail_eu-west-3_20180707T1735Z_abcdefghi0MCRL2O.json.gz"
+                },
+            },
+        }
+
+        logs = parse(eventbridge_event, self.context, self.cache_layer)
+
+        self.assertEqual(len(logs), 1)
+        self.assertEqual(logs[0]["eventName"], "AssumeRole")
+        self.assertEqual(logs[0]["aws"]["s3"]["bucket"], "my-bucket")
+
+
 if __name__ == "__main__":
     unittest.main()
