@@ -94,16 +94,9 @@ class Forwarder(object):
             evaluated_log = log
             to_forward = None
 
-            # apply scrubbing rules to inner log message
             if isinstance(log, dict):
                 if log.get("message"):
-                    try:
-                        log["message"] = scrubber.scrub(log["message"])
-                        evaluated_log = log["message"]
-                    except Exception as e:
-                        logger.error(
-                            f"Exception while scrubbing log message {log['message']}: {e}"
-                        )
+                    evaluated_log = log["message"]
                 else:
                     to_forward = dump_event(log)
                     evaluated_log = to_forward
