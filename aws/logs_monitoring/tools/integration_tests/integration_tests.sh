@@ -22,7 +22,6 @@ ADDITIONAL_LAMBDA=false
 CACHE_TEST=false
 DD_FETCH_LAMBDA_TAGS="false"
 DD_FETCH_LOG_GROUP_TAGS="false"
-DD_FETCH_STEP_FUNCTIONS_TAGS="false"
 DD_STORE_FAILED_EVENTS="false"
 
 script_start_time=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
@@ -86,7 +85,6 @@ if [ $CACHE_TEST == true ]; then
         SNAPSHOTS_DIR_NAME="snapshots-cache-test"
         DD_FETCH_LAMBDA_TAGS="true"
         DD_FETCH_LOG_GROUP_TAGS="true"
-        DD_FETCH_STEP_FUNCTIONS_TAGS="true"
 
         # Deploy test lambda function with tags
         AWS_LAMBDA_FUNCTION_INVOKED="cache_test_lambda"
@@ -139,9 +137,24 @@ fi
 
 cd $INTEGRATION_TESTS_DIR
 
+
+docker_build() {
+    docker buildx build "${@}"
+}
+
+if command -v container >/dev/null 2>&1; then
+    docker() {
+        container "${@}"
+    }
+
+    docker_build() {
+        container build "${@}"
+    }
+fi
+
 # Build Docker image of Forwarder for tests
 echo "Building Docker Image for Forwarder with tag datadog-log-forwarder:$PYTHON_VERSION"
-docker buildx build --platform linux/arm64 --file "${INTEGRATION_TESTS_DIR}/forwarder/Dockerfile" -t "datadog-log-forwarder:$PYTHON_VERSION" ../../.forwarder --no-cache \
+docker_build --platform linux/arm64 --file "${INTEGRATION_TESTS_DIR}/forwarder/Dockerfile" -t "datadog-log-forwarder:$PYTHON_VERSION" ../../.forwarder --no-cache \
         --build-arg forwarder='aws-dd-forwarder-0.0.0' \
         --build-arg image="public.ecr.aws/lambda/python:${PYTHON_VERSION_TAG}-arm64"
 
@@ -156,7 +169,6 @@ LOG_LEVEL=${LOG_LEVEL} \
         SNAPSHOTS_DIR_NAME="./${SNAPSHOTS_DIR_NAME}" \
         DD_FETCH_LAMBDA_TAGS=${DD_FETCH_LAMBDA_TAGS} \
         DD_FETCH_LOG_GROUP_TAGS=${DD_FETCH_LOG_GROUP_TAGS} \
-        DD_FETCH_STEP_FUNCTIONS_TAGS=${DD_FETCH_STEP_FUNCTIONS_TAGS} \
         DD_STORE_FAILED_EVENTS=${DD_STORE_FAILED_EVENTS} \
         docker compose up --build --abort-on-container-exit
 
