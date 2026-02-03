@@ -9,7 +9,6 @@ from io import BufferedReader, BytesIO
 from customized_log_group import (
     get_lambda_function_name_from_logstream_name,
     is_lambda_customized_log_group,
-    is_step_functions_log_group,
 )
 from settings import DD_CUSTOM_TAGS, DD_HOST, DD_SOURCE
 from steps.common import (
@@ -98,9 +97,6 @@ class AwsLogsHandler:
         # Need to place the handling of customized log group at the bottom so that it can correct the source for some edge cases
         if is_lambda_customized_log_group(log_stream):
             metadata[DD_SOURCE] = str(AwsEventSource.LAMBDA)
-        # Regardless of whether the log group is customized, the corresponding log stream starts with 'states/'."
-        if is_step_functions_log_group(log_stream):
-            metadata[DD_SOURCE] = str(AwsEventSource.STEPFUNCTION)
 
     def add_cloudwatch_tags_from_cache(self, metadata, aws_attributes):
         log_group_arn = aws_attributes.get_log_group_arn()
@@ -128,51 +124,6 @@ class AwsLogsHandler:
         match metadata_source:
             case AwsEventSource.CLOUDWATCH:
                 metadata[DD_HOST] = log_group
-            case AwsEventSource.STEPFUNCTION:
-                self.handle_step_function_source(metadata, aws_attributes)
-
-    def handle_verified_access_source(self, metadata, aws_attributes):
-        try:
-            message = json.loads(aws_attributes.get_log_events()[0].get("message"))
-            metadata[DD_HOST] = message.get("http_request").get("url").get("hostname")
-        except Exception as e:
-            logger.debug("Unable to set verified-access log host: %s" % e)
-
-    def handle_step_function_source(self, metadata, aws_attributes):
-        state_machine_arn = self.get_state_machine_arn(aws_attributes)
-        if not state_machine_arn:
-            return
-
-        metadata[DD_HOST] = state_machine_arn
-        formatted_stepfunctions_tags = (
-            self.cache_layer.get_step_functions_tags_cache().get(state_machine_arn)
-        )
-        if len(formatted_stepfunctions_tags) > 0:
-            metadata[DD_CUSTOM_TAGS] = (
-                ",".join(formatted_stepfunctions_tags)
-                if not metadata[DD_CUSTOM_TAGS]
-                else metadata[DD_CUSTOM_TAGS]
-                + ","
-                + ",".join(formatted_stepfunctions_tags)
-            )
-
-        if os.environ.get("DD_STEP_FUNCTIONS_TRACE_ENABLED", "false").lower() == "true":
-            metadata[DD_CUSTOM_TAGS] = ",".join(
-                [metadata.get(DD_CUSTOM_TAGS, [])]
-                + ["dd_step_functions_trace_enabled:true"]
-            )
-
-    def get_state_machine_arn(self, aws_attributes):
-        try:
-            message = json.loads(aws_attributes.get_log_events()[0].get("message"))
-            if message.get("execution_arn") is not None:
-                execution_arn = message["execution_arn"]
-                arn_tokens = re.split(r"[:/\\]", execution_arn)
-                arn_tokens[5] = "stateMachine"
-                return ":".join(arn_tokens[:7])
-        except Exception as e:
-            logger.debug("Unable to get state_machine_arn: %s" % e)
-        return ""
 
     # Lambda logs can be from either default or customized log group
     def process_lambda_logs(self, metadata, aws_attributes):

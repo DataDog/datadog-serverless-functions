@@ -9,7 +9,6 @@ class AwsEventSource(Enum):
     LAMBDA = "lambda"
     S3 = "s3"
     SNS = "sns"
-    STEPFUNCTION = "stepfunction"
     WAF = "waf"
 
     def __str__(self):
