@@ -3,7 +3,6 @@ import gzip
 import json
 import logging
 import os
-import re
 from io import BufferedReader, BytesIO
 
 from customized_log_group import (
