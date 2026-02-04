@@ -57,6 +57,9 @@ class DatadogHTTPClient(object):
     if storage_tag != "":
         _HEADERS["DD-STORAGE-TAG"] = storage_tag
 
+    if os.environ.get("DD_STEP_FUNCTIONS_TRACE_ENABLED", "false").lower() == "true":
+        _HEADERS["DD-STEP-FUNCTIONS-TRACE-ENABLED"] = "true"
+
     def __init__(
         self, host, port, no_ssl, skip_ssl_validation, api_key, scrubber, timeout=10
     ):
