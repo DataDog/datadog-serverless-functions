@@ -394,7 +394,6 @@ Conditions:
     - !Equals [!Ref DdForwarderBucketsAccessLogsTarget, ""]
   ShouldDdFetchTags: !Or
     - !Equals [!Ref DdFetchLambdaTags, true]
-    - !Equals [!Ref DdFetchStepFunctionsTags, true]
     - !Equals [!Ref DdFetchS3Tags, true]
   SetForwarderBucket: !Or
     - !Condition CreateS3Bucket
