@@ -137,24 +137,9 @@ fi
 
 cd $INTEGRATION_TESTS_DIR
 
-
-docker_build() {
-    docker buildx build "${@}"
-}
-
-if command -v container >/dev/null 2>&1; then
-    docker() {
-        container "${@}"
-    }
-
-    docker_build() {
-        container build "${@}"
-    }
-fi
-
 # Build Docker image of Forwarder for tests
 echo "Building Docker Image for Forwarder with tag datadog-log-forwarder:$PYTHON_VERSION"
-docker_build --platform linux/arm64 --file "${INTEGRATION_TESTS_DIR}/forwarder/Dockerfile" -t "datadog-log-forwarder:$PYTHON_VERSION" ../../.forwarder --no-cache \
+docker buildx build --platform linux/arm64 --file "${INTEGRATION_TESTS_DIR}/forwarder/Dockerfile" -t "datadog-log-forwarder:$PYTHON_VERSION" ../../.forwarder --no-cache \
         --build-arg forwarder='aws-dd-forwarder-0.0.0' \
         --build-arg image="public.ecr.aws/lambda/python:${PYTHON_VERSION_TAG}-arm64"
 

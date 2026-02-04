@@ -13,21 +13,6 @@ cd $(dirname "$0")/..
 
 rm -rf ./bin
 
-# Make us of Docker or apple/container seamless
-docker_build() {
-    docker buildx build "${@}"
-}
-
-if command -v container >/dev/null 2>&1; then
-    docker() {
-        container "${@}"
-    }
-
-    docker_build() {
-        container build "${@}"
-    }
-fi
-
 # Install datadogpy in a docker container to avoid the mess from switching
 # between different python runtimes.
 
