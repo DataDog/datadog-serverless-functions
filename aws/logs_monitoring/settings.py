@@ -287,10 +287,6 @@ DD_FETCH_LAMBDA_TAGS = get_env_var(
     "DD_FETCH_LAMBDA_TAGS", default="false", boolean=True
 )
 
-DD_FETCH_STEP_FUNCTIONS_TAGS = get_env_var(
-    "DD_FETCH_STEP_FUNCTIONS_TAGS", default="false", boolean=True
-)
-
 
 DD_ENRICH_S3_TAGS = get_env_var("DD_ENRICH_S3_TAGS", default="true", boolean=True)
 
@@ -319,10 +315,6 @@ def get_fetch_log_group_tags():
 
 def get_fetch_lambda_tags():
     return DD_FETCH_LAMBDA_TAGS
-
-
-def get_fetch_step_functions_tags():
-    return DD_FETCH_STEP_FUNCTIONS_TAGS
 
 
 def get_enrich_s3_tags():
@@ -360,9 +352,6 @@ DD_S3_CACHE_DIRNAME = "cache"
 DD_S3_LAMBDA_CACHE_FILENAME = "lambda.json"
 DD_S3_LAMBDA_CACHE_LOCK_FILENAME = "lambda.lock"
 
-DD_S3_STEP_FUNCTIONS_CACHE_FILENAME = "step-functions-cache.json"
-DD_S3_STEP_FUNCTIONS_CACHE_LOCK_FILENAME = "step-functions-cache.lock"
-
 DD_S3_TAGS_CACHE_FILENAME = "s3.json"
 DD_S3_TAGS_CACHE_LOCK_FILENAME = "s3.lock"
 
@@ -371,7 +360,6 @@ DD_S3_LOG_GROUP_CACHE_DIRNAME = "log-group"
 DD_TAGS_CACHE_TTL_SECONDS = int(get_env_var("DD_TAGS_CACHE_TTL_SECONDS", default=300))
 DD_S3_CACHE_LOCK_TTL_SECONDS = 60
 GET_RESOURCES_LAMBDA_FILTER = "lambda"
-GET_RESOURCES_STEP_FUNCTIONS_FILTER = "states"
 GET_RESOURCES_S3_FILTER = "s3:bucket"
 
 

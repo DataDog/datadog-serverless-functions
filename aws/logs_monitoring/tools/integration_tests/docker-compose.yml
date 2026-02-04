@@ -30,7 +30,6 @@ services:
       DD_API_URL: http://recorder:8080
       DD_FETCH_LAMBDA_TAGS: "${DD_FETCH_LAMBDA_TAGS:-false}"
       DD_FETCH_LOG_GROUP_TAGS: "${DD_FETCH_LOG_GROUP_TAGS:-false}"
-      DD_FETCH_STEP_FUNCTIONS_TAGS: "${DD_FETCH_STEP_FUNCTIONS_TAGS:-false}"
       DD_LOG_LEVEL: ${LOG_LEVEL:-info}
       DD_LOGS_INTAKE_URL: recorder:8080
       DD_NO_SSL: "true"
