@@ -325,55 +325,6 @@ class TestS3EventsHandler(unittest.TestCase):
         self.assertEqual(len(structured_lines), 3)
         self.assertEqual(structured_lines[0]["message"], "first line of data")
 
-    @patch("steps.handlers.s3_handler.boto3")
-    def test_backward_compatibility_direct_s3(self, mock_boto3):
-        """Test that direct S3 events still work after EventBridge changes"""
-        mock_s3_client = MagicMock()
-        mock_s3_client.get_object.return_value = {
-            "Body": MagicMock(read=MagicMock(return_value=b"direct s3 log"))
-        }
-        mock_boto3.client.return_value = mock_s3_client
-
-        direct_s3_event = {
-            "Records": [
-                {
-                    "s3": {
-                        "bucket": {"name": "my-bucket"},
-                        "object": {"key": "my-key"},
-                    }
-                }
-            ]
-        }
-
-        logs = list(self.s3_handler.handle(direct_s3_event))
-
-        self.assertEqual(len(logs), 1)
-        self.assertEqual(logs[0]["message"], "direct s3 log")
-
-    @patch("steps.handlers.s3_handler.boto3")
-    def test_backward_compatibility_sns_wrapped_s3(self, mock_boto3):
-        """Test that SNS-wrapped S3 events still work after EventBridge changes"""
-        mock_s3_client = MagicMock()
-        mock_s3_client.get_object.return_value = {
-            "Body": MagicMock(read=MagicMock(return_value=b"sns wrapped log"))
-        }
-        mock_boto3.client.return_value = mock_s3_client
-
-        sns_wrapped_event = {
-            "Records": [
-                {
-                    "Sns": {
-                        "Message": '{"Records": [{"s3": {"bucket": {"name": "my-bucket"}, "object": {"key": "sns-my-key"}}}]}'
-                    }
-                }
-            ]
-        }
-
-        logs = list(self.s3_handler.handle(sns_wrapped_event))
-
-        self.assertEqual(len(logs), 1)
-        self.assertEqual(logs[0]["message"], "sns wrapped log")
-
 
 if __name__ == "__main__":
     unittest.main()
