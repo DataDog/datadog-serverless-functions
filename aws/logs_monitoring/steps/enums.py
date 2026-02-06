@@ -58,6 +58,7 @@ class AwsCwEventSourcePrefix(Enum):
 class AwsEventType(Enum):
     AWSLOGS = "awslogs"
     EVENTS = "events"
+    EVENTBRIDGE_S3 = "eventbridge_s3"
     KINESIS = "kinesis"
     S3 = "s3"
     SNS = "sns"
