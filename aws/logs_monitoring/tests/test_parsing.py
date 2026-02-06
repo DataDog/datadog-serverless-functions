@@ -3,8 +3,8 @@ from unittest.mock import MagicMock, patch
 
 from settings import DD_CUSTOM_TAGS, DD_SOURCE
 from steps.common import get_service_from_tags_and_remove_duplicates, parse_event_source
-from steps.enums import AwsEventSource
-from steps.parsing import parse
+from steps.enums import AwsEventSource, AwsEventType
+from steps.parsing import parse, parse_event_type
 
 
 class TestParseEventSource(unittest.TestCase):
@@ -183,6 +183,59 @@ class TestGetServiceFromTags(unittest.TestCase):
         self.assertEqual(
             metadata[DD_CUSTOM_TAGS], "env:dev,tag,stack:aws:ecs,service:web,version:v1"
         )
+
+
+class TestParseEventType(unittest.TestCase):
+    def test_parse_eventbridge_s3_event_type(self):
+        """Test that EventBridge S3 events are correctly identified as EventBridge S3 type"""
+        eventbridge_s3_event = {
+            "version": "0",
+            "id": "test-event-id",
+            "detail-type": "Object Created",
+            "source": "aws.s3",
+            "account": "123456789012",
+            "time": "2024-01-15T12:00:00Z",
+            "region": "us-east-1",
+            "resources": ["arn:aws:s3:::my-bucket"],
+            "detail": {
+                "bucket": {"name": "my-bucket"},
+                "object": {"key": "my-key.log"},
+            },
+        }
+
+        event_type = parse_event_type(eventbridge_s3_event)
+        self.assertEqual(event_type, AwsEventType.EVENTBRIDGE_S3)
+
+    def test_parse_direct_s3_event_type(self):
+        """Test that direct S3 events are still correctly identified as S3 type"""
+        direct_s3_event = {
+            "Records": [
+                {
+                    "s3": {
+                        "bucket": {"name": "my-bucket"},
+                        "object": {"key": "my-key"},
+                    }
+                }
+            ]
+        }
+
+        event_type = parse_event_type(direct_s3_event)
+        self.assertEqual(event_type, AwsEventType.S3)
+
+    def test_parse_non_s3_eventbridge_event_type(self):
+        """Test that non-S3 EventBridge events are identified as EVENTS type"""
+        eventbridge_other_event = {
+            "version": "0",
+            "detail-type": "EC2 Instance State-change Notification",
+            "source": "aws.ec2",
+            "detail": {
+                "instance-id": "i-1234567890abcdef0",
+                "state": "terminated"
+            },
+        }
+
+        event_type = parse_event_type(eventbridge_other_event)
+        self.assertEqual(event_type, AwsEventType.EVENTS)
 
 
 class TestEventBridgeS3Parsing(unittest.TestCase):
