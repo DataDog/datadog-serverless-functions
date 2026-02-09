@@ -82,7 +82,7 @@ def parse_event_type(event):
         return AwsEventType.AWSLOGS
     elif "detail" in event:
         # Check if this is an EventBridge S3 event
-        if event.get("source") == "aws.s3" and "Object Created" in event.get("detail-type", ""):
+        if event.get("source", "") == "aws.s3" and "Object Created" in event.get("detail-type", ""):
             return AwsEventType.EVENTBRIDGE_S3
         return AwsEventType.EVENTS
     raise Exception("Event type not supported (see #Event supported section)")
