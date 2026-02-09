@@ -307,6 +307,10 @@ Parameters:
       - "true"
       - "false"
     Description: Set to true to enable enhanced Lambda metrics. This will generate additional custom metrics for Lambda functions, including cold starts, estimated AWS costs, and custom tags. Default is false.
+  S3BucketArnList:
+    Type: CommaDelimitedList
+    Default: ""
+    Description: List of S3 bucket ARNs the forwarder can read from (e.g. arn:aws:s3:::my-bucket/*), separated by comma. Leave empty to allow all buckets. Note that restricting this list may break the automatic creation of S3 triggers for buckets not included.
   KmsKeyList:
     Type: CommaDelimitedList
     Default: ""
@@ -402,6 +406,8 @@ Conditions:
     - !Equals [!Join ["", !Ref VPCSubnetIds], ""]
   SetDdLogLevel: !Not
     - !Equals [!Ref DdLogLevel, ""]
+  SetS3BucketArns: !Not
+    - !Equals [!Join ["", !Ref S3BucketArnList], ""]
   SetDdForwarderDecryptKeys: !Not
     - !Equals [!Join ["", !Ref KmsKeyList], ""]
   CreateRetryScheduler: !And
@@ -683,7 +689,10 @@ Resources:
                 - !Ref AWS::NoValue
               - Action:
                   - s3:GetObject
-                Resource: "*"
+                Resource: !If
+                  - SetS3BucketArns
+                  - !Ref S3BucketArnList
+                  - "*"
                 Effect: Allow
               # To get object from encrypted s3 buckets. Use PermissionsBoundaryArn to limit access if needed.
               # https://aws.amazon.com/premiumsupport/knowledge-center/s3-troubleshoot-403/#AWS_KMS_encryption
