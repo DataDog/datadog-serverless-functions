@@ -82,7 +82,9 @@ def parse_event_type(event):
         return AwsEventType.AWSLOGS
     elif "detail" in event:
         # Check if this is an EventBridge S3 event
-        if event.get("source", "") == "aws.s3" and "Object Created" in event.get("detail-type", ""):
+        if event.get("source", "") == "aws.s3" and "Object Created" in event.get(
+            "detail-type", ""
+        ):
             return AwsEventType.EVENTBRIDGE_S3
         return AwsEventType.EVENTS
     raise Exception("Event type not supported (see #Event supported section)")
@@ -90,7 +92,6 @@ def parse_event_type(event):
 
 # Handle S3 event over EventBridge
 def eventbridge_s3_handler(event, context, metadata, cache_layer):
-
     """
     Transform EventBridge S3 event to standard S3 event format.
 
@@ -115,6 +116,7 @@ def eventbridge_s3_handler(event, context, metadata, cache_layer):
         }]
     }
     """
+
     def reformat_eventbridge_s3_event(event):
         return {
             "Records": [

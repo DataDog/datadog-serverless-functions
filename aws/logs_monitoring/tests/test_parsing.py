@@ -228,10 +228,7 @@ class TestParseEventType(unittest.TestCase):
             "version": "0",
             "detail-type": "EC2 Instance State-change Notification",
             "source": "aws.ec2",
-            "detail": {
-                "instance-id": "i-1234567890abcdef0",
-                "state": "terminated"
-            },
+            "detail": {"instance-id": "i-1234567890abcdef0", "state": "terminated"},
         }
 
         event_type = parse_event_type(eventbridge_other_event)
@@ -241,12 +238,16 @@ class TestParseEventType(unittest.TestCase):
 class TestEventBridgeS3Parsing(unittest.TestCase):
     class Context:
         function_version = "$LATEST"
-        invoked_function_arn = "arn:aws:lambda:us-east-1:123456789012:function:datadog-forwarder"
+        invoked_function_arn = (
+            "arn:aws:lambda:us-east-1:123456789012:function:datadog-forwarder"
+        )
         function_name = "datadog-forwarder"
         memory_limit_in_mb = "128"
 
     @patch("steps.parsing.S3EventHandler")
-    def test_parse_normalizes_eventbridge_s3_event_before_s3_handler(self, mock_s3_handler_cls):
+    def test_parse_normalizes_eventbridge_s3_event_before_s3_handler(
+        self, mock_s3_handler_cls
+    ):
         # Arrange: handler yields one log line; we only care about the input event it received
         mock_s3_handler = mock_s3_handler_cls.return_value
         mock_s3_handler.handle.return_value = iter([{"message": "ok"}])
