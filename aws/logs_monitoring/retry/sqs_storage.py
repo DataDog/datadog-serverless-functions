@@ -138,6 +138,12 @@ class SQSStorage(BaseStorage):
             if current_size + separator_size + item_size > SQS_MAX_CHUNK_BYTES:
                 if current_chunk:
                     chunks.append(current_chunk)
+                if 2 + item_size > SQS_MAX_CHUNK_BYTES:
+                    logger.warning(
+                        f"Single item exceeds SQS message size limit "
+                        f"({item_size} bytes > {SQS_MAX_CHUNK_BYTES} bytes). "
+                        f"SQS send will fail for this chunk."
+                    )
                 current_chunk = [item]
                 current_size = 2 + item_size
             else:
