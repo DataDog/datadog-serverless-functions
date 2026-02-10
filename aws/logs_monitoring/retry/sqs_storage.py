@@ -49,22 +49,22 @@ class SQSStorage(BaseStorage):
                 break
 
             for message in messages:
-                attrs = message.get("MessageAttributes", {})
-                msg_retry_prefix = attrs.get("retry_prefix", {}).get("StringValue")
-                msg_function_prefix = attrs.get("function_prefix", {}).get(
-                    "StringValue"
-                )
                 receipt_handle = message["ReceiptHandle"]
+                msg_retry_prefix = self._get_message_attr(message, "retry_prefix")
+                msg_function_prefix = self._get_message_attr(message, "function_prefix")
 
-                if (
+                matches = (
                     msg_retry_prefix == str(prefix)
                     and msg_function_prefix == self.function_prefix
-                ):
-                    data = self._deserialize(message["Body"])
-                    if data is not None:
-                        key_data[receipt_handle] = data
-                else:
+                )
+
+                if not matches:
                     self._release_message(receipt_handle)
+                    continue
+
+                data = self._deserialize(message["Body"])
+                if data is not None:
+                    key_data[receipt_handle] = data
 
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug(
@@ -120,6 +120,13 @@ class SQSStorage(BaseStorage):
         except ClientError as e:
             logger.error(f"Failed to release SQS message: {e}")
 
+    @staticmethod
+    def _get_message_attr(message, attr_name):
+        """Extract a string attribute value from an SQS message."""
+        return (
+            message.get("MessageAttributes", {}).get(attr_name, {}).get("StringValue")
+        )
+
     def _chunk_data(self, data):
         """Split a list of items into chunks that each fit under SQS_MAX_CHUNK_BYTES."""
         if not isinstance(data, list):
@@ -153,7 +160,7 @@ class SQSStorage(BaseStorage):
         if current_chunk:
             chunks.append(current_chunk)
 
-        return chunks if chunks else [data]
+        return chunks or [data]
 
     def _serialize(self, data):
         return json.dumps(data, ensure_ascii=False)

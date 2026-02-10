@@ -14,7 +14,7 @@ def create_storage(function_prefix) -> BaseStorage:
         from retry.sqs_storage import SQSStorage
 
         return SQSStorage(function_prefix)
-    else:
-        from retry.storage import S3Storage
 
-        return S3Storage(function_prefix)
+    from retry.storage import S3Storage
+
+    return S3Storage(function_prefix)
