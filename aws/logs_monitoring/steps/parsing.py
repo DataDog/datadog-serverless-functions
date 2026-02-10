@@ -39,6 +39,8 @@ def parse(event, context, cache_layer):
             case AwsEventType.S3:
                 s3_handler = S3EventHandler(context, metadata, cache_layer)
                 events = s3_handler.handle(event)
+            case AwsEventType.EVENTBRIDGE_S3:
+                events = eventbridge_s3_handler(event, context, metadata, cache_layer)
             case AwsEventType.EVENTS:
                 events = cwevent_handler(event, metadata)
             case AwsEventType.SNS:
@@ -79,8 +81,59 @@ def parse_event_type(event):
     elif str(AwsEventType.AWSLOGS) in event:
         return AwsEventType.AWSLOGS
     elif "detail" in event:
+        # Check if this is an EventBridge S3 event
+        if event.get("source", "") == "aws.s3" and "Object Created" in event.get(
+            "detail-type", ""
+        ):
+            return AwsEventType.EVENTBRIDGE_S3
         return AwsEventType.EVENTS
     raise Exception("Event type not supported (see #Event supported section)")
+
+
+# Handle S3 event over EventBridge
+def eventbridge_s3_handler(event, context, metadata, cache_layer):
+    """
+    Transform EventBridge S3 event to standard S3 event format.
+
+    EventBridge format:
+    {
+        "version": "0",
+        "detail-type": "Object Created",
+        "source": "aws.s3",
+        "detail": {
+            "bucket": {"name": "bucket-name"},
+            "object": {"key": "object-key", "size": 1234}
+        }
+    }
+
+    Standard S3 format:
+    {
+        "Records": [{
+            "s3": {
+                "bucket": {"name": "bucket-name"},
+                "object": {"key": "object-key"}
+            }
+        }]
+    }
+    """
+
+    def reformat_eventbridge_s3_event(event):
+        return {
+            "Records": [
+                {
+                    "s3": {
+                        "bucket": event["detail"]["bucket"],
+                        "object": {
+                            "key": event["detail"]["object"]["key"],
+                        },
+                    }
+                }
+            ]
+        }
+
+    event = reformat_eventbridge_s3_event(event)
+    s3_handler = S3EventHandler(context, metadata, cache_layer)
+    return s3_handler.handle(event)
 
 
 # Handle Cloudwatch Events
