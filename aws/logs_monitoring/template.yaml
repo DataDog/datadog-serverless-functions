@@ -276,6 +276,10 @@ Parameters:
     Type: Number
     Default: 6
     Description: Interval in hours for scheduled forwarder invocation (via AWS EventBridge).
+  DdSqsQueueUrl:
+    Type: String
+    Default: ""
+    Description: URL of an existing SQS queue for failed event storage (alternative to S3). When set, the forwarder uses SQS instead of S3 for retry storage.
   DdForwarderExistingBucketName:
     Type: String
     Default: ""
@@ -404,6 +408,11 @@ Conditions:
     - !Condition CreateS3Bucket
     - !Not
       - !Equals [!Ref DdForwarderExistingBucketName, ""]
+  SetDdSqsQueueUrl: !Not
+    - !Equals [!Ref DdSqsQueueUrl, ""]
+  HasStorageBackend: !Or
+    - !Condition SetForwarderBucket
+    - !Condition SetDdSqsQueueUrl
   SetVpcSecurityGroupIds: !Not
     - !Equals [!Join ["", !Ref VPCSecurityGroupIds], ""]
   SetVpcSubnetIds: !Not
@@ -531,8 +540,12 @@ Resources:
             - !Ref DdPort
             - !Ref AWS::NoValue
           DD_STORE_FAILED_EVENTS: !If
-            - SetForwarderBucket
+            - HasStorageBackend
             - !Ref DdStoreFailedEvents
+            - !Ref AWS::NoValue
+          DD_SQS_QUEUE_URL: !If
+            - SetDdSqsQueueUrl
+            - !Ref DdSqsQueueUrl
             - !Ref AWS::NoValue
           REDACT_IP: !If
             - SetRedactIp
@@ -770,6 +783,20 @@ Resources:
                   - !Ref SqsQueueArnList
                   - "*"
                 Effect: Allow
+              - !If
+                - SetDdSqsQueueUrl # Access SQS queue for failed event storage
+                - Action:
+                    - sqs:SendMessage
+                    - sqs:ReceiveMessage
+                    - sqs:DeleteMessage
+                    - sqs:ChangeMessageVisibility
+                  Resource: !Sub
+                    - "arn:${AWS::Partition}:sqs:${Region}:${Account}:${QueueName}"
+                    - Region: !Select [1, !Split [".", !Select [2, !Split ["/", !Ref DdSqsQueueUrl]]]]
+                      Account: !Select [3, !Split ["/", !Ref DdSqsQueueUrl]]
+                      QueueName: !Select [4, !Split ["/", !Ref DdSqsQueueUrl]]
+                  Effect: Allow
+                - !Ref AWS::NoValue
       Tags:
         - Value: !FindInMap [Constants, DdForwarder, Version]
           Key: dd_forwarder_version
@@ -1159,6 +1186,7 @@ Metadata:
           - DdForwarderExistingBucketName
           - DdForwarderBucketName
           - DdStoreFailedEvents
+          - DdSqsQueueUrl
           - DdLogLevel
     ParameterLabels:
       DdApiKey:

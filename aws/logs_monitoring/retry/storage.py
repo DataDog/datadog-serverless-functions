@@ -6,13 +6,14 @@ from time import time
 import boto3
 from botocore.exceptions import ClientError
 
+from retry.base_storage import BaseStorage
 from settings import DD_S3_BUCKET_NAME, DD_S3_RETRY_DIRNAME
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
 
 
-class Storage(object):
+class S3Storage(BaseStorage):
     def __init__(self, function_prefix):
         self.bucket_name = DD_S3_BUCKET_NAME
         self.s3_client = boto3.client("s3")
@@ -85,3 +86,7 @@ class Storage(object):
 
     def _deserialize(self, data):
         return json.loads(data.decode("UTF-8"))
+
+
+# Backward-compatible alias
+Storage = S3Storage
