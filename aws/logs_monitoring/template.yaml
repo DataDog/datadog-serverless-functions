@@ -754,6 +754,13 @@ Resources:
                   Resource: "*"
                   Effect: Allow
                 - !Ref AWS::NoValue
+              # Required for Lambda event source mappings that poll SQS queues
+              - Action:
+                  - sqs:ReceiveMessage
+                  - sqs:DeleteMessage
+                  - sqs:GetQueueAttributes
+                Resource: "*"
+                Effect: Allow
       Tags:
         - Value: !FindInMap [Constants, DdForwarder, Version]
           Key: dd_forwarder_version

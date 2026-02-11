@@ -62,6 +62,7 @@ class AwsEventType(Enum):
     KINESIS = "kinesis"
     S3 = "s3"
     SNS = "sns"
+    SQS = "sqs"
     UNKNOWN = "unknown"
 
     def __str__(self):
