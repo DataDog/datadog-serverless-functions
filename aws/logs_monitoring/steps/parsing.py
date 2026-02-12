@@ -119,6 +119,10 @@ def _extract_inner_event_from_sqs(sqs_record):
         logger.warning("SQS record has missing or malformed body, skipping")
         return None
 
+    if not isinstance(body, dict):
+        logger.warning("SQS record body is not a JSON object, skipping")
+        return None
+
     # Direct S3 event: body contains Records[0].s3
     if _contains_s3_records(body):
         return body

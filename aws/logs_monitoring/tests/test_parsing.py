@@ -351,6 +351,26 @@ class TestSQSEventParsing(unittest.TestCase):
         self.assertEqual(len(result), 1)
 
     @patch("steps.parsing.S3EventHandler")
+    def test_parse_sqs_non_object_body_skipped(self, mock_s3_handler_cls):
+        """SQS records with valid JSON but non-object body are skipped"""
+        mock_s3_handler = mock_s3_handler_cls.return_value
+        mock_s3_handler.handle.return_value = iter([{"message": "ok"}])
+
+        sqs_event = {
+            "Records": [
+                _make_sqs_record(json.dumps("just a string"), message_id="str"),
+                _make_sqs_record(json.dumps(42), message_id="num"),
+                _make_sqs_record(json.dumps([1, 2, 3]), message_id="arr"),
+                _make_sqs_record(_make_s3_event("b", "k"), message_id="good"),
+            ]
+        }
+
+        result = parse(sqs_event, Context(), MagicMock())
+
+        mock_s3_handler.handle.assert_called_once()
+        self.assertEqual(len(result), 1)
+
+    @patch("steps.parsing.S3EventHandler")
     def test_parse_sqs_unrecognized_body_skipped(self, mock_s3_handler_cls):
         """SQS records with valid JSON but unrecognized content are skipped"""
         mock_s3_handler = mock_s3_handler_cls.return_value
