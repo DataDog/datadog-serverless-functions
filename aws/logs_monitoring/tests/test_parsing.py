@@ -225,7 +225,9 @@ class TestParseEventType(unittest.TestCase):
                 "object": {"key": "my-key.log"},
             },
         }
-        self.assertEqual(parse_event_type(eventbridge_s3_event), AwsEventType.EVENTBRIDGE_S3)
+        self.assertEqual(
+            parse_event_type(eventbridge_s3_event), AwsEventType.EVENTBRIDGE_S3
+        )
 
     def test_parse_direct_s3_event_type(self):
         """Direct S3 events are correctly identified"""
