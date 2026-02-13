@@ -1,3 +1,4 @@
+import json
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -5,6 +6,28 @@ from settings import DD_CUSTOM_TAGS, DD_SOURCE
 from steps.common import get_service_from_tags_and_remove_duplicates, parse_event_source
 from steps.enums import AwsEventSource, AwsEventType
 from steps.parsing import parse, parse_event_type
+
+
+class Context:
+    function_version = "$LATEST"
+    invoked_function_arn = (
+        "arn:aws:lambda:us-east-1:123456789012:function:datadog-forwarder"
+    )
+    function_name = "datadog-forwarder"
+    memory_limit_in_mb = "128"
+
+
+def _make_s3_event(bucket, key):
+    return {"Records": [{"s3": {"bucket": {"name": bucket}, "object": {"key": key}}}]}
+
+
+def _make_sqs_record(body, message_id="msg-1"):
+    return {
+        "messageId": message_id,
+        "body": body if isinstance(body, str) else json.dumps(body),
+        "eventSource": "aws:sqs",
+        "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:q",
+    }
 
 
 class TestParseEventSource(unittest.TestCase):
@@ -187,7 +210,7 @@ class TestGetServiceFromTags(unittest.TestCase):
 
 class TestParseEventType(unittest.TestCase):
     def test_parse_eventbridge_s3_event_type(self):
-        """Test that EventBridge S3 events are correctly identified as EventBridge S3 type"""
+        """EventBridge S3 events are correctly identified"""
         eventbridge_s3_event = {
             "version": "0",
             "id": "test-event-id",
@@ -202,53 +225,169 @@ class TestParseEventType(unittest.TestCase):
                 "object": {"key": "my-key.log"},
             },
         }
-
-        event_type = parse_event_type(eventbridge_s3_event)
-        self.assertEqual(event_type, AwsEventType.EVENTBRIDGE_S3)
+        self.assertEqual(
+            parse_event_type(eventbridge_s3_event), AwsEventType.EVENTBRIDGE_S3
+        )
 
     def test_parse_direct_s3_event_type(self):
-        """Test that direct S3 events are still correctly identified as S3 type"""
-        direct_s3_event = {
-            "Records": [
-                {
-                    "s3": {
-                        "bucket": {"name": "my-bucket"},
-                        "object": {"key": "my-key"},
-                    }
-                }
-            ]
-        }
-
-        event_type = parse_event_type(direct_s3_event)
-        self.assertEqual(event_type, AwsEventType.S3)
+        """Direct S3 events are correctly identified"""
+        self.assertEqual(
+            parse_event_type(_make_s3_event("my-bucket", "my-key")), AwsEventType.S3
+        )
 
     def test_parse_non_s3_eventbridge_event_type(self):
-        """Test that non-S3 EventBridge events are identified as EVENTS type"""
+        """Non-S3 EventBridge events are identified as EVENTS type"""
         eventbridge_other_event = {
             "version": "0",
             "detail-type": "EC2 Instance State-change Notification",
             "source": "aws.ec2",
             "detail": {"instance-id": "i-1234567890abcdef0", "state": "terminated"},
         }
+        self.assertEqual(parse_event_type(eventbridge_other_event), AwsEventType.EVENTS)
 
-        event_type = parse_event_type(eventbridge_other_event)
-        self.assertEqual(event_type, AwsEventType.EVENTS)
+    def test_parse_sqs_event_type(self):
+        """SQS events are correctly identified"""
+        sqs_event = {"Records": [_make_sqs_record(_make_s3_event("b", "k"))]}
+        self.assertEqual(parse_event_type(sqs_event), AwsEventType.SQS)
+
+    def test_direct_s3_event_not_detected_as_sqs(self):
+        """Direct S3 events must still be detected as S3, not SQS"""
+        self.assertEqual(
+            parse_event_type(_make_s3_event("my-bucket", "my-key")), AwsEventType.S3
+        )
+
+    def test_sns_event_not_detected_as_sqs(self):
+        """SNS events must still be detected as SNS, not SQS"""
+        sns_event = {"Records": [{"Sns": {"Message": "hello"}}]}
+        self.assertEqual(parse_event_type(sns_event), AwsEventType.SNS)
+
+    def test_kinesis_event_not_detected_as_sqs(self):
+        """Kinesis events must still be detected as Kinesis, not SQS"""
+        kinesis_event = {"Records": [{"kinesis": {"data": "base64data"}}]}
+        self.assertEqual(parse_event_type(kinesis_event), AwsEventType.KINESIS)
+
+
+class TestSQSEventParsing(unittest.TestCase):
+    @patch("steps.parsing.S3EventHandler")
+    def test_parse_sqs_s3_event(self, mock_s3_handler_cls):
+        """S3 event delivered via SQS is unwrapped and forwarded to S3EventHandler"""
+        mock_s3_handler = mock_s3_handler_cls.return_value
+        mock_s3_handler.handle.return_value = iter([{"message": "log line"}])
+
+        sqs_event = {
+            "Records": [_make_sqs_record(_make_s3_event("my-bucket", "my-key.log"))]
+        }
+
+        result = parse(sqs_event, Context(), MagicMock())
+
+        mock_s3_handler.handle.assert_called_once()
+        inner_event = mock_s3_handler.handle.call_args.args[0]
+        self.assertEqual(inner_event["Records"][0]["s3"]["bucket"]["name"], "my-bucket")
+        self.assertEqual(len(result), 1)
+        self.assertIn("ddsourcecategory", result[0])
+        self.assertIn("aws", result[0])
+        self.assertIn("invoked_function_arn", result[0]["aws"])
+
+    @patch("steps.parsing.S3EventHandler")
+    def test_parse_sqs_sns_s3_event(self, mock_s3_handler_cls):
+        """S3 event delivered via SNS -> SQS is unwrapped and forwarded to S3EventHandler"""
+        mock_s3_handler = mock_s3_handler_cls.return_value
+        mock_s3_handler.handle.return_value = iter([{"message": "log line"}])
+
+        sns_body = {
+            "Type": "Notification",
+            "MessageId": "a1b2c3d4",
+            "TopicArn": "arn:aws:sns:us-east-1:123456789012:my-topic",
+            "Message": json.dumps(_make_s3_event("sns-bucket", "sns-key.log")),
+        }
+        sqs_event = {"Records": [_make_sqs_record(sns_body)]}
+
+        result = parse(sqs_event, Context(), MagicMock())
+
+        mock_s3_handler.handle.assert_called_once()
+        inner_event = mock_s3_handler.handle.call_args.args[0]
+        self.assertEqual(
+            inner_event["Records"][0]["s3"]["bucket"]["name"], "sns-bucket"
+        )
+        self.assertEqual(len(result), 1)
+
+    @patch("steps.parsing.S3EventHandler")
+    def test_parse_sqs_batch_multiple_records(self, mock_s3_handler_cls):
+        """Multiple SQS records in a single batch are all processed"""
+        mock_s3_handler = mock_s3_handler_cls.return_value
+        mock_s3_handler.handle.side_effect = [
+            iter([{"message": "line1"}]),
+            iter([{"message": "line2"}]),
+        ]
+
+        sqs_event = {
+            "Records": [
+                _make_sqs_record(_make_s3_event("b1", "k1"), message_id="msg-1"),
+                _make_sqs_record(_make_s3_event("b2", "k2"), message_id="msg-2"),
+            ]
+        }
+
+        result = parse(sqs_event, Context(), MagicMock())
+
+        self.assertEqual(mock_s3_handler.handle.call_count, 2)
+        self.assertEqual(len(result), 2)
+
+    @patch("steps.parsing.S3EventHandler")
+    def test_parse_sqs_malformed_body_skipped(self, mock_s3_handler_cls):
+        """SQS records with malformed body are skipped without crashing"""
+        mock_s3_handler = mock_s3_handler_cls.return_value
+        mock_s3_handler.handle.return_value = iter([{"message": "ok"}])
+
+        sqs_event = {
+            "Records": [
+                _make_sqs_record("not valid json", message_id="bad"),
+                _make_sqs_record(_make_s3_event("b", "k"), message_id="good"),
+            ]
+        }
+
+        result = parse(sqs_event, Context(), MagicMock())
+
+        mock_s3_handler.handle.assert_called_once()
+        self.assertEqual(len(result), 1)
+
+    @patch("steps.parsing.S3EventHandler")
+    def test_parse_sqs_non_object_body_skipped(self, mock_s3_handler_cls):
+        """SQS records with valid JSON but non-object body are skipped"""
+        mock_s3_handler = mock_s3_handler_cls.return_value
+        mock_s3_handler.handle.return_value = iter([{"message": "ok"}])
+
+        sqs_event = {
+            "Records": [
+                _make_sqs_record(json.dumps("just a string"), message_id="str"),
+                _make_sqs_record(json.dumps(42), message_id="num"),
+                _make_sqs_record(json.dumps([1, 2, 3]), message_id="arr"),
+                _make_sqs_record(_make_s3_event("b", "k"), message_id="good"),
+            ]
+        }
+
+        result = parse(sqs_event, Context(), MagicMock())
+
+        mock_s3_handler.handle.assert_called_once()
+        self.assertEqual(len(result), 1)
+
+    @patch("steps.parsing.S3EventHandler")
+    def test_parse_sqs_unrecognized_body_skipped(self, mock_s3_handler_cls):
+        """SQS records with valid JSON but unrecognized content are skipped"""
+        mock_s3_handler = mock_s3_handler_cls.return_value
+
+        sqs_event = {"Records": [_make_sqs_record({"foo": "bar"})]}
+
+        result = parse(sqs_event, Context(), MagicMock())
+
+        mock_s3_handler.handle.assert_not_called()
+        self.assertEqual(len(result), 0)
 
 
 class TestEventBridgeS3Parsing(unittest.TestCase):
-    class Context:
-        function_version = "$LATEST"
-        invoked_function_arn = (
-            "arn:aws:lambda:us-east-1:123456789012:function:datadog-forwarder"
-        )
-        function_name = "datadog-forwarder"
-        memory_limit_in_mb = "128"
-
     @patch("steps.parsing.S3EventHandler")
     def test_parse_normalizes_eventbridge_s3_event_before_s3_handler(
         self, mock_s3_handler_cls
     ):
-        # Arrange: handler yields one log line; we only care about the input event it received
         mock_s3_handler = mock_s3_handler_cls.return_value
         mock_s3_handler.handle.return_value = iter([{"message": "ok"}])
 
@@ -262,12 +401,8 @@ class TestEventBridgeS3Parsing(unittest.TestCase):
             },
         }
 
-        cache_layer = MagicMock()
+        parse(eventbridge_event, Context(), MagicMock())
 
-        # Act
-        _ = parse(eventbridge_event, self.Context(), cache_layer)
-
-        # Assert: parse() passed a canonical S3-shaped event into the S3 handler
         mock_s3_handler.handle.assert_called_once()
         (normalized_event,) = mock_s3_handler.handle.call_args.args
 

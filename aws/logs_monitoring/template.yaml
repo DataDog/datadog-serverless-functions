@@ -311,6 +311,10 @@ Parameters:
     Type: CommaDelimitedList
     Default: ""
     Description: List of S3 bucket ARNs the forwarder can read from (e.g. arn:aws:s3:::my-bucket/*), separated by comma. Leave empty to allow all buckets. Note that restricting this list may break the automatic creation of S3 triggers for buckets not included.
+  SqsQueueArnList:
+    Type: CommaDelimitedList
+    Default: ""
+    Description: List of SQS Queue ARNs the forwarder can receive messages from (e.g. arn:aws:sqs:us-east-1:123456789012:my-queue), separated by comma. Leave empty to allow all queues.
   KmsKeyList:
     Type: CommaDelimitedList
     Default: ""
@@ -410,6 +414,8 @@ Conditions:
     - !Equals [!Join ["", !Ref S3BucketArnList], ""]
   SetDdForwarderDecryptKeys: !Not
     - !Equals [!Join ["", !Ref KmsKeyList], ""]
+  SetSqsQueueArns: !Not
+    - !Equals [!Join ["", !Ref SqsQueueArnList], ""]
   CreateRetryScheduler: !And
     - !Equals [!Ref DdStoreFailedEvents, true]
     - !Equals [!Ref DdScheduleRetryFailedEvents, true]
@@ -754,6 +760,16 @@ Resources:
                   Resource: "*"
                   Effect: Allow
                 - !Ref AWS::NoValue
+              # Required for Lambda event source mappings that poll SQS queues
+              - Action:
+                  - sqs:ReceiveMessage
+                  - sqs:DeleteMessage
+                  - sqs:GetQueueAttributes
+                Resource: !If
+                  - SetSqsQueueArns
+                  - !Ref SqsQueueArnList
+                  - "*"
+                Effect: Allow
       Tags:
         - Value: !FindInMap [Constants, DdForwarder, Version]
           Key: dd_forwarder_version

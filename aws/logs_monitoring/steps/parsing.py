@@ -39,6 +39,9 @@ def parse(event, context, cache_layer):
             case AwsEventType.S3:
                 s3_handler = S3EventHandler(context, metadata, cache_layer)
                 events = s3_handler.handle(event)
+            case AwsEventType.SQS:
+                events = sqs_handler(event, context, cache_layer)
+                return collect_and_count(events)
             case AwsEventType.EVENTBRIDGE_S3:
                 events = eventbridge_s3_handler(event, context, metadata, cache_layer)
             case AwsEventType.EVENTS:
@@ -78,6 +81,8 @@ def parse_event_type(event):
             return AwsEventType.SNS
         elif str(AwsEventType.KINESIS) in record:
             return AwsEventType.KINESIS
+        elif record.get("eventSource") == "aws:sqs":
+            return AwsEventType.SQS
     elif str(AwsEventType.AWSLOGS) in event:
         return AwsEventType.AWSLOGS
     elif "detail" in event:
@@ -88,6 +93,56 @@ def parse_event_type(event):
             return AwsEventType.EVENTBRIDGE_S3
         return AwsEventType.EVENTS
     raise Exception("Event type not supported (see #Event supported section)")
+
+
+# Handle S3 events delivered via SQS (S3 -> SQS or S3 -> SNS -> SQS)
+def sqs_handler(event, context, cache_layer):
+    for record in event["Records"]:
+        inner_event = _extract_inner_event_from_sqs(record)
+        if inner_event is None:
+            continue
+        # Fresh metadata per SQS record: S3EventHandler mutates metadata
+        # (DD_SOURCE, tags, service), so each record needs its own copy.
+        metadata = generate_metadata(context)
+        s3_handler = S3EventHandler(context, metadata, cache_layer)
+        for log_event in s3_handler.handle(inner_event):
+            if isinstance(log_event, dict):
+                yield merge_dicts(log_event, metadata)
+            elif isinstance(log_event, str):
+                yield merge_dicts({"message": log_event}, metadata)
+
+
+def _extract_inner_event_from_sqs(sqs_record):
+    try:
+        body = json.loads(sqs_record["body"])
+    except (json.JSONDecodeError, KeyError, TypeError):
+        logger.warning("SQS record has missing or malformed body, skipping")
+        return None
+
+    if not isinstance(body, dict):
+        logger.warning("SQS record body is not a JSON object, skipping")
+        return None
+
+    # Direct S3 event: body contains Records[0].s3
+    if _contains_s3_records(body):
+        return body
+
+    # SNS-wrapped S3 event: body.Type == "Notification" and body.Message contains S3 event
+    if body.get("Type") == "Notification":
+        try:
+            message = json.loads(body.get("Message", ""))
+            if _contains_s3_records(message):
+                return message
+        except (json.JSONDecodeError, TypeError):
+            pass
+
+    logger.warning("SQS record body does not contain a recognized S3 event, skipping")
+    return None
+
+
+def _contains_s3_records(event):
+    records = event.get("Records")
+    return isinstance(records, list) and len(records) > 0 and records[0].get("s3")
 
 
 # Handle S3 event over EventBridge
