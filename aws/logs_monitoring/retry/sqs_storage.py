@@ -53,12 +53,10 @@ class SQSStorage(BaseStorage):
                 msg_retry_prefix = self._get_message_attr(message, "retry_prefix")
                 msg_function_prefix = self._get_message_attr(message, "function_prefix")
 
-                matches = (
-                    msg_retry_prefix == str(prefix)
-                    and msg_function_prefix == self.function_prefix
-                )
-
-                if not matches:
+                if (
+                    msg_retry_prefix != str(prefix)
+                    or msg_function_prefix != self.function_prefix
+                ):
                     self._release_message(receipt_handle)
                     continue
 
@@ -123,9 +121,8 @@ class SQSStorage(BaseStorage):
     @staticmethod
     def _get_message_attr(message, attr_name):
         """Extract a string attribute value from an SQS message."""
-        return (
-            message.get("MessageAttributes", {}).get(attr_name, {}).get("StringValue")
-        )
+        attrs = message.get("MessageAttributes", {})
+        return attrs.get(attr_name, {}).get("StringValue")
 
     def _chunk_data(self, data):
         """Split a list of items into chunks that each fit under SQS_MAX_CHUNK_BYTES."""

@@ -82,7 +82,7 @@ class S3Storage(BaseStorage):
         return f"{DD_S3_RETRY_DIRNAME}/{self.function_prefix}/{str(retry_prefix)}/"
 
     def _serialize(self, data):
-        return bytes(json.dumps(data).encode("UTF-8"))
+        return json.dumps(data).encode("UTF-8")
 
     def _deserialize(self, data):
         return json.loads(data.decode("UTF-8"))
