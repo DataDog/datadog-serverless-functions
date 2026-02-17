@@ -24,9 +24,9 @@
         "@azure/functions": "^4.7.0"
     },
     "devDependencies": {
-        "lodash": ">=4.17.21",
+        "lodash": "4.17.23",
         "mocha": "11.7.5",
-        "prettier": "3.7.3",
+        "prettier": "3.7.4",
         "sinon": "20.0.0"
     }
 }
