@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 from botocore.exceptions import ClientError
 
-from retry.storage import S3Storage, Storage
+from retry.storage import S3Storage
 
 
 class TestS3Storage(unittest.TestCase):
@@ -14,9 +14,6 @@ class TestS3Storage(unittest.TestCase):
             mock_boto3.client.return_value = self.mock_s3
             with patch("retry.storage.DD_S3_BUCKET_NAME", "test-bucket"):
                 self.storage = S3Storage("test_function_prefix")
-
-    def test_backward_compatible_alias(self):
-        self.assertIs(Storage, S3Storage)
 
     def test_store_data_puts_object(self):
         self.storage.store_data("logs", [{"message": "hello"}])

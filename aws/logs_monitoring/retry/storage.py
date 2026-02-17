@@ -86,7 +86,3 @@ class S3Storage(BaseStorage):
 
     def _deserialize(self, data):
         return json.loads(data.decode("UTF-8"))
-
-
-# Backward-compatible alias
-Storage = S3Storage
