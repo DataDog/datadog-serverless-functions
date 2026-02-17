@@ -14,8 +14,8 @@ from logs.datadog_http_client import DatadogHTTPClient
 from logs.datadog_matcher import DatadogMatcher
 from logs.datadog_scrubber import DatadogScrubber
 from logs.helpers import add_retry_tag
+from retry import create_storage
 from retry.enums import RetryPrefix
-from retry.storage import Storage
 from settings import (
     DD_API_KEY,
     DD_FORWARD_LOG,
@@ -41,7 +41,7 @@ class Forwarder(object):
         self.trace_connection = TraceConnection(
             DD_TRACE_INTAKE_URL, DD_API_KEY, DD_SKIP_SSL_VALIDATION
         )
-        self.storage = Storage(function_prefix)
+        self.storage = create_storage(function_prefix)
 
     def forward(self, logs, metrics, traces):
         """

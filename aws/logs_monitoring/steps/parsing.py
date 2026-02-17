@@ -247,12 +247,6 @@ def normalize_events(events, metadata):
 
 
 def collect_and_count(events):
-    collected = []
-    counter = 0
-    for event in events:
-        counter += 1
-        collected.append(event)
-
-    send_event_metric("incoming_events", counter)
-
+    collected = list(events)
+    send_event_metric("incoming_events", len(collected))
     return collected
