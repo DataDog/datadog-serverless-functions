@@ -171,7 +171,7 @@ def parse_aws_waf_logs(event):
             non_terminating_rules
         )
 
-    event_copy["message"] = message
+    event_copy["message"] = json.dumps(message)
     return event_copy
 
 

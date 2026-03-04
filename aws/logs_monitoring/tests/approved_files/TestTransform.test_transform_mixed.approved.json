@@ -1,25 +1,11 @@
 [
     {
         "ddsource": "waf",
-        "message": {
-            "httpRequest": {
-                "headers": {
-                    "header2": "value2"
-                }
-            },
-            "request_id": "1"
-        }
+        "message": "{\"request_id\": \"1\", \"httpRequest\": {\"headers\": {\"header2\": \"value2\"}}}"
     },
     {
         "ddsource": "waf",
-        "message": {
-            "httpRequest": {
-                "headers": {
-                    "header1": "value1"
-                }
-            },
-            "request_id": "2"
-        }
+        "message": "{\"request_id\": \"2\", \"httpRequest\": {\"headers\": {\"header1\": \"value1\"}}}"
     },
     {
         "ddsource": "securityhub",

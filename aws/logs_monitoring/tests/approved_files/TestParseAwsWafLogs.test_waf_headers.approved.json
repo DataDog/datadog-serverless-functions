@@ -1,11 +1,4 @@
 {
     "ddsource": "waf",
-    "message": {
-        "httpRequest": {
-            "headers": {
-                "header1": "value1",
-                "header2": "value2"
-            }
-        }
-    }
+    "message": "{\"httpRequest\": {\"headers\": {\"header1\": \"value1\", \"header2\": \"value2\"}}}"
 }

@@ -1,24 +1,4 @@
 {
     "ddsource": "waf",
-    "message": {
-        "ruleGroupList": {
-            "AWS#AWSManagedRulesSQLiRuleSet": {
-                "terminatingRule": {
-                    "SQLi_QUERYARGUMENTS": {
-                        "action": "BLOCK"
-                    },
-                    "secondRULE": {
-                        "action": "BLOCK"
-                    }
-                }
-            },
-            "A_DIFFERENT_ID": {
-                "terminatingRule": {
-                    "thirdRULE": {
-                        "action": "BLOCK"
-                    }
-                }
-            }
-        }
-    }
+    "message": "{\"ruleGroupList\": {\"AWS#AWSManagedRulesSQLiRuleSet\": {\"terminatingRule\": {\"SQLi_QUERYARGUMENTS\": {\"action\": \"BLOCK\"}, \"secondRULE\": {\"action\": \"BLOCK\"}}}, \"A_DIFFERENT_ID\": {\"terminatingRule\": {\"thirdRULE\": {\"action\": \"BLOCK\"}}}}}"
 }
