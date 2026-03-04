@@ -112,6 +112,34 @@ class TestFilterLogs(unittest.TestCase):
         filtered_logs = filter_logs(DatadogMatcher(), self.example_logs)
         self.assertEqual(filtered_logs, self.example_logs)
 
+    def test_exclude_at_match_with_waf_logs(self):
+        """Test that EXCLUDE_AT_MATCH works on WAF logs after transformation serializes message back to JSON string"""
+        import json
+
+        logs = [
+            {"message": json.dumps({"action": "ALLOW", "httpRequest": {}})},
+            {"message": json.dumps({"action": "BLOCK", "httpRequest": {}})},
+        ]
+        filtered = filter_logs(
+            DatadogMatcher(exclude_pattern='"action": "BLOCK"'), logs
+        )
+        self.assertEqual(len(filtered), 1)
+        self.assertIn("ALLOW", filtered[0]["message"])
+
+    def test_include_at_match_with_waf_logs(self):
+        """Test that INCLUDE_AT_MATCH works on WAF logs after transformation serializes message back to JSON string"""
+        import json
+
+        logs = [
+            {"message": json.dumps({"action": "ALLOW", "httpRequest": {}})},
+            {"message": json.dumps({"action": "BLOCK", "httpRequest": {}})},
+        ]
+        filtered = filter_logs(
+            DatadogMatcher(include_pattern='"action": "ALLOW"'), logs
+        )
+        self.assertEqual(len(filtered), 1)
+        self.assertIn("ALLOW", filtered[0]["message"])
+
 
 def filter_logs(matcher, logs):
     filtered = []
