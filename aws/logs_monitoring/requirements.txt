@@ -3,14 +3,14 @@ bytecode
 cattrs
 certifi
 charset-normalizer
-datadog-lambda==8.121.0
-datadog==0.52.0
+datadog-lambda==8.122.0
+datadog==0.52.1
 ddsketch==3.0.1
-ddtrace==3.19.5
+ddtrace==3.19.6
 deprecated
 envier
 exceptiongroup
-idna==3.7
+idna==3.11
 importlib-metadata
 opentelemetry-api
 protobuf==6.33.5
@@ -20,7 +20,7 @@ setuptools==80.10.2
 six
 typing-extensions
 urllib3>=2.6.3,<3.0
-wrapt==1.14.0
+wrapt==1.14.1
 xmltodict
 zipp
 ujson
