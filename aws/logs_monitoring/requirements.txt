@@ -13,7 +13,7 @@ exceptiongroup
 idna==3.7
 importlib-metadata
 opentelemetry-api
-protobuf==6.33.5
+protobuf==7.34.0
 requests-futures
 requests
 setuptools==80.10.2
