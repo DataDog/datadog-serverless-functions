@@ -38,6 +38,17 @@ _MULTILINE_REGEX_PATTERN = (
 )
 
 
+def create_s3_client():
+    """Create a boto3 S3 client with VPC-aware configuration when applicable."""
+    if DD_USE_VPC:
+        return boto3.client(
+            "s3",
+            os.environ["AWS_REGION"],
+            config=botocore.config.Config(s3={"addressing_style": "path"}),
+        )
+    return boto3.client("s3")
+
+
 class S3EventDataStore:
     def __init__(self):
         self.bucket = None
@@ -48,7 +59,7 @@ class S3EventDataStore:
 
 
 class S3EventHandler:
-    def __init__(self, context, metadata, cache_layer):
+    def __init__(self, context, metadata, cache_layer, s3_client=None):
         self.logger = logging.getLogger()
         self.logger.setLevel(
             logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper())
@@ -56,6 +67,7 @@ class S3EventHandler:
         self.context = context
         self.metadata = metadata
         self.cache_layer = cache_layer
+        self._s3_client = s3_client or create_s3_client()
         self.multiline_regex_start_pattern = _MULTILINE_REGEX_START_PATTERN
         self.multiline_regex_pattern = _MULTILINE_REGEX_PATTERN
         self.data_store = S3EventDataStore()
@@ -122,25 +134,11 @@ class S3EventHandler:
             )
 
     def _extract_data(self):
-        s3_client = self._get_s3_client()
-        response = s3_client.get_object(
+        response = self._s3_client.get_object(
             Bucket=self.data_store.bucket, Key=self.data_store.key
         )
         body = response.get("Body")
         self.data_store.data = body.read()
-
-    def _get_s3_client(self):
-        # Need to use path style to access s3 via VPC Endpoints
-        # https://github.com/gford1000-aws/lambda_s3_access_using_vpc_endpoint#boto3-specific-notes
-        if DD_USE_VPC:
-            s3 = boto3.client(
-                "s3",
-                os.environ["AWS_REGION"],
-                config=botocore.config.Config(s3={"addressing_style": "path"}),
-            )
-        else:
-            s3 = boto3.client("s3")
-        return s3
 
     def _get_structured_lines_for_s3_handler(self):
         self._decompress_data()

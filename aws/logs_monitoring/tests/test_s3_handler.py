@@ -232,17 +232,16 @@ class TestS3EventsHandler(unittest.TestCase):
         self.assertEqual(self.s3_handler.metadata["ddsource"], "s3")
 
     @patch("caching.cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.__init__")
-    @patch("steps.handlers.s3_handler.S3EventHandler._get_s3_client")
     def test_s3_tags_added_to_metadata(
         self,
-        mock_get_s3_client,
         mock_cache_init,
     ):
-        mock_get_s3_client.side_effect = MagicMock()
         mock_cache_init.return_value = None
         cache_layer = CacheLayer("")
         cache_layer._s3_tags_cache.get = MagicMock(return_value=["s3_tag:tag_value"])
         self.s3_handler.cache_layer = cache_layer
+        self.s3_handler._extract_data = MagicMock()
+        self.s3_handler.data_store.data = b""
         event = {
             "Records": [
                 {
