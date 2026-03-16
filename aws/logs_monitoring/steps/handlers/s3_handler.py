@@ -27,6 +27,18 @@ from steps.common import (
 )
 
 
+_MULTILINE_REGEX_START_PATTERN = (
+    re.compile("^{}".format(DD_MULTILINE_LOG_REGEX_PATTERN))
+    if DD_MULTILINE_LOG_REGEX_PATTERN
+    else None
+)
+_MULTILINE_REGEX_PATTERN = (
+    re.compile("[\n\r\f]+(?={})".format(DD_MULTILINE_LOG_REGEX_PATTERN))
+    if DD_MULTILINE_LOG_REGEX_PATTERN
+    else None
+)
+
+
 class S3EventDataStore:
     def __init__(self):
         self.bucket = None
@@ -45,17 +57,8 @@ class S3EventHandler:
         self.context = context
         self.metadata = metadata
         self.cache_layer = cache_layer
-        self.multiline_regex_start_pattern = (
-            re.compile("^{}".format(DD_MULTILINE_LOG_REGEX_PATTERN))
-            if DD_MULTILINE_LOG_REGEX_PATTERN
-            else None
-        )
-        self.multiline_regex_pattern = (
-            re.compile("[\n\r\f]+(?={})".format(DD_MULTILINE_LOG_REGEX_PATTERN))
-            if DD_MULTILINE_LOG_REGEX_PATTERN
-            else None
-        )
-        # a private data store for event attributes
+        self.multiline_regex_start_pattern = _MULTILINE_REGEX_START_PATTERN
+        self.multiline_regex_pattern = _MULTILINE_REGEX_PATTERN
         self.data_store = S3EventDataStore()
 
     def handle(self, event):
