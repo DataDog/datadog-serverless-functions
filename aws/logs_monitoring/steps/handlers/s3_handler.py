@@ -26,7 +26,6 @@ from steps.common import (
     parse_event_source,
 )
 
-
 _MULTILINE_REGEX_START_PATTERN = (
     re.compile("^{}".format(DD_MULTILINE_LOG_REGEX_PATTERN))
     if DD_MULTILINE_LOG_REGEX_PATTERN
