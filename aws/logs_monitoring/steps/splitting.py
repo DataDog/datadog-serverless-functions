@@ -7,15 +7,28 @@ logger = logging.getLogger()
 logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
 
 
+_PARSE_FAILED = object()
+
+
+def _try_parse_message(event):
+    """Parse event message JSON once. Returns parsed object or _PARSE_FAILED sentinel."""
+    try:
+        return json.loads(event["message"])
+    except Exception:
+        return _PARSE_FAILED
+
+
 def split(events):
     """Split events into metrics, logs, and trace payloads"""
     metrics, logs, trace_payloads = [], [], []
     for event in events:
-        metric = extract_metric(event)
-        trace_payload = extract_trace_payload(event)
+        parsed = _try_parse_message(event)
+        metric = extract_metric(event, parsed_message=parsed)
         if metric:
             metrics.append(metric)
-        elif trace_payload:
+            continue
+        trace_payload = extract_trace_payload(event, parsed_message=parsed)
+        if trace_payload:
             trace_payloads.append(trace_payload)
         else:
             logs.append(event)
@@ -28,21 +41,26 @@ def split(events):
     return metrics, logs, trace_payloads
 
 
-def extract_metric(event):
+def extract_metric(event, parsed_message=None):
     """Extract metric from an event if possible"""
     try:
-        metric = json.loads(event["message"])
+        if parsed_message is _PARSE_FAILED:
+            return None
+        metric = (
+            parsed_message
+            if parsed_message is not None
+            else json.loads(event["message"])
+        )
+
         required_attrs = {"m", "v", "e", "t"}
         if not all(attr in metric for attr in required_attrs):
             return None
         if not isinstance(metric["t"], list):
             return None
-        if not (isinstance(metric["v"], int) or isinstance(metric["v"], float)):
+        if not isinstance(metric["v"], (int, float)):
             return None
 
-        lambda_log_metadata = event.get("lambda", {})
-        lambda_log_arn = lambda_log_metadata.get("arn")
-
+        lambda_log_arn = event.get("lambda", {}).get("arn")
         if lambda_log_arn:
             metric["t"] += [f"function_arn:{lambda_log_arn.lower()}"]
 
@@ -52,23 +70,24 @@ def extract_metric(event):
         return None
 
 
-def extract_trace_payload(event):
+def extract_trace_payload(event, parsed_message=None):
     """Extract trace payload from an event if possible"""
     try:
-        message = event["message"]
-        obj = json.loads(event["message"])
-
-        obj_has_traces = "traces" in obj
-        traces_is_a_list = isinstance(obj["traces"], list)
-        # check that the log is not containing a trace array unrelated to Datadog
-        trace_id_found = (
-            len(obj["traces"]) > 0
-            and len(obj["traces"][0]) > 0
-            and obj["traces"][0][0]["trace_id"] is not None
+        if parsed_message is _PARSE_FAILED:
+            return None
+        obj = (
+            parsed_message
+            if parsed_message is not None
+            else json.loads(event["message"])
         )
 
-        if obj_has_traces and traces_is_a_list and trace_id_found:
-            return {"message": message, "tags": event[DD_CUSTOM_TAGS]}
-        return None
+        traces = obj.get("traces")
+        if not isinstance(traces, list) or not traces or not traces[0]:
+            return None
+        # Verify this is a Datadog trace, not an unrelated "traces" array
+        if traces[0][0].get("trace_id") is None:
+            return None
+
+        return {"message": event["message"], "tags": event[DD_CUSTOM_TAGS]}
     except Exception:
         return None
