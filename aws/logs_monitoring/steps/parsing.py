@@ -16,7 +16,7 @@ from steps.common import (
 )
 from steps.enums import AwsEventSource, AwsEventType, AwsEventTypeKeyword
 from steps.handlers.awslogs_handler import AwsLogsHandler
-from steps.handlers.s3_handler import S3EventHandler
+from steps.handlers.s3_handler import S3EventHandler, create_s3_client
 from telemetry import send_event_metric, set_forwarder_telemetry_tags
 
 logger = logging.getLogger()
@@ -97,6 +97,7 @@ def parse_event_type(event):
 
 # Handle S3 events delivered via SQS (S3 -> SQS or S3 -> SNS -> SQS)
 def sqs_handler(event, context, cache_layer):
+    s3_client = create_s3_client()
     for record in event["Records"]:
         inner_event = _extract_inner_event_from_sqs(record)
         if inner_event is None:
@@ -104,7 +105,7 @@ def sqs_handler(event, context, cache_layer):
         # Fresh metadata per SQS record: S3EventHandler mutates metadata
         # (DD_SOURCE, tags, service), so each record needs its own copy.
         metadata = generate_metadata(context)
-        s3_handler = S3EventHandler(context, metadata, cache_layer)
+        s3_handler = S3EventHandler(context, metadata, cache_layer, s3_client=s3_client)
         for log_event in s3_handler.handle(inner_event):
             if isinstance(log_event, dict):
                 yield merge_dicts(log_event, metadata)
