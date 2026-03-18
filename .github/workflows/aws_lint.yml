@@ -1,6 +1,9 @@
 name: Lint
 
-on: [pull_request]
+on:
+  pull_request:
+    paths-ignore:
+      - "aws/logs_monitoring_go/**"
 
 jobs:
   build:
