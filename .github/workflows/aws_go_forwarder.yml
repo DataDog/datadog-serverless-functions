@@ -1,0 +1,48 @@
+name: Go Forwarder
+
+on:
+  pull_request:
+    paths:
+      - "aws/logs_monitoring_go/**"
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04-arm
+    defaults:
+      run:
+        working-directory: aws/logs_monitoring_go
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: aws/logs_monitoring_go/go.mod
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          working-directory: aws/logs_monitoring_go
+
+  test:
+    runs-on: ubuntu-24.04-arm
+    defaults:
+      run:
+        working-directory: aws/logs_monitoring_go
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: aws/logs_monitoring_go/go.mod
+      - name: Run tests
+        run: go test -race ./...
+
+  build:
+    runs-on: ubuntu-24.04-arm
+    defaults:
+      run:
+        working-directory: aws/logs_monitoring_go
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: aws/logs_monitoring_go/go.mod
+      - name: Build binary
+        run: GOOS=linux GOARCH=arm64 go build -o bootstrap ./cmd/forwarder/
