@@ -17,7 +17,7 @@ jobs:
         with:
           go-version-file: aws/logs_monitoring_go/go.mod
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v9.2
+        uses: golangci/golangci-lint-action@v9
         with:
           working-directory: aws/logs_monitoring_go
 
