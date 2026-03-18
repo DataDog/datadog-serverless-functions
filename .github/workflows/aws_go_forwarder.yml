@@ -1,4 +1,4 @@
-name: Go Forwarder CI
+name: Go Forwarder
 
 on:
   pull_request:
