@@ -20,8 +20,6 @@ jobs:
         uses: golangci/golangci-lint-action@v6
         with:
           working-directory: aws/logs_monitoring_go
-          install-mode: goinstall
-          version: v2.1.6
 
   test:
     runs-on: ubuntu-24.04-arm

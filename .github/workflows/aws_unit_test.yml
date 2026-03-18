@@ -1,9 +1,6 @@
 name: AWS Python unit tests
 
-on:
-  pull_request:
-    paths-ignore:
-      - "aws/logs_monitoring_go/**"
+on: [pull_request]
 
 jobs:
   build:

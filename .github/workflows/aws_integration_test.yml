@@ -13,10 +13,7 @@ permissions:
   repository-projects: none
   security-events: none
 
-on:
-  pull_request:
-    paths-ignore:
-      - "aws/logs_monitoring_go/**"
+on: [pull_request]
 
 jobs:
   build:
