@@ -30,7 +30,7 @@ var deprecatedEnvironmentVariables = []string{
 type Config struct {
 	APIKey            string
 	Site              string
-	URL               string
+	IntakeURL         string
 	Port              int
 	APIURL            string
 	NoSSL             bool
@@ -69,7 +69,7 @@ func (c *Config) deriveURLs() {
 	if c.NoSSL {
 		scheme = "http"
 	}
-	c.URL = envOrDefault("DD_URL", "http-intake.logs."+c.Site)
+	c.IntakeURL = envOrDefault("DD_URL", "http-intake.logs."+c.Site)
 	c.APIURL = envOrDefault("DD_API_URL", fmt.Sprintf("%s://api.%s", scheme, c.Site))
 }
 
