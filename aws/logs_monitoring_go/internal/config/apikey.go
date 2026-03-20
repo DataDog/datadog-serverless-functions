@@ -115,7 +115,9 @@ func (c *Config) validateAPIKey() error {
 			time.Sleep(retryBackoffFactor * time.Duration(1<<attempt))
 			continue
 		}
-		resp.Body.Close()
+		if err := resp.Body.Close(); err != nil {
+			slog.Debug("failed to close response body", "error", err)
+		}
 
 		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 			slog.Debug("API key validated successfully")
