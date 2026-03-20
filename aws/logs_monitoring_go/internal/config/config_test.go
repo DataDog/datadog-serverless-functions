@@ -11,20 +11,21 @@ func TestDeriveURLs(t *testing.T) {
 	t.Run("defaults", func(t *testing.T) {
 		cfg := &Config{Site: "datadoghq.com", NoSSL: false}
 		cfg.deriveURLs()
-		assert.Equal(t, "http-intake.logs.datadoghq.com", cfg.IntakeURL)
+		assert.Equal(t, "https://http-intake.logs.datadoghq.com", cfg.IntakeURL)
 		assert.Equal(t, "https://api.datadoghq.com", cfg.APIURL)
 	})
 
 	t.Run("NoSSL switches scheme to http", func(t *testing.T) {
 		cfg := &Config{Site: "datadoghq.com", NoSSL: true}
 		cfg.deriveURLs()
+		assert.Equal(t, "http://http-intake.logs.datadoghq.com", cfg.IntakeURL)
 		assert.Equal(t, "http://api.datadoghq.com", cfg.APIURL)
 	})
 
 	t.Run("custom site", func(t *testing.T) {
 		cfg := &Config{Site: "datadoghq.eu", NoSSL: false}
 		cfg.deriveURLs()
-		assert.Equal(t, "http-intake.logs.datadoghq.eu", cfg.IntakeURL)
+		assert.Equal(t, "https://http-intake.logs.datadoghq.eu", cfg.IntakeURL)
 		assert.Equal(t, "https://api.datadoghq.eu", cfg.APIURL)
 	})
 
@@ -57,7 +58,7 @@ func TestLoad(t *testing.T) {
 		assert.Equal(t, false, cfg.SkipSSLValidation)
 		assert.Equal(t, "INFO", cfg.LogLevel)
 		assert.Equal(t, false, cfg.UseFIPS)
-		assert.Equal(t, "http-intake.logs.datadoghq.com", cfg.IntakeURL)
+		assert.Equal(t, "https://http-intake.logs.datadoghq.com", cfg.IntakeURL)
 		assert.Equal(t, "abcdef1234567890abcdef1234567890", cfg.APIKey)
 	})
 
