@@ -50,6 +50,7 @@ func Load(ctx context.Context) (*Config, error) {
 	}
 
 	cfg.deriveURLs()
+	slog.Debug("config loaded", "site", cfg.Site, "intakeURL", cfg.IntakeURL, "apiURL", cfg.APIURL, "port", cfg.Port, "noSSL", cfg.NoSSL, "useFIPS", cfg.UseFIPS)
 
 	logDroppedEnvVars()
 
@@ -69,7 +70,7 @@ func (c *Config) deriveURLs() {
 	if c.NoSSL {
 		scheme = "http"
 	}
-	c.IntakeURL = envOrDefault("DD_URL", "http-intake.logs."+c.Site)
+	c.IntakeURL = envOrDefault("DD_URL", fmt.Sprintf("%s://http-intake.logs.%s", scheme, c.Site))
 	c.APIURL = envOrDefault("DD_API_URL", fmt.Sprintf("%s://api.%s", scheme, c.Site))
 }
 

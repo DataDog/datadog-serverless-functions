@@ -13,6 +13,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -70,7 +71,8 @@ func (c *Config) resolveAPIKey(ctx context.Context) error {
 			if err != nil {
 				return fmt.Errorf("resolving API key from %s: %w", resolver.envVar, err)
 			}
-			c.APIKey = key
+			c.APIKey = strings.TrimSpace(key)
+			slog.Debug("API key resolved", "source", resolver.envVar)
 			return nil
 		}
 	}
@@ -116,6 +118,7 @@ func (c *Config) validateAPIKey() error {
 		resp.Body.Close()
 
 		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+			slog.Debug("API key validated successfully")
 			return nil
 		}
 
