@@ -33,13 +33,8 @@ type Config struct {
 	URL               string
 	Port              int
 	APIURL            string
-	ForwardLog        bool
-	UseCompression    bool
-	CompressionLevel  int
 	NoSSL             bool
 	SkipSSLValidation bool
-	Tags              string
-	Source            string
 	LogLevel          string
 	UseFIPS           bool
 }
@@ -48,46 +43,34 @@ func Load(ctx context.Context) (*Config, error) {
 	cfg := &Config{
 		Site:              envOrDefault("DD_SITE", "datadoghq.com"),
 		Port:              envOrDefaultInt("DD_PORT", 443),
-		ForwardLog:        envOrDefaultBool("DD_FORWARD_LOG", true),
-		UseCompression:    envOrDefaultBool("DD_USE_COMPRESSION", true),
-		CompressionLevel:  envOrDefaultInt("DD_COMPRESSION_LEVEL", 6),
 		NoSSL:             envOrDefaultBool("DD_NO_SSL", false),
 		SkipSSLValidation: envOrDefaultBool("DD_SKIP_SSL_VALIDATION", false),
-		Tags:              envOrDefault("DD_TAGS", ""),
-		Source:            envOrDefault("DD_SOURCE", ""),
 		LogLevel:          envOrDefault("DD_LOG_LEVEL", "INFO"),
+		UseFIPS:           envOrDefaultBool("DD_USE_FIPS", false),
 	}
 
-	scheme := "https"
-	if cfg.NoSSL {
-		scheme = "http"
-	}
-	cfg.URL = envOrDefault("DD_URL", "http-intake.logs."+cfg.Site)
-	cfg.APIURL = envOrDefault("DD_API_URL", fmt.Sprintf("%s://api.%s", scheme, cfg.Site))
+	cfg.deriveURLs()
 
 	logDroppedEnvVars()
 
-	useFIPS := envOrDefaultBool("DD_USE_FIPS", false)
-	cfg.UseFIPS = useFIPS
-	apiKey, err := resolveAPIKey(ctx, useFIPS)
-	if err != nil {
+	if err := cfg.resolveAPIKey(ctx); err != nil {
 		return nil, fmt.Errorf("resolving API key: %w", err)
 	}
-	cfg.APIKey = apiKey
 
-	if err := validateAPIKey(cfg); err != nil {
+	if err := cfg.validateAPIKey(); err != nil {
 		return nil, fmt.Errorf("validating API key: %w", err)
 	}
 
 	return cfg, nil
 }
 
-func logDroppedEnvVars() {
-	for _, name := range deprecatedEnvironmentVariables {
-		if _, ok := os.LookupEnv(name); ok {
-			slog.Warn("deprecated env var set, will be ignored", "name", name)
-		}
+func (c *Config) deriveURLs() {
+	scheme := "https"
+	if c.NoSSL {
+		scheme = "http"
 	}
+	c.URL = envOrDefault("DD_URL", "http-intake.logs."+c.Site)
+	c.APIURL = envOrDefault("DD_API_URL", fmt.Sprintf("%s://api.%s", scheme, c.Site))
 }
 
 func envOrDefault(key, fallback string) string {
@@ -116,4 +99,12 @@ func envOrDefaultInt(key string, fallback int) int {
 		return fallback
 	}
 	return n
+}
+
+func logDroppedEnvVars() {
+	for _, name := range deprecatedEnvironmentVariables {
+		if _, ok := os.LookupEnv(name); ok {
+			slog.Warn("deprecated env var set, will be ignored", "name", name)
+		}
+	}
 }

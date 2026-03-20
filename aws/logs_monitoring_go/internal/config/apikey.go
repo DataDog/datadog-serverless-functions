@@ -19,13 +19,12 @@ import (
 )
 
 const (
-	TIMEOUT = 5
+	awsClientTimeout = 5 * time.Second
 )
 
 type resolveOptions struct {
-	AWSCfg  aws.Config
-	Value   string
-	UseFIPS bool
+	AWSCfg aws.Config
+	Value  string
 }
 
 type apiKeyResolver func(ctx context.Context, opts resolveOptions) (string, error)
@@ -40,26 +39,30 @@ var resolvers = []struct {
 	{"DD_API_KEY", resolveFromEnv},
 }
 
-func resolveAPIKey(ctx context.Context, useFIPS bool) (string, error) {
+func (c *Config) resolveAPIKey(ctx context.Context) error {
 	awsCfg, err := awsconfig.LoadDefaultConfig(ctx,
-		awsconfig.WithHTTPClient(awshttp.NewBuildableClient().WithTimeout(time.Second*TIMEOUT)),
+		awsconfig.WithHTTPClient(awshttp.NewBuildableClient().WithTimeout(awsClientTimeout)),
 	)
 
 	if err != nil {
-		return "", fmt.Errorf("loading AWS config: %w", err)
+		return fmt.Errorf("loading AWS config: %w", err)
 	}
 
 	for _, resolver := range resolvers {
 		if v, ok := os.LookupEnv(resolver.envVar); ok {
 			slog.Debug("resolving API key", "source", resolver.envVar)
-			resolver.resolve(ctx, resolveOptions{
-				AWSCfg:  awsCfg,
-				Value:   v,
-				UseFIPS: useFIPS,
+			key, err := resolver.resolve(ctx, resolveOptions{
+				AWSCfg: awsCfg,
+				Value:  v,
 			})
+			if err != nil {
+				return fmt.Errorf("resolving API key from %s: %w", resolver.envVar, err)
+			}
+			c.APIKey = key
+			return nil
 		}
 	}
-	return "", errors.New("no API key configured: set DD_API_KEY, DD_API_KEY_SECRET_ARN, DD_API_KEY_SSM_NAME, or DD_KMS_API_KEY. See: https://docs.datadoghq.com/serverless/forwarder/")
+	return errors.New("no API key configured: set DD_API_KEY_SECRET_ARN, DD_API_KEY_SSM_NAME, DD_KMS_API_KEY, or DD_API_KEY. See: https://docs.datadoghq.com/serverless/forwarder/")
 }
 
 func resolveFromSecretsManager(ctx context.Context, opts resolveOptions) (string, error) {
@@ -96,6 +99,11 @@ func resolveFromEnv(ctx context.Context, opts resolveOptions) (string, error) {
 	return opts.Value, nil
 }
 
-func validateAPIKey(cfg Config) {
-
+// Note: the API key verification could fail (e.g. Datadog verification endpoint or network problem)
+// Instead of failing the whole lambda at startup, it should run up to the log sending part and verify the
+// key at this moment, adding the run to the future retry logic in such case.
+// The method may disappear in the future.
+func (c *Config) validateAPIKey() error {
+	// TODO: implement validation against Datadog API
+	return nil
 }
