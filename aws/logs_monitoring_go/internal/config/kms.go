@@ -4,3 +4,13 @@
 // Copyright 2026-Present Datadog, Inc.
 
 package config
+
+import (
+	"context"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+)
+
+func (c *Config) resolveFromKMS(ctx context.Context, awsCfg aws.Config, ciphertext string) error {
+	return nil
+}

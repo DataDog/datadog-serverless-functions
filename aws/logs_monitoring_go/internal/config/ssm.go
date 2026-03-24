@@ -4,3 +4,13 @@
 // Copyright 2026-Present Datadog, Inc.
 
 package config
+
+import (
+	"context"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+)
+
+func (c *Config) resolveFromSSM(ctx context.Context, awsCfg aws.Config, name string) error {
+	return nil
+}
