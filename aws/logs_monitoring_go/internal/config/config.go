@@ -9,103 +9,42 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"os"
-	"strconv"
-	"strings"
 )
 
-var deprecatedEnvironmentVariables = []string{
-	"DD_ADDITIONAL_TARGET_LAMBDAS",
-	"DD_ENRICH_CLOUDWATCH_TAGS",
-	"DD_ENRICH_S3_TAGS",
-	"DD_FETCH_LAMBDA_TAGS",
-	"DD_FETCH_LOG_GROUP_TAGS",
-	"DD_FETCH_S3_TAGS",
-	"DD_FETCH_STEP_FUNCTIONS_TAGS",
-	"DD_TAGS_CACHE_TTL_SECONDS",
-	"DD_TRACE_INTAKE_URL",
-	"DD_USE_VPC",
-}
-
 type Config struct {
-	APIKey            string
-	Site              string
-	IntakeURL         string
-	Port              int
-	APIURL            string
-	NoSSL             bool
-	SkipSSLValidation bool
-	LogLevel          string
-	UseFIPS           bool
+	APIKey    string
+	Site      string
+	IntakeURL string
+	APIURL    string
+	LogLevel  string
+	UseFIPS   bool
 }
 
 func Load(ctx context.Context) (*Config, error) {
-	cfg := &Config{
-		Site:              envOrDefault("DD_SITE", "datadoghq.com"),
-		Port:              envOrDefaultInt("DD_PORT", 443),
-		NoSSL:             envOrDefaultBool("DD_NO_SSL", false),
-		SkipSSLValidation: envOrDefaultBool("DD_SKIP_SSL_VALIDATION", false),
-		LogLevel:          envOrDefault("DD_LOG_LEVEL", "INFO"),
-		UseFIPS:           envOrDefaultBool("DD_USE_FIPS", false),
-	}
-
-	cfg.deriveURLs()
-	slog.Debug("config loaded", "site", cfg.Site, "intakeURL", cfg.IntakeURL, "apiURL", cfg.APIURL, "port", cfg.Port, "noSSL", cfg.NoSSL, "useFIPS", cfg.UseFIPS)
-
+	initLogger(envOrDefault("DD_LOG_LEVEL", "INFO"))
 	logDroppedEnvVars()
+
+	cfg := loadConfig()
+	slog.Debug("config loaded", slog.String("site", cfg.Site), slog.String("intakeURL", cfg.IntakeURL), slog.String("apiURL", cfg.APIURL), slog.String("logLevel", cfg.LogLevel), slog.Bool("useFIPS", cfg.UseFIPS))
 
 	if err := cfg.resolveAPIKey(ctx); err != nil {
 		return nil, fmt.Errorf("resolving API key: %w", err)
 	}
 
-	if err := cfg.validateAPIKey(); err != nil {
+	if err := cfg.validateAPIKey(ctx); err != nil {
 		return nil, fmt.Errorf("validating API key: %w", err)
 	}
 
 	return cfg, nil
 }
 
-func (c *Config) deriveURLs() {
-	scheme := "https"
-	if c.NoSSL {
-		scheme = "http"
-	}
-	c.IntakeURL = envOrDefault("DD_URL", fmt.Sprintf("%s://http-intake.logs.%s", scheme, c.Site))
-	c.APIURL = envOrDefault("DD_API_URL", fmt.Sprintf("%s://api.%s", scheme, c.Site))
-}
-
-func envOrDefault(key, fallback string) string {
-	if v, ok := os.LookupEnv(key); ok {
-		return v
-	}
-	return fallback
-}
-
-func envOrDefaultBool(key string, fallback bool) bool {
-	v, ok := os.LookupEnv(key)
-	if !ok {
-		return fallback
-	}
-	return strings.EqualFold(v, "true")
-}
-
-func envOrDefaultInt(key string, fallback int) int {
-	v, ok := os.LookupEnv(key)
-	if !ok {
-		return fallback
-	}
-	n, err := strconv.Atoi(v)
-	if err != nil {
-		slog.Warn("invalid integer for env var, using default", "key", key, "value", v, "default", fallback)
-		return fallback
-	}
-	return n
-}
-
-func logDroppedEnvVars() {
-	for _, name := range deprecatedEnvironmentVariables {
-		if _, ok := os.LookupEnv(name); ok {
-			slog.Warn("deprecated env var set, will be ignored", "name", name)
-		}
+func loadConfig() *Config {
+	site := envOrDefault("DD_SITE", "datadoghq.com")
+	return &Config{
+		Site:      site,
+		IntakeURL: envOrDefault("DD_URL", "https://http-intake.logs."+site),
+		APIURL:    envOrDefault("DD_API_URL", "https://api."+site),
+		LogLevel:  envOrDefault("DD_LOG_LEVEL", "INFO"),
+		UseFIPS:   envOrDefaultBool("DD_USE_FIPS", false),
 	}
 }
