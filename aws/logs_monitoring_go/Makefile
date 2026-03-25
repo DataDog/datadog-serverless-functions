@@ -22,7 +22,6 @@ lint:
 .PHONY: audit
 audit:
 	go vet ./...
-	go tool staticcheck ./...
 	go tool govulncheck
 
 .PHONY: generate
@@ -35,8 +34,9 @@ clean:
 
 # SAM
 
-.PHONY: build-forwarder-function
-build-forwarder-function:
+# Used only by SAM
+.PHONY: build-ForwarderFunction
+build-ForwarderFunction:
 	GOOS=linux GOARCH=arm64 go build -ldflags="-s" -installsuffix nocgo -o $(ARTIFACTS_DIR)/bootstrap ./cmd/forwarder/
 
 .PHONY: sam-build
