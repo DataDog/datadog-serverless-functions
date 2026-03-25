@@ -5,6 +5,8 @@
 
 package config
 
+//go:generate go tool mockgen -source=secretsmanager.go -package=config -destination=secretsmanager_mockgen.go
+
 import (
 	"context"
 	"fmt"
@@ -15,18 +17,11 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 )
 
-type SecretsManager interface {
+type SecretsManagerAPIClient interface {
 	GetSecretValue(ctx context.Context, params *secretsmanager.GetSecretValueInput, optFns ...func(*secretsmanager.Options)) (*secretsmanager.GetSecretValueOutput, error)
 }
 
-// used for mocking purpose
-var getSecretsManagerClient = func(cfg aws.Config, optFns ...func(*secretsmanager.Options)) SecretsManager {
-	return secretsmanager.NewFromConfig(cfg, optFns...)
-}
-
-func (c *Config) resolveFromSecretsManager(ctx context.Context, awsCfg aws.Config, arn string) error {
-	slog.Debug("resolving API key from Secrets Manager")
-
+func (c *Config) createSecretsManagerAPIClient(ctx context.Context, awsCfg aws.Config) (SecretsManagerAPIClient, error) {
 	resolver := secretsmanager.NewDefaultEndpointResolverV2()
 	params := secretsmanager.EndpointParameters{
 		Region:  aws.String(awsCfg.Region),
@@ -40,23 +35,24 @@ func (c *Config) resolveFromSecretsManager(ctx context.Context, awsCfg aws.Confi
 		endpoint, err = resolver.ResolveEndpoint(ctx, params)
 	}
 	if err != nil {
-		return fmt.Errorf("resolve endpoint: %w", err)
+		return nil, fmt.Errorf("resolve endpoint: %w", err)
 	}
 
-	client := getSecretsManagerClient(awsCfg, func(o *secretsmanager.Options) {
+	return secretsmanager.NewFromConfig(awsCfg, func(o *secretsmanager.Options) {
 		o.BaseEndpoint = aws.String(endpoint.URI.String())
-	})
+	}), nil
+}
 
+func resolveFromSecretsManager(ctx context.Context, client SecretsManagerAPIClient, arn string) (string, error) {
 	result, err := client.GetSecretValue(ctx, &secretsmanager.GetSecretValueInput{
 		SecretId: aws.String(arn),
 	})
 	if err != nil {
-		return fmt.Errorf("fetching secret %s: %w", arn, err)
+		return "", fmt.Errorf("fetching secret %s: %w", arn, err)
+	}
+	if result.SecretString == nil {
+		return "", fmt.Errorf("secret %s has no string value", arn)
 	}
 
-	if result.SecretString == nil {
-		return fmt.Errorf("secret %s has no string value", arn)
-	}
-	c.APIKey = strings.TrimSpace(*result.SecretString)
-	return nil
+	return strings.TrimSpace(*result.SecretString), nil
 }

@@ -12,72 +12,67 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
+	"go.uber.org/mock/gomock"
 )
 
-func GetSecretValueFromSecretsManager(ctx context.Context, api SecretsManagerGetSecretValueAPI, secretId string) (string, error) {
-	secret, err := api.GetSecretValue(ctx, &secretsmanager.GetSecretValueInput{
-		SecretId: &secretId,
-	})
-	if err != nil {
-		return "", err
-	}
-	if secret == nil {
-		return "", errors.New("got nil secret")
-	}
-	if secret.SecretString == nil {
-		return "", errors.New("secret has no string value")
-	}
-	return *secret.SecretString, nil
-}
-
-type mockGetSecretValueAPI func(ctx context.Context, params *secretsmanager.GetSecretValueInput, optFns ...func(*secretsmanager.Options)) (*secretsmanager.GetSecretValueOutput, error)
-
-func (m mockGetSecretValueAPI) GetSecretValue(ctx context.Context, params *secretsmanager.GetSecretValueInput, optFns ...func(*secretsmanager.Options)) (*secretsmanager.GetSecretValueOutput, error) {
-	return m(ctx, params, optFns...)
-}
-
-func TestGetSecretFromSecretsManager(t *testing.T) {
+func TestResolveFromSecretsManager(t *testing.T) {
 	tests := map[string]struct {
-		client   func(t *testing.T) SecretsManagerGetSecretValueAPI
-		secretId string
-		expect   string
-		wantErr  bool
+		mockSetup func(m *MockSecretsManagerAPIClient)
+		arn       string
+		wantKey   string
+		wantErr   bool
 	}{
-		"default": {
-			client: func(t *testing.T) SecretsManagerGetSecretValueAPI {
-				return mockGetSecretValueAPI(func(ctx context.Context, params *secretsmanager.GetSecretValueInput, optFns ...func(*secretsmanager.Options)) (*secretsmanager.GetSecretValueOutput, error) {
-					t.Helper()
-					if params.SecretId == nil {
-						t.Fatal("expect SecretId not to be nil")
-					}
-					return &secretsmanager.GetSecretValueOutput{
-						SecretString: aws.String("my-32-characters-datadog-api-key"),
-					}, nil
-				})
+		"success": {
+			mockSetup: func(m *MockSecretsManagerAPIClient) {
+				m.EXPECT().
+					GetSecretValue(gomock.Any(), gomock.Any()).
+					Return(&secretsmanager.GetSecretValueOutput{
+						SecretString: aws.String("abcdef1234567890abcdef1234567890"),
+					}, nil)
 			},
-			secretId: "arn:aws:secretsmanager:us-east-1:012345678901:secret:my-secret-abcdef",
-			expect:   "my-32-characters-datadog-api-key",
+			arn:     "arn:aws:secretsmanager:us-east-1:012345678901:secret:my-secret",
+			wantKey: "abcdef1234567890abcdef1234567890",
+		},
+		"whitespace_trimmed": {
+			mockSetup: func(m *MockSecretsManagerAPIClient) {
+				m.EXPECT().
+					GetSecretValue(gomock.Any(), gomock.Any()).
+					Return(&secretsmanager.GetSecretValueOutput{
+						SecretString: aws.String("  abcdef1234567890abcdef1234567890  \n"),
+					}, nil)
+			},
+			arn:     "arn:aws:secretsmanager:us-east-1:012345678901:secret:my-secret",
+			wantKey: "abcdef1234567890abcdef1234567890",
+		},
+		"aws_error": {
+			mockSetup: func(m *MockSecretsManagerAPIClient) {
+				m.EXPECT().
+					GetSecretValue(gomock.Any(), gomock.Any()).
+					Return(nil, errors.New("AccessDeniedException: access denied"))
+			},
+			arn:     "arn:aws:secretsmanager:us-east-1:012345678901:secret:my-secret",
+			wantErr: true,
 		},
 		"nil_secret_string": {
-			client: func(t *testing.T) SecretsManagerGetSecretValueAPI {
-				return mockGetSecretValueAPI(func(ctx context.Context, params *secretsmanager.GetSecretValueInput, optFns ...func(*secretsmanager.Options)) (*secretsmanager.GetSecretValueOutput, error) {
-					t.Helper()
-					if params.SecretId == nil {
-						t.Fatal("expect SecretId not to be nil")
-					}
-					return &secretsmanager.GetSecretValueOutput{
+			mockSetup: func(m *MockSecretsManagerAPIClient) {
+				m.EXPECT().
+					GetSecretValue(gomock.Any(), gomock.Any()).
+					Return(&secretsmanager.GetSecretValueOutput{
 						SecretString: nil,
-					}, nil
-				})
+					}, nil)
 			},
-			secretId: "arn:aws:secretsmanager:us-east-1:012345678901:secret:my-secret-abcdef",
-			wantErr:  true,
+			arn:     "arn:aws:secretsmanager:us-east-1:012345678901:secret:my-secret",
+			wantErr: true,
 		},
 	}
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			secretId, err := GetSecretValueFromSecretsManager(context.Background(), tc.client(t), tc.secretId)
+			ctrl := gomock.NewController(t)
+			mock := NewMockSecretsManagerAPIClient(ctrl)
+			tc.mockSetup(mock)
+
+			got, err := resolveFromSecretsManager(context.Background(), mock, tc.arn)
 			if tc.wantErr {
 				if err == nil {
 					t.Fatal("expected error, got nil")
@@ -85,10 +80,10 @@ func TestGetSecretFromSecretsManager(t *testing.T) {
 				return
 			}
 			if err != nil {
-				t.Errorf("expect no error, got %v", err)
+				t.Fatalf("unexpected error: %v", err)
 			}
-			if secretId != tc.expect {
-				t.Errorf("expect %v, got %v", tc.expect, secretId)
+			if got != tc.wantKey {
+				t.Errorf("got %q, want %q", got, tc.wantKey)
 			}
 		})
 	}

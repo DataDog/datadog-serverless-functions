@@ -19,7 +19,7 @@ func main() {
 	ctx := context.Background()
 	cfg, err := config.Load(ctx)
 	if err != nil {
-		slog.Error("config load failed", slog.String("error", err.Error()))
+		slog.Error("config load failed", slog.Any("error", err))
 		return
 	}
 
