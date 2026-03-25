@@ -35,8 +35,8 @@ clean:
 
 # SAM
 
-.PHONY: build-ForwarderFunction
-build-ForwarderFunction:
+.PHONY: build-forwarder-function
+build-forwarder-function:
 	GOOS=linux GOARCH=arm64 go build -ldflags="-s" -installsuffix nocgo -o $(ARTIFACTS_DIR)/bootstrap ./cmd/forwarder/
 
 .PHONY: sam-build
