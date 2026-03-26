@@ -284,7 +284,7 @@ If your logs contain an attribute that Datadog parses as a timestamp, you need t
 
 ### S3 log files containing JSON arrays are ingested as a single event
 
-The Forwarder ingests each line of a log file as a separate event. If your S3 log file contains a JSON array (for example, `[{...}, {...}]`), the entire array is treated as a single log event. Datadog pipelines and processors cannot split a JSON array into multiple individual events after ingestion.
+The Forwarder ingests each line of a log file as a separate event. If your S3 log file contains a JSON array (for example, `[{...}, {...}]`), the entire array is treated as a single log event. Datadog log pipelines and processors cannot split a JSON array into multiple individual events after ingestion.
 
 To ensure each log entry is ingested as a separate event, format your log files as newline-delimited JSON (NDJSON), where each JSON object is on its own line:
 
