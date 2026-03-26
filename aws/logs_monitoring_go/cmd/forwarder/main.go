@@ -8,16 +8,28 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"log"
+	"log/slog"
+
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
 
 	"github.com/aws/aws-lambda-go/lambda"
 )
 
-func handleRequest(ctx context.Context, event json.RawMessage) error {
-	log.Printf("Received event: %s", string(event))
-	return nil
+func main() {
+	ctx := context.Background()
+	cfg, err := config.Load(ctx)
+	if err != nil {
+		slog.Error("config load failed", slog.Any("error", err))
+		return
+	}
+
+	lambda.Start(handleRequest(cfg))
 }
 
-func main() {
-	lambda.Start(handleRequest)
+// cfg not used for now, will be when forwarding logic added
+func handleRequest(cfg *config.Config) func(context.Context, json.RawMessage) error {
+	return func(ctx context.Context, event json.RawMessage) error {
+		slog.Info("received event", slog.String("event", string(event)))
+		return nil
+	}
 }
