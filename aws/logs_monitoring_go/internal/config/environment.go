@@ -8,7 +8,7 @@ package config
 import (
 	"log/slog"
 	"os"
-	"strings"
+	"strconv"
 )
 
 var deprecatedEnvironmentVariables = []string{
@@ -43,7 +43,12 @@ func envOrDefaultBool(key string, fallback bool) bool {
 	if !ok {
 		return fallback
 	}
-	return strings.EqualFold(v, "true")
+	b, err := strconv.ParseBool(v)
+	if err != nil {
+		slog.Warn("invalid boolean env var, using default", slog.String("key", key), slog.String("value", v), slog.Bool("default", fallback))
+		return fallback
+	}
+	return b
 }
 
 func logDroppedEnvVars() {
