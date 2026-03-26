@@ -18,7 +18,6 @@ func TestLoadConfig(t *testing.T) {
 		want Config
 	}{
 		"default": {
-			env: map[string]string{},
 			want: Config{
 				Site:      "datadoghq.com",
 				IntakeURL: "https://http-intake.logs.datadoghq.com",
