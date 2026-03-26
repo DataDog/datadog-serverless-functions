@@ -39,10 +39,12 @@ func (c *Config) resolveAPIKey(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("creating Secrets Manager client: %w", err)
 		}
+
 		apiKey, err := resolveFromSecretsManager(ctx, client, v)
 		if err != nil {
 			return fmt.Errorf("resolving from secrets manager: %w", err)
 		}
+
 		c.APIKey = apiKey
 		return nil
 	}
