@@ -62,7 +62,7 @@ func (c *Config) resolveAPIKey(ctx context.Context) error {
 
 func (c *Config) validateAPIKey(ctx context.Context) error {
 	if c.APIKey == "" {
-		return fmt.Errorf("%w: set DD_API_KEY_SECRET_ARN, DD_API_KEY_SSM_NAME or DD_KMS_API_KEY. See: https://docs.datadoghq.com/serverless/forwarder/", ErrMissingAPIKey)
+		return fmt.Errorf("set DD_API_KEY_SECRET_ARN, DD_API_KEY_SSM_NAME or DD_KMS_API_KEY. See: https://docs.datadoghq.com/serverless/forwarder/: %w", ErrMissingAPIKey)
 	}
 
 	if len(c.APIKey) != 32 {
