@@ -34,13 +34,16 @@ func Parse(ctx context.Context, event json.RawMessage, cfg *config.Config, out c
 
 // detectInvokationSource inspects the raw JSON to determine the invokation type.
 func detectInvokationSource(event json.RawMessage) invokationSource {
-	var top map[string]json.RawMessage
+	var probe struct {
+		AWSLogs *json.RawMessage `json:"awslogs"`
+	}
 
-	if err := json.Unmarshal(event, &top); err != nil {
+	if err := json.Unmarshal(event, &probe); err != nil {
+		slog.Error("failed unmarshal", slog.Any("error", err))
 		return invokationSourceUnknown
 	}
 
-	if _, ok := top["awslogs"]; ok {
+	if probe.AWSLogs != nil {
 		return invokationSourceCloudWatch
 	}
 
