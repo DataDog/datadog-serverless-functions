@@ -11,13 +11,18 @@ import (
 	"log/slog"
 )
 
+var ForwarderVersion = "dev"
+
 type Config struct {
-	APIKey    string
-	Site      string
-	IntakeURL string
-	APIURL    string
-	LogLevel  string
-	UseFIPS   bool
+	APIKey     string
+	Site       string
+	IntakeURL  string
+	APIURL     string
+	LogLevel   string
+	UseFIPS    bool
+	Source     string
+	Host       string
+	CustomTags string
 }
 
 func Load(ctx context.Context) (*Config, error) {
@@ -41,10 +46,13 @@ func Load(ctx context.Context) (*Config, error) {
 func loadConfig() *Config {
 	site := envOrDefault("DD_SITE", "datadoghq.com")
 	return &Config{
-		Site:      site,
-		IntakeURL: envOrDefault("DD_URL", "https://http-intake.logs."+site),
-		APIURL:    envOrDefault("DD_API_URL", "https://api."+site),
-		LogLevel:  envOrDefault("DD_LOG_LEVEL", "INFO"),
-		UseFIPS:   envOrDefaultBool("DD_USE_FIPS", false),
+		Site:       site,
+		IntakeURL:  envOrDefault("DD_URL", "https://http-intake.logs."+site),
+		APIURL:     envOrDefault("DD_API_URL", "https://api."+site),
+		LogLevel:   envOrDefault("DD_LOG_LEVEL", "INFO"),
+		UseFIPS:    envOrDefaultBool("DD_USE_FIPS", false),
+		Source:     envOrDefault("DD_SOURCE", ""),
+		Host:       envOrDefault("DD_HOST", ""),
+		CustomTags: envOrDefault("DD_TAGS", ""),
 	}
 }
