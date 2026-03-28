@@ -14,42 +14,42 @@ import (
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 )
 
-type invokationSource int
+type invocationSource int
 
 const (
-	invokationSourceUnknown invokationSource = iota
-	invokationSourceCloudWatch
+	invocationSourceUnknown invocationSource = iota
+	invocationSourceCloudwatchLogs
 )
 
-// Parse detects the invokation source and sends parsed log entries to the out channel.
+// Parse detects the invocation source and sends parsed log entries to the out channel.
 // Errors are logged and skipped, unless the lambda timeout is reached.
 func Parse(ctx context.Context, event json.RawMessage, cfg *config.Config, out chan<- model.LogEntry) {
-	switch detectInvokationSource(event) {
-	case invokationSourceCloudWatch:
-		parseCloudWatch(ctx, event, cfg, out)
+	switch detectInvocationSource(event) {
+	case invocationSourceCloudwatchLogs:
+		parseCloudwatchLogs(ctx, event, cfg, out)
 	default:
-		slog.Error("unsupported invokation source")
+		slog.Error("unsupported invocation source")
 	}
 }
 
-// detectInvokationSource inspects the raw JSON to determine the invokation type.
-func detectInvokationSource(event json.RawMessage) invokationSource {
+// detectInvocationSource inspects the raw JSON to determine the invocation type.
+func detectInvocationSource(event json.RawMessage) invocationSource {
 	var probe struct {
 		AWSLogs *json.RawMessage `json:"awslogs"`
 	}
 
 	if err := json.Unmarshal(event, &probe); err != nil {
 		slog.Error("failed unmarshal", slog.Any("error", err))
-		return invokationSourceUnknown
+		return invocationSourceUnknown
 	}
 
 	if probe.AWSLogs != nil {
-		return invokationSourceCloudWatch
+		return invocationSourceCloudwatchLogs
 	}
 
-	return invokationSourceUnknown
+	return invocationSourceUnknown
 }
 
-func parseCloudWatch(ctx context.Context, event json.RawMessage, cfg *config.Config, out chan<- model.LogEntry) {
+func parseCloudwatchLogs(ctx context.Context, event json.RawMessage, cfg *config.Config, out chan<- model.LogEntry) {
 
 }
