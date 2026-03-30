@@ -15,7 +15,7 @@ importlib-metadata
 opentelemetry-api
 protobuf==6.33.5
 requests-futures
-requests
+requests==2.33.0
 setuptools==80.10.2
 six
 typing-extensions
@@ -23,4 +23,4 @@ urllib3>=2.6.3,<3.0
 wrapt==1.14.0
 xmltodict
 zipp
-ujson
+ujson==5.12.0
