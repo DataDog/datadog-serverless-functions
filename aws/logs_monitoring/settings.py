@@ -337,7 +337,7 @@ DD_SOURCE = "ddsource"
 DD_CUSTOM_TAGS = "ddtags"
 DD_SERVICE = "service"
 DD_HOST = "host"
-DD_FORWARDER_VERSION = "5.3.0"
+DD_FORWARDER_VERSION = "5.4.0"
 
 # CONST STRINGS
 AWS_STRING = "aws"
