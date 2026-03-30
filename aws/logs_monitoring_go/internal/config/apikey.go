@@ -50,11 +50,33 @@ func (c *Config) resolveAPIKey(ctx context.Context) error {
 	}
 
 	if v, ok := os.LookupEnv("DD_API_KEY_SSM_NAME"); ok {
-		return c.resolveFromSSM(ctx, awsCfg, v)
+		client, err := c.createSSMAPIClient(ctx, awsCfg)
+		if err != nil {
+			return fmt.Errorf("creating SSM client: %w", err)
+		}
+
+		apiKey, err := resolveFromSSM(ctx, client, v)
+		if err != nil {
+			return fmt.Errorf("resolving from SSM: %w", err)
+		}
+
+		c.APIKey = apiKey
+		return nil
 	}
 
 	if v, ok := os.LookupEnv("DD_KMS_API_KEY"); ok {
-		return c.resolveFromKMS(ctx, awsCfg, v)
+		client, err := c.createKMSAPIClient(ctx, awsCfg)
+		if err != nil {
+			return fmt.Errorf("creating KMS client: %w", err)
+		}
+
+		apiKey, err := resolveFromKMS(ctx, client, v)
+		if err != nil {
+			return fmt.Errorf("resolving from KMS: %w", err)
+		}
+
+		c.APIKey = apiKey
+		return nil
 	}
 
 	return errors.New("no API key configured: set DD_API_KEY_SECRET_ARN, DD_API_KEY_SSM_NAME or DD_KMS_API_KEY. See: https://docs.datadoghq.com/serverless/forwarder/")

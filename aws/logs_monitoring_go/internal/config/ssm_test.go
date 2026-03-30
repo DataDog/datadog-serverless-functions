@@ -1,0 +1,108 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the Apache License Version 2.0.
+// This product includes software developed at Datadog (https://www.datadoghq.com/).
+// Copyright 2026-Present Datadog, Inc.
+
+package config
+
+import (
+	"context"
+	"errors"
+	"testing"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
+	"github.com/aws/aws-sdk-go-v2/service/ssm/types"
+	"go.uber.org/mock/gomock"
+)
+
+func TestResolveFromSSM(t *testing.T) {
+	tests := map[string]struct {
+		mockSetup func(m *MockSSMAPIClient)
+		name      string
+		wantKey   string
+		wantErr   bool
+	}{
+		"success": {
+			mockSetup: func(m *MockSSMAPIClient) {
+				m.EXPECT().
+					GetParameter(gomock.Any(), gomock.Any()).
+					Return(&ssm.GetParameterOutput{
+						Parameter: &types.Parameter{
+							Value: aws.String("abcdef1234567890abcdef1234567890"),
+						},
+					}, nil)
+			},
+			name:    "/my/parameter/path",
+			wantKey: "abcdef1234567890abcdef1234567890",
+		},
+		"whitespace_trimmed": {
+			mockSetup: func(m *MockSSMAPIClient) {
+				m.EXPECT().
+					GetParameter(gomock.Any(), gomock.Any()).
+					Return(&ssm.GetParameterOutput{
+						Parameter: &types.Parameter{
+							Value: aws.String("  abcdef1234567890abcdef1234567890  "),
+						},
+					}, nil)
+			},
+			name:    "/my/parameter/path",
+			wantKey: "abcdef1234567890abcdef1234567890",
+		},
+		"aws_error": {
+			mockSetup: func(m *MockSSMAPIClient) {
+				m.EXPECT().
+					GetParameter(gomock.Any(), gomock.Any()).
+					Return(nil, errors.New("ParameterNotFound: parameter not found"))
+			},
+			name:    "/my/parameter/path",
+			wantErr: true,
+		},
+		"nil_parameter": {
+			mockSetup: func(m *MockSSMAPIClient) {
+				m.EXPECT().
+					GetParameter(gomock.Any(), gomock.Any()).
+					Return(&ssm.GetParameterOutput{
+						Parameter: nil,
+					}, nil)
+			},
+			name:    "/my/parameter/path",
+			wantErr: true,
+		},
+		"nil_value": {
+			mockSetup: func(m *MockSSMAPIClient) {
+				m.EXPECT().
+					GetParameter(gomock.Any(), gomock.Any()).
+					Return(&ssm.GetParameterOutput{
+						Parameter: &types.Parameter{
+							Value: nil,
+						},
+					}, nil)
+			},
+			name:    "/my/parameter/path",
+			wantErr: true,
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			mock := NewMockSSMAPIClient(ctrl)
+			tc.mockSetup(mock)
+
+			got, err := resolveFromSSM(context.Background(), mock, tc.name)
+			if tc.wantErr {
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got != tc.wantKey {
+				t.Errorf("got %q, want %q", got, tc.wantKey)
+			}
+		})
+	}
+}
