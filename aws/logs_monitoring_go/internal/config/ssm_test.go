@@ -90,7 +90,7 @@ func TestResolveFromSSM(t *testing.T) {
 			mock := NewMockSSMAPIClient(ctrl)
 			tc.mockSetup(mock)
 
-			got, err := resolveFromSSM(context.Background(), mock, tc.name)
+			got, err := fetchSSMParameter(context.Background(), mock, tc.name)
 			if tc.wantErr {
 				if err == nil {
 					t.Fatal("expected error, got nil")

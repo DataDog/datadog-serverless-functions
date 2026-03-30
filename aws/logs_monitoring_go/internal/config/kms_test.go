@@ -80,7 +80,7 @@ func TestResolveFromKMS(t *testing.T) {
 			mock := NewMockKMSAPIClient(ctrl)
 			tc.mockSetup(mock)
 
-			got, err := resolveFromKMS(context.Background(), mock, tc.ciphertext)
+			got, err := decryptKMSCiphertext(context.Background(), mock, tc.ciphertext)
 			if tc.wantErr {
 				if err == nil {
 					t.Fatal("expected error, got nil")

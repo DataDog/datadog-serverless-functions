@@ -72,7 +72,7 @@ func TestResolveFromSecretsManager(t *testing.T) {
 			mock := NewMockSecretsManagerAPIClient(ctrl)
 			tc.mockSetup(mock)
 
-			got, err := resolveFromSecretsManager(context.Background(), mock, tc.arn)
+			got, err := fetchSecret(context.Background(), mock, tc.arn)
 			if tc.wantErr {
 				if err == nil {
 					t.Fatal("expected error, got nil")

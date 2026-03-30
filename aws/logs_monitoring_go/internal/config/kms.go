@@ -15,6 +15,8 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	awshttp "github.com/aws/aws-sdk-go-v2/aws/transport/http"
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/kms"
 )
 
@@ -22,16 +24,29 @@ type KMSAPIClient interface {
 	Decrypt(ctx context.Context, params *kms.DecryptInput, optFns ...func(*kms.Options)) (*kms.DecryptOutput, error)
 }
 
-func (c *Config) createKMSAPIClient(ctx context.Context, awsCfg aws.Config) (KMSAPIClient, error) {
+func (c *Config) resolveAPIKeyFromKMS(ctx context.Context, ciphertext string) (string, error) {
+	client, err := c.createKMSAPIClient(ctx)
+	if err != nil {
+		return "", err
+	}
+	return decryptKMSCiphertext(ctx, client, ciphertext)
+}
+
+func (c *Config) createKMSAPIClient(ctx context.Context) (KMSAPIClient, error) {
+	cfg, err := awsconfig.LoadDefaultConfig(ctx, awsconfig.WithHTTPClient(awshttp.NewBuildableClient().WithTimeout(httpClientTimeout)))
+	if err != nil {
+		return nil, err
+	}
+
 	resolver := kms.NewDefaultEndpointResolverV2()
 	params := kms.EndpointParameters{
-		Region:  aws.String(awsCfg.Region),
+		Region:  aws.String(cfg.Region),
 		UseFIPS: aws.Bool(c.UseFIPS),
 	}
 
 	endpoint, err := resolver.ResolveEndpoint(ctx, params)
 	if err != nil && c.UseFIPS {
-		slog.Warn("FIPS endpoint not available, falling back to standard endpoint", slog.String("service", "kms"), slog.String("region", awsCfg.Region))
+		slog.Warn("FIPS endpoint not available, falling back to standard endpoint", slog.String("service", "kms"), slog.String("region", cfg.Region))
 		params.UseFIPS = aws.Bool(false)
 		endpoint, err = resolver.ResolveEndpoint(ctx, params)
 	}
@@ -39,12 +54,12 @@ func (c *Config) createKMSAPIClient(ctx context.Context, awsCfg aws.Config) (KMS
 		return nil, fmt.Errorf("resolve endpoint: %w", err)
 	}
 
-	return kms.NewFromConfig(awsCfg, func(o *kms.Options) {
+	return kms.NewFromConfig(cfg, func(o *kms.Options) {
 		o.BaseEndpoint = aws.String(endpoint.URI.String())
 	}), nil
 }
 
-func resolveFromKMS(ctx context.Context, client KMSAPIClient, ciphertext string) (string, error) {
+func decryptKMSCiphertext(ctx context.Context, client KMSAPIClient, ciphertext string) (string, error) {
 	decoded, err := base64.StdEncoding.DecodeString(ciphertext)
 	if err != nil {
 		return "", fmt.Errorf("base64-decoding ciphertext: %w", err)

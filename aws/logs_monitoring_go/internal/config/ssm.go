@@ -14,6 +14,8 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	awshttp "github.com/aws/aws-sdk-go-v2/aws/transport/http"
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 )
 
@@ -21,16 +23,29 @@ type SSMAPIClient interface {
 	GetParameter(ctx context.Context, params *ssm.GetParameterInput, optFns ...func(*ssm.Options)) (*ssm.GetParameterOutput, error)
 }
 
-func (c *Config) createSSMAPIClient(ctx context.Context, awsCfg aws.Config) (SSMAPIClient, error) {
+func (c *Config) resolveAPIKeyFromSSM(ctx context.Context, name string) (string, error) {
+	client, err := c.createSSMAPIClient(ctx)
+	if err != nil {
+		return "", err
+	}
+	return fetchSSMParameter(ctx, client, name)
+}
+
+func (c *Config) createSSMAPIClient(ctx context.Context) (SSMAPIClient, error) {
+	cfg, err := awsconfig.LoadDefaultConfig(ctx, awsconfig.WithHTTPClient(awshttp.NewBuildableClient().WithTimeout(httpClientTimeout)))
+	if err != nil {
+		return nil, err
+	}
+
 	resolver := ssm.NewDefaultEndpointResolverV2()
 	params := ssm.EndpointParameters{
-		Region:  aws.String(awsCfg.Region),
+		Region:  aws.String(cfg.Region),
 		UseFIPS: aws.Bool(c.UseFIPS),
 	}
 
 	endpoint, err := resolver.ResolveEndpoint(ctx, params)
 	if err != nil && c.UseFIPS {
-		slog.Warn("FIPS endpoint not available, falling back to standard endpoint", slog.String("service", "ssm"), slog.String("region", awsCfg.Region))
+		slog.Warn("FIPS endpoint not available, falling back to standard endpoint", slog.String("service", "ssm"), slog.String("region", cfg.Region))
 		params.UseFIPS = aws.Bool(false)
 		endpoint, err = resolver.ResolveEndpoint(ctx, params)
 	}
@@ -38,12 +53,12 @@ func (c *Config) createSSMAPIClient(ctx context.Context, awsCfg aws.Config) (SSM
 		return nil, fmt.Errorf("resolve endpoint: %w", err)
 	}
 
-	return ssm.NewFromConfig(awsCfg, func(o *ssm.Options) {
+	return ssm.NewFromConfig(cfg, func(o *ssm.Options) {
 		o.BaseEndpoint = aws.String(endpoint.URI.String())
 	}), nil
 }
 
-func resolveFromSSM(ctx context.Context, client SSMAPIClient, name string) (string, error) {
+func fetchSSMParameter(ctx context.Context, client SSMAPIClient, name string) (string, error) {
 	result, err := client.GetParameter(ctx, &ssm.GetParameterInput{
 		Name:           aws.String(name),
 		WithDecryption: aws.Bool(true),
@@ -62,4 +77,3 @@ func resolveFromSSM(ctx context.Context, client SSMAPIClient, name string) (stri
 
 	return strings.TrimSpace(*result.Parameter.Value), nil
 }
-
