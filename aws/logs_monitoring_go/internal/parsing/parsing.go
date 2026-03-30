@@ -21,18 +21,15 @@ const (
 	invocationSourceCloudwatchLogs
 )
 
-// Parse detects the invocation source and sends parsed log entries to the out channel.
-// Errors are logged and skipped, unless the lambda timeout is reached.
 func Parse(ctx context.Context, event json.RawMessage, cfg *config.Config, out chan<- model.LogEntry) {
 	switch detectInvocationSource(event) {
 	case invocationSourceCloudwatchLogs:
 		parseCloudwatchLogs(ctx, event, cfg, out)
 	default:
-		slog.Error("unsupported invocation source")
+		slog.Error("unsupported invocation source", slog.Any("event", event))
 	}
 }
 
-// detectInvocationSource inspects the raw JSON to determine the invocation type.
 func detectInvocationSource(event json.RawMessage) invocationSource {
 	var probe struct {
 		AWSLogs *json.RawMessage `json:"awslogs"`
