@@ -14,9 +14,6 @@ import (
 	"net/http"
 	"os"
 	"time"
-
-	awshttp "github.com/aws/aws-sdk-go-v2/aws/transport/http"
-	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 )
 
 var (
@@ -28,33 +25,31 @@ const (
 	httpClientTimeout = 5 * time.Second
 )
 
+type apiKeyResolver struct {
+	envVar  string
+	resolve func(ctx context.Context, value string) (string, error)
+}
+
 func (c *Config) resolveAPIKey(ctx context.Context) error {
-	awsCfg, err := awsconfig.LoadDefaultConfig(ctx, awsconfig.WithHTTPClient(awshttp.NewBuildableClient().WithTimeout(httpClientTimeout)))
-	if err != nil {
-		return fmt.Errorf("loading AWS config: %w", err)
+	resolvers := []apiKeyResolver{
+		{"DD_API_KEY_SECRET_ARN", c.resolveAPIKeyFromSecretsManager},
+		{"DD_API_KEY_SSM_NAME", c.resolveAPIKeyFromSSM},
+		{"DD_KMS_API_KEY", c.resolveAPIKeyFromKMS},
 	}
 
-	if v, ok := os.LookupEnv("DD_API_KEY_SECRET_ARN"); ok {
-		client, err := c.createSecretsManagerAPIClient(ctx, awsCfg)
-		if err != nil {
-			return fmt.Errorf("creating Secrets Manager client: %w", err)
+	for _, r := range resolvers {
+		v, ok := os.LookupEnv(r.envVar)
+		if !ok {
+			continue
 		}
 
-		apiKey, err := resolveFromSecretsManager(ctx, client, v)
+		apiKey, err := r.resolve(ctx, v)
 		if err != nil {
-			return fmt.Errorf("resolving from secrets manager: %w", err)
+			return fmt.Errorf("resolving API key from %s: %w", r.envVar, err)
 		}
 
 		c.APIKey = apiKey
 		return nil
-	}
-
-	if v, ok := os.LookupEnv("DD_API_KEY_SSM_NAME"); ok {
-		return c.resolveFromSSM(ctx, awsCfg, v)
-	}
-
-	if v, ok := os.LookupEnv("DD_KMS_API_KEY"); ok {
-		return c.resolveFromKMS(ctx, awsCfg, v)
 	}
 
 	return errors.New("no API key configured: set DD_API_KEY_SECRET_ARN, DD_API_KEY_SSM_NAME or DD_KMS_API_KEY. See: https://docs.datadoghq.com/serverless/forwarder/")

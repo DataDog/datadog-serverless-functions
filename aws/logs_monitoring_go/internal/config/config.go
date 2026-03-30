@@ -25,7 +25,7 @@ func Load(ctx context.Context) (*Config, error) {
 	logDroppedEnvVars()
 
 	cfg := loadConfig()
-	slog.Debug("config loaded", slog.String("site", cfg.Site), slog.String("intakeURL", cfg.IntakeURL), slog.String("apiURL", cfg.APIURL), slog.String("logLevel", cfg.LogLevel), slog.Bool("useFIPS", cfg.UseFIPS))
+	slog.Debug("config loaded", "config", cfg)
 
 	if err := cfg.resolveAPIKey(ctx); err != nil {
 		return nil, fmt.Errorf("resolving API key: %w", err)
@@ -47,4 +47,14 @@ func loadConfig() *Config {
 		LogLevel:  envOrDefault("DD_LOG_LEVEL", "INFO"),
 		UseFIPS:   envOrDefaultBool("DD_USE_FIPS", false),
 	}
+}
+
+func (c Config) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.String("site", c.Site),
+		slog.String("intakeUrl", c.IntakeURL),
+		slog.String("apiUrl", c.APIURL),
+		slog.String("loglevel", c.LogLevel),
+		slog.Bool("fips", c.UseFIPS),
+	)
 }

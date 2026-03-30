@@ -14,6 +14,8 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	awshttp "github.com/aws/aws-sdk-go-v2/aws/transport/http"
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 )
 
@@ -21,16 +23,29 @@ type SecretsManagerAPIClient interface {
 	GetSecretValue(ctx context.Context, params *secretsmanager.GetSecretValueInput, optFns ...func(*secretsmanager.Options)) (*secretsmanager.GetSecretValueOutput, error)
 }
 
-func (c *Config) createSecretsManagerAPIClient(ctx context.Context, awsCfg aws.Config) (SecretsManagerAPIClient, error) {
+func (c *Config) resolveAPIKeyFromSecretsManager(ctx context.Context, arn string) (string, error) {
+	client, err := c.createSecretsManagerAPIClient(ctx)
+	if err != nil {
+		return "", err
+	}
+	return fetchSecret(ctx, client, arn)
+}
+
+func (c *Config) createSecretsManagerAPIClient(ctx context.Context) (SecretsManagerAPIClient, error) {
+	cfg, err := awsconfig.LoadDefaultConfig(ctx, awsconfig.WithHTTPClient(awshttp.NewBuildableClient().WithTimeout(httpClientTimeout)))
+	if err != nil {
+		return nil, err
+	}
+
 	resolver := secretsmanager.NewDefaultEndpointResolverV2()
 	params := secretsmanager.EndpointParameters{
-		Region:  aws.String(awsCfg.Region),
+		Region:  aws.String(cfg.Region),
 		UseFIPS: aws.Bool(c.UseFIPS),
 	}
 
 	endpoint, err := resolver.ResolveEndpoint(ctx, params)
 	if err != nil && c.UseFIPS {
-		slog.Warn("FIPS endpoint not available, falling back to standard endpoint", slog.String("service", "secretsmanager"), slog.String("region", awsCfg.Region))
+		slog.Warn("FIPS endpoint not available, falling back to standard endpoint", slog.String("service", "secretsmanager"), slog.String("region", cfg.Region))
 		params.UseFIPS = aws.Bool(false)
 		endpoint, err = resolver.ResolveEndpoint(ctx, params)
 	}
@@ -38,12 +53,12 @@ func (c *Config) createSecretsManagerAPIClient(ctx context.Context, awsCfg aws.C
 		return nil, fmt.Errorf("resolve endpoint: %w", err)
 	}
 
-	return secretsmanager.NewFromConfig(awsCfg, func(o *secretsmanager.Options) {
+	return secretsmanager.NewFromConfig(cfg, func(o *secretsmanager.Options) {
 		o.BaseEndpoint = aws.String(endpoint.URI.String())
 	}), nil
 }
 
-func resolveFromSecretsManager(ctx context.Context, client SecretsManagerAPIClient, arn string) (string, error) {
+func fetchSecret(ctx context.Context, client SecretsManagerAPIClient, arn string) (string, error) {
 	result, err := client.GetSecretValue(ctx, &secretsmanager.GetSecretValueInput{
 		SecretId: aws.String(arn),
 	})
