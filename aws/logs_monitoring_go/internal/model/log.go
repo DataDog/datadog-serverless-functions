@@ -6,14 +6,14 @@
 package model
 
 type LogEntry struct {
-	ID      string      `json:"id,omitempty"`
-	Time    int64       `json:"timestamp,omitempty"`
-	Message string      `json:"message,omitempty"`
-	Source  string      `json:"ddsource"`
-	Service string      `json:"service,omitempty"`
-	Host    string      `json:"hostname,omitempty"`
-	Tags    []string    `json:"ddtags"`
-	AWS     AWSMetadata `json:"aws"`
+	ID        string      `json:"id,omitempty"`
+	Timestamp int64       `json:"timestamp,omitempty"`
+	Message   string      `json:"message,omitempty"`
+	Source    string      `json:"ddsource"`
+	Service   string      `json:"service,omitempty"`
+	Host      string      `json:"hostname,omitempty"`
+	Tags      []string    `json:"ddtags"`
+	AWS       AWSMetadata `json:"aws"`
 }
 
 type AWSMetadata struct {
