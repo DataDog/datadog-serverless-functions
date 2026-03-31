@@ -21,7 +21,7 @@ const (
 	invocationSourceCloudwatchLogs
 )
 
-func Parse(ctx context.Context, event json.RawMessage, cfg *config.Config, out chan<- model.LogEntry) {
+func Parse(ctx context.Context, event json.RawMessage, cfg *config.Config, out chan<- model.CloudwatchLogEntry) {
 	switch detectInvocationSource(event) {
 	case invocationSourceCloudwatchLogs:
 		parseCloudwatchLogs(ctx, event, cfg, out)
@@ -47,6 +47,6 @@ func detectInvocationSource(event json.RawMessage) invocationSource {
 	return invocationSourceUnknown
 }
 
-func parseCloudwatchLogs(ctx context.Context, event json.RawMessage, cfg *config.Config, out chan<- model.LogEntry) {
+func parseCloudwatchLogs(ctx context.Context, event json.RawMessage, cfg *config.Config, out chan<- model.CloudwatchLogEntry) {
 
 }
