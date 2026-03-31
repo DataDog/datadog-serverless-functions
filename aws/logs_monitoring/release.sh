@@ -377,10 +377,8 @@ fi
 log_info "Uploading template.yaml to s3://${BUCKET}/aws/forwarder/${FORWARDER_VERSION}.yaml"
 
 if [[ ${ACCOUNT} == "prod" ]]; then
-    aws_login aws s3 cp template.yaml "s3://${BUCKET}/aws/forwarder/${FORWARDER_VERSION}.yaml" \
-        --grants "read=uri=http://acs.amazonaws.com/groups/global/AllUsers"
-    aws_login aws s3 cp template.yaml "s3://${BUCKET}/aws/forwarder/latest.yaml" \
-        --grants "read=uri=http://acs.amazonaws.com/groups/global/AllUsers"
+    aws_login aws s3 cp template.yaml "s3://${BUCKET}/aws/forwarder/${FORWARDER_VERSION}.yaml"
+    aws_login aws s3 cp template.yaml "s3://${BUCKET}/aws/forwarder/latest.yaml"
 elif [[ ${ACCOUNT} == "datadog" ]]; then
     aws_login aws s3 cp template.yaml "s3://${BUCKET}/aws/forwarder/${FORWARDER_VERSION}.yaml"
     aws_login aws s3 cp template.yaml "s3://${BUCKET}/aws/forwarder/latest.yaml"
