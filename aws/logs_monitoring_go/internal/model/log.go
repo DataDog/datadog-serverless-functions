@@ -5,44 +5,19 @@
 
 package model
 
-import (
-	"encoding/json"
-)
-
 type LogEntry struct {
-	Source  string
-	Service string
-	Host    string
-	Tags    []string
-	AWS     AWSMetadata
-	Content LogContent
+	ID      string      `json:"id,omitempty"`
+	Time    int64       `json:"timestamp,omitempty"`
+	Message string      `json:"message,omitempty"`
+	Source  string      `json:"ddsource"`
+	Service string      `json:"service,omitempty"`
+	Host    string      `json:"hostname,omitempty"`
+	Tags    []string    `json:"ddtags"`
+	AWS     AWSMetadata `json:"aws"`
 }
 
 type AWSMetadata struct {
-	InvokedFunctionARN string            `json:"invoked_function_arn"`
-	FunctionVersion    string            `json:"function_version,omitempty"`
-	Invocation         InvocationContext `json:"-"`
-}
-
-type LogContent interface {
-	Message() string
-	MarshalFields() (map[string]any, error)
-}
-
-type InvocationContext interface {
-	InvocationKey() string
-}
-
-func (m AWSMetadata) MarshalJSON() ([]byte, error) {
-	out := map[string]any{
-		"invoked_function_arn": m.InvokedFunctionARN,
-	}
-	if m.FunctionVersion != "" {
-		out["function_version"] = m.FunctionVersion
-	}
-	if m.Invocation != nil {
-		out[m.Invocation.InvocationKey()] = m.Invocation
-	}
-
-	return json.Marshal(out)
+	InvokedFunctionARN string                 `json:"invoked_function_arn"`
+	FunctionVersion    string                 `json:"function_version,omitempty"`
+	CloudwatchLogs     *CloudwatchLogsContext `json:"awslogs,omitempty"`
 }

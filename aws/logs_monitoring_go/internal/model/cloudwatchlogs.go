@@ -10,23 +10,3 @@ type CloudwatchLogsContext struct {
 	LogStream string `json:"logStream"`
 	Owner     string `json:"owner"`
 }
-
-func (CloudwatchLogsContext) InvocationKey() string { return "awslogs" }
-
-type CloudwatchLogsContent struct {
-	ID        string `json:"id"`
-	Timestamp int64  `json:"timestamp"`
-	Msg       string `json:"message"`
-}
-
-func (c CloudwatchLogsContent) Message() string {
-	return c.Msg
-}
-
-func (c CloudwatchLogsContent) MarshalFields() (map[string]any, error) {
-	return map[string]any{
-		"id":        c.ID,
-		"timestamp": c.Timestamp,
-		"message":   c.Msg,
-	}, nil
-}
