@@ -13,35 +13,34 @@ import (
 	"testing"
 )
 
-func detectInvocationSourceProbe(event json.RawMessage) invocationSource {
-	var probe struct {
-		AWSLogs *json.RawMessage `json:"awslogs"`
-		Records []struct {
-			EventSource string `json:"eventSource"`
-		} `json:"Records"`
-	}
-	json.Unmarshal(event, &probe)
-	if probe.AWSLogs != nil {
-		return invocationSourceCloudwatchLogs
-	}
-	if len(probe.Records) > 0 {
-		switch probe.Records[0].EventSource {
-		case "aws:s3":
-			return invocationSourceS3
-		case "aws:sns":
-			return invocationSourceSNS
-		case "aws:sqs":
-			return invocationSourceSQS
-		case "aws:kinesis":
-			return invocationSourceKinesis
-		}
-	}
-	return invocationSourceUnknown
+const benchS3Records = 500
+
+var (
+	smallCWEvent        = json.RawMessage(`{"awslogs":{"data":"dGVzdA=="}}`)
+	largeS3EventFirst   = makeS3EventSourceFirst(benchS3Records)
+	largeS3EventLast    = makeS3EventSourceLast(benchS3Records)
+)
+
+var benchCases = []struct {
+	name  string
+	event json.RawMessage
+}{
+	{"SmallCW", smallCWEvent},
+	{"LargeS3_SourceFirst", largeS3EventFirst},
+	{"LargeS3_SourceLast", largeS3EventLast},
 }
 
-var detectInvocationSourceDecoder = detectInvocationSource
+func BenchmarkDetectInvocationSource(b *testing.B) {
+	for _, tc := range benchCases {
+		b.Run(tc.name, func(b *testing.B) {
+			for b.Loop() {
+				detectInvocationSource(tc.event)
+			}
+		})
+	}
+}
 
-func makeLargeS3Event(nRecords int) json.RawMessage {
+func makeS3EventSourceFirst(nRecords int) json.RawMessage {
 	var buf bytes.Buffer
 	buf.WriteString(`{"Records":[`)
 	for i := range nRecords {
@@ -65,32 +64,4 @@ func makeS3EventSourceLast(nRecords int) json.RawMessage {
 	}
 	buf.WriteString(`]}`)
 	return json.RawMessage(buf.Bytes())
-}
-
-var smallCWEvent = json.RawMessage(`{"awslogs":{"data":"dGVzdA=="}}`)
-var largeS3Event = makeLargeS3Event(500)
-var largeS3EventSourceLast = makeS3EventSourceLast(500)
-
-var benchCases = []struct {
-	name  string
-	event json.RawMessage
-}{
-	{"SmallCW", smallCWEvent},
-	{"LargeS3", largeS3Event},
-	{"LargeS3_SourceLast", largeS3EventSourceLast},
-}
-
-func BenchmarkDetect(b *testing.B) {
-	for _, tc := range benchCases {
-		b.Run("Probe/"+tc.name, func(b *testing.B) {
-			for b.Loop() {
-				detectInvocationSourceProbe(tc.event)
-			}
-		})
-		b.Run("Decoder/"+tc.name, func(b *testing.B) {
-			for b.Loop() {
-				detectInvocationSourceDecoder(tc.event)
-			}
-		})
-	}
 }
