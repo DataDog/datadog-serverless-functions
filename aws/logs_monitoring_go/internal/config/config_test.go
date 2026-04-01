@@ -47,6 +47,22 @@ func TestLoadConfig(t *testing.T) {
 				LogLevel:  "INFO",
 			},
 		},
+		"custom_source_host_tags": {
+			env: map[string]string{
+				"DD_SOURCE": "custom-source",
+				"DD_HOST":   "my-host",
+				"DD_TAGS":   "env:prod,team:aws",
+			},
+			want: Config{
+				Site:       "datadoghq.com",
+				IntakeURL:  "https://http-intake.logs.datadoghq.com",
+				APIURL:     "https://api.datadoghq.com",
+				LogLevel:   "INFO",
+				Source:     "custom-source",
+				Host:       "my-host",
+				CustomTags: "env:prod,team:aws",
+			},
+		},
 	}
 
 	for name, tc := range tests {
