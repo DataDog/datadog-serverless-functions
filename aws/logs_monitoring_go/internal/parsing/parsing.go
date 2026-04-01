@@ -100,7 +100,3 @@ func detectFromRecords(dec *json.Decoder) invocationSource {
 
 	return invocationSourceUnknown
 }
-
-func parseCloudwatchLogs(ctx context.Context, event json.RawMessage, cfg *config.Config, out chan<- model.CloudwatchLogEntry) {
-
-}
