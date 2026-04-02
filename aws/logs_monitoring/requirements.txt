@@ -16,7 +16,7 @@ opentelemetry-api
 protobuf==6.33.5
 requests-futures
 requests==2.33.0
-setuptools==80.10.2
+setuptools==82.0.1
 six
 typing-extensions
 urllib3>=2.6.3,<3.0
