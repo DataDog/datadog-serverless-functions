@@ -26,8 +26,7 @@ func Run[T any](
 
 	g.Go(func() error {
 		defer close(entries)
-		handler(ctx, event, cfg, entries)
-		return nil
+		return handler(ctx, event, cfg, entries)
 	})
 
 	g.Go(func() error {
