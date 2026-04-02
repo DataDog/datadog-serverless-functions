@@ -11,6 +11,8 @@ import (
 	"log/slog"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/parsing"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/pipeline"
 
 	"github.com/aws/aws-lambda-go/lambda"
 )
@@ -26,10 +28,14 @@ func main() {
 	lambda.Start(handleRequest(cfg))
 }
 
-// cfg not used for now, will be when forwarding logic added
 func handleRequest(cfg *config.Config) func(context.Context, json.RawMessage) error {
 	return func(ctx context.Context, event json.RawMessage) error {
-		slog.Info("received event", slog.String("event", string(event)))
-		return nil
+		switch parsing.DetectInvocationSource(event) {
+		case parsing.InvocationSourceCloudwatchLogs:
+			return pipeline.Run(ctx, event, cfg, parsing.HandleCloudwatchLogs)
+		default:
+			slog.Error("unsupported invocation source")
+			return nil
+		}
 	}
 }

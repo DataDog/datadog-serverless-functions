@@ -34,7 +34,7 @@ func BenchmarkDetectInvocationSource(b *testing.B) {
 	for _, tc := range benchCases {
 		b.Run(tc.name, func(b *testing.B) {
 			for b.Loop() {
-				detectInvocationSource(tc.event)
+				DetectInvocationSource(tc.event)
 			}
 		})
 	}

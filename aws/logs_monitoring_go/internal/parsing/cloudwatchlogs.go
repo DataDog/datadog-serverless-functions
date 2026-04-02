@@ -11,27 +11,41 @@ import (
 	"log/slog"
 	"strings"
 
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/concurrent"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambdacontext"
 )
 
-func parseCloudwatchLogs(ctx context.Context, event json.RawMessage, cfg *config.Config, out chan<- model.CloudwatchLogEntry) {
+func HandleCloudwatchLogs(ctx context.Context, event json.RawMessage, cfg *config.Config, out chan<- model.CloudwatchLogEntry) error {
+	logEntries, err := parseCloudwatchLogs(ctx, event, cfg)
+	if err != nil {
+		slog.Error("failed parse cloudwatch logs", slog.Any("error", err))
+	}
+
+	for _, logEntry := range logEntries {
+		if err := concurrent.SafeSender(ctx, out, logEntry); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func parseCloudwatchLogs(ctx context.Context, event json.RawMessage, cfg *config.Config) ([]model.CloudwatchLogEntry, error) {
 	var cwEvent events.CloudwatchLogsEvent
 	if err := json.Unmarshal(event, &cwEvent); err != nil {
-		slog.Error("failed to unmarshal cloudwatch event", slog.Any("error", err))
-		return
+		return nil, err
 	}
 
 	data, err := cwEvent.AWSLogs.Parse()
 	if err != nil {
-		slog.Error("failed to decompress cloudwatch data", slog.Any("error", err))
-		return
+		return nil, err
 	}
 
 	if data.MessageType == "CONTROL_MESSAGE" {
-		return
+		return nil, nil
 	}
 
 	source := getCloudwatchSource(cfg.Source, data.LogGroup, data.LogStream)
@@ -42,6 +56,7 @@ func parseCloudwatchLogs(ctx context.Context, event json.RawMessage, cfg *config
 		service = source
 	}
 
+	var entries []model.CloudwatchLogEntry
 	for _, le := range data.LogEvents {
 		entry := model.CloudwatchLogEntry{
 			ID:        le.ID,
@@ -53,18 +68,19 @@ func parseCloudwatchLogs(ctx context.Context, event json.RawMessage, cfg *config
 			Tags:      tags,
 			AWS:       metadata,
 		}
-
-		select {
-		case out <- entry:
-		case <-ctx.Done():
-			return
-		}
+		entries = append(entries, entry)
 	}
+
+	return entries, nil
 }
 
 func getCloudwatchSource(sourceOverride, logGroup, logStream string) string {
 	if sourceOverride != "" {
 		return sourceOverride
+	}
+
+	if strings.HasPrefix(logStream, "states/") {
+		return "stepfunction"
 	}
 
 	var source string
@@ -73,11 +89,6 @@ func getCloudwatchSource(sourceOverride, logGroup, logStream string) string {
 	} else {
 		source = getSourceFromLogGroup(strings.ToLower(logGroup))
 	}
-
-	if strings.HasPrefix(logStream, "states/") {
-		source = "stepfunction"
-	}
-
 	return source
 }
 
