@@ -12,6 +12,8 @@ import (
 )
 
 func TestNewScrubber(t *testing.T) {
+	t.Parallel()
+
 	tests := map[string]struct {
 		cfg    config.ScrubbingConfig
 		nRules int
