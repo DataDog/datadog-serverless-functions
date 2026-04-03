@@ -27,8 +27,8 @@ type Config struct {
 }
 
 type ScrubbingConfig struct {
-	ScrubIP    bool
-	ScrubEmail bool
+	ScrubIP           bool
+	ScrubEmail        bool
 	CustomRule        string
 	CustomReplacement string
 }
@@ -63,8 +63,8 @@ func loadConfig() *Config {
 		Host:       envOrDefault("DD_HOST", ""),
 		CustomTags: envOrDefault("DD_TAGS", ""),
 		Scrubbing: ScrubbingConfig{
-			ScrubIP:    envOrDefaultBool("REDACT_IP", false),
-			ScrubEmail: envOrDefaultBool("REDACT_EMAIL", false),
+			ScrubIP:           envOrDefaultBool("REDACT_IP", false),
+			ScrubEmail:        envOrDefaultBool("REDACT_EMAIL", false),
 			CustomRule:        envOrDefault("DD_SCRUBBING_RULE", ""),
 			CustomReplacement: envOrDefault("DD_SCRUBBING_RULE_REPLACEMENT", ""),
 		},
