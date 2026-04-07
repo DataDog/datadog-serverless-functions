@@ -86,8 +86,13 @@ func TestForward(t *testing.T) {
 				gr, err := gzip.NewReader(req.Body)
 				if err != nil {
 					t.Errorf("body is not valid gzip: %v", err)
+					return
 				}
-				defer gr.Close()
+				defer func() {
+					if err := gr.Close(); err != nil {
+						t.Errorf("failed to close gzip reader: %v", err)
+					}
+				}()
 
 				if _, err := io.ReadAll(gr); err != nil {
 					t.Errorf("failed to read gzip body: %v", err)
