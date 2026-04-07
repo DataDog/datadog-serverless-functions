@@ -12,12 +12,15 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
 )
 
 func TestForward(t *testing.T) {
+	t.Parallel()
+
 	tests := map[string]struct {
 		statusCode int
 		payloads   [][]byte
@@ -66,10 +69,12 @@ func TestForward(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			callCount := 0
+			t.Parallel()
+
+			var callCount atomic.Int32
 
 			server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-				callCount++
+				callCount.Add(1)
 
 				if got := req.Header.Get("DD-API-KEY"); got != "test-api-key" {
 					t.Errorf("DD-API-KEY = %q, want %q", got, "test-api-key")
@@ -127,8 +132,8 @@ func TestForward(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
-			if callCount != tc.wantCalls {
-				t.Errorf("server called %d times, want %d", callCount, tc.wantCalls)
+			if got := int(callCount.Load()); got != tc.wantCalls {
+				t.Errorf("server called %d times, want %d", got, tc.wantCalls)
 			}
 		})
 	}
