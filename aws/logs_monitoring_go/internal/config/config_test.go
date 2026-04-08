@@ -63,6 +63,29 @@ func TestLoadConfig(t *testing.T) {
 				CustomTags: "env:prod,team:aws",
 			},
 		},
+		"scrubbing_ip_enabled": {
+			env: map[string]string{"REDACT_IP": "true"},
+			want: Config{
+				Site:      "datadoghq.com",
+				IntakeURL: "https://http-intake.logs.datadoghq.com",
+				APIURL:    "https://api.datadoghq.com",
+				LogLevel:  "INFO",
+				Scrubbing: ScrubbingConfig{ScrubIP: true},
+			},
+		},
+		"scrubbing_custom_rule": {
+			env: map[string]string{
+				"DD_SCRUBBING_RULE":             `\d+`,
+				"DD_SCRUBBING_RULE_REPLACEMENT": "X",
+			},
+			want: Config{
+				Site:      "datadoghq.com",
+				IntakeURL: "https://http-intake.logs.datadoghq.com",
+				APIURL:    "https://api.datadoghq.com",
+				LogLevel:  "INFO",
+				Scrubbing: ScrubbingConfig{CustomRule: `\d+`, CustomReplacement: "X"},
+			},
+		},
 	}
 
 	for name, tc := range tests {

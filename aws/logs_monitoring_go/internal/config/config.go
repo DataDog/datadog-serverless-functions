@@ -23,6 +23,14 @@ type Config struct {
 	Source     string
 	Host       string
 	CustomTags string
+	Scrubbing  ScrubbingConfig
+}
+
+type ScrubbingConfig struct {
+	ScrubIP           bool
+	ScrubEmail        bool
+	CustomRule        string
+	CustomReplacement string
 }
 
 func Load(ctx context.Context) (*Config, error) {
@@ -54,6 +62,12 @@ func loadConfig() *Config {
 		Source:     envOrDefault("DD_SOURCE", ""),
 		Host:       envOrDefault("DD_HOST", ""),
 		CustomTags: envOrDefault("DD_TAGS", ""),
+		Scrubbing: ScrubbingConfig{
+			ScrubIP:           envOrDefaultBool("REDACT_IP", false),
+			ScrubEmail:        envOrDefaultBool("REDACT_EMAIL", false),
+			CustomRule:        envOrDefault("DD_SCRUBBING_RULE", ""),
+			CustomReplacement: envOrDefault("DD_SCRUBBING_RULE_REPLACEMENT", ""),
+		},
 	}
 }
 
@@ -64,5 +78,8 @@ func (c Config) LogValue() slog.Value {
 		slog.String("apiUrl", c.APIURL),
 		slog.String("loglevel", c.LogLevel),
 		slog.Bool("fips", c.UseFIPS),
+		slog.Bool("redactIP", c.Scrubbing.ScrubIP),
+		slog.Bool("redactEmail", c.Scrubbing.ScrubEmail),
+		slog.Bool("customScrubbing", c.Scrubbing.CustomRule != ""),
 	)
 }
