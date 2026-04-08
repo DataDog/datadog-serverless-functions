@@ -79,8 +79,17 @@ func TestForward(t *testing.T) {
 				if got := req.Header.Get("DD-API-KEY"); got != "test-api-key" {
 					t.Errorf("DD-API-KEY = %q, want %q", got, "test-api-key")
 				}
+				if got := req.Header.Get("Content-Type"); got != "application/json" {
+					t.Errorf("Content-Type = %q, want %q", got, "application/json")
+				}
 				if got := req.Header.Get("Content-Encoding"); got != "gzip" {
 					t.Errorf("Content-Encoding = %q, want %q", got, "gzip")
+				}
+				if got := req.Header.Get("DD-EVP-ORIGIN"); got != "aws_forwarder" {
+					t.Errorf("DD-EVP-ORIGIN = %q, want %q", got, "aws_forwarder")
+				}
+				if got := req.Header.Get("DD-EVP-ORIGIN-VERSION"); got != config.ForwarderVersion {
+					t.Errorf("DD-EVP-ORIGIN-VERSION = %q, want %q", got, config.ForwarderVersion)
 				}
 
 				gr, err := gzip.NewReader(req.Body)

@@ -57,7 +57,10 @@ func (f Forwarder) send(ctx context.Context, body []byte) error {
 	}
 
 	req.Header.Set("DD-API-KEY", f.Config.APIKey)
+	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Content-Encoding", "gzip")
+	req.Header.Set("DD-EVP-ORIGIN", "aws_forwarder")
+	req.Header.Set("DD-EVP-ORIGIN-VERSION", config.ForwarderVersion)
 
 	resp, err := f.Client.Do(req)
 	if err != nil {
