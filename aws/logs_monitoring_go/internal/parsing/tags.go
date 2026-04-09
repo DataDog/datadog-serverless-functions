@@ -9,11 +9,12 @@ import (
 	"strings"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 	"github.com/aws/aws-lambda-go/lambdacontext"
 )
 
-func getTagsAndService(cfg config.Config) ([]string, string) {
-	var tags []string
+func getTagsAndService(cfg config.Config) (model.Tags, string) {
+	var tags model.Tags
 	var service string
 
 	if cfg.CustomTags != "" {
