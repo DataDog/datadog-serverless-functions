@@ -37,8 +37,8 @@ func collectBatches(t *testing.T, in <-chan model.CloudwatchLogEntry) [][]byte {
 	t.Helper()
 
 	out := make(chan []byte, 100)
-	batcher := NewBatcher(in, out)
-	err := batcher.Batch(context.Background())
+	batcher := NewBatcher[model.CloudwatchLogEntry]()
+	err := batcher.Batch(context.Background(), in, out)
 	close(out)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -177,8 +177,8 @@ func TestBatch_ContextCancellation(t *testing.T) {
 
 	cancel()
 
-	batcher := NewBatcher(in, out)
-	err := batcher.Batch(ctx)
+	batcher := NewBatcher[model.CloudwatchLogEntry]()
+	err := batcher.Batch(ctx, in, out)
 	if err == nil {
 		t.Fatal("expected context cancellation error")
 	}
