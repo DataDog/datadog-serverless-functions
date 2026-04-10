@@ -86,6 +86,26 @@ func TestLoadConfig(t *testing.T) {
 				Scrubbing: ScrubbingConfig{CustomRule: `\d+`, CustomReplacement: "X"},
 			},
 		},
+		"filtering_include": {
+			env: map[string]string{"INCLUDE_AT_MATCH": `error|warn`},
+			want: Config{
+				Site:      "datadoghq.com",
+				IntakeURL: "https://http-intake.logs.datadoghq.com",
+				APIURL:    "https://api.datadoghq.com",
+				LogLevel:  "INFO",
+				Filtering: FilteringConfig{IncludePattern: `error|warn`},
+			},
+		},
+		"filtering_exclude": {
+			env: map[string]string{"EXCLUDE_AT_MATCH": `DEBUG`},
+			want: Config{
+				Site:      "datadoghq.com",
+				IntakeURL: "https://http-intake.logs.datadoghq.com",
+				APIURL:    "https://api.datadoghq.com",
+				LogLevel:  "INFO",
+				Filtering: FilteringConfig{ExcludePattern: `DEBUG`},
+			},
+		},
 	}
 
 	for name, tc := range tests {

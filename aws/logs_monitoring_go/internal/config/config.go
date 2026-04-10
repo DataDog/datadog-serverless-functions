@@ -24,6 +24,7 @@ type Config struct {
 	Host       string
 	CustomTags string
 	Scrubbing  ScrubbingConfig
+	Filtering  FilteringConfig
 }
 
 type ScrubbingConfig struct {
@@ -31,6 +32,11 @@ type ScrubbingConfig struct {
 	ScrubEmail        bool
 	CustomRule        string
 	CustomReplacement string
+}
+
+type FilteringConfig struct {
+	IncludePattern string
+	ExcludePattern string
 }
 
 func Load(ctx context.Context) (*Config, error) {
@@ -68,6 +74,10 @@ func loadConfig() *Config {
 			CustomRule:        envOrDefault("DD_SCRUBBING_RULE", ""),
 			CustomReplacement: envOrDefault("DD_SCRUBBING_RULE_REPLACEMENT", ""),
 		},
+		Filtering: FilteringConfig{
+			IncludePattern: envOrDefault("INCLUDE_AT_MATCH", ""),
+			ExcludePattern: envOrDefault("EXCLUDE_AT_MATCH", ""),
+		},
 	}
 }
 
@@ -81,5 +91,7 @@ func (c Config) LogValue() slog.Value {
 		slog.Bool("redactIP", c.Scrubbing.ScrubIP),
 		slog.Bool("redactEmail", c.Scrubbing.ScrubEmail),
 		slog.Bool("customScrubbing", c.Scrubbing.CustomRule != ""),
+		slog.Bool("includeFilter", c.Filtering.IncludePattern != ""),
+		slog.Bool("excludeFilter", c.Filtering.ExcludePattern != ""),
 	)
 }
