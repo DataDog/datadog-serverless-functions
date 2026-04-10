@@ -16,32 +16,48 @@ import (
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/concurrent"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
+	"golang.org/x/sync/errgroup"
 )
 
+const numWorkers = 3
+
 type Forwarder struct {
-	Config config.Config
-	Client *http.Client
+	config *config.Config
+	client *http.Client
 }
 
-func (f Forwarder) Forward(ctx context.Context, in <-chan []byte) error {
-	for {
-		body, ok, err := concurrent.SafeReader(ctx, in)
-		if err != nil {
-			return err
-		}
-		if !ok {
-			break
-		}
+func NewForwarder(config *config.Config, client *http.Client) *Forwarder {
+	return &Forwarder{
+		config: config,
+		client: client,
+	}
+}
 
-		if err := f.send(ctx, body); err != nil {
-			return err
-		}
+func (f *Forwarder) Forward(ctx context.Context, in <-chan []byte) error {
+	g, ctx := errgroup.WithContext(ctx)
+
+	for range numWorkers {
+		g.Go(func() error {
+			for {
+				body, ok, err := concurrent.SafeReader(ctx, in)
+				if err != nil {
+					return err
+				}
+				if !ok {
+					return nil
+				}
+
+				if err := f.send(ctx, body); err != nil {
+					return err
+				}
+			}
+		})
 	}
 
-	return nil
+	return g.Wait()
 }
 
-func (f Forwarder) send(ctx context.Context, body []byte) error {
+func (f *Forwarder) send(ctx context.Context, body []byte) error {
 	var compressedBody bytes.Buffer
 	zw := gzip.NewWriter(&compressedBody)
 	if _, err := zw.Write(body); err != nil {
@@ -51,18 +67,18 @@ func (f Forwarder) send(ctx context.Context, body []byte) error {
 		return fmt.Errorf("closing gzip writer: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, f.Config.IntakeURL, bytes.NewReader(compressedBody.Bytes()))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, f.config.IntakeURL, bytes.NewReader(compressedBody.Bytes()))
 	if err != nil {
 		return err
 	}
 
-	req.Header.Set("DD-API-KEY", f.Config.APIKey)
+	req.Header.Set("DD-API-KEY", f.config.APIKey)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Content-Encoding", "gzip")
 	req.Header.Set("DD-EVP-ORIGIN", "aws_forwarder")
 	req.Header.Set("DD-EVP-ORIGIN-VERSION", config.ForwarderVersion)
 
-	resp, err := f.Client.Do(req)
+	resp, err := f.client.Do(req)
 	if err != nil {
 		return fmt.Errorf("sending to intake: %w", err)
 	}

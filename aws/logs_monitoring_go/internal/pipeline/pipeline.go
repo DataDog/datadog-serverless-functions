@@ -8,9 +8,12 @@ package pipeline
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"net/http"
+	"time"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/forwarding"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/processing"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -23,6 +26,12 @@ func Run[T any](
 	var g errgroup.Group
 
 	entries := make(chan T)
+	batches := make(chan []byte)
+
+	batcher := processing.NewBatcher[T]()
+	forwarder := forwarding.NewForwarder(cfg, &http.Client{
+		Timeout: 10 * time.Second,
+	})
 
 	g.Go(func() error {
 		defer close(entries)
@@ -30,10 +39,12 @@ func Run[T any](
 	})
 
 	g.Go(func() error {
-		for entry := range entries {
-			fmt.Println(entry)
-		}
-		return nil
+		defer close(batches)
+		return batcher.Batch(ctx, entries, batches)
+	})
+
+	g.Go(func() error {
+		return forwarder.Forward(ctx, batches)
 	})
 
 	return g.Wait()
