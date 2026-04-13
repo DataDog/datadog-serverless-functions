@@ -23,26 +23,22 @@ const (
 type Batcher[T any] struct {
 	batch     [][]byte
 	batchSize int
-	in        <-chan T
-	out       chan<- []byte
 }
 
-func NewBatcher[T any](in <-chan T, out chan<- []byte) *Batcher[T] {
+func NewBatcher[T any]() *Batcher[T] {
 	return &Batcher[T]{
 		batch: make([][]byte, 0, maxItemsPerBatch),
-		in:    in,
-		out:   out,
 	}
 }
 
-func (b *Batcher[T]) Batch(ctx context.Context) error {
+func (b *Batcher[T]) Batch(ctx context.Context, in <-chan T, out chan<- []byte) error {
 	for {
-		entry, ok, err := concurrent.SafeReader(ctx, b.in)
+		entry, ok, err := concurrent.SafeReader(ctx, in)
 		if err != nil {
 			return err
 		}
 		if !ok {
-			return b.flush(ctx)
+			return b.flush(ctx, out)
 		}
 
 		data, err := json.Marshal(entry)
@@ -60,7 +56,7 @@ func (b *Batcher[T]) Batch(ctx context.Context) error {
 		}
 
 		if b.batchSize+len(data) > maxBatchSize || len(b.batch) >= maxItemsPerBatch {
-			if err := b.flush(ctx); err != nil {
+			if err := b.flush(ctx, out); err != nil {
 				return err
 			}
 		}
@@ -70,7 +66,7 @@ func (b *Batcher[T]) Batch(ctx context.Context) error {
 	}
 }
 
-func (b *Batcher[T]) flush(ctx context.Context) error {
+func (b *Batcher[T]) flush(ctx context.Context, out chan<- []byte) error {
 	if len(b.batch) == 0 {
 		return nil
 	}
@@ -79,7 +75,7 @@ func (b *Batcher[T]) flush(ctx context.Context) error {
 	b.batch = b.batch[:0]
 	b.batchSize = 0
 
-	return concurrent.SafeSender(ctx, b.out, payload)
+	return concurrent.SafeSender(ctx, out, payload)
 }
 
 func assembleBatch(entries [][]byte) []byte {
