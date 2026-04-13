@@ -7,10 +7,11 @@ package model
 
 import (
 	"encoding/json"
+	"slices"
 	"testing"
 )
 
-func TestTagsMarshalJSON(t *testing.T) {
+func TestTags(t *testing.T) {
 	t.Parallel()
 
 	tests := map[string]struct {
@@ -40,10 +41,19 @@ func TestTagsMarshalJSON(t *testing.T) {
 			t.Parallel()
 			got, err := json.Marshal(tc.tags)
 			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
+				t.Fatalf("unexpected marshal error: %v", err)
 			}
 			if string(got) != tc.want {
 				t.Errorf("got %s, want %s", got, tc.want)
+			}
+
+			var tags Tags
+			err = json.Unmarshal(got, &tags)
+			if err != nil {
+				t.Fatalf("unexpected unmarshal error: %v", err)
+			}
+			if !slices.Equal(tc.tags, tags) {
+				t.Errorf("expected %v, got %v", tc.tags, tags)
 			}
 		})
 	}
