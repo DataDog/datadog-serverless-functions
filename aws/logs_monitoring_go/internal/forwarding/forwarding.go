@@ -26,14 +26,14 @@ type Forwarder struct {
 	client *http.Client
 }
 
-func NewForwarder(config *config.Config, client *http.Client) *Forwarder {
-	return &Forwarder{
+func NewForwarder(config *config.Config, client *http.Client) Forwarder {
+	return Forwarder{
 		config: config,
 		client: client,
 	}
 }
 
-func (f *Forwarder) Forward(ctx context.Context, in <-chan []byte) error {
+func (f Forwarder) Forward(ctx context.Context, in <-chan []byte) error {
 	g, ctx := errgroup.WithContext(ctx)
 
 	for range numWorkers {
@@ -57,7 +57,7 @@ func (f *Forwarder) Forward(ctx context.Context, in <-chan []byte) error {
 	return g.Wait()
 }
 
-func (f *Forwarder) send(ctx context.Context, body []byte) error {
+func (f Forwarder) send(ctx context.Context, body []byte) error {
 	var compressedBody bytes.Buffer
 	zw := gzip.NewWriter(&compressedBody)
 	if _, err := zw.Write(body); err != nil {

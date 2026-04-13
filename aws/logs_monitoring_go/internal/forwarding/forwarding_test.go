@@ -111,13 +111,10 @@ func TestForward(t *testing.T) {
 			}))
 			defer server.Close()
 
-			f := Forwarder{
-				config: &config.Config{
-					IntakeURL: server.URL,
-					APIKey:    "test-api-key",
-				},
-				client: server.Client(),
-			}
+			f := NewForwarder(&config.Config{
+				IntakeURL: server.URL,
+				APIKey:    "test-api-key",
+			}, server.Client())
 
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
