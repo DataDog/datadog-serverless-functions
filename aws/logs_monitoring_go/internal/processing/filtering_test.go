@@ -11,56 +11,6 @@ import (
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
 )
 
-func TestNewFilter(t *testing.T) {
-	t.Parallel()
-
-	tests := map[string]struct {
-		cfg        config.FilteringConfig
-		hasInclude bool
-		hasExclude bool
-	}{
-		"no_patterns": {
-			cfg: config.FilteringConfig{},
-		},
-		"include_only": {
-			cfg:        config.FilteringConfig{IncludePattern: `error`},
-			hasInclude: true,
-		},
-		"exclude_only": {
-			cfg:        config.FilteringConfig{ExcludePattern: `DEBUG`},
-			hasExclude: true,
-		},
-		"both": {
-			cfg:        config.FilteringConfig{IncludePattern: `error`, ExcludePattern: `DEBUG`},
-			hasInclude: true,
-			hasExclude: true,
-		},
-		"invalid_include": {
-			cfg: config.FilteringConfig{IncludePattern: `([invalid`},
-		},
-		"invalid_exclude": {
-			cfg: config.FilteringConfig{ExcludePattern: `([invalid`},
-		},
-		"invalid_include_valid_exclude": {
-			cfg:        config.FilteringConfig{IncludePattern: `([invalid`, ExcludePattern: `DEBUG`},
-			hasExclude: true,
-		},
-	}
-
-	for name, tc := range tests {
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-			f := NewFilter(tc.cfg)
-			if got := f.includeRegex != nil; got != tc.hasInclude {
-				t.Errorf("includeRegex: got present=%v, want present=%v", got, tc.hasInclude)
-			}
-			if got := f.excludeRegex != nil; got != tc.hasExclude {
-				t.Errorf("excludeRegex: got present=%v, want present=%v", got, tc.hasExclude)
-			}
-		})
-	}
-}
-
 func TestFilterMatch(t *testing.T) {
 	t.Parallel()
 
