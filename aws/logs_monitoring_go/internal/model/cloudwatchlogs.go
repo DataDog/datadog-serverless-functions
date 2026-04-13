@@ -12,7 +12,7 @@ type CloudwatchLogEntry struct {
 	Source    string             `json:"ddsource"`
 	Service   string             `json:"service"`
 	Host      string             `json:"hostname"`
-	Tags      []string           `json:"ddtags"`
+	Tags      Tags               `json:"ddtags"`
 	AWS       CloudwatchMetadata `json:"aws"`
 }
 
