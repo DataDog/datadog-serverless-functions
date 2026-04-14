@@ -59,7 +59,7 @@ func extractFromMessage(message string) (model.Tags, string, string) {
 		return nil, service, message
 	}
 
-	ddtagsStr, ok := ddtagsRaw.(string) // Si c'est pas une string que pasa ? Faire un test avec ddtags: [...] (i.e. pas un string)
+	ddtagsStr, ok := ddtagsRaw.(string)
 	if !ok {
 		return nil, service, message
 	}
