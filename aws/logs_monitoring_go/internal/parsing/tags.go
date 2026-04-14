@@ -6,12 +6,15 @@
 package parsing
 
 import (
+	"encoding/json"
 	"strings"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 	"github.com/aws/aws-lambda-go/lambdacontext"
 )
+
+const DdtagsKey = "ddtags"
 
 func getTagsAndService(cfg config.Config) (model.Tags, string) {
 	var tags model.Tags
@@ -20,10 +23,10 @@ func getTagsAndService(cfg config.Config) (model.Tags, string) {
 	if cfg.CustomTags != "" {
 		for tag := range strings.SplitSeq(cfg.CustomTags, ",") {
 			if strings.HasPrefix(tag, "service:") {
-				if service != "" {
-					continue
+				if service == "" {
+					service = tag[8:]
 				}
-				service = tag[8:]
+				continue
 			}
 
 			tags = append(tags, tag)
@@ -40,4 +43,46 @@ func getTagsAndService(cfg config.Config) (model.Tags, string) {
 	)
 
 	return tags, service
+}
+
+func extractFromMessage(message string) (model.Tags, string, string) {
+	var tags model.Tags
+	var service string
+
+	var jsonMessage map[string]any
+	if err := json.Unmarshal([]byte(message), &jsonMessage); err != nil {
+		return nil, service, message
+	}
+
+	ddtagsRaw, ok := jsonMessage[DdtagsKey]
+	if !ok {
+		return nil, service, message
+	}
+
+	ddtagsStr, ok := ddtagsRaw.(string)
+	if !ok {
+		return nil, service, message
+	}
+
+	ddtagsStr = strings.ReplaceAll(ddtagsStr, " ", "")
+
+	for tag := range strings.SplitSeq(ddtagsStr, ",") {
+		if strings.HasPrefix(tag, "service:") {
+			if service == "" {
+				service = tag[8:]
+			}
+			continue
+		}
+
+		tags = append(tags, tag)
+	}
+
+	delete(jsonMessage, DdtagsKey)
+
+	newMessage, err := json.Marshal(jsonMessage)
+	if err != nil {
+		return nil, service, message
+	}
+
+	return tags, service, string(newMessage)
 }

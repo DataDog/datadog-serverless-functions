@@ -59,14 +59,21 @@ func parseCloudwatchLogs(ctx context.Context, event json.RawMessage, cfg *config
 
 	var entries []model.CloudwatchLogEntry
 	for _, le := range data.LogEvents {
+		ddtags, ddtagsService, message := extractFromMessage(le.Message)
+		entryService := service
+		if ddtagsService != "" {
+			entryService = ddtagsService
+		}
+		ddtags = append(ddtags, "service:"+entryService)
+
 		entry := model.CloudwatchLogEntry{
 			ID:        le.ID,
 			Timestamp: le.Timestamp,
-			Message:   le.Message,
+			Message:   message,
 			Source:    source,
-			Service:   service,
+			Service:   entryService,
 			Host:      host,
-			Tags:      tags,
+			Tags:      append(ddtags, tags...),
 			AWS:       metadata,
 		}
 		entries = append(entries, entry)
