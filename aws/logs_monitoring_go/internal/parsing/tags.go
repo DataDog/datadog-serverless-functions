@@ -18,7 +18,7 @@ func getTagsAndService(cfg config.Config) (model.Tags, string) {
 	var service string
 
 	if cfg.CustomTags != "" {
-		for _, tag := range strings.Split(cfg.CustomTags, ",") {
+		for tag := range strings.SplitSeq(cfg.CustomTags, ",") {
 			if strings.HasPrefix(tag, "service:") {
 				if service != "" {
 					continue

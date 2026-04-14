@@ -8,6 +8,7 @@ package parsing
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"strings"
 
@@ -21,7 +22,7 @@ import (
 func HandleCloudwatchLogs(ctx context.Context, event json.RawMessage, cfg *config.Config, out chan<- model.CloudwatchLogEntry) error {
 	logEntries, err := parseCloudwatchLogs(ctx, event, cfg)
 	if err != nil {
-		slog.Error("failed parse cloudwatch logs", slog.Any("error", err))
+		return err
 	}
 
 	for _, logEntry := range logEntries {
@@ -83,13 +84,11 @@ func getCloudwatchSource(sourceOverride, logGroup, logStream string) string {
 		return "stepfunction"
 	}
 
-	var source string
 	if strings.Contains(logStream, "_CloudTrail_") {
-		source = "cloudtrail"
-	} else {
-		source = getSourceFromLogGroup(strings.ToLower(logGroup))
+		return "cloudtrail"
 	}
-	return source
+
+	return getSourceFromLogGroup(strings.ToLower(logGroup))
 }
 
 func getSourceFromLogGroup(logGroupLower string) string {
