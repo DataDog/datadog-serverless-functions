@@ -41,7 +41,7 @@ func parseCloudwatchLogs(ctx context.Context, event json.RawMessage, cfg *config
 
 	data, err := cwEvent.AWSLogs.Parse()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("parse: %w", err)
 	}
 
 	if data.MessageType == "CONTROL_MESSAGE" {
