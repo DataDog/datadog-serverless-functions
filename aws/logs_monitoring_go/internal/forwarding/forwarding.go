@@ -78,6 +78,7 @@ func (f Forwarder) send(ctx context.Context, body []byte) error {
 	req.Header.Set("Content-Encoding", "gzip")
 	req.Header.Set("DD-EVP-ORIGIN", "aws_forwarder")
 	req.Header.Set("DD-EVP-ORIGIN-VERSION", config.ForwarderVersion)
+	req.Header.Set("DD-STORAGE-TAG", "cloudwatch")
 
 	resp, err := f.client.Do(req)
 	if err != nil {
