@@ -30,11 +30,12 @@ func main() {
 
 func handleRequest(cfg *config.Config) func(context.Context, json.RawMessage) error {
 	return func(ctx context.Context, event json.RawMessage) error {
-		switch parsing.DetectInvocationSource(event) {
+		invocationSource := parsing.DetectInvocationSource(event)
+		switch invocationSource {
 		case parsing.InvocationSourceCloudwatchLogs:
 			return pipeline.Run(ctx, event, cfg, parsing.HandleCloudwatchLogs)
 		default:
-			slog.Error("unsupported invocation source")
+			slog.Error("unsupported invocation source", slog.String("source", invocationSource.String()))
 			return nil
 		}
 	}

@@ -127,7 +127,7 @@ func getCloudwatchMetadata(ctx context.Context, data events.CloudwatchLogsData) 
 	if lc, ok := lambdacontext.FromContext(ctx); ok {
 		metadata.InvokedFunctionARN = lc.InvokedFunctionArn
 	} else {
-		slog.Warn("failed lambda context loading")
+		slog.Warn("failed to load lambda context, this should not happen in production. The code is either not running from AWS Lambda or context is broken.")
 	}
 
 	return metadata

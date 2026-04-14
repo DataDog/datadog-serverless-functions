@@ -17,20 +17,22 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+const timeout = 10 * time.Second
+
 func Run[T any](
 	ctx context.Context,
 	event json.RawMessage,
 	cfg *config.Config,
 	handler func(context.Context, json.RawMessage, *config.Config, chan<- T) error,
 ) error {
-	var g errgroup.Group
+	g, ctx := errgroup.WithContext(ctx) // Fragile because if one goroutine fails, all stages will stop gracefully
 
 	entries := make(chan T)
 	batches := make(chan []byte)
 
 	batcher := processing.NewBatcher[T]()
 	forwarder := forwarding.NewForwarder(cfg, &http.Client{
-		Timeout: 10 * time.Second,
+		Timeout: timeout,
 	})
 
 	g.Go(func() error {

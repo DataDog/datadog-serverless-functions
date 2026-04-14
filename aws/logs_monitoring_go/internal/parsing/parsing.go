@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 )
 
+//go:generate stringer -type InvocationSource -trimprefix InvocationSource
 type InvocationSource int
 
 const (

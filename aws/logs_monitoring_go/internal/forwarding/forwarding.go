@@ -57,6 +57,7 @@ func (f Forwarder) Forward(ctx context.Context, in <-chan []byte) error {
 	return g.Wait()
 }
 
+// TODO: add retry mechanism for resiliency
 func (f Forwarder) send(ctx context.Context, body []byte) error {
 	var compressedBody bytes.Buffer
 	zw := gzip.NewWriter(&compressedBody)
