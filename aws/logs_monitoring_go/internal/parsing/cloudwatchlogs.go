@@ -36,7 +36,7 @@ func HandleCloudwatchLogs(ctx context.Context, event json.RawMessage, cfg *confi
 func parseCloudwatchLogs(ctx context.Context, event json.RawMessage, cfg *config.Config) ([]model.CloudwatchLogEntry, error) {
 	var cwEvent events.CloudwatchLogsEvent
 	if err := json.Unmarshal(event, &cwEvent); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unmarshal: %w", err)
 	}
 
 	data, err := cwEvent.AWSLogs.Parse()
