@@ -11,7 +11,7 @@ import (
 	"log/slog"
 )
 
-var ForwarderVersion = "dev"
+var ForwarderVersion = "6.0"
 
 type Config struct {
 	APIKey     string
@@ -61,7 +61,7 @@ func loadConfig() *Config {
 	site := envOrDefault("DD_SITE", "datadoghq.com")
 	return &Config{
 		Site:       site,
-		IntakeURL:  envOrDefault("DD_URL", "https://http-intake.logs."+site),
+		IntakeURL:  envOrDefault("DD_URL", "https://http-intake.logs."+site+"/api/v2/logs"),
 		APIURL:     envOrDefault("DD_API_URL", "https://api."+site),
 		LogLevel:   envOrDefault("DD_LOG_LEVEL", "INFO"),
 		UseFIPS:    envOrDefaultBool("DD_USE_FIPS", false),
