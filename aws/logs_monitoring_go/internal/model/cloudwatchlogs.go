@@ -6,14 +6,15 @@
 package model
 
 type CloudwatchLogEntry struct {
-	ID        string             `json:"id"`
-	Timestamp int64              `json:"timestamp"`
-	Message   string             `json:"message"`
-	Source    string             `json:"ddsource"`
-	Service   string             `json:"service"`
-	Host      string             `json:"hostname"`
-	Tags      Tags               `json:"ddtags"`
-	AWS       CloudwatchMetadata `json:"aws"`
+	ID             string             `json:"id"`
+	Timestamp      int64              `json:"timestamp"`
+	Message        string             `json:"message"`
+	Source         string             `json:"ddsource"`
+	SourceCategory string             `json:"ddsourcecategory"`
+	Service        string             `json:"service"`
+	Host           string             `json:"hostname"`
+	Tags           Tags               `json:"ddtags"`
+	AWS            CloudwatchMetadata `json:"aws"`
 }
 
 type CloudwatchMetadata struct {

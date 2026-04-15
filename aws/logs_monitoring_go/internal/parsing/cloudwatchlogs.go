@@ -19,6 +19,8 @@ import (
 	"github.com/aws/aws-lambda-go/lambdacontext"
 )
 
+const sourceCategory = "aws"
+
 func HandleCloudwatchLogs(ctx context.Context, event json.RawMessage, cfg *config.Config, out chan<- model.CloudwatchLogEntry) error {
 	logEntries, err := parseCloudwatchLogs(ctx, event, cfg)
 	if err != nil {
@@ -67,14 +69,15 @@ func parseCloudwatchLogs(ctx context.Context, event json.RawMessage, cfg *config
 		ddtags = append(ddtags, "service:"+entryService)
 
 		entry := model.CloudwatchLogEntry{
-			ID:        le.ID,
-			Timestamp: le.Timestamp,
-			Message:   message,
-			Source:    source,
-			Service:   entryService,
-			Host:      host,
-			Tags:      append(ddtags, tags...),
-			AWS:       metadata,
+			ID:             le.ID,
+			Timestamp:      le.Timestamp,
+			Message:        message,
+			Source:         source,
+			SourceCategory: sourceCategory,
+			Service:        entryService,
+			Host:           host,
+			Tags:           append(ddtags, tags...),
+			AWS:            metadata,
 		}
 		entries = append(entries, entry)
 	}

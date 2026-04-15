@@ -20,7 +20,7 @@ func TestLoadConfig(t *testing.T) {
 		"default": {
 			want: Config{
 				Site:      "datadoghq.com",
-				IntakeURL: "https://http-intake.logs.datadoghq.com",
+				IntakeURL: "https://http-intake.logs.datadoghq.com/api/v2/logs",
 				APIURL:    "https://api.datadoghq.com",
 				LogLevel:  "INFO",
 				UseFIPS:   false,
@@ -30,7 +30,7 @@ func TestLoadConfig(t *testing.T) {
 			env: map[string]string{"DD_SITE": "datadoghq.eu"},
 			want: Config{
 				Site:      "datadoghq.eu",
-				IntakeURL: "https://http-intake.logs.datadoghq.eu",
+				IntakeURL: "https://http-intake.logs.datadoghq.eu/api/v2/logs",
 				APIURL:    "https://api.datadoghq.eu",
 				LogLevel:  "INFO",
 			},
@@ -55,7 +55,7 @@ func TestLoadConfig(t *testing.T) {
 			},
 			want: Config{
 				Site:       "datadoghq.com",
-				IntakeURL:  "https://http-intake.logs.datadoghq.com",
+				IntakeURL:  "https://http-intake.logs.datadoghq.com/api/v2/logs",
 				APIURL:     "https://api.datadoghq.com",
 				LogLevel:   "INFO",
 				Source:     "custom-source",
@@ -67,7 +67,7 @@ func TestLoadConfig(t *testing.T) {
 			env: map[string]string{"REDACT_IP": "true"},
 			want: Config{
 				Site:      "datadoghq.com",
-				IntakeURL: "https://http-intake.logs.datadoghq.com",
+				IntakeURL: "https://http-intake.logs.datadoghq.com/api/v2/logs",
 				APIURL:    "https://api.datadoghq.com",
 				LogLevel:  "INFO",
 				Scrubbing: ScrubbingConfig{ScrubIP: true},
@@ -80,7 +80,7 @@ func TestLoadConfig(t *testing.T) {
 			},
 			want: Config{
 				Site:      "datadoghq.com",
-				IntakeURL: "https://http-intake.logs.datadoghq.com",
+				IntakeURL: "https://http-intake.logs.datadoghq.com/api/v2/logs",
 				APIURL:    "https://api.datadoghq.com",
 				LogLevel:  "INFO",
 				Scrubbing: ScrubbingConfig{CustomRule: `\d+`, CustomReplacement: "X"},
@@ -90,7 +90,7 @@ func TestLoadConfig(t *testing.T) {
 			env: map[string]string{"INCLUDE_AT_MATCH": `error|warn`},
 			want: Config{
 				Site:      "datadoghq.com",
-				IntakeURL: "https://http-intake.logs.datadoghq.com",
+				IntakeURL: "https://http-intake.logs.datadoghq.com/api/v2/logs",
 				APIURL:    "https://api.datadoghq.com",
 				LogLevel:  "INFO",
 				Filtering: FilteringConfig{IncludePattern: `error|warn`},
@@ -100,7 +100,7 @@ func TestLoadConfig(t *testing.T) {
 			env: map[string]string{"EXCLUDE_AT_MATCH": `DEBUG`},
 			want: Config{
 				Site:      "datadoghq.com",
-				IntakeURL: "https://http-intake.logs.datadoghq.com",
+				IntakeURL: "https://http-intake.logs.datadoghq.com/api/v2/logs",
 				APIURL:    "https://api.datadoghq.com",
 				LogLevel:  "INFO",
 				Filtering: FilteringConfig{ExcludePattern: `DEBUG`},
