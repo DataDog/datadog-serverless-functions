@@ -13,33 +13,33 @@ import (
 func TestDetectInvocationSource(t *testing.T) {
 	tests := map[string]struct {
 		event   json.RawMessage
-		wantKey invocationSource
+		wantKey InvocationSource
 	}{
 		"cloudwatch logs": {
 			event:   json.RawMessage(`{"awslogs":{"data":"dGVzdA=="}}`),
-			wantKey: invocationSourceCloudwatchLogs,
+			wantKey: InvocationSourceCloudwatchLogs,
 		},
 		"empty object": {
 			event:   json.RawMessage(`{}`),
-			wantKey: invocationSourceUnknown,
+			wantKey: InvocationSourceUnknown,
 		},
 		"s3 not yet implemented": {
 			event:   json.RawMessage(`{"Records":[{"s3":{"bucket":{"name":"my-bucket"},"object":{"key":"my-key"}}}]}`),
-			wantKey: invocationSourceUnknown,
+			wantKey: InvocationSourceUnknown,
 		},
 		"not JSON": {
 			event:   json.RawMessage(`not a json`),
-			wantKey: invocationSourceUnknown,
+			wantKey: InvocationSourceUnknown,
 		},
 		"empty input": {
 			event:   json.RawMessage(``),
-			wantKey: invocationSourceUnknown,
+			wantKey: InvocationSourceUnknown,
 		},
 	}
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			got := detectInvocationSource(tc.event)
+			got := DetectInvocationSource(tc.event)
 			if got != tc.wantKey {
 				t.Errorf("got %d, want %d", got, tc.wantKey)
 			}

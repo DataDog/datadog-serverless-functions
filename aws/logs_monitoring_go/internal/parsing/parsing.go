@@ -7,100 +7,83 @@ package parsing
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
-	"log/slog"
-
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 )
 
-type invocationSource int
+//go:generate stringer -type InvocationSource -trimprefix InvocationSource
+type InvocationSource int
 
 const (
-	invocationSourceUnknown invocationSource = iota
-	invocationSourceCloudwatchLogs
-	invocationSourceS3
-	invocationSourceSNS
-	invocationSourceSQS
-	invocationSourceKinesis
+	InvocationSourceUnknown InvocationSource = iota
+	InvocationSourceCloudwatchLogs
+	InvocationSourceS3
+	InvocationSourceSNS
+	InvocationSourceSQS
+	InvocationSourceKinesis
 )
 
-func Parse(ctx context.Context, event json.RawMessage, cfg *config.Config, out chan<- model.CloudwatchLogEntry) {
-	switch detectInvocationSource(event) {
-	case invocationSourceCloudwatchLogs:
-		parseCloudwatchLogs(ctx, event, cfg, out)
-	default:
-		slog.Error("unsupported invocation source", slog.String("event", string(event)))
-	}
-}
-
-func detectInvocationSource(event json.RawMessage) invocationSource {
+func DetectInvocationSource(event json.RawMessage) InvocationSource {
 	dec := json.NewDecoder(bytes.NewReader(event))
 
 	t, err := dec.Token()
 	if err != nil || t != json.Delim('{') {
-		return invocationSourceUnknown
+		return InvocationSourceUnknown
 	}
 
 	key, err := dec.Token()
 	if err != nil {
-		return invocationSourceUnknown
+		return InvocationSourceUnknown
 	}
 	if key == "awslogs" {
-		return invocationSourceCloudwatchLogs
+		return InvocationSourceCloudwatchLogs
 	}
 
 	if key == "Records" {
 		return detectFromRecords(dec)
 	}
 
-	return invocationSourceUnknown
+	return InvocationSourceUnknown
 }
 
-func detectFromRecords(dec *json.Decoder) invocationSource {
+func detectFromRecords(dec *json.Decoder) InvocationSource {
 	t, err := dec.Token()
 	if err != nil || t != json.Delim('[') {
-		return invocationSourceUnknown
+		return InvocationSourceUnknown
 	}
 
 	t, err = dec.Token()
 	if err != nil || t != json.Delim('{') {
-		return invocationSourceUnknown
+		return InvocationSourceUnknown
 	}
 
 	for dec.More() {
 		key, err := dec.Token()
 		if err != nil {
-			return invocationSourceUnknown
+			return InvocationSourceUnknown
 		}
 		if key == "eventSource" {
 			val, err := dec.Token()
 			if err != nil {
-				return invocationSourceUnknown
+				return InvocationSourceUnknown
 			}
 			switch val {
 			case "aws:s3":
-				return invocationSourceS3
+				return InvocationSourceS3
 			case "aws:sns":
-				return invocationSourceSNS
+				return InvocationSourceSNS
 			case "aws:sqs":
-				return invocationSourceSQS
+				return InvocationSourceSQS
 			case "aws:kinesis":
-				return invocationSourceKinesis
+				return InvocationSourceKinesis
 			default:
-				return invocationSourceUnknown
+				return InvocationSourceUnknown
 			}
 		}
 		var skip json.RawMessage
 		if err := dec.Decode(&skip); err != nil {
-			return invocationSourceUnknown
+			return InvocationSourceUnknown
 		}
 	}
 
-	return invocationSourceUnknown
-}
-
-func parseCloudwatchLogs(ctx context.Context, event json.RawMessage, cfg *config.Config, out chan<- model.CloudwatchLogEntry) {
-
+	return InvocationSourceUnknown
 }
