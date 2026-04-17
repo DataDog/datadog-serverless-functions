@@ -21,13 +21,13 @@ import (
 )
 
 type s3RecordContext struct {
-	forwarderMetadata model.ForwarderMetadata
-	tags              model.Tags
-	source            string
-	service           string
-	bucket            string
-	key               string
-	multilineRegex    *regexp.Regexp
+	metadata       model.Metadata
+	tags           model.Tags
+	source         string
+	service        string
+	bucket         string
+	key            string
+	multilineRegex *regexp.Regexp
 }
 
 func HandleS3(ctx context.Context, event json.RawMessage, cfg *config.Config, out chan<- model.S3LogEntry) error {
@@ -41,13 +41,16 @@ func HandleS3(ctx context.Context, event json.RawMessage, cfg *config.Config, ou
 		return fmt.Errorf("create S3 client: %w", err)
 	}
 
-	forwarderMetadata := model.GetForwarderMetadata(ctx)
+	forwarderMetadata, err := model.GetMetadata(ctx)
+	if err != nil {
+		return err
+	}
 
 	for _, record := range s3Event.Records {
 		bucket := record.S3.Bucket.Name
 		key := record.S3.Object.URLDecodedKey
 
-		tags, service := getTagsAndService(*cfg)
+		tags, service := getTagsAndService(cfg)
 		source := getS3Source(cfg.Source, key)
 		if service == "" {
 			service = source
@@ -78,8 +81,9 @@ func processS3Record(ctx context.Context, client S3APIClient, out chan<- model.S
 
 	var buf strings.Builder
 	scanner := bufio.NewScanner(body)
+	scanner.Split(split)
 	for scanner.Scan() {
-		line := scanner.Text()
+		line := strings.ToValidUTF8(scanner.Text(), "")
 		if rc.multilineRegex != nil {
 			if rc.multilineRegex.MatchString(line) {
 				if buf.Len() > 0 {
@@ -124,7 +128,7 @@ func makeS3Entry(rc s3RecordContext, message string) model.S3LogEntry {
 
 	ddtags = append(ddtags, "service:"+entryService)
 	metadata := model.S3Metadata{
-		ForwarderMetadata: rc.forwarderMetadata,
+		Metadata: rc.metadata,
 		S3Context: model.S3Context{
 			Bucket: rc.bucket,
 			Key:    rc.key,

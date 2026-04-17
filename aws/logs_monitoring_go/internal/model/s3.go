@@ -15,7 +15,7 @@ type S3LogEntry struct {
 }
 
 type S3Metadata struct {
-	ForwarderMetadata
+	Metadata
 	S3Context S3Context `json:"s3"`
 }
 

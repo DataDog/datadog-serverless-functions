@@ -113,6 +113,6 @@ func (c Config) LogValue() slog.Value {
 		slog.Bool("customScrubbing", c.Scrubbing.CustomRule != ""),
 		slog.Bool("includeFilter", c.Filtering.IncludePattern != ""),
 		slog.Bool("excludeFilter", c.Filtering.ExcludePattern != ""),
-		slog.Bool("multilineRegex", c.S3MultilineLogRegex.String() != ""),
+		slog.Bool("multilineRegex", c.S3MultilineLogRegex != nil),
 	)
 }
