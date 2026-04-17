@@ -120,3 +120,43 @@ func TestLoadConfig(t *testing.T) {
 		})
 	}
 }
+
+func TestLoadS3MultilineLogRegex(t *testing.T) {
+	tests := map[string]struct {
+		env     string
+		wantNil bool
+	}{
+		"empty_pattern_returns_nil": {
+			env:     "",
+			wantNil: true,
+		},
+		"valid_pattern_returns_compiled_regex": {
+			env: `\d{4}-\d{2}-\d{2}`,
+		},
+		"invalid_pattern_returns_nil": {
+			env:     `[invalid`,
+			wantNil: true,
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			if tc.env != "" {
+				t.Setenv("DD_MULTILINE_LOG_REGEX_PATTERN", tc.env)
+			}
+
+			got := loadS3MultilineLogRegex()
+
+			if tc.wantNil {
+				if got != nil {
+					t.Fatalf("want nil, got `%v", got)
+				}
+				return
+			}
+
+			if got == nil {
+				t.Fatal("want non-nil, got nil")
+			}
+		})
+	}
+}

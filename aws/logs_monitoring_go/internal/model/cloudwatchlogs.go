@@ -18,7 +18,7 @@ type CloudwatchLogEntry struct {
 }
 
 type CloudwatchMetadata struct {
-	Metadata
+	ForwarderMetadata
 	Logs CloudwatchLogsContext `json:"awslogs"`
 }
 

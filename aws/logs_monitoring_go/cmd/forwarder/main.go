@@ -34,6 +34,8 @@ func handleRequest(cfg *config.Config) func(context.Context, json.RawMessage) er
 		switch invocationSource {
 		case parsing.InvocationSourceCloudwatchLogs:
 			return pipeline.Run(ctx, event, cfg, parsing.HandleCloudwatchLogs)
+		case parsing.InvocationSourceS3:
+			return pipeline.Run(ctx, event, cfg, parsing.HandleS3)
 		default:
 			slog.Error("unsupported invocation source", slog.String("source", invocationSource.String()))
 			return nil
