@@ -16,7 +16,7 @@ import (
 
 const DdtagsKey = "ddtags"
 
-func getTagsAndService(cfg config.Config) (model.Tags, string) {
+func getTagsAndService(cfg *config.Config) (model.Tags, string) {
 	var tags model.Tags
 	var service string
 

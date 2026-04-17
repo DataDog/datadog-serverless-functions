@@ -18,9 +18,8 @@ type CloudwatchLogEntry struct {
 }
 
 type CloudwatchMetadata struct {
-	InvokedFunctionARN string                `json:"invoked_function_arn"`
-	FunctionVersion    string                `json:"function_version,omitempty"`
-	Logs               CloudwatchLogsContext `json:"awslogs"`
+	Metadata
+	Logs CloudwatchLogsContext `json:"awslogs"`
 }
 
 type CloudwatchLogsContext struct {

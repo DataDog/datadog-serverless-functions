@@ -9,14 +9,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"strings"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/concurrent"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-lambda-go/lambdacontext"
 )
 
 const sourceCategory = "aws"
@@ -51,10 +49,13 @@ func parseCloudwatchLogs(ctx context.Context, event json.RawMessage, cfg *config
 		return nil, nil
 	}
 
+	metadata, err := getCloudwatchMetadata(ctx, data)
+	if err != nil {
+		return nil, fmt.Errorf("get cloudwatch metadata: %w", err)
+	}
 	source := getCloudwatchSource(cfg.Source, data.LogGroup, data.LogStream)
-	metadata := getCloudwatchMetadata(ctx, data)
 	host := getCloudwatchHost(cfg.Host, data.LogGroup)
-	tags, service := getTagsAndService(*cfg)
+	tags, service := getTagsAndService(cfg)
 	if service == "" {
 		service = source
 	}
@@ -120,8 +121,14 @@ func getSourceFromLogGroup(logGroupLower string) string {
 	return "cloudwatch"
 }
 
-func getCloudwatchMetadata(ctx context.Context, data events.CloudwatchLogsData) model.CloudwatchMetadata {
-	metadata := model.CloudwatchMetadata{
+func getCloudwatchMetadata(ctx context.Context, data events.CloudwatchLogsData) (model.CloudwatchMetadata, error) {
+	metadata, err := model.GetMetadata(ctx)
+	if err != nil {
+		return model.CloudwatchMetadata{}, err
+	}
+
+	cwMetadata := model.CloudwatchMetadata{
+		Metadata: metadata,
 		Logs: model.CloudwatchLogsContext{
 			LogGroup:  data.LogGroup,
 			LogStream: data.LogStream,
@@ -129,17 +136,7 @@ func getCloudwatchMetadata(ctx context.Context, data events.CloudwatchLogsData) 
 		},
 	}
 
-	if lambdacontext.FunctionVersion != "$LATEST" {
-		metadata.FunctionVersion = lambdacontext.FunctionVersion
-	}
-
-	if lc, ok := lambdacontext.FromContext(ctx); ok {
-		metadata.InvokedFunctionARN = lc.InvokedFunctionArn
-	} else {
-		slog.Warn("failed to load lambda context, this should not happen in production. The code is either not running from AWS Lambda or context is broken.")
-	}
-
-	return metadata
+	return cwMetadata, nil
 }
 
 func getCloudwatchHost(hostOverride, logGroup string) string {
