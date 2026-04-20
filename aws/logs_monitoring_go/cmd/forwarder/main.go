@@ -11,6 +11,7 @@ import (
 	"log/slog"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/forwarding"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/parsing"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/pipeline"
 
@@ -33,9 +34,9 @@ func handleRequest(cfg *config.Config) func(context.Context, json.RawMessage) er
 		invocationSource := parsing.DetectInvocationSource(event)
 		switch invocationSource {
 		case parsing.InvocationSourceCloudwatchLogs:
-			return pipeline.Run(ctx, event, cfg, parsing.HandleCloudwatchLogs)
+			return pipeline.Run(ctx, event, cfg, forwarding.CloudwatchStorage, parsing.HandleCloudwatchLogs)
 		case parsing.InvocationSourceS3:
-			return pipeline.Run(ctx, event, cfg, parsing.HandleS3)
+			return pipeline.Run(ctx, event, cfg, forwarding.S3Storage, parsing.HandleS3)
 		default:
 			slog.Error("unsupported invocation source", slog.String("source", invocationSource.String()))
 			return nil
