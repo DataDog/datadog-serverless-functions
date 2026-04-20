@@ -5,9 +5,52 @@
 
 package parsing
 
-import "bytes"
+import (
+	"bufio"
+	"bytes"
+	"io"
+	"regexp"
+)
 
-func split(data []byte, atEOF bool) (advance int, token []byte, err error) {
+type Scanner struct {
+	*bufio.Scanner
+	rg *regexp.Regexp
+}
+
+func NewScanner(r io.Reader, rg *regexp.Regexp) *Scanner {
+	s := &Scanner{
+		Scanner: bufio.NewScanner(r),
+		rg:      rg,
+	}
+
+	if rg != nil {
+		s.Split(s.splitOnRegex)
+	} else {
+		s.Split(s.splitOnLines)
+	}
+
+	return s
+}
+
+func (s *Scanner) splitOnRegex(data []byte, atEOF bool) (advance int, token []byte, err error) {
+	if atEOF && len(data) == 0 {
+		return 0, nil, nil
+	}
+
+	loc := s.rg.FindIndex(data[1:])
+	if loc != nil {
+		splitAt := loc[0] + 1
+		return splitAt, data[:splitAt], nil
+	}
+
+	if atEOF {
+		return len(data), data, nil
+	}
+
+	return 0, nil, nil
+}
+
+func (s *Scanner) splitOnLines(data []byte, atEOF bool) (advance int, token []byte, err error) {
 	if atEOF && len(data) == 0 {
 		return 0, nil, nil
 	}

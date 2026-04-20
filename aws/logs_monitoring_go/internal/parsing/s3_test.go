@@ -128,10 +128,10 @@ func TestProcessS3Record(t *testing.T) {
 			chanSize: 2,
 			rc: s3RecordContext{
 				tags: model.Tags{}, source: "s3", service: "s3", bucket: "b", key: "k",
-				multilineRegex: regexp.MustCompile(`^\d{4}-\d{2}-\d{2}`),
+				multilineRegex: regexp.MustCompile(`\d{4}-\d{2}-\d{2}`),
 			},
 			want: []model.S3LogEntry{
-				{Message: "2024-01-15 ERROR NullPointer\n    at com.foo.Bar", Source: "s3", SourceCategory: "aws", Service: "s3", Tags: model.Tags{"service:s3"}, Metadata: model.S3Metadata{S3Context: model.S3Context{Bucket: "b", Key: "k"}}},
+				{Message: "2024-01-15 ERROR NullPointer\n    at com.foo.Bar\n", Source: "s3", SourceCategory: "aws", Service: "s3", Tags: model.Tags{"service:s3"}, Metadata: model.S3Metadata{S3Context: model.S3Context{Bucket: "b", Key: "k"}}},
 				{Message: "2024-01-15 INFO started", Source: "s3", SourceCategory: "aws", Service: "s3", Tags: model.Tags{"service:s3"}, Metadata: model.S3Metadata{S3Context: model.S3Context{Bucket: "b", Key: "k"}}},
 			},
 		},
@@ -145,7 +145,7 @@ func TestProcessS3Record(t *testing.T) {
 			chanSize: 1,
 			rc: s3RecordContext{
 				tags: model.Tags{}, source: "s3", service: "s3", bucket: "b", key: "k",
-				multilineRegex: regexp.MustCompile(`^\d{4}-\d{2}-\d{2}`),
+				multilineRegex: regexp.MustCompile(`\d{4}-\d{2}-\d{2}`),
 			},
 			want: []model.S3LogEntry{{
 				Message:        "2024-01-15 ERROR\n    stacktrace",
@@ -155,6 +155,24 @@ func TestProcessS3Record(t *testing.T) {
 				Tags:           model.Tags{"service:s3"},
 				Metadata:       model.S3Metadata{S3Context: model.S3Context{Bucket: "b", Key: "k"}},
 			}},
+		},
+		"multimatch_single_line": {
+			mockSetup: func(m *MockS3APIClient) {
+				m.EXPECT().GetObject(gomock.Any(), gomock.Any()).
+					Return(&s3.GetObjectOutput{
+						Body: io.NopCloser(strings.NewReader("2024-01-15 ERROR2024-01-15 ERROR2024-01-15 ERROR\n    stacktrace")),
+					}, nil)
+			},
+			chanSize: 3,
+			rc: s3RecordContext{
+				tags: model.Tags{}, source: "s3", service: "s3", bucket: "b", key: "k",
+				multilineRegex: regexp.MustCompile(`\d{4}-\d{2}-\d{2}`),
+			},
+			want: []model.S3LogEntry{
+				{Message: "2024-01-15 ERROR", Source: "s3", SourceCategory: "aws", Service: "s3", Tags: model.Tags{"service:s3"}, Metadata: model.S3Metadata{S3Context: model.S3Context{Bucket: "b", Key: "k"}}},
+				{Message: "2024-01-15 ERROR", Source: "s3", SourceCategory: "aws", Service: "s3", Tags: model.Tags{"service:s3"}, Metadata: model.S3Metadata{S3Context: model.S3Context{Bucket: "b", Key: "k"}}},
+				{Message: "2024-01-15 ERROR\n    stacktrace", Source: "s3", SourceCategory: "aws", Service: "s3", Tags: model.Tags{"service:s3"}, Metadata: model.S3Metadata{S3Context: model.S3Context{Bucket: "b", Key: "k"}}},
+			},
 		},
 		"custom_tags_passed_through": {
 			mockSetup: func(m *MockS3APIClient) {

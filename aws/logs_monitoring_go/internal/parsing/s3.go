@@ -6,7 +6,6 @@
 package parsing
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -79,34 +78,10 @@ func processS3Record(ctx context.Context, client S3APIClient, out chan<- model.S
 		}
 	}()
 
-	var buf strings.Builder
-	scanner := bufio.NewScanner(body)
-	scanner.Split(split)
+	scanner := NewScanner(body, rc.multilineRegex)
 	for scanner.Scan() {
-		line := strings.ToValidUTF8(scanner.Text(), "")
-		if rc.multilineRegex != nil {
-			if rc.multilineRegex.MatchString(line) {
-				if buf.Len() > 0 {
-					if err := concurrent.SafeSender(ctx, out, makeS3Entry(rc, buf.String())); err != nil {
-						return err
-					}
-					buf.Reset()
-				}
-			}
-			if buf.Len() > 0 {
-				buf.WriteString("\n")
-			}
-			buf.WriteString(line)
-			continue
-		}
-
-		if err := concurrent.SafeSender(ctx, out, makeS3Entry(rc, line)); err != nil {
-			return err
-		}
-	}
-
-	if buf.Len() > 0 {
-		if err := concurrent.SafeSender(ctx, out, makeS3Entry(rc, buf.String())); err != nil {
+		message := strings.ToValidUTF8(scanner.Text(), "")
+		if err := concurrent.SafeSender(ctx, out, makeS3Entry(rc, message)); err != nil {
 			return err
 		}
 	}

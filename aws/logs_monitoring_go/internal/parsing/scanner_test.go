@@ -6,36 +6,47 @@
 package parsing
 
 import (
-	"bufio"
+	"regexp"
 	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 )
 
-func TestSplit(t *testing.T) {
+func TestScanner(t *testing.T) {
 	t.Parallel()
+
+	dateRegex := regexp.MustCompile(`\d{4}-\d{2}-\d{2}`)
 
 	tests := map[string]struct {
 		input string
+		rg    *regexp.Regexp
 		want  []string
 	}{
-		"empty_string":      {input: "", want: nil},
-		"plain_string":      {input: "hello", want: []string{"hello"}},
-		"new_lines":         {input: "a\nb\nc", want: []string{"a", "b", "c"}},
-		"trailing_new_line": {input: "a\nb\n", want: []string{"a", "b"}},
-		"crlf":              {input: "a\r\nb\r\nc", want: []string{"a", "b", "c"}},
-		"form_feed":         {input: "a\fb\fc", want: []string{"a", "b", "c"}},
-		"mixed_delimiters":  {input: "a\r\n\fb", want: []string{"a", "b"}},
-		"only_delimiters":   {input: "\n\r\f", want: nil},
+		"lines_empty_string":        {input: "", rg: nil, want: nil},
+		"lines_plain_string":        {input: "hello", rg: nil, want: []string{"hello"}},
+		"lines_plain_string_spaces": {input: "hello world !", rg: nil, want: []string{"hello world !"}},
+		"lines_new_lines":           {input: "a\nb\nc", rg: nil, want: []string{"a", "b", "c"}},
+		"lines_trailing_new_line":   {input: "a\nb\n", rg: nil, want: []string{"a", "b"}},
+		"lines_crlf":                {input: "a\r\nb\r\nc", rg: nil, want: []string{"a", "b", "c"}},
+		"lines_form_feed":           {input: "a\fb\fc", rg: nil, want: []string{"a", "b", "c"}},
+		"lines_mixed_delimiters":    {input: "a\r\n\fb", rg: nil, want: []string{"a", "b"}},
+		"lines_only_delimiters":     {input: "\n\r\f", rg: nil, want: nil},
+
+		"regex_single_entry":              {input: "2024-01-15 ERROR something", rg: dateRegex, want: []string{"2024-01-15 ERROR something"}},
+		"regex_two_entries_with_newline":  {input: "2024-01-15 ERROR\n2024-01-16 INFO", rg: dateRegex, want: []string{"2024-01-15 ERROR\n", "2024-01-16 INFO"}},
+		"regex_continuation_lines":        {input: "2024-01-15 ERROR\n    at com.foo\n2024-01-16 INFO", rg: dateRegex, want: []string{"2024-01-15 ERROR\n    at com.foo\n", "2024-01-16 INFO"}},
+		"regex_multiple_matches_one_line": {input: "2024-01-15 ERROR2024-01-16 INFO", rg: dateRegex, want: []string{"2024-01-15 ERROR", "2024-01-16 INFO"}},
+		"regex_three_matches_one_line":    {input: "2024-01-15 A2024-01-16 B2024-01-17 C", rg: dateRegex, want: []string{"2024-01-15 A", "2024-01-16 B", "2024-01-17 C"}},
+		"regex_empty_string":              {input: "", rg: dateRegex, want: nil},
+		"regex_no_match":                  {input: "hello world", rg: dateRegex, want: []string{"hello world"}},
 	}
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			scanner := bufio.NewScanner(strings.NewReader(tc.input))
-			scanner.Split(split)
+			scanner := NewScanner(strings.NewReader(tc.input), tc.rg)
 
 			var got []string
 			for scanner.Scan() {

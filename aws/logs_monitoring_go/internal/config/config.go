@@ -92,7 +92,7 @@ func loadS3MultilineLogRegex() *regexp.Regexp {
 		return nil
 	}
 
-	re, err := regexp.Compile("^" + pattern)
+	re, err := regexp.Compile(pattern)
 	if err != nil {
 		slog.Error("invalid multiline log pattern", slog.String("pattern", pattern), slog.Any("error", err))
 		return nil
