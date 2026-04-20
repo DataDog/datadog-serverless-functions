@@ -33,6 +33,8 @@ func TestScanner(t *testing.T) {
 		"lines_mixed_delimiters":    {input: "a\r\n\fb", rg: nil, want: []string{"a", "b"}},
 		"lines_only_delimiters":     {input: "\n\r\f", rg: nil, want: nil},
 
+		"regex_empty":                     {input: "", rg: dateRegex, want: nil},
+		"regex_not_matching_at_start":     {input: "ERROR something2024-01-15 ERROR something", rg: dateRegex, want: []string{"ERROR something", "2024-01-15 ERROR something"}},
 		"regex_single_entry":              {input: "2024-01-15 ERROR something", rg: dateRegex, want: []string{"2024-01-15 ERROR something"}},
 		"regex_two_entries_with_newline":  {input: "2024-01-15 ERROR\n2024-01-16 INFO", rg: dateRegex, want: []string{"2024-01-15 ERROR\n", "2024-01-16 INFO"}},
 		"regex_continuation_lines":        {input: "2024-01-15 ERROR\n    at com.foo\n2024-01-16 INFO", rg: dateRegex, want: []string{"2024-01-15 ERROR\n    at com.foo\n", "2024-01-16 INFO"}},
@@ -61,6 +63,44 @@ func TestScanner(t *testing.T) {
 
 			if diff := cmp.Diff(tc.want, got); diff != "" {
 				t.Errorf("mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestScannerWithOversizedToken(t *testing.T) {
+	t.Parallel()
+
+	overflow := 100
+	oversized := strings.Repeat("a", maxTokenSize+overflow)
+
+	tests := map[string]struct {
+		rg *regexp.Regexp
+	}{
+		"lines": {rg: nil},
+		"regex": {rg: regexp.MustCompile(`\d{4}-\d{2}-\d{2}`)},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			scanner := NewScanner(strings.NewReader(oversized), tc.rg)
+
+			var got []string
+			for scanner.Scan() {
+				got = append(got, scanner.Text())
+			}
+			if err := scanner.Err(); err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if len(got) != 2 {
+				t.Fatalf("want 2 tokens, got %d", len(got))
+			}
+			if len(got[0]) != maxTokenSize {
+				t.Errorf("first token: want %d bytes, got %d", maxTokenSize, len(got[0]))
+			}
+			if len(got[1]) != overflow {
+				t.Errorf("second token: want %d bytes, got %d", overflow, len(got[1]))
 			}
 		})
 	}

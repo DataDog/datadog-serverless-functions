@@ -12,6 +12,8 @@ import (
 	"regexp"
 )
 
+const maxTokenSize = 512 * 1024
+
 type Scanner struct {
 	*bufio.Scanner
 	rg *regexp.Regexp
@@ -23,6 +25,8 @@ func NewScanner(r io.Reader, rg *regexp.Regexp) *Scanner {
 		rg:      rg,
 	}
 
+	s.Buffer(make([]byte, 0, bufio.MaxScanTokenSize), maxTokenSize)
+
 	if rg != nil {
 		s.Split(s.splitOnRegex)
 	} else {
@@ -33,7 +37,7 @@ func NewScanner(r io.Reader, rg *regexp.Regexp) *Scanner {
 }
 
 func (s *Scanner) splitOnRegex(data []byte, atEOF bool) (advance int, token []byte, err error) {
-	if atEOF && len(data) == 0 {
+	if len(data) == 0 {
 		return 0, nil, nil
 	}
 
@@ -43,7 +47,7 @@ func (s *Scanner) splitOnRegex(data []byte, atEOF bool) (advance int, token []by
 		return splitAt, data[:splitAt], nil
 	}
 
-	if atEOF {
+	if atEOF || len(data) >= maxTokenSize {
 		return len(data), data, nil
 	}
 
@@ -51,7 +55,7 @@ func (s *Scanner) splitOnRegex(data []byte, atEOF bool) (advance int, token []by
 }
 
 func (s *Scanner) splitOnLines(data []byte, atEOF bool) (advance int, token []byte, err error) {
-	if atEOF && len(data) == 0 {
+	if len(data) == 0 {
 		return 0, nil, nil
 	}
 
@@ -63,7 +67,7 @@ func (s *Scanner) splitOnLines(data []byte, atEOF bool) (advance int, token []by
 		return j, data[:i], nil
 	}
 
-	if atEOF {
+	if atEOF || len(data) >= maxTokenSize {
 		return len(data), data, nil
 	}
 
