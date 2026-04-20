@@ -19,17 +19,23 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-const numWorkers = 3
+const (
+	numWorkers        = 3
+	CloudwatchStorage = "cloudwatch"
+	S3Storage         = "s3"
+)
 
 type Forwarder struct {
-	config *config.Config
-	client *http.Client
+	config  *config.Config
+	client  *http.Client
+	storage string
 }
 
-func NewForwarder(config *config.Config, client *http.Client) Forwarder {
+func NewForwarder(config *config.Config, client *http.Client, storage string) Forwarder {
 	return Forwarder{
-		config: config,
-		client: client,
+		config:  config,
+		client:  client,
+		storage: storage,
 	}
 }
 
@@ -78,7 +84,7 @@ func (f Forwarder) send(ctx context.Context, body []byte) error {
 	req.Header.Set("Content-Encoding", "gzip")
 	req.Header.Set("DD-EVP-ORIGIN", "aws_forwarder")
 	req.Header.Set("DD-EVP-ORIGIN-VERSION", config.ForwarderVersion)
-	req.Header.Set("DD-STORAGE-TAG", "cloudwatch")
+	req.Header.Set("DD-STORAGE-TAG", f.storage)
 
 	resp, err := f.client.Do(req)
 	if err != nil {

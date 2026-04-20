@@ -23,6 +23,7 @@ func Run[T any](
 	ctx context.Context,
 	event json.RawMessage,
 	cfg *config.Config,
+	storage string,
 	handler func(context.Context, json.RawMessage, *config.Config, chan<- T) error,
 ) error {
 	g, ctx := errgroup.WithContext(ctx) // Fragile because if one goroutine fails, all stages will stop gracefully
@@ -33,7 +34,7 @@ func Run[T any](
 	batcher := processing.NewBatcher[T]()
 	forwarder := forwarding.NewForwarder(cfg, &http.Client{
 		Timeout: timeout,
-	})
+	}, storage)
 
 	g.Go(func() error {
 		defer close(entries)

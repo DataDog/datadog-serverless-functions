@@ -9,22 +9,24 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"regexp"
 )
 
 var ForwarderVersion = "6.0"
 
 type Config struct {
-	APIKey     string
-	Site       string
-	IntakeURL  string
-	APIURL     string
-	LogLevel   string
-	UseFIPS    bool
-	Source     string
-	Host       string
-	CustomTags string
-	Scrubbing  ScrubbingConfig
-	Filtering  FilteringConfig
+	APIKey              string
+	Site                string
+	IntakeURL           string
+	APIURL              string
+	LogLevel            string
+	UseFIPS             bool
+	Source              string
+	Host                string
+	CustomTags          string
+	Scrubbing           ScrubbingConfig
+	Filtering           FilteringConfig
+	S3MultilineLogRegex *regexp.Regexp
 }
 
 type ScrubbingConfig struct {
@@ -58,7 +60,9 @@ func Load(ctx context.Context) (*Config, error) {
 }
 
 func loadConfig() *Config {
+	S3MultilineLogRegex := loadS3MultilineLogRegex()
 	site := envOrDefault("DD_SITE", "datadoghq.com")
+
 	return &Config{
 		Site:       site,
 		IntakeURL:  envOrDefault("DD_URL", "https://http-intake.logs."+site+"/api/v2/logs"),
@@ -78,7 +82,23 @@ func loadConfig() *Config {
 			IncludePattern: envOrDefault("INCLUDE_AT_MATCH", ""),
 			ExcludePattern: envOrDefault("EXCLUDE_AT_MATCH", ""),
 		},
+		S3MultilineLogRegex: S3MultilineLogRegex,
 	}
+}
+
+func loadS3MultilineLogRegex() *regexp.Regexp {
+	pattern := envOrDefault("DD_MULTILINE_LOG_REGEX_PATTERN", "")
+	if pattern == "" {
+		return nil
+	}
+
+	re, err := regexp.Compile(pattern)
+	if err != nil {
+		slog.Error("invalid multiline log pattern", slog.String("pattern", pattern), slog.Any("error", err))
+		return nil
+	}
+
+	return re
 }
 
 func (c Config) LogValue() slog.Value {
@@ -93,5 +113,6 @@ func (c Config) LogValue() slog.Value {
 		slog.Bool("customScrubbing", c.Scrubbing.CustomRule != ""),
 		slog.Bool("includeFilter", c.Filtering.IncludePattern != ""),
 		slog.Bool("excludeFilter", c.Filtering.ExcludePattern != ""),
+		slog.Bool("multilineRegex", c.S3MultilineLogRegex != nil),
 	)
 }

@@ -23,6 +23,7 @@ func TestForward(t *testing.T) {
 
 	tests := map[string]struct {
 		statusCode int
+		storage    string
 		payloads   [][]byte
 		cancelCtx  bool
 		wantErr    bool
@@ -31,21 +32,25 @@ func TestForward(t *testing.T) {
 	}{
 		"single_message_accepted": {
 			statusCode: http.StatusAccepted,
+			storage:    CloudwatchStorage,
 			payloads:   [][]byte{[]byte("test payload")},
 			wantCalls:  1,
 		},
 		"multiple_messages_accepted": {
 			statusCode: http.StatusAccepted,
+			storage:    CloudwatchStorage,
 			payloads:   [][]byte{[]byte("first"), []byte("second"), []byte("third")},
 			wantCalls:  3,
 		},
 		"empty_channel": {
 			statusCode: http.StatusAccepted,
+			storage:    CloudwatchStorage,
 			payloads:   [][]byte{},
 			wantCalls:  0,
 		},
 		"server_returns_400": {
 			statusCode: http.StatusBadRequest,
+			storage:    CloudwatchStorage,
 			payloads:   [][]byte{[]byte("test payload")},
 			wantErr:    true,
 			wantErrMsg: "unexpected status from intake",
@@ -53,6 +58,7 @@ func TestForward(t *testing.T) {
 		},
 		"server_returns_500": {
 			statusCode: http.StatusInternalServerError,
+			storage:    CloudwatchStorage,
 			payloads:   [][]byte{[]byte("test payload")},
 			wantErr:    true,
 			wantErrMsg: "unexpected status from intake",
@@ -60,10 +66,17 @@ func TestForward(t *testing.T) {
 		},
 		"context_cancelled": {
 			statusCode: http.StatusAccepted,
+			storage:    CloudwatchStorage,
 			payloads:   [][]byte{[]byte("test payload")},
 			cancelCtx:  true,
 			wantErr:    true,
 			wantCalls:  0,
+		},
+		"s3_storage": {
+			statusCode: http.StatusAccepted,
+			storage:    S3Storage,
+			payloads:   [][]byte{[]byte("test payload")},
+			wantCalls:  1,
 		},
 	}
 
@@ -91,6 +104,9 @@ func TestForward(t *testing.T) {
 				if got := req.Header.Get("DD-EVP-ORIGIN-VERSION"); got != config.ForwarderVersion {
 					t.Errorf("DD-EVP-ORIGIN-VERSION = %q, want %q", got, config.ForwarderVersion)
 				}
+				if got := req.Header.Get("DD-STORAGE-TAG"); got != tc.storage {
+					t.Errorf("DD-STORAGE-TAG = %q, want %q", got, tc.storage)
+				}
 
 				gr, err := gzip.NewReader(req.Body)
 				if err != nil {
@@ -111,10 +127,7 @@ func TestForward(t *testing.T) {
 			}))
 			defer server.Close()
 
-			f := NewForwarder(&config.Config{
-				IntakeURL: server.URL,
-				APIKey:    "test-api-key",
-			}, server.Client())
+			f := NewForwarder(&config.Config{IntakeURL: server.URL, APIKey: "test-api-key"}, server.Client(), tc.storage)
 
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
