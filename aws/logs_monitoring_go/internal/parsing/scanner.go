@@ -29,10 +29,10 @@ func NewScanner(r io.Reader, rg *regexp.Regexp) *Scanner {
 
 	if rg != nil {
 		s.Split(s.splitOnRegex)
-	} else {
-		s.Split(s.splitOnLines)
+		return s
 	}
 
+	s.Split(s.splitOnLines)
 	return s
 }
 
