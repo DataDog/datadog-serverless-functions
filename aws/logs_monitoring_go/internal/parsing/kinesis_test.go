@@ -14,6 +14,7 @@ import (
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
+	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambdacontext"
 	"github.com/google/go-cmp/cmp"
 )
@@ -43,7 +44,7 @@ func TestHandleKinesis(t *testing.T) {
 			wantErr: true,
 		},
 		"single log": {
-			event: mustKinesisEvent(t, gzipJSON(t, map[string]any{
+			event: mustKinesisEvent(t, mustGzipJSON(t, map[string]any{
 				"messageType": "DATA_MESSAGE",
 				"owner":       "601427279990",
 				"logGroup":    "/aws/lambda/testing-datadog",
@@ -77,7 +78,7 @@ func TestHandleKinesis(t *testing.T) {
 		},
 		"multiple records": {
 			event: mustKinesisEvent(t,
-				gzipJSON(t, map[string]any{
+				mustGzipJSON(t, map[string]any{
 					"messageType": "DATA_MESSAGE",
 					"owner":       "111111111111",
 					"logGroup":    "/aws/lambda/fn-a",
@@ -86,7 +87,7 @@ func TestHandleKinesis(t *testing.T) {
 						{"id": "a1", "timestamp": 1000, "message": "from-a"},
 					},
 				}),
-				gzipJSON(t, map[string]any{
+				mustGzipJSON(t, map[string]any{
 					"messageType": "DATA_MESSAGE",
 					"owner":       "222222222222",
 					"logGroup":    "/aws/rds/cluster",
@@ -124,7 +125,7 @@ func TestHandleKinesis(t *testing.T) {
 		"bad record is skipped": {
 			event: mustKinesisEvent(t,
 				[]byte("not valid gzip"),
-				gzipJSON(t, map[string]any{
+				mustGzipJSON(t, map[string]any{
 					"messageType": "DATA_MESSAGE",
 					"owner":       "123456789012",
 					"logGroup":    "/aws/lambda/good",
@@ -182,7 +183,7 @@ func TestHandleKinesis(t *testing.T) {
 	}
 }
 
-func gzipJSON(t *testing.T, v any) []byte {
+func mustGzipJSON(t *testing.T, v any) []byte {
 	t.Helper()
 
 	raw, err := json.Marshal(v)
@@ -206,19 +207,13 @@ func gzipJSON(t *testing.T, v any) []byte {
 func mustKinesisEvent(t *testing.T, records ...[]byte) json.RawMessage {
 	t.Helper()
 
-	type rec struct {
-		Kinesis struct {
-			Data []byte `json:"data"`
-		} `json:"kinesis"`
-	}
-	evt := struct {
-		Records []rec `json:"Records"`
-	}{}
-
+	var evt events.KinesisEvent
 	for _, data := range records {
-		r := rec{}
-		r.Kinesis.Data = data
-		evt.Records = append(evt.Records, r)
+		evt.Records = append(evt.Records, events.KinesisEventRecord{
+			Kinesis: events.KinesisRecord{
+				Data: data,
+			},
+		})
 	}
 
 	raw, err := json.Marshal(evt)
