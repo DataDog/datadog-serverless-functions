@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/concurrent"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 	"github.com/aws/aws-lambda-go/events"
@@ -36,16 +35,9 @@ func HandleKinesis(ctx context.Context, event json.RawMessage, cfg *config.Confi
 			return fmt.Errorf("marshal cloudwatch event from kinesis: %w", err)
 		}
 
-		entries, err := parseCloudwatchLogs(ctx, cwRaw, cfg)
-		if err != nil {
+		if err := HandleCloudwatchLogs(ctx, cwRaw, cfg, out); err != nil {
 			slog.WarnContext(ctx, "skipping kinesis record", "error", err)
 			continue
-		}
-
-		for _, entry := range entries {
-			if err := concurrent.SafeSender(ctx, out, entry); err != nil {
-				return err
-			}
 		}
 	}
 	return nil
