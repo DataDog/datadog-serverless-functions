@@ -23,7 +23,7 @@ func TestProcessS3Record(t *testing.T) {
 	tests := map[string]struct {
 		mockSetup func(m *MockS3APIClient)
 		chanSize  int
-		rc        s3RecordContext
+		rc        s3Record
 		want      []model.S3LogEntry
 		wantErr   bool
 	}{
@@ -35,7 +35,7 @@ func TestProcessS3Record(t *testing.T) {
 					}, nil)
 			},
 			chanSize: 1,
-			rc:       s3RecordContext{tags: model.Tags{}, source: "s3", service: "s3", bucket: "b", key: "k"},
+			rc:       s3Record{tags: model.Tags{}, source: "s3", service: "s3", bucket: "b", key: "k"},
 			want: []model.S3LogEntry{{
 				Message:        "line1",
 				Source:         "s3",
@@ -55,7 +55,7 @@ func TestProcessS3Record(t *testing.T) {
 					}, nil)
 			},
 			chanSize: 3,
-			rc:       s3RecordContext{tags: model.Tags{}, source: "s3", service: "s3", bucket: "b", key: "k"},
+			rc:       s3Record{tags: model.Tags{}, source: "s3", service: "s3", bucket: "b", key: "k"},
 			want: []model.S3LogEntry{
 				{Message: "line1", Source: "s3", SourceCategory: "aws", Service: "s3", Tags: model.Tags{"service:s3"}, Metadata: model.S3Metadata{S3Context: model.S3Context{Bucket: "b", Key: "k"}}},
 				{Message: "line2", Source: "s3", SourceCategory: "aws", Service: "s3", Tags: model.Tags{"service:s3"}, Metadata: model.S3Metadata{S3Context: model.S3Context{Bucket: "b", Key: "k"}}},
@@ -70,7 +70,7 @@ func TestProcessS3Record(t *testing.T) {
 					}, nil)
 			},
 			chanSize: 0,
-			rc:       s3RecordContext{tags: model.Tags{}, source: "s3", service: "s3", bucket: "b", key: "k"},
+			rc:       s3Record{tags: model.Tags{}, source: "s3", service: "s3", bucket: "b", key: "k"},
 			want:     nil,
 		},
 		"s3_error": {
@@ -79,7 +79,7 @@ func TestProcessS3Record(t *testing.T) {
 					Return(nil, errors.New("access denied"))
 			},
 			chanSize: 1,
-			rc:       s3RecordContext{bucket: "b", key: "k"},
+			rc:       s3Record{bucket: "b", key: "k"},
 			wantErr:  true,
 		},
 		"ddtags_extraction": {
@@ -90,7 +90,7 @@ func TestProcessS3Record(t *testing.T) {
 					}, nil)
 			},
 			chanSize: 1,
-			rc:       s3RecordContext{tags: model.Tags{}, source: "s3", service: "s3", bucket: "b", key: "k"},
+			rc:       s3Record{tags: model.Tags{}, source: "s3", service: "s3", bucket: "b", key: "k"},
 			want: []model.S3LogEntry{{
 				Message:        `{"msg":"hello"}`,
 				Source:         "s3",
@@ -108,7 +108,7 @@ func TestProcessS3Record(t *testing.T) {
 					}, nil)
 			},
 			chanSize: 1,
-			rc:       s3RecordContext{tags: model.Tags{}, source: "s3", service: "s3", bucket: "b", key: "k"},
+			rc:       s3Record{tags: model.Tags{}, source: "s3", service: "s3", bucket: "b", key: "k"},
 			want: []model.S3LogEntry{{
 				Message:        "helloworld",
 				Source:         "s3",
@@ -126,7 +126,7 @@ func TestProcessS3Record(t *testing.T) {
 					}, nil)
 			},
 			chanSize: 2,
-			rc: s3RecordContext{
+			rc: s3Record{
 				tags: model.Tags{}, source: "s3", service: "s3", bucket: "b", key: "k",
 				multilineRegex: regexp.MustCompile(`\d{4}-\d{2}-\d{2}`),
 			},
@@ -143,7 +143,7 @@ func TestProcessS3Record(t *testing.T) {
 					}, nil)
 			},
 			chanSize: 1,
-			rc: s3RecordContext{
+			rc: s3Record{
 				tags: model.Tags{}, source: "s3", service: "s3", bucket: "b", key: "k",
 				multilineRegex: regexp.MustCompile(`\d{4}-\d{2}-\d{2}`),
 			},
@@ -164,7 +164,7 @@ func TestProcessS3Record(t *testing.T) {
 					}, nil)
 			},
 			chanSize: 3,
-			rc: s3RecordContext{
+			rc: s3Record{
 				tags: model.Tags{}, source: "s3", service: "s3", bucket: "b", key: "k",
 				multilineRegex: regexp.MustCompile(`\d{4}-\d{2}-\d{2}`),
 			},
@@ -182,7 +182,7 @@ func TestProcessS3Record(t *testing.T) {
 					}, nil)
 			},
 			chanSize: 1,
-			rc:       s3RecordContext{tags: model.Tags{"env:prod", "team:aws"}, source: "s3", service: "s3", bucket: "b", key: "k"},
+			rc:       s3Record{tags: model.Tags{"env:prod", "team:aws"}, source: "s3", service: "s3", bucket: "b", key: "k"},
 			want: []model.S3LogEntry{{
 				Message:        "line1",
 				Source:         "s3",
