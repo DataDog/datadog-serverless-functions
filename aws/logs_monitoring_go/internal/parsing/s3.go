@@ -107,7 +107,7 @@ func processS3Record(ctx context.Context, client S3APIClient, out chan<- model.S
 	}
 
 	if err := scanner.Err(); err != nil {
-		return fmt.Errorf("scan s3://%s/%s: %w", rc.bucket, rc.key, err)
+		return fmt.Errorf("scan: %w", err)
 	}
 
 	return nil
