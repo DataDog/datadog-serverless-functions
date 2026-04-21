@@ -116,10 +116,7 @@ func processS3Record(ctx context.Context, client S3APIClient, out chan<- model.S
 func makeS3Entry(rc s3Record, message string) model.S3LogEntry {
 	ddtags, ddtagsService, message := extractFromMessage(message)
 
-	entryService := rc.service
-	if ddtagsService != "" {
-		entryService = ddtagsService
-	}
+	entryService := cmp.Or(ddtagsService, rc.service)
 
 	tags := slices.Concat(ddtags, model.Tags{"service:" + entryService}, rc.tags)
 	metadata := model.S3Metadata{
