@@ -28,15 +28,11 @@ func HandleSNS(ctx context.Context, event json.RawMessage, cfg *config.Config, o
 	}
 
 	for _, record := range snsEvent.Records {
-		if err := handleSNSRecord(ctx, record, cfg, client, metadata, out); err != nil {
+		s3Record := json.RawMessage(record.SNS.Message)
+		if err := handleS3Event(ctx, s3Record, cfg, client, metadata, out); err != nil {
 			slog.WarnContext(ctx, "skipping sns record", "error", err)
 			continue
 		}
 	}
 	return nil
-}
-
-func handleSNSRecord(ctx context.Context, record events.SNSEventRecord, cfg *config.Config, client S3APIClient, metadata model.Metadata, out chan<- model.S3LogEntry) error {
-	s3Raw := json.RawMessage(record.SNS.Message)
-	return handleS3Event(ctx, s3Raw, cfg, client, metadata, out)
 }
