@@ -6,7 +6,6 @@
 package parsing
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -16,7 +15,6 @@ import (
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-lambda-go/lambdacontext"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/google/go-cmp/cmp"
 	"go.uber.org/mock/gomock"
@@ -24,10 +22,6 @@ import (
 
 func TestHandleSNS(t *testing.T) {
 	t.Parallel()
-
-	ctx := lambdacontext.NewContext(context.Background(), &lambdacontext.LambdaContext{
-		InvokedFunctionArn: "arn:aws:lambda:us-east-1:123456789012:function:forwarder",
-	})
 
 	tests := map[string]struct {
 		event     json.RawMessage
@@ -66,7 +60,7 @@ func TestHandleSNS(t *testing.T) {
 				Service:        "s3",
 				Tags:           model.Tags{"service:s3", "forwardername:", "forwarder_version:6.0"},
 				Metadata: model.S3Metadata{
-					Metadata:  model.Metadata{ARN: "arn:aws:lambda:us-east-1:123456789012:function:forwarder"},
+					Metadata:  model.Metadata{ARN: testARN},
 					S3Context: model.S3Context{Bucket: "my-bucket", Key: "logs/app.log"},
 				},
 			}},
@@ -93,7 +87,7 @@ func TestHandleSNS(t *testing.T) {
 					Message: "from-a", Source: "s3", SourceCategory: "aws", Service: "s3",
 					Tags: model.Tags{"service:s3", "forwardername:", "forwarder_version:6.0"},
 					Metadata: model.S3Metadata{
-						Metadata:  model.Metadata{ARN: "arn:aws:lambda:us-east-1:123456789012:function:forwarder"},
+						Metadata:  model.Metadata{ARN: testARN},
 						S3Context: model.S3Context{Bucket: "bucket-a", Key: "a.log"},
 					},
 				},
@@ -101,7 +95,7 @@ func TestHandleSNS(t *testing.T) {
 					Message: "from-b", Source: "s3", SourceCategory: "aws", Service: "s3",
 					Tags: model.Tags{"service:s3", "forwardername:", "forwarder_version:6.0"},
 					Metadata: model.S3Metadata{
-						Metadata:  model.Metadata{ARN: "arn:aws:lambda:us-east-1:123456789012:function:forwarder"},
+						Metadata:  model.Metadata{ARN: testARN},
 						S3Context: model.S3Context{Bucket: "bucket-b", Key: "b.log"},
 					},
 				},
@@ -121,7 +115,7 @@ func TestHandleSNS(t *testing.T) {
 				Message: "survived", Source: "s3", SourceCategory: "aws", Service: "s3",
 				Tags: model.Tags{"service:s3", "forwardername:", "forwarder_version:6.0"},
 				Metadata: model.S3Metadata{
-					Metadata:  model.Metadata{ARN: "arn:aws:lambda:us-east-1:123456789012:function:forwarder"},
+					Metadata:  model.Metadata{ARN: testARN},
 					S3Context: model.S3Context{Bucket: "good-bucket", Key: "good.log"},
 				},
 			}},
@@ -147,7 +141,7 @@ func TestHandleSNS(t *testing.T) {
 				Message: "ok", Source: "s3", SourceCategory: "aws", Service: "s3",
 				Tags: model.Tags{"service:s3", "forwardername:", "forwarder_version:6.0"},
 				Metadata: model.S3Metadata{
-					Metadata:  model.Metadata{ARN: "arn:aws:lambda:us-east-1:123456789012:function:forwarder"},
+					Metadata:  model.Metadata{ARN: testARN},
 					S3Context: model.S3Context{Bucket: "ok-bucket", Key: "ok.log"},
 				},
 			}},
@@ -176,10 +170,10 @@ func TestHandleSNS(t *testing.T) {
 				t.Fatal("expected error but unmarshal succeeded")
 			}
 
-			metadata := model.Metadata{ARN: "arn:aws:lambda:us-east-1:123456789012:function:forwarder"}
+			metadata := model.Metadata{ARN: testARN}
 			for _, record := range snsEvent.Records {
 				s3Raw := json.RawMessage(record.SNS.Message)
-				if err := handleS3Event(ctx, s3Raw, tc.config, mock, metadata, out); err != nil {
+				if err := handleS3Event(testLambdaCtx, s3Raw, tc.config, mock, metadata, out); err != nil {
 					continue
 				}
 			}

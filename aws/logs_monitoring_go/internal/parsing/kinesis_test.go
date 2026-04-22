@@ -6,25 +6,17 @@
 package parsing
 
 import (
-	"bytes"
-	"compress/gzip"
-	"context"
 	"encoding/json"
 	"testing"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-lambda-go/lambdacontext"
 	"github.com/google/go-cmp/cmp"
 )
 
 func TestHandleKinesis(t *testing.T) {
 	t.Parallel()
-
-	ctx := lambdacontext.NewContext(context.Background(), &lambdacontext.LambdaContext{
-		InvokedFunctionArn: "arn:aws:lambda:us-east-1:123456789012:function:forwarder",
-	})
 
 	tests := map[string]struct {
 		event    json.RawMessage
@@ -66,7 +58,7 @@ func TestHandleKinesis(t *testing.T) {
 					Host:           "/aws/lambda/testing-datadog",
 					Tags:           model.Tags{"service:lambda", "forwardername:", "forwarder_version:6.0"},
 					AWS: model.CloudwatchMetadata{
-						Metadata: model.Metadata{ARN: "arn:aws:lambda:us-east-1:123456789012:function:forwarder"},
+						Metadata: model.Metadata{ARN: testARN},
 						Logs: model.CloudwatchLogsContext{
 							LogGroup:  "/aws/lambda/testing-datadog",
 							LogStream: "2024/10/10/[$LATEST]20bddfd5a2dc4c6b97ac02800eae90d0",
@@ -106,7 +98,7 @@ func TestHandleKinesis(t *testing.T) {
 					Host: "/aws/lambda/fn-a",
 					Tags: model.Tags{"service:lambda", "forwardername:", "forwarder_version:6.0"},
 					AWS: model.CloudwatchMetadata{
-						Metadata: model.Metadata{ARN: "arn:aws:lambda:us-east-1:123456789012:function:forwarder"},
+						Metadata: model.Metadata{ARN: testARN},
 						Logs:     model.CloudwatchLogsContext{LogGroup: "/aws/lambda/fn-a", LogStream: "stream-a", Owner: "111111111111"},
 					},
 				},
@@ -116,7 +108,7 @@ func TestHandleKinesis(t *testing.T) {
 					Host: "/aws/rds/cluster",
 					Tags: model.Tags{"service:cloudwatch", "forwardername:", "forwarder_version:6.0"},
 					AWS: model.CloudwatchMetadata{
-						Metadata: model.Metadata{ARN: "arn:aws:lambda:us-east-1:123456789012:function:forwarder"},
+						Metadata: model.Metadata{ARN: testARN},
 						Logs:     model.CloudwatchLogsContext{LogGroup: "/aws/rds/cluster", LogStream: "stream-b", Owner: "222222222222"},
 					},
 				},
@@ -144,7 +136,7 @@ func TestHandleKinesis(t *testing.T) {
 					Host: "/aws/lambda/good",
 					Tags: model.Tags{"service:lambda", "forwardername:", "forwarder_version:6.0"},
 					AWS: model.CloudwatchMetadata{
-						Metadata: model.Metadata{ARN: "arn:aws:lambda:us-east-1:123456789012:function:forwarder"},
+						Metadata: model.Metadata{ARN: testARN},
 						Logs:     model.CloudwatchLogsContext{LogGroup: "/aws/lambda/good", LogStream: "stream", Owner: "123456789012"},
 					},
 				},
@@ -158,7 +150,7 @@ func TestHandleKinesis(t *testing.T) {
 
 			out := make(chan model.CloudwatchLogEntry, tc.chanSize)
 
-			err := HandleKinesis(ctx, tc.event, tc.config, out)
+			err := HandleKinesis(testLambdaCtx, tc.event, tc.config, out)
 			close(out)
 
 			var got []model.CloudwatchLogEntry
@@ -181,27 +173,6 @@ func TestHandleKinesis(t *testing.T) {
 			}
 		})
 	}
-}
-
-func mustGzipJSON(t *testing.T, v any) []byte {
-	t.Helper()
-
-	raw, err := json.Marshal(v)
-	if err != nil {
-		t.Fatalf("marshal: %v", err)
-	}
-
-	var buf bytes.Buffer
-	w := gzip.NewWriter(&buf)
-	if _, err := w.Write(raw); err != nil {
-		t.Fatalf("gzip write: %v", err)
-	}
-
-	if err := w.Close(); err != nil {
-		t.Fatalf("gzip close: %v", err)
-	}
-
-	return buf.Bytes()
 }
 
 func mustKinesisEvent(t *testing.T, records ...[]byte) json.RawMessage {
