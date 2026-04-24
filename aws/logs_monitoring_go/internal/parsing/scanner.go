@@ -13,8 +13,8 @@ import (
 )
 
 const (
-	maxTokenSize  = 1*1024*1024 - 4*1024 // Conservative overhead for JSON wrapping
-	skipFirstByte = 1
+	maxTokenSize = 1*1024*1024 - 4*1024 // Conservative overhead for JSON wrapping
+	skippedByte  = 1
 )
 
 type Scanner struct {
@@ -45,9 +45,9 @@ func (s *Scanner) splitOnRegex(data []byte, atEOF bool) (advance int, token []by
 	}
 
 	// Skip the first byte so the regex doesn't match at the start of the current buffer
-	loc := s.re.FindIndex(data[skipFirstByte:])
+	loc := s.re.FindIndex(data[skippedByte:])
 	if loc != nil {
-		splitAt := loc[0] + skipFirstByte // offset back
+		splitAt := loc[0] + skippedByte // offset back
 		return splitAt, data[:splitAt], nil
 	}
 
