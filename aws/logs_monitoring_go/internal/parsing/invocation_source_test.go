@@ -22,7 +22,7 @@ func TestDetectInvocationSource(t *testing.T) {
 			wantKey: InvocationSourceCloudwatchLogs,
 		},
 		"s3": {
-			event:   json.RawMessage(`{"Records":[{"s3":{"bucket":{"name":"my-bucket"},"object":{"key":"my-key"}}}]}`),
+			event:   json.RawMessage(`{"Records":[{"s3":{"bucket":{"name":"my-bucket"},"object":{"key":"my-key"}},"eventSource":"aws:s3"}]}`),
 			wantKey: InvocationSourceS3,
 		},
 		"empty object": {
