@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -22,8 +23,21 @@ import (
 
 const timeout = 10 * time.Second
 
+var (
+	s3Client     S3APIClient
+	s3ClientOnce sync.Once
+	s3ClientErr  error
+)
+
 type S3APIClient interface {
 	GetObject(ctx context.Context, params *s3.GetObjectInput, optFns ...func(*s3.Options)) (*s3.GetObjectOutput, error)
+}
+
+func getS3APIClient(ctx context.Context, useFIPS bool) (S3APIClient, error) {
+	s3ClientOnce.Do(func() {
+		s3Client, s3ClientErr = createS3APIClient(ctx, useFIPS)
+	})
+	return s3Client, s3ClientErr
 }
 
 func createS3APIClient(ctx context.Context, useFIPS bool) (S3APIClient, error) {

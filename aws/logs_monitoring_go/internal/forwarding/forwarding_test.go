@@ -125,12 +125,12 @@ func TestForward(t *testing.T) {
 
 				rw.WriteHeader(tc.statusCode)
 			}))
-			defer server.Close()
+			t.Cleanup(server.Close)
 
 			f := NewForwarder(&config.Config{IntakeURL: server.URL, APIKey: "test-api-key"}, server.Client(), tc.storage)
 
-			ctx, cancel := context.WithCancel(context.Background())
-			defer cancel()
+			ctx, cancel := context.WithCancel(t.Context())
+			t.Cleanup(cancel)
 
 			if tc.cancelCtx {
 				cancel()

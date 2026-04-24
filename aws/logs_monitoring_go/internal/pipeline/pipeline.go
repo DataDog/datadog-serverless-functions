@@ -8,16 +8,12 @@ package pipeline
 import (
 	"context"
 	"encoding/json"
-	"net/http"
-	"time"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/forwarding"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/processing"
 	"golang.org/x/sync/errgroup"
 )
-
-const timeout = 10 * time.Second
 
 func Run[T any](
 	ctx context.Context,
@@ -32,9 +28,7 @@ func Run[T any](
 	batches := make(chan []byte)
 
 	batcher := processing.NewBatcher[T]()
-	forwarder := forwarding.NewForwarder(cfg, &http.Client{
-		Timeout: timeout,
-	}, storage)
+	forwarder := forwarding.NewForwarder(cfg, forwarding.Client(), storage)
 
 	g.Go(func() error {
 		defer close(entries)

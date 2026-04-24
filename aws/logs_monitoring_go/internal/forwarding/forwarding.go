@@ -13,6 +13,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/concurrent"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
@@ -24,6 +25,12 @@ const (
 	CloudwatchStorage = "cloudwatch"
 	S3Storage         = "s3"
 )
+
+var client *http.Client = &http.Client{Timeout: 10 * time.Second}
+
+func Client() *http.Client {
+	return client
+}
 
 type Forwarder struct {
 	config  *config.Config

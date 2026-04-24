@@ -10,6 +10,28 @@ import (
 	"strings"
 )
 
+const sourceCategory = "aws"
+
+type LogEntry struct {
+	Message        string `json:"message"`
+	Source         string `json:"ddsource"`
+	SourceCategory string `json:"ddsourcecategory"`
+	Service        string `json:"service"`
+	Tags           Tags   `json:"ddtags"`
+	Metadata       any    `json:"aws"`
+}
+
+func NewLogEntry(metadata any, tags Tags, message, source, service string) LogEntry {
+	return LogEntry{
+		Message:        message,
+		Source:         source,
+		SourceCategory: sourceCategory,
+		Service:        service,
+		Tags:           tags,
+		Metadata:       metadata,
+	}
+}
+
 type Tags []string
 
 func (t Tags) MarshalJSON() ([]byte, error) {

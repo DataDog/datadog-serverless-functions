@@ -14,75 +14,76 @@ import (
 	"github.com/aws/aws-lambda-go/lambdacontext"
 )
 
-const DdtagsKey = "ddtags"
+const (
+	ddtagsJSONKey       = "ddtags"
+	forwarderNameKey    = "forwardername:"
+	forwarderVersionKey = "forwarder_version:"
+	tagSeparator        = ","
+	serviceKey          = "service:"
+	sourceOverrideKey   = "source_overridden:"
+)
 
-func getTagsAndService(cfg *config.Config) (model.Tags, string) {
-	var tags model.Tags
-	var service string
-
+func getTagsAndService(cfg *config.Config) (tags model.Tags, service string) {
 	if cfg.CustomTags != "" {
-		for tag := range strings.SplitSeq(cfg.CustomTags, ",") {
-			if strings.HasPrefix(tag, "service:") {
+		for tag := range strings.SplitSeq(cfg.CustomTags, tagSeparator) {
+			v, found := strings.CutPrefix(tag, serviceKey)
+			if found {
 				if service == "" {
-					service = tag[8:]
+					service = v
 				}
 				continue
 			}
-
 			tags = append(tags, tag)
 		}
 	}
 
 	if cfg.Source != "" {
-		tags = append(tags, "source_overridden:true")
+		tags = append(tags, sourceOverrideKey+"true")
 	}
-
 	tags = append(tags,
-		"forwardername:"+strings.ToLower(lambdacontext.FunctionName),
-		"forwarder_version:"+config.ForwarderVersion,
+		forwarderNameKey+strings.ToLower(lambdacontext.FunctionName),
+		forwarderVersionKey+config.ForwarderVersion,
 	)
-
-	return tags, service
+	return
 }
 
-func extractFromMessage(message string) (model.Tags, string, string) {
-	var tags model.Tags
-	var service string
+func extractFromMessage(message string) (tags model.Tags, service string, newMessage string) {
+	newMessage = message
 
 	var jsonMessage map[string]any
 	if err := json.Unmarshal([]byte(message), &jsonMessage); err != nil {
-		return nil, service, message
+		return
 	}
 
-	ddtagsRaw, ok := jsonMessage[DdtagsKey]
+	ddtagsRaw, ok := jsonMessage[ddtagsJSONKey]
 	if !ok {
-		return nil, service, message
+		return
 	}
 
 	ddtagsStr, ok := ddtagsRaw.(string)
 	if !ok {
-		return nil, service, message
+		return
 	}
 
 	ddtagsStr = strings.ReplaceAll(ddtagsStr, " ", "")
-
-	for tag := range strings.SplitSeq(ddtagsStr, ",") {
-		if strings.HasPrefix(tag, "service:") {
+	for tag := range strings.SplitSeq(ddtagsStr, tagSeparator) {
+		v, found := strings.CutPrefix(tag, serviceKey)
+		if found {
 			if service == "" {
-				service = tag[8:]
+				service = v
 			}
 			continue
 		}
-
 		tags = append(tags, tag)
 	}
 
-	delete(jsonMessage, DdtagsKey)
+	delete(jsonMessage, ddtagsJSONKey)
 
-	newMessage, err := json.Marshal(jsonMessage)
+	newByteMessage, err := json.Marshal(jsonMessage)
 	if err != nil {
-		return nil, service, message
+		return
 	}
 
-	return tags, service, string(newMessage)
+	newMessage = string(newByteMessage)
+	return
 }
