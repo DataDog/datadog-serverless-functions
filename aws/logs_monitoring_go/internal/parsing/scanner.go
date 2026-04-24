@@ -44,7 +44,7 @@ func (s *Scanner) splitOnRegex(data []byte, atEOF bool) (advance int, token []by
 		return 0, nil, nil
 	}
 
-	// Skip the first byte so the regex doesn't match at the start of the current buffer
+	// Skip byte(s) so the regex doesn't match at the start of the current buffer
 	loc := s.re.FindIndex(data[skippedByte:])
 	if loc != nil {
 		splitAt := loc[0] + skippedByte // offset back

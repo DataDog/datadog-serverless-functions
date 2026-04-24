@@ -40,7 +40,7 @@ func TestBatch(t *testing.T) {
 			wantBatchCount:  1,
 			wantEntryCounts: []int{1},
 		},
-		"splits_on_max_items": {
+		"split": {
 			entries: func() []model.LogEntry {
 				entries := make([]model.LogEntry, maxItemsPerBatch+1)
 				for i := range entries {
