@@ -28,7 +28,7 @@ func Run[T any](
 	batches := make(chan []byte)
 
 	batcher := processing.NewBatcher[T]()
-	forwarder := forwarding.NewForwarder(cfg, forwarding.Client(), storage)
+	forwarder := forwarding.NewForwarder(cfg, forwarding.Client, storage)
 
 	g.Go(func() error {
 		defer close(entries)

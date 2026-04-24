@@ -27,7 +27,7 @@ func TestProcessS3Record(t *testing.T) {
 		mockSetup func(m *MockS3APIClient)
 		chanSize  int
 		base      s3EntryBase
-		want      []model.S3LogEntry
+		want      []model.LogEntry
 		wantErr   bool
 	}{
 		"single_line": {
@@ -39,7 +39,7 @@ func TestProcessS3Record(t *testing.T) {
 			},
 			chanSize: 1,
 			base:     newTestS3Base(),
-			want:     []model.S3LogEntry{wantS3Entry("line1", "s3", "s3", model.Tags{"service:s3"})},
+			want:     []model.LogEntry{wantS3Entry("line1", "s3", "s3", model.Tags{"service:s3"})},
 		},
 		"multiple_lines": {
 			mockSetup: func(m *MockS3APIClient) {
@@ -50,7 +50,7 @@ func TestProcessS3Record(t *testing.T) {
 			},
 			chanSize: 3,
 			base:     newTestS3Base(),
-			want: []model.S3LogEntry{
+			want: []model.LogEntry{
 				wantS3Entry("line1", "s3", "s3", model.Tags{"service:s3"}),
 				wantS3Entry("line2", "s3", "s3", model.Tags{"service:s3"}),
 				wantS3Entry("line3", "s3", "s3", model.Tags{"service:s3"}),
@@ -85,7 +85,7 @@ func TestProcessS3Record(t *testing.T) {
 			},
 			chanSize: 1,
 			base:     newTestS3Base(),
-			want:     []model.S3LogEntry{wantS3Entry(`{"msg":"hello"}`, "s3", "myapp", model.Tags{"env:prod", "service:myapp"})},
+			want:     []model.LogEntry{wantS3Entry(`{"msg":"hello"}`, "s3", "myapp", model.Tags{"env:prod", "service:myapp"})},
 		},
 		"invalid_utf8_stripped": {
 			mockSetup: func(m *MockS3APIClient) {
@@ -96,7 +96,7 @@ func TestProcessS3Record(t *testing.T) {
 			},
 			chanSize: 1,
 			base:     newTestS3Base(),
-			want:     []model.S3LogEntry{wantS3Entry("helloworld", "s3", "s3", model.Tags{"service:s3"})},
+			want:     []model.LogEntry{wantS3Entry("helloworld", "s3", "s3", model.Tags{"service:s3"})},
 		},
 		"multiline_groups_continuation_lines": {
 			mockSetup: func(m *MockS3APIClient) {
@@ -109,7 +109,7 @@ func TestProcessS3Record(t *testing.T) {
 			base: newTestS3Base(func(b *s3EntryBase) {
 				b.multilineRegex = regexp.MustCompile(`\d{4}-\d{2}-\d{2}`)
 			}),
-			want: []model.S3LogEntry{
+			want: []model.LogEntry{
 				wantS3Entry("2024-01-15 ERROR NullPointer\n    at com.foo.Bar\n", "s3", "s3", model.Tags{"service:s3"}),
 				wantS3Entry("2024-01-15 INFO started", "s3", "s3", model.Tags{"service:s3"}),
 			},
@@ -125,7 +125,7 @@ func TestProcessS3Record(t *testing.T) {
 			base: newTestS3Base(func(b *s3EntryBase) {
 				b.multilineRegex = regexp.MustCompile(`\d{4}-\d{2}-\d{2}`)
 			}),
-			want: []model.S3LogEntry{wantS3Entry("2024-01-15 ERROR\n    stacktrace", "s3", "s3", model.Tags{"service:s3"})},
+			want: []model.LogEntry{wantS3Entry("2024-01-15 ERROR\n    stacktrace", "s3", "s3", model.Tags{"service:s3"})},
 		},
 		"multimatch_single_line": {
 			mockSetup: func(m *MockS3APIClient) {
@@ -138,7 +138,7 @@ func TestProcessS3Record(t *testing.T) {
 			base: newTestS3Base(func(b *s3EntryBase) {
 				b.multilineRegex = regexp.MustCompile(`\d{4}-\d{2}-\d{2}`)
 			}),
-			want: []model.S3LogEntry{
+			want: []model.LogEntry{
 				wantS3Entry("2024-01-15 ERROR", "s3", "s3", model.Tags{"service:s3"}),
 				wantS3Entry("2024-01-15 ERROR", "s3", "s3", model.Tags{"service:s3"}),
 				wantS3Entry("2024-01-15 ERROR\n    stacktrace", "s3", "s3", model.Tags{"service:s3"}),
@@ -155,20 +155,20 @@ func TestProcessS3Record(t *testing.T) {
 			base: newTestS3Base(func(b *s3EntryBase) {
 				b.tags = model.Tags{"env:prod", "team:aws"}
 			}),
-			want: []model.S3LogEntry{wantS3Entry("line1", "s3", "s3", model.Tags{"service:s3", "env:prod", "team:aws"})},
+			want: []model.LogEntry{wantS3Entry("line1", "s3", "s3", model.Tags{"service:s3", "env:prod", "team:aws"})},
 		},
 	}
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			out := make(chan model.S3LogEntry, tc.chanSize)
+			out := make(chan model.LogEntry, tc.chanSize)
 			ctrl := gomock.NewController(t)
 			mock := NewMockS3APIClient(ctrl)
 			tc.mockSetup(mock)
 
 			err := processS3Record(t.Context(), mock, out, tc.base)
 			close(out)
-			var got []model.S3LogEntry
+			var got []model.LogEntry
 			for entry := range out {
 				got = append(got, entry)
 			}
@@ -200,8 +200,6 @@ func newTestS3Base(opts ...func(*s3EntryBase)) s3EntryBase {
 	return base
 }
 
-func wantS3Entry(message, source, service string, tags model.Tags) model.S3LogEntry {
-	return model.S3LogEntry{
-		LogEntry: model.NewLogEntry(testS3Metadata, tags, message, source, service),
-	}
+func wantS3Entry(message, source, service string, tags model.Tags) model.LogEntry {
+	return model.NewLogEntry(testS3Metadata, tags, message, source, service)
 }

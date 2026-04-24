@@ -26,11 +26,7 @@ const (
 	S3Storage         = "s3"
 )
 
-var client *http.Client = &http.Client{Timeout: 10 * time.Second}
-
-func Client() *http.Client {
-	return client
-}
+var Client *http.Client = &http.Client{Timeout: 10 * time.Second}
 
 type Forwarder struct {
 	config  *config.Config

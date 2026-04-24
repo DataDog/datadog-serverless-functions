@@ -5,10 +5,6 @@
 
 package model
 
-type S3LogEntry struct {
-	LogEntry
-}
-
 type S3Metadata struct {
 	LambdaOrigin
 	Origin S3Origin `json:"s3"`

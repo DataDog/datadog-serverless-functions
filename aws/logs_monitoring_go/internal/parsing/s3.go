@@ -36,7 +36,7 @@ type s3EntryBase struct {
 	multilineRegex *regexp.Regexp
 }
 
-func HandleS3(ctx context.Context, event json.RawMessage, cfg *config.Config, out chan<- model.S3LogEntry) error {
+func HandleS3(ctx context.Context, event json.RawMessage, cfg *config.Config, out chan<- model.LogEntry) error {
 	var s3Event events.S3Event
 	if err := json.Unmarshal(event, &s3Event); err != nil {
 		return fmt.Errorf("unmarshal: %w", err)
@@ -61,7 +61,7 @@ func HandleS3(ctx context.Context, event json.RawMessage, cfg *config.Config, ou
 	return nil
 }
 
-func processS3Record(ctx context.Context, client S3APIClient, out chan<- model.S3LogEntry, base s3EntryBase) error {
+func processS3Record(ctx context.Context, client S3APIClient, out chan<- model.LogEntry, base s3EntryBase) error {
 	body, err := getS3Object(ctx, client, base.metadata.Origin.Bucket, base.metadata.Origin.Key)
 	if err != nil {
 		return err
@@ -108,13 +108,11 @@ func newS3EntryBase(record events.S3EventRecord, cfg *config.Config, lambdaOrigi
 	}
 }
 
-func newS3LogEntry(base s3EntryBase, message string) model.S3LogEntry {
+func newS3LogEntry(base s3EntryBase, message string) model.LogEntry {
 	tags, service, message := extractFromMessage(message)
 	service = cmp.Or(service, base.service)
 	tags = slices.Concat(tags, model.Tags{"service:" + service}, base.tags)
-	return model.S3LogEntry{
-		LogEntry: model.NewLogEntry(base.metadata, tags, message, base.source, service),
-	}
+	return model.NewLogEntry(base.metadata, tags, message, base.source, service)
 }
 
 func getS3Source(key string) string {

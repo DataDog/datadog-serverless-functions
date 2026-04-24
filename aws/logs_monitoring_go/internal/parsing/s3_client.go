@@ -24,8 +24,8 @@ import (
 const timeout = 10 * time.Second
 
 var (
-	s3Client     S3APIClient
 	s3ClientOnce sync.Once
+	s3Client     S3APIClient
 	s3ClientErr  error
 )
 
