@@ -47,22 +47,22 @@ func getTagsAndService(cfg *config.Config) (tags model.Tags, service string) {
 	return
 }
 
-func extractFromMessage(message string) (tags model.Tags, service string, newMessage string) {
-	newMessage = message
-
+func extractFromMessage(message string) (model.Tags, string, string) {
+	var tags model.Tags
+	var service string
 	var jsonMessage map[string]any
 	if err := json.Unmarshal([]byte(message), &jsonMessage); err != nil {
-		return
+		return nil, service, message
 	}
 
 	ddtagsRaw, ok := jsonMessage[ddtagsJSONKey]
 	if !ok {
-		return
+		return nil, service, message
 	}
 
 	ddtagsStr, ok := ddtagsRaw.(string)
 	if !ok {
-		return
+		return nil, service, message
 	}
 
 	ddtagsStr = strings.ReplaceAll(ddtagsStr, " ", "")
@@ -79,11 +79,10 @@ func extractFromMessage(message string) (tags model.Tags, service string, newMes
 
 	delete(jsonMessage, ddtagsJSONKey)
 
-	newByteMessage, err := json.Marshal(jsonMessage)
+	newMessage, err := json.Marshal(jsonMessage)
 	if err != nil {
-		return
+		return nil, service, message
 	}
 
-	newMessage = string(newByteMessage)
-	return
+	return tags, service, string(newMessage)
 }
