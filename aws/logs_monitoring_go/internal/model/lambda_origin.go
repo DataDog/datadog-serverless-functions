@@ -14,24 +14,24 @@ import (
 
 var ErrLambdaContextMissing = errors.New("lambda context not found")
 
-type Metadata struct {
+type LambdaOrigin struct {
 	ARN     string `json:"invoked_function_arn"`
 	Version string `json:"function_version,omitempty"`
 }
 
-func GetMetadata(ctx context.Context) (Metadata, error) {
-	var metadata Metadata
+func GetLambdaOrigin(ctx context.Context) (LambdaOrigin, error) {
+	var origin LambdaOrigin
 
 	if lambdacontext.FunctionVersion != "$LATEST" {
-		metadata.Version = lambdacontext.FunctionVersion
+		origin.Version = lambdacontext.FunctionVersion
 	}
 
 	lc, ok := lambdacontext.FromContext(ctx)
 	if !ok {
-		return Metadata{}, ErrLambdaContextMissing
+		return LambdaOrigin{}, ErrLambdaContextMissing
 	}
 
-	metadata.ARN = lc.InvokedFunctionArn
+	origin.ARN = lc.InvokedFunctionArn
 
-	return metadata, nil
+	return origin, nil
 }

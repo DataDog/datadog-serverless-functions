@@ -8,7 +8,6 @@ package parsing
 import (
 	"bytes"
 	"compress/gzip"
-	"context"
 	"encoding/json"
 	"testing"
 
@@ -22,7 +21,7 @@ import (
 func TestHandleKinesis(t *testing.T) {
 	t.Parallel()
 
-	ctx := lambdacontext.NewContext(context.Background(), &lambdacontext.LambdaContext{
+	ctx := lambdacontext.NewContext(t.Context(), &lambdacontext.LambdaContext{
 		InvokedFunctionArn: "arn:aws:lambda:us-east-1:123456789012:function:forwarder",
 	})
 
@@ -57,22 +56,24 @@ func TestHandleKinesis(t *testing.T) {
 			chanSize: 1,
 			want: []model.CloudwatchLogEntry{
 				{
-					ID:             "ev1",
-					Timestamp:      1583425836114,
-					Message:        `{"status": "debug", "message": "hello"}`,
-					Source:         "lambda",
-					SourceCategory: "aws",
-					Service:        "lambda",
-					Host:           "/aws/lambda/testing-datadog",
-					Tags:           model.Tags{"service:lambda", "forwardername:", "forwarder_version:6.0"},
-					AWS: model.CloudwatchMetadata{
-						Metadata: model.Metadata{ARN: "arn:aws:lambda:us-east-1:123456789012:function:forwarder"},
-						Logs: model.CloudwatchLogsContext{
-							LogGroup:  "/aws/lambda/testing-datadog",
-							LogStream: "2024/10/10/[$LATEST]20bddfd5a2dc4c6b97ac02800eae90d0",
-							Owner:     "601427279990",
+					LogEntry: model.LogEntry{
+						Message:        `{"status": "debug", "message": "hello"}`,
+						Source:         "lambda",
+						SourceCategory: "aws",
+						Service:        "lambda",
+						Tags:           model.Tags{"service:lambda", "forwardername:", "forwarder_version:6.0"},
+						Metadata: model.CloudwatchMetadata{
+							LambdaOrigin: model.LambdaOrigin{ARN: "arn:aws:lambda:us-east-1:123456789012:function:forwarder"},
+							Origin: model.CloudwatchOrigin{
+								LogGroup:  "/aws/lambda/testing-datadog",
+								LogStream: "2024/10/10/[$LATEST]20bddfd5a2dc4c6b97ac02800eae90d0",
+								Owner:     "601427279990",
+							},
 						},
 					},
+					ID:        "ev1",
+					Timestamp: 1583425836114,
+					Host:      "/aws/lambda/testing-datadog",
 				},
 			},
 		},
@@ -101,24 +102,36 @@ func TestHandleKinesis(t *testing.T) {
 			chanSize: 2,
 			want: []model.CloudwatchLogEntry{
 				{
-					ID: "a1", Timestamp: 1000, Message: "from-a",
-					Source: "lambda", SourceCategory: "aws", Service: "lambda",
-					Host: "/aws/lambda/fn-a",
-					Tags: model.Tags{"service:lambda", "forwardername:", "forwarder_version:6.0"},
-					AWS: model.CloudwatchMetadata{
-						Metadata: model.Metadata{ARN: "arn:aws:lambda:us-east-1:123456789012:function:forwarder"},
-						Logs:     model.CloudwatchLogsContext{LogGroup: "/aws/lambda/fn-a", LogStream: "stream-a", Owner: "111111111111"},
+					LogEntry: model.LogEntry{
+						Message:        "from-a",
+						Source:         "lambda",
+						SourceCategory: "aws",
+						Service:        "lambda",
+						Tags:           model.Tags{"service:lambda", "forwardername:", "forwarder_version:6.0"},
+						Metadata: model.CloudwatchMetadata{
+							LambdaOrigin: model.LambdaOrigin{ARN: "arn:aws:lambda:us-east-1:123456789012:function:forwarder"},
+							Origin:       model.CloudwatchOrigin{LogGroup: "/aws/lambda/fn-a", LogStream: "stream-a", Owner: "111111111111"},
+						},
 					},
+					ID:        "a1",
+					Timestamp: 1000,
+					Host:      "/aws/lambda/fn-a",
 				},
 				{
-					ID: "b1", Timestamp: 2000, Message: "from-b",
-					Source: "cloudwatch", SourceCategory: "aws", Service: "cloudwatch",
-					Host: "/aws/rds/cluster",
-					Tags: model.Tags{"service:cloudwatch", "forwardername:", "forwarder_version:6.0"},
-					AWS: model.CloudwatchMetadata{
-						Metadata: model.Metadata{ARN: "arn:aws:lambda:us-east-1:123456789012:function:forwarder"},
-						Logs:     model.CloudwatchLogsContext{LogGroup: "/aws/rds/cluster", LogStream: "stream-b", Owner: "222222222222"},
+					LogEntry: model.LogEntry{
+						Message:        "from-b",
+						Source:         "cloudwatch",
+						SourceCategory: "aws",
+						Service:        "cloudwatch",
+						Tags:           model.Tags{"service:cloudwatch", "forwardername:", "forwarder_version:6.0"},
+						Metadata: model.CloudwatchMetadata{
+							LambdaOrigin: model.LambdaOrigin{ARN: "arn:aws:lambda:us-east-1:123456789012:function:forwarder"},
+							Origin:       model.CloudwatchOrigin{LogGroup: "/aws/rds/cluster", LogStream: "stream-b", Owner: "222222222222"},
+						},
 					},
+					ID:        "b1",
+					Timestamp: 2000,
+					Host:      "/aws/rds/cluster",
 				},
 			},
 		},
@@ -139,14 +152,20 @@ func TestHandleKinesis(t *testing.T) {
 			chanSize: 1,
 			want: []model.CloudwatchLogEntry{
 				{
-					ID: "g1", Timestamp: 3000, Message: "survived",
-					Source: "lambda", SourceCategory: "aws", Service: "lambda",
-					Host: "/aws/lambda/good",
-					Tags: model.Tags{"service:lambda", "forwardername:", "forwarder_version:6.0"},
-					AWS: model.CloudwatchMetadata{
-						Metadata: model.Metadata{ARN: "arn:aws:lambda:us-east-1:123456789012:function:forwarder"},
-						Logs:     model.CloudwatchLogsContext{LogGroup: "/aws/lambda/good", LogStream: "stream", Owner: "123456789012"},
+					LogEntry: model.LogEntry{
+						Message:        "survived",
+						Source:         "lambda",
+						SourceCategory: "aws",
+						Service:        "lambda",
+						Tags:           model.Tags{"service:lambda", "forwardername:", "forwarder_version:6.0"},
+						Metadata: model.CloudwatchMetadata{
+							LambdaOrigin: model.LambdaOrigin{ARN: "arn:aws:lambda:us-east-1:123456789012:function:forwarder"},
+							Origin:       model.CloudwatchOrigin{LogGroup: "/aws/lambda/good", LogStream: "stream", Owner: "123456789012"},
+						},
 					},
+					ID:        "g1",
+					Timestamp: 3000,
+					Host:      "/aws/lambda/good",
 				},
 			},
 		},
@@ -175,7 +194,6 @@ func TestHandleKinesis(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
-
 			if diff := cmp.Diff(tc.want, got); diff != "" {
 				t.Errorf("mismatch (-want +got):\n%s", diff)
 			}

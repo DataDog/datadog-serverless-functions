@@ -12,7 +12,7 @@ import (
 	"regexp"
 )
 
-var ForwarderVersion = "6.0"
+const ForwarderVersion = "6.0"
 
 type Config struct {
 	APIKey              string

@@ -6,7 +6,6 @@
 package parsing
 
 import (
-	"context"
 	"errors"
 	"io"
 	"strings"
@@ -52,7 +51,7 @@ func TestGetS3Object(t *testing.T) {
 			mock := NewMockS3APIClient(ctrl)
 			tc.mockSetup(mock)
 
-			body, err := getS3Object(context.Background(), mock, tc.bucket, tc.key)
+			body, err := getS3Object(t.Context(), mock, tc.bucket, tc.key)
 
 			if tc.wantErr {
 				if err == nil {

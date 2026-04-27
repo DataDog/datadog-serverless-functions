@@ -34,7 +34,7 @@ func handleRequest(cfg *config.Config) func(context.Context, json.RawMessage) er
 		invocationSource := parsing.DetectInvocationSource(event)
 		switch invocationSource {
 		case parsing.InvocationSourceCloudwatchLogs:
-			return pipeline.Run(ctx, event, cfg, forwarding.CloudwatchStorage, parsing.HandleCloudwatchLogs)
+			return pipeline.Run(ctx, event, cfg, forwarding.CloudwatchStorage, parsing.HandleCloudwatch)
 		case parsing.InvocationSourceKinesis:
 			return pipeline.Run(ctx, event, cfg, forwarding.CloudwatchStorage, parsing.HandleKinesis)
 		case parsing.InvocationSourceS3:

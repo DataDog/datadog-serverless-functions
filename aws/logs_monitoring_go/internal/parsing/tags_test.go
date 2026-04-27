@@ -150,8 +150,8 @@ func FuzzExtractFromMessage(f *testing.F) {
 			if err := json.Unmarshal([]byte(outMessage), &parsed); err != nil {
 				t.Errorf("output message is not valid JSON: %v", err)
 			}
-			if _, ok := parsed[DdtagsKey]; ok {
-				t.Errorf("output message still contains %q key", DdtagsKey)
+			if _, ok := parsed[ddtagsJSONKey]; ok {
+				t.Errorf("output message still contains %q key", ddtagsJSONKey)
 			}
 		}
 

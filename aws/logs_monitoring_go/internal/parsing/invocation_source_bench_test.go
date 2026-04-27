@@ -16,9 +16,9 @@ import (
 const benchS3Records = 500
 
 var (
-	smallCWEvent        = json.RawMessage(`{"awslogs":{"data":"dGVzdA=="}}`)
-	largeS3EventFirst   = makeS3EventSourceFirst(benchS3Records)
-	largeS3EventLast    = makeS3EventSourceLast(benchS3Records)
+	smallCWEvent      = json.RawMessage(`{"awslogs":{"data":"dGVzdA=="}}`)
+	largeS3EventFirst = makeS3EventSourceFirst(benchS3Records)
+	largeS3EventLast  = makeS3EventSourceLast(benchS3Records)
 )
 
 var benchCases = []struct {

@@ -6,7 +6,6 @@
 package parsing
 
 import (
-	"context"
 	"errors"
 	"io"
 	"regexp"
@@ -19,12 +18,16 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
+var testS3Metadata = model.S3Metadata{
+	Origin: model.S3Origin{Bucket: "b", Key: "k"},
+}
+
 func TestProcessS3Record(t *testing.T) {
 	tests := map[string]struct {
 		mockSetup func(m *MockS3APIClient)
 		chanSize  int
-		rc        s3RecordContext
-		want      []model.S3LogEntry
+		base      s3EntryBase
+		want      []model.LogEntry
 		wantErr   bool
 	}{
 		"single_line": {
@@ -35,17 +38,8 @@ func TestProcessS3Record(t *testing.T) {
 					}, nil)
 			},
 			chanSize: 1,
-			rc:       s3RecordContext{tags: model.Tags{}, source: "s3", service: "s3", bucket: "b", key: "k"},
-			want: []model.S3LogEntry{{
-				Message:        "line1",
-				Source:         "s3",
-				SourceCategory: "aws",
-				Service:        "s3",
-				Tags:           model.Tags{"service:s3"},
-				Metadata: model.S3Metadata{
-					S3Context: model.S3Context{Bucket: "b", Key: "k"},
-				},
-			}},
+			base:     newTestS3Base(),
+			want:     []model.LogEntry{wantS3Entry("line1", "s3", "s3", model.Tags{"service:s3"})},
 		},
 		"multiple_lines": {
 			mockSetup: func(m *MockS3APIClient) {
@@ -55,11 +49,11 @@ func TestProcessS3Record(t *testing.T) {
 					}, nil)
 			},
 			chanSize: 3,
-			rc:       s3RecordContext{tags: model.Tags{}, source: "s3", service: "s3", bucket: "b", key: "k"},
-			want: []model.S3LogEntry{
-				{Message: "line1", Source: "s3", SourceCategory: "aws", Service: "s3", Tags: model.Tags{"service:s3"}, Metadata: model.S3Metadata{S3Context: model.S3Context{Bucket: "b", Key: "k"}}},
-				{Message: "line2", Source: "s3", SourceCategory: "aws", Service: "s3", Tags: model.Tags{"service:s3"}, Metadata: model.S3Metadata{S3Context: model.S3Context{Bucket: "b", Key: "k"}}},
-				{Message: "line3", Source: "s3", SourceCategory: "aws", Service: "s3", Tags: model.Tags{"service:s3"}, Metadata: model.S3Metadata{S3Context: model.S3Context{Bucket: "b", Key: "k"}}},
+			base:     newTestS3Base(),
+			want: []model.LogEntry{
+				wantS3Entry("line1", "s3", "s3", model.Tags{"service:s3"}),
+				wantS3Entry("line2", "s3", "s3", model.Tags{"service:s3"}),
+				wantS3Entry("line3", "s3", "s3", model.Tags{"service:s3"}),
 			},
 		},
 		"empty_file": {
@@ -70,7 +64,7 @@ func TestProcessS3Record(t *testing.T) {
 					}, nil)
 			},
 			chanSize: 0,
-			rc:       s3RecordContext{tags: model.Tags{}, source: "s3", service: "s3", bucket: "b", key: "k"},
+			base:     newTestS3Base(),
 			want:     nil,
 		},
 		"s3_error": {
@@ -79,7 +73,7 @@ func TestProcessS3Record(t *testing.T) {
 					Return(nil, errors.New("access denied"))
 			},
 			chanSize: 1,
-			rc:       s3RecordContext{bucket: "b", key: "k"},
+			base:     newTestS3Base(),
 			wantErr:  true,
 		},
 		"ddtags_extraction": {
@@ -90,15 +84,8 @@ func TestProcessS3Record(t *testing.T) {
 					}, nil)
 			},
 			chanSize: 1,
-			rc:       s3RecordContext{tags: model.Tags{}, source: "s3", service: "s3", bucket: "b", key: "k"},
-			want: []model.S3LogEntry{{
-				Message:        `{"msg":"hello"}`,
-				Source:         "s3",
-				SourceCategory: "aws",
-				Service:        "myapp",
-				Tags:           model.Tags{"env:prod", "service:myapp"},
-				Metadata:       model.S3Metadata{S3Context: model.S3Context{Bucket: "b", Key: "k"}},
-			}},
+			base:     newTestS3Base(),
+			want:     []model.LogEntry{wantS3Entry(`{"msg":"hello"}`, "s3", "myapp", model.Tags{"env:prod", "service:myapp"})},
 		},
 		"invalid_utf8_stripped": {
 			mockSetup: func(m *MockS3APIClient) {
@@ -108,15 +95,8 @@ func TestProcessS3Record(t *testing.T) {
 					}, nil)
 			},
 			chanSize: 1,
-			rc:       s3RecordContext{tags: model.Tags{}, source: "s3", service: "s3", bucket: "b", key: "k"},
-			want: []model.S3LogEntry{{
-				Message:        "helloworld",
-				Source:         "s3",
-				SourceCategory: "aws",
-				Service:        "s3",
-				Tags:           model.Tags{"service:s3"},
-				Metadata:       model.S3Metadata{S3Context: model.S3Context{Bucket: "b", Key: "k"}},
-			}},
+			base:     newTestS3Base(),
+			want:     []model.LogEntry{wantS3Entry("helloworld", "s3", "s3", model.Tags{"service:s3"})},
 		},
 		"multiline_groups_continuation_lines": {
 			mockSetup: func(m *MockS3APIClient) {
@@ -126,13 +106,12 @@ func TestProcessS3Record(t *testing.T) {
 					}, nil)
 			},
 			chanSize: 2,
-			rc: s3RecordContext{
-				tags: model.Tags{}, source: "s3", service: "s3", bucket: "b", key: "k",
-				multilineRegex: regexp.MustCompile(`\d{4}-\d{2}-\d{2}`),
-			},
-			want: []model.S3LogEntry{
-				{Message: "2024-01-15 ERROR NullPointer\n    at com.foo.Bar\n", Source: "s3", SourceCategory: "aws", Service: "s3", Tags: model.Tags{"service:s3"}, Metadata: model.S3Metadata{S3Context: model.S3Context{Bucket: "b", Key: "k"}}},
-				{Message: "2024-01-15 INFO started", Source: "s3", SourceCategory: "aws", Service: "s3", Tags: model.Tags{"service:s3"}, Metadata: model.S3Metadata{S3Context: model.S3Context{Bucket: "b", Key: "k"}}},
+			base: newTestS3Base(func(b *s3EntryBase) {
+				b.multilineRegex = regexp.MustCompile(`\d{4}-\d{2}-\d{2}`)
+			}),
+			want: []model.LogEntry{
+				wantS3Entry("2024-01-15 ERROR NullPointer\n    at com.foo.Bar\n", "s3", "s3", model.Tags{"service:s3"}),
+				wantS3Entry("2024-01-15 INFO started", "s3", "s3", model.Tags{"service:s3"}),
 			},
 		},
 		"multiline_flushes_at_eof": {
@@ -143,18 +122,10 @@ func TestProcessS3Record(t *testing.T) {
 					}, nil)
 			},
 			chanSize: 1,
-			rc: s3RecordContext{
-				tags: model.Tags{}, source: "s3", service: "s3", bucket: "b", key: "k",
-				multilineRegex: regexp.MustCompile(`\d{4}-\d{2}-\d{2}`),
-			},
-			want: []model.S3LogEntry{{
-				Message:        "2024-01-15 ERROR\n    stacktrace",
-				Source:         "s3",
-				SourceCategory: "aws",
-				Service:        "s3",
-				Tags:           model.Tags{"service:s3"},
-				Metadata:       model.S3Metadata{S3Context: model.S3Context{Bucket: "b", Key: "k"}},
-			}},
+			base: newTestS3Base(func(b *s3EntryBase) {
+				b.multilineRegex = regexp.MustCompile(`\d{4}-\d{2}-\d{2}`)
+			}),
+			want: []model.LogEntry{wantS3Entry("2024-01-15 ERROR\n    stacktrace", "s3", "s3", model.Tags{"service:s3"})},
 		},
 		"multimatch_single_line": {
 			mockSetup: func(m *MockS3APIClient) {
@@ -164,14 +135,13 @@ func TestProcessS3Record(t *testing.T) {
 					}, nil)
 			},
 			chanSize: 3,
-			rc: s3RecordContext{
-				tags: model.Tags{}, source: "s3", service: "s3", bucket: "b", key: "k",
-				multilineRegex: regexp.MustCompile(`\d{4}-\d{2}-\d{2}`),
-			},
-			want: []model.S3LogEntry{
-				{Message: "2024-01-15 ERROR", Source: "s3", SourceCategory: "aws", Service: "s3", Tags: model.Tags{"service:s3"}, Metadata: model.S3Metadata{S3Context: model.S3Context{Bucket: "b", Key: "k"}}},
-				{Message: "2024-01-15 ERROR", Source: "s3", SourceCategory: "aws", Service: "s3", Tags: model.Tags{"service:s3"}, Metadata: model.S3Metadata{S3Context: model.S3Context{Bucket: "b", Key: "k"}}},
-				{Message: "2024-01-15 ERROR\n    stacktrace", Source: "s3", SourceCategory: "aws", Service: "s3", Tags: model.Tags{"service:s3"}, Metadata: model.S3Metadata{S3Context: model.S3Context{Bucket: "b", Key: "k"}}},
+			base: newTestS3Base(func(b *s3EntryBase) {
+				b.multilineRegex = regexp.MustCompile(`\d{4}-\d{2}-\d{2}`)
+			}),
+			want: []model.LogEntry{
+				wantS3Entry("2024-01-15 ERROR", "s3", "s3", model.Tags{"service:s3"}),
+				wantS3Entry("2024-01-15 ERROR", "s3", "s3", model.Tags{"service:s3"}),
+				wantS3Entry("2024-01-15 ERROR\n    stacktrace", "s3", "s3", model.Tags{"service:s3"}),
 			},
 		},
 		"custom_tags_passed_through": {
@@ -182,28 +152,23 @@ func TestProcessS3Record(t *testing.T) {
 					}, nil)
 			},
 			chanSize: 1,
-			rc:       s3RecordContext{tags: model.Tags{"env:prod", "team:aws"}, source: "s3", service: "s3", bucket: "b", key: "k"},
-			want: []model.S3LogEntry{{
-				Message:        "line1",
-				Source:         "s3",
-				SourceCategory: "aws",
-				Service:        "s3",
-				Tags:           model.Tags{"service:s3", "env:prod", "team:aws"},
-				Metadata:       model.S3Metadata{S3Context: model.S3Context{Bucket: "b", Key: "k"}},
-			}},
+			base: newTestS3Base(func(b *s3EntryBase) {
+				b.tags = model.Tags{"env:prod", "team:aws"}
+			}),
+			want: []model.LogEntry{wantS3Entry("line1", "s3", "s3", model.Tags{"service:s3", "env:prod", "team:aws"})},
 		},
 	}
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			out := make(chan model.S3LogEntry, tc.chanSize)
+			out := make(chan model.LogEntry, tc.chanSize)
 			ctrl := gomock.NewController(t)
 			mock := NewMockS3APIClient(ctrl)
 			tc.mockSetup(mock)
 
-			err := processS3Record(context.Background(), mock, out, tc.rc)
+			err := processS3Record(t.Context(), mock, out, tc.base)
 			close(out)
-			var got []model.S3LogEntry
+			var got []model.LogEntry
 			for entry := range out {
 				got = append(got, entry)
 			}
@@ -220,4 +185,21 @@ func TestProcessS3Record(t *testing.T) {
 			}
 		})
 	}
+}
+
+func newTestS3Base(opts ...func(*s3EntryBase)) s3EntryBase {
+	base := s3EntryBase{
+		metadata: testS3Metadata,
+		source:   "s3",
+		service:  "s3",
+		tags:     model.Tags{},
+	}
+	for _, o := range opts {
+		o(&base)
+	}
+	return base
+}
+
+func wantS3Entry(message, source, service string, tags model.Tags) model.LogEntry {
+	return model.NewLogEntry(testS3Metadata, tags, message, source, service)
 }

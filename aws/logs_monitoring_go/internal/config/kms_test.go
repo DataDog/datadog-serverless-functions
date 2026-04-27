@@ -6,7 +6,6 @@
 package config
 
 import (
-	"context"
 	"encoding/base64"
 	"errors"
 	"testing"
@@ -80,7 +79,7 @@ func TestResolveFromKMS(t *testing.T) {
 			mock := NewMockKMSAPIClient(ctrl)
 			tc.mockSetup(mock)
 
-			got, err := decryptKMSCiphertext(context.Background(), mock, tc.ciphertext)
+			got, err := decryptKMSCiphertext(t.Context(), mock, tc.ciphertext)
 			if tc.wantErr {
 				if err == nil {
 					t.Fatal("expected error, got nil")

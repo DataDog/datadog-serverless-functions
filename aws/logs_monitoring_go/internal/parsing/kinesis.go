@@ -23,26 +23,22 @@ func HandleKinesis(ctx context.Context, event json.RawMessage, cfg *config.Confi
 		return fmt.Errorf("unmarshal: %w", err)
 	}
 
-	for _, record := range kinesisEvent.Records {
-		if err := handleKinesisRecord(ctx, record, cfg, out); err != nil {
-			slog.WarnContext(ctx, "skipping kinesis record", "error", err)
+	for i, record := range kinesisEvent.Records {
+		cwEvent := events.CloudwatchLogsEvent{
+			AWSLogs: events.CloudwatchLogsRawData{
+				Data: base64.StdEncoding.EncodeToString(record.Kinesis.Data),
+			},
+		}
+
+		cwRaw, err := json.Marshal(cwEvent)
+		if err != nil {
+			return fmt.Errorf("marshal: %w", err)
+		}
+
+		if err := HandleCloudwatch(ctx, cwRaw, cfg, out); err != nil {
+			slog.WarnContext(ctx, "skipping kinesis record", slog.Int("i", i), slog.Any("error", err))
 			continue
 		}
 	}
 	return nil
-}
-
-func handleKinesisRecord(ctx context.Context, record events.KinesisEventRecord, cfg *config.Config, out chan<- model.CloudwatchLogEntry) error {
-	cwEvent := events.CloudwatchLogsEvent{
-		AWSLogs: events.CloudwatchLogsRawData{
-			Data: base64.StdEncoding.EncodeToString(record.Kinesis.Data),
-		},
-	}
-
-	cwRaw, err := json.Marshal(cwEvent)
-	if err != nil {
-		return fmt.Errorf("marshal cloudwatch event from kinesis: %w", err)
-	}
-
-	return HandleCloudwatchLogs(ctx, cwRaw, cfg, out)
 }

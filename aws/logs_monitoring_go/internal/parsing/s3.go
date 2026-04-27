@@ -6,11 +6,13 @@
 package parsing
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/concurrent"
@@ -19,123 +21,109 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 )
 
-type s3RecordContext struct {
-	metadata       model.Metadata
-	tags           model.Tags
+const (
+	s3KeyWAF1       = "aws-waf-logs"
+	s3KeyWAF2       = "waflogs"
+	s3KeyKinesis    = "amazon_kinesis"
+	s3KeyCloudtrail = "_CloudTrail_"
+)
+
+type s3EntryBase struct {
+	metadata       model.S3Metadata
 	source         string
 	service        string
-	bucket         string
-	key            string
+	tags           model.Tags
 	multilineRegex *regexp.Regexp
 }
 
-func HandleS3(ctx context.Context, event json.RawMessage, cfg *config.Config, out chan<- model.S3LogEntry) error {
+func HandleS3(ctx context.Context, event json.RawMessage, cfg *config.Config, out chan<- model.LogEntry) error {
 	var s3Event events.S3Event
 	if err := json.Unmarshal(event, &s3Event); err != nil {
 		return fmt.Errorf("unmarshal: %w", err)
 	}
 
-	client, err := createS3APIClient(ctx, cfg.UseFIPS)
+	client, err := getS3APIClient(ctx, cfg.UseFIPS)
 	if err != nil {
-		return fmt.Errorf("create S3 client: %w", err)
+		return fmt.Errorf("get S3 client: %w", err)
 	}
 
-	forwarderMetadata, err := model.GetMetadata(ctx)
+	lambdaOrigin, err := model.GetLambdaOrigin(ctx)
 	if err != nil {
 		return err
 	}
 
 	for _, record := range s3Event.Records {
-		bucket := record.S3.Bucket.Name
-		key := record.S3.Object.URLDecodedKey
-
-		tags, service := getTagsAndService(cfg)
-		source := getS3Source(cfg.Source, key)
-		if service == "" {
-			service = source
-		}
-
-		rc := s3RecordContext{
-			forwarderMetadata, tags, source, service, bucket, key, cfg.S3MultilineLogRegex,
-		}
-		if err := processS3Record(ctx, client, out, rc); err != nil {
-			return fmt.Errorf("process S3 record: %w", err)
+		base := newS3EntryBase(record, cfg, lambdaOrigin)
+		if err := processS3Record(ctx, client, out, base); err != nil {
+			return fmt.Errorf("process s3://%s/%s: %w", base.metadata.Origin.Bucket, base.metadata.Origin.Key, err)
 		}
 	}
-
 	return nil
 }
 
-func processS3Record(ctx context.Context, client S3APIClient, out chan<- model.S3LogEntry, rc s3RecordContext) error {
-	body, err := getS3Object(ctx, client, rc.bucket, rc.key)
+func processS3Record(ctx context.Context, client S3APIClient, out chan<- model.LogEntry, base s3EntryBase) error {
+	body, err := getS3Object(ctx, client, base.metadata.Origin.Bucket, base.metadata.Origin.Key)
 	if err != nil {
 		return err
 	}
-
 	defer func() {
 		if err := body.Close(); err != nil {
 			slog.Warn("failed to close response body", slog.Any("error", err))
 		}
 	}()
 
-	scanner := NewScanner(body, rc.multilineRegex)
+	scanner := NewScanner(body, base.multilineRegex)
 	for scanner.Scan() {
 		message := strings.ToValidUTF8(scanner.Text(), "")
-		if err := concurrent.SafeSender(ctx, out, makeS3Entry(rc, message)); err != nil {
+		if err := concurrent.SafeSender(ctx, out, newS3LogEntry(base, message)); err != nil {
 			return err
 		}
 	}
 
 	if err := scanner.Err(); err != nil {
-		return fmt.Errorf("scan s3://%s/%s: %w", rc.bucket, rc.key, err)
+		return err
 	}
-
 	return nil
 }
 
-func makeS3Entry(rc s3RecordContext, message string) model.S3LogEntry {
-	ddtags, ddtagsService, message := extractFromMessage(message)
+func newS3EntryBase(record events.S3EventRecord, cfg *config.Config, lambdaOrigin model.LambdaOrigin) s3EntryBase {
+	bucket := record.S3.Bucket.Name
+	key := record.S3.Object.URLDecodedKey
+	source := cmp.Or(cfg.Source, getS3Source(key))
+	tags, service := getTagsAndService(cfg)
+	service = cmp.Or(service, source)
 
-	entryService := rc.service
-	if ddtagsService != "" {
-		entryService = ddtagsService
-	}
-
-	ddtags = append(ddtags, "service:"+entryService)
-	metadata := model.S3Metadata{
-		Metadata: rc.metadata,
-		S3Context: model.S3Context{
-			Bucket: rc.bucket,
-			Key:    rc.key,
+	return s3EntryBase{
+		metadata: model.S3Metadata{
+			LambdaOrigin: lambdaOrigin,
+			Origin: model.S3Origin{
+				Bucket: bucket,
+				Key:    key,
+			},
 		},
-	}
-
-	return model.S3LogEntry{
-		Message:        message,
-		Source:         rc.source,
-		SourceCategory: sourceCategory,
-		Service:        entryService,
-		Tags:           append(ddtags, rc.tags...),
-		Metadata:       metadata,
+		source:         source,
+		service:        service,
+		tags:           tags,
+		multilineRegex: cfg.S3MultilineLogRegex,
 	}
 }
 
-func getS3Source(sourceOverride, key string) string {
-	if sourceOverride != "" {
-		return sourceOverride
-	}
+func newS3LogEntry(base s3EntryBase, message string) model.LogEntry {
+	tags, service, message := extractFromMessage(message)
+	service = cmp.Or(service, base.service)
+	tags = slices.Concat(tags, model.Tags{"service:" + service}, base.tags)
+	return model.NewLogEntry(base.metadata, tags, message, base.source, service)
+}
 
-	if strings.Contains(key, "aws-waf-logs") || strings.Contains(key, "waflogs") {
-		return "waf"
+func getS3Source(key string) string {
+	if strings.Contains(key, s3KeyWAF1) || strings.Contains(key, s3KeyWAF2) {
+		return sourceWAF
 	}
-
-	if strings.Contains(key, "amazon_kinesis") {
-		return "kinesis"
+	if strings.Contains(key, s3KeyKinesis) {
+		return sourceKinesis
 	}
-
-	if strings.Contains(key, "_CloudTrail_") {
-		return "cloudtrail"
+	if strings.Contains(key, s3KeyCloudtrail) {
+		return sourceCloudtrail
 	}
-
-	return "s3"
+	return sourceS3
 }

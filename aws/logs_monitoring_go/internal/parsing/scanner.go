@@ -12,22 +12,25 @@ import (
 	"regexp"
 )
 
-const maxTokenSize = 512 * 1024
+const (
+	maxTokenSize = 1*1024*1024 - 4*1024 // Conservative overhead for JSON wrapping
+	skippedByte  = 1
+)
 
 type Scanner struct {
 	*bufio.Scanner
-	rg *regexp.Regexp
+	re *regexp.Regexp
 }
 
-func NewScanner(r io.Reader, rg *regexp.Regexp) *Scanner {
+func NewScanner(r io.Reader, re *regexp.Regexp) *Scanner {
 	s := &Scanner{
 		Scanner: bufio.NewScanner(r),
-		rg:      rg,
+		re:      re,
 	}
 
 	s.Buffer(make([]byte, 0, bufio.MaxScanTokenSize), maxTokenSize)
 
-	if rg != nil {
+	if re != nil {
 		s.Split(s.splitOnRegex)
 		return s
 	}
@@ -41,9 +44,10 @@ func (s *Scanner) splitOnRegex(data []byte, atEOF bool) (advance int, token []by
 		return 0, nil, nil
 	}
 
-	loc := s.rg.FindIndex(data[1:])
+	// Skip byte(s) so the regex doesn't match at the start of the current buffer
+	loc := s.re.FindIndex(data[skippedByte:])
 	if loc != nil {
-		splitAt := loc[0] + 1
+		splitAt := loc[0] + skippedByte // offset back
 		return splitAt, data[:splitAt], nil
 	}
 

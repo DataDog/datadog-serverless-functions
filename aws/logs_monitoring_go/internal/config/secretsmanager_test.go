@@ -6,7 +6,6 @@
 package config
 
 import (
-	"context"
 	"errors"
 	"testing"
 
@@ -72,7 +71,7 @@ func TestResolveFromSecretsManager(t *testing.T) {
 			mock := NewMockSecretsManagerAPIClient(ctrl)
 			tc.mockSetup(mock)
 
-			got, err := fetchSecret(context.Background(), mock, tc.arn)
+			got, err := fetchSecret(t.Context(), mock, tc.arn)
 			if tc.wantErr {
 				if err == nil {
 					t.Fatal("expected error, got nil")

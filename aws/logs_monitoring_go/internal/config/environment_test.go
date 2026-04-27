@@ -40,16 +40,16 @@ func TestEnvOrDefaultBool(t *testing.T) {
 		fallback bool
 		want     bool
 	}{
-		"env_not_set":          {value: "", set: false, fallback: false, want: false},
-		"env_not_set_fallback": {value: "", set: false, fallback: true, want: true},
-		"true_lowercase":       {value: "true", set: true, fallback: false, want: true},
-		"true_uppercase":       {value: "TRUE", set: true, fallback: false, want: true},
-		"true_mixed_case":      {value: "True", set: true, fallback: false, want: true},
-		"false_value":          {value: "false", set: true, fallback: true, want: false},
-		"one_is_true":          {value: "1", set: true, fallback: false, want: true},
-		"zero_is_false":        {value: "0", set: true, fallback: true, want: false},
+		"env_not_set":           {value: "", set: false, fallback: false, want: false},
+		"env_not_set_fallback":  {value: "", set: false, fallback: true, want: true},
+		"true_lowercase":        {value: "true", set: true, fallback: false, want: true},
+		"true_uppercase":        {value: "TRUE", set: true, fallback: false, want: true},
+		"true_mixed_case":       {value: "True", set: true, fallback: false, want: true},
+		"false_value":           {value: "false", set: true, fallback: true, want: false},
+		"one_is_true":           {value: "1", set: true, fallback: false, want: true},
+		"zero_is_false":         {value: "0", set: true, fallback: true, want: false},
 		"invalid_uses_fallback": {value: "yes", set: true, fallback: true, want: true},
-		"empty_uses_fallback":  {value: "", set: true, fallback: true, want: true},
+		"empty_uses_fallback":   {value: "", set: true, fallback: true, want: true},
 	}
 
 	for name, tc := range tests {

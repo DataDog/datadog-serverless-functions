@@ -20,35 +20,35 @@ func TestScanner(t *testing.T) {
 
 	tests := map[string]struct {
 		input string
-		rg    *regexp.Regexp
+		re    *regexp.Regexp
 		want  []string
 	}{
-		"lines_empty_string":        {input: "", rg: nil, want: nil},
-		"lines_plain_string":        {input: "hello", rg: nil, want: []string{"hello"}},
-		"lines_plain_string_spaces": {input: "hello world !", rg: nil, want: []string{"hello world !"}},
-		"lines_new_lines":           {input: "a\nb\nc", rg: nil, want: []string{"a", "b", "c"}},
-		"lines_trailing_new_line":   {input: "a\nb\n", rg: nil, want: []string{"a", "b"}},
-		"lines_crlf":                {input: "a\r\nb\r\nc", rg: nil, want: []string{"a", "b", "c"}},
-		"lines_form_feed":           {input: "a\fb\fc", rg: nil, want: []string{"a", "b", "c"}},
-		"lines_mixed_delimiters":    {input: "a\r\n\fb", rg: nil, want: []string{"a", "b"}},
-		"lines_only_delimiters":     {input: "\n\r\f", rg: nil, want: nil},
+		"lines_empty_string":        {input: "", re: nil, want: nil},
+		"lines_plain_string":        {input: "hello", re: nil, want: []string{"hello"}},
+		"lines_plain_string_spaces": {input: "hello world !", re: nil, want: []string{"hello world !"}},
+		"lines_new_lines":           {input: "a\nb\nc", re: nil, want: []string{"a", "b", "c"}},
+		"lines_trailing_new_line":   {input: "a\nb\n", re: nil, want: []string{"a", "b"}},
+		"lines_crlf":                {input: "a\r\nb\r\nc", re: nil, want: []string{"a", "b", "c"}},
+		"lines_form_feed":           {input: "a\fb\fc", re: nil, want: []string{"a", "b", "c"}},
+		"lines_mixed_delimiters":    {input: "a\r\n\fb", re: nil, want: []string{"a", "b"}},
+		"lines_only_delimiters":     {input: "\n\r\f", re: nil, want: nil},
 
-		"regex_empty":                     {input: "", rg: dateRegex, want: nil},
-		"regex_not_matching_at_start":     {input: "ERROR something2024-01-15 ERROR something", rg: dateRegex, want: []string{"ERROR something", "2024-01-15 ERROR something"}},
-		"regex_single_entry":              {input: "2024-01-15 ERROR something", rg: dateRegex, want: []string{"2024-01-15 ERROR something"}},
-		"regex_two_entries_with_newline":  {input: "2024-01-15 ERROR\n2024-01-16 INFO", rg: dateRegex, want: []string{"2024-01-15 ERROR\n", "2024-01-16 INFO"}},
-		"regex_continuation_lines":        {input: "2024-01-15 ERROR\n    at com.foo\n2024-01-16 INFO", rg: dateRegex, want: []string{"2024-01-15 ERROR\n    at com.foo\n", "2024-01-16 INFO"}},
-		"regex_multiple_matches_one_line": {input: "2024-01-15 ERROR2024-01-16 INFO", rg: dateRegex, want: []string{"2024-01-15 ERROR", "2024-01-16 INFO"}},
-		"regex_three_matches_one_line":    {input: "2024-01-15 A2024-01-16 B2024-01-17 C", rg: dateRegex, want: []string{"2024-01-15 A", "2024-01-16 B", "2024-01-17 C"}},
-		"regex_empty_string":              {input: "", rg: dateRegex, want: nil},
-		"regex_no_match":                  {input: "hello world", rg: dateRegex, want: []string{"hello world"}},
+		"regex_empty":                     {input: "", re: dateRegex, want: nil},
+		"regex_not_matching_at_start":     {input: "ERROR something2024-01-15 ERROR something", re: dateRegex, want: []string{"ERROR something", "2024-01-15 ERROR something"}},
+		"regex_single_entry":              {input: "2024-01-15 ERROR something", re: dateRegex, want: []string{"2024-01-15 ERROR something"}},
+		"regex_two_entries_with_newline":  {input: "2024-01-15 ERROR\n2024-01-16 INFO", re: dateRegex, want: []string{"2024-01-15 ERROR\n", "2024-01-16 INFO"}},
+		"regex_continuation_lines":        {input: "2024-01-15 ERROR\n    at com.foo\n2024-01-16 INFO", re: dateRegex, want: []string{"2024-01-15 ERROR\n    at com.foo\n", "2024-01-16 INFO"}},
+		"regex_multiple_matches_one_line": {input: "2024-01-15 ERROR2024-01-16 INFO", re: dateRegex, want: []string{"2024-01-15 ERROR", "2024-01-16 INFO"}},
+		"regex_three_matches_one_line":    {input: "2024-01-15 A2024-01-16 B2024-01-17 C", re: dateRegex, want: []string{"2024-01-15 A", "2024-01-16 B", "2024-01-17 C"}},
+		"regex_empty_string":              {input: "", re: dateRegex, want: nil},
+		"regex_no_match":                  {input: "hello world", re: dateRegex, want: []string{"hello world"}},
 	}
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			scanner := NewScanner(strings.NewReader(tc.input), tc.rg)
+			scanner := NewScanner(strings.NewReader(tc.input), tc.re)
 
 			var got []string
 			for scanner.Scan() {
@@ -75,16 +75,16 @@ func TestScannerWithOversizedToken(t *testing.T) {
 	oversized := strings.Repeat("a", maxTokenSize+overflow)
 
 	tests := map[string]struct {
-		rg *regexp.Regexp
+		re *regexp.Regexp
 	}{
-		"lines": {rg: nil},
-		"regex": {rg: regexp.MustCompile(`\d{4}-\d{2}-\d{2}`)},
+		"lines": {re: nil},
+		"regex": {re: regexp.MustCompile(`\d{4}-\d{2}-\d{2}`)},
 	}
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			scanner := NewScanner(strings.NewReader(oversized), tc.rg)
+			scanner := NewScanner(strings.NewReader(oversized), tc.re)
 
 			var got []string
 			for scanner.Scan() {
