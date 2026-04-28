@@ -30,7 +30,7 @@ type apiKeyResolver struct {
 	resolve func(ctx context.Context, value string) (string, error)
 }
 
-func (c *Config) resolveAPIKey(ctx context.Context) error {
+func (c *Config) ResolveAPIKey(ctx context.Context) error {
 	resolvers := []apiKeyResolver{
 		{"DD_API_KEY_SECRET_ARN", c.resolveAPIKeyFromSecretsManager},
 		{"DD_API_KEY_SSM_NAME", c.resolveAPIKeyFromSSM},
@@ -55,7 +55,7 @@ func (c *Config) resolveAPIKey(ctx context.Context) error {
 	return errors.New("no API key configured: set DD_API_KEY_SECRET_ARN, DD_API_KEY_SSM_NAME or DD_KMS_API_KEY. See: https://docs.datadoghq.com/serverless/forwarder/")
 }
 
-func (c *Config) validateAPIKey(ctx context.Context) error {
+func (c *Config) ValidateAPIKey(ctx context.Context) error {
 	if c.APIKey == "" {
 		return fmt.Errorf("set DD_API_KEY_SECRET_ARN, DD_API_KEY_SSM_NAME or DD_KMS_API_KEY. See: https://docs.datadoghq.com/serverless/forwarder/: %w", ErrMissingAPIKey)
 	}

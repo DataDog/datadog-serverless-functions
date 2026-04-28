@@ -3,7 +3,7 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2026-Present Datadog, Inc.
 
-package processing
+package batching
 
 import (
 	"encoding/json"
@@ -26,25 +26,29 @@ func TestBatch(t *testing.T) {
 			wantBatchCount: 0,
 		},
 		"single entry": {
-			entries:         []model.LogEntry{makeTestLogEntry()},
+			entries:         []model.LogEntry{model.NewLogEntry()},
 			wantBatchCount:  1,
 			wantEntryCounts: []int{1},
 		},
 		"multiple entries, one batch": {
-			entries:         []model.LogEntry{makeTestLogEntry(), makeTestLogEntry(), makeTestLogEntry()},
+			entries:         []model.LogEntry{model.NewLogEntry(), model.NewLogEntry(), model.NewLogEntry()},
 			wantBatchCount:  1,
 			wantEntryCounts: []int{3},
 		},
 		"drop oversized entry": {
-			entries:         []model.LogEntry{model.NewLogEntry(nil, nil, strings.Repeat("x", maxItemSize+1), "", ""), makeTestLogEntry()},
-			wantBatchCount:  1,
-			wantEntryCounts: []int{1},
+			entries: func() []model.LogEntry {
+				entry := model.NewLogEntry()
+				entry.Message = strings.Repeat("a", maxItemSize+1)
+				return []model.LogEntry{entry}
+			}(),
+			wantBatchCount:  0,
+			wantEntryCounts: nil,
 		},
 		"split": {
 			entries: func() []model.LogEntry {
 				entries := make([]model.LogEntry, maxItemsPerBatch+1)
 				for i := range entries {
-					entries[i] = makeTestLogEntry()
+					entries[i] = model.NewLogEntry()
 				}
 				return entries
 			}(),
@@ -57,51 +61,38 @@ func TestBatch(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			batches := collectBatches(t, feedChannel(tc.entries...))
+			in := make(chan model.LogEntry, len(tc.entries))
+			out := make(chan []byte, len(tc.wantEntryCounts))
+			for _, entry := range tc.entries {
+				in <- entry
+			}
+			close(in)
+
+			batcher := NewBatcher()
+			err := batcher.Batch(t.Context(), in, out)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			close(out)
+
+			var batches [][]byte
+			for b := range out {
+				batches = append(batches, b)
+			}
+
 			if len(batches) != tc.wantBatchCount {
-				t.Fatalf("expected %d batches, got %d", tc.wantBatchCount, len(batches))
+				t.Fatalf("Batch() got %d batches, want %d", len(batches), tc.wantBatchCount)
 			}
 
 			for i, wantCount := range tc.wantEntryCounts {
 				var entries []model.LogEntry
 				if err := json.Unmarshal(batches[i], &entries); err != nil {
-					t.Fatalf("failed to unmarshal batch %d: %v", i, err)
+					t.Fatalf("Batch() failed to unmarshal batch %d: %v", i, err)
 				}
 				if len(entries) != wantCount {
-					t.Errorf("batch %d: expected %d entries, got %d", i, wantCount, len(entries))
+					t.Errorf("Batch() batch %d: got %d entries, want %d", i, len(entries), wantCount)
 				}
 			}
 		})
 	}
-}
-
-func makeTestLogEntry() model.LogEntry {
-	return model.NewLogEntry(nil, nil, "test", "test", "test")
-}
-
-func feedChannel(entries ...model.LogEntry) <-chan model.LogEntry {
-	ch := make(chan model.LogEntry, len(entries))
-	for _, e := range entries {
-		ch <- e
-	}
-	close(ch)
-	return ch
-}
-
-func collectBatches(t *testing.T, in <-chan model.LogEntry) [][]byte {
-	t.Helper()
-
-	out := make(chan []byte, 100)
-	batcher := NewBatcher[model.LogEntry]()
-	err := batcher.Batch(t.Context(), in, out)
-	close(out)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	var batches [][]byte
-	for b := range out {
-		batches = append(batches, b)
-	}
-	return batches
 }

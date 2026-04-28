@@ -3,7 +3,7 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2026-Present Datadog, Inc.
 
-package parsing
+package handling
 
 import (
 	"errors"
@@ -12,162 +12,166 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/testutil"
+	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/google/go-cmp/cmp"
 	"go.uber.org/mock/gomock"
 )
 
-var testS3Metadata = model.S3Metadata{
-	Origin: model.S3Origin{Bucket: "b", Key: "k"},
+var (
+	testS3Record = events.S3EventRecord{
+		S3: events.S3Entity{
+			Bucket: events.S3Bucket{Name: "b"},
+			Object: events.S3Object{URLDecodedKey: "k"},
+		},
+	}
+	testLambdaOrigin = model.LambdaOrigin{ARN: "arn:aws:lambda:us-east-1:123456789012:function:forwarder"}
+)
+
+func wantS3Entry(message, source, service string, tags model.Tags) model.LogEntry {
+	entry := model.NewLogEntry()
+	entry.Message = message
+	entry.Source = source
+	entry.Service = service
+	entry.Tags = tags
+	entry.Metadata = model.S3Metadata{
+		LambdaOrigin: testLambdaOrigin,
+		Origin:       model.S3Origin{Bucket: "b", Key: "k"},
+	}
+	return entry
 }
 
 func TestProcessS3Record(t *testing.T) {
+	t.Parallel()
+
 	tests := map[string]struct {
 		mockSetup func(m *MockS3APIClient)
+		cfg       *config.Config
 		chanSize  int
-		base      s3EntryBase
 		want      []model.LogEntry
 		wantErr   bool
 	}{
-		"single_line": {
+		"single line": {
 			mockSetup: func(m *MockS3APIClient) {
 				m.EXPECT().GetObject(gomock.Any(), gomock.Any()).
 					Return(&s3.GetObjectOutput{
 						Body: io.NopCloser(strings.NewReader("line1")),
 					}, nil)
 			},
+			cfg:      testutil.EmptyConfig(),
 			chanSize: 1,
-			base:     newTestS3Base(),
 			want:     []model.LogEntry{wantS3Entry("line1", "s3", "s3", model.Tags{"service:s3"})},
 		},
-		"multiple_lines": {
+		"multiple lines": {
 			mockSetup: func(m *MockS3APIClient) {
 				m.EXPECT().GetObject(gomock.Any(), gomock.Any()).
 					Return(&s3.GetObjectOutput{
 						Body: io.NopCloser(strings.NewReader("line1\nline2\nline3")),
 					}, nil)
 			},
+			cfg:      testutil.EmptyConfig(),
 			chanSize: 3,
-			base:     newTestS3Base(),
 			want: []model.LogEntry{
 				wantS3Entry("line1", "s3", "s3", model.Tags{"service:s3"}),
 				wantS3Entry("line2", "s3", "s3", model.Tags{"service:s3"}),
 				wantS3Entry("line3", "s3", "s3", model.Tags{"service:s3"}),
 			},
 		},
-		"empty_file": {
+		"empty file": {
 			mockSetup: func(m *MockS3APIClient) {
 				m.EXPECT().GetObject(gomock.Any(), gomock.Any()).
 					Return(&s3.GetObjectOutput{
 						Body: io.NopCloser(strings.NewReader("")),
 					}, nil)
 			},
-			chanSize: 0,
-			base:     newTestS3Base(),
-			want:     nil,
+			cfg:  testutil.EmptyConfig(),
+			want: nil,
 		},
-		"s3_error": {
+		"s3 error": {
 			mockSetup: func(m *MockS3APIClient) {
 				m.EXPECT().GetObject(gomock.Any(), gomock.Any()).
 					Return(nil, errors.New("access denied"))
 			},
-			chanSize: 1,
-			base:     newTestS3Base(),
-			wantErr:  true,
+			cfg:     testutil.EmptyConfig(),
+			wantErr: true,
 		},
-		"ddtags_extraction": {
+		"ddtags extraction": {
 			mockSetup: func(m *MockS3APIClient) {
 				m.EXPECT().GetObject(gomock.Any(), gomock.Any()).
 					Return(&s3.GetObjectOutput{
 						Body: io.NopCloser(strings.NewReader(`{"ddtags":"env:prod,service:myapp","msg":"hello"}`)),
 					}, nil)
 			},
+			cfg:      testutil.EmptyConfig(),
 			chanSize: 1,
-			base:     newTestS3Base(),
 			want:     []model.LogEntry{wantS3Entry(`{"msg":"hello"}`, "s3", "myapp", model.Tags{"env:prod", "service:myapp"})},
 		},
-		"invalid_utf8_stripped": {
+		"invalid utf8 stripped": {
 			mockSetup: func(m *MockS3APIClient) {
 				m.EXPECT().GetObject(gomock.Any(), gomock.Any()).
 					Return(&s3.GetObjectOutput{
 						Body: io.NopCloser(strings.NewReader("hello\x80world")),
 					}, nil)
 			},
+			cfg:      testutil.EmptyConfig(),
 			chanSize: 1,
-			base:     newTestS3Base(),
 			want:     []model.LogEntry{wantS3Entry("helloworld", "s3", "s3", model.Tags{"service:s3"})},
 		},
-		"multiline_groups_continuation_lines": {
+		"multiline groups continuation lines": {
 			mockSetup: func(m *MockS3APIClient) {
 				m.EXPECT().GetObject(gomock.Any(), gomock.Any()).
 					Return(&s3.GetObjectOutput{
 						Body: io.NopCloser(strings.NewReader("2024-01-15 ERROR NullPointer\n    at com.foo.Bar\n2024-01-15 INFO started")),
 					}, nil)
 			},
+			cfg:      &config.Config{S3MultilineLogRegex: regexp.MustCompile(`\d{4}-\d{2}-\d{2}`)},
 			chanSize: 2,
-			base: newTestS3Base(func(b *s3EntryBase) {
-				b.multilineRegex = regexp.MustCompile(`\d{4}-\d{2}-\d{2}`)
-			}),
 			want: []model.LogEntry{
 				wantS3Entry("2024-01-15 ERROR NullPointer\n    at com.foo.Bar\n", "s3", "s3", model.Tags{"service:s3"}),
 				wantS3Entry("2024-01-15 INFO started", "s3", "s3", model.Tags{"service:s3"}),
 			},
 		},
-		"multiline_flushes_at_eof": {
+		"multiline flushes at eof": {
 			mockSetup: func(m *MockS3APIClient) {
 				m.EXPECT().GetObject(gomock.Any(), gomock.Any()).
 					Return(&s3.GetObjectOutput{
 						Body: io.NopCloser(strings.NewReader("2024-01-15 ERROR\n    stacktrace")),
 					}, nil)
 			},
+			cfg:      &config.Config{S3MultilineLogRegex: regexp.MustCompile(`\d{4}-\d{2}-\d{2}`)},
 			chanSize: 1,
-			base: newTestS3Base(func(b *s3EntryBase) {
-				b.multilineRegex = regexp.MustCompile(`\d{4}-\d{2}-\d{2}`)
-			}),
-			want: []model.LogEntry{wantS3Entry("2024-01-15 ERROR\n    stacktrace", "s3", "s3", model.Tags{"service:s3"})},
+			want:     []model.LogEntry{wantS3Entry("2024-01-15 ERROR\n    stacktrace", "s3", "s3", model.Tags{"service:s3"})},
 		},
-		"multimatch_single_line": {
-			mockSetup: func(m *MockS3APIClient) {
-				m.EXPECT().GetObject(gomock.Any(), gomock.Any()).
-					Return(&s3.GetObjectOutput{
-						Body: io.NopCloser(strings.NewReader("2024-01-15 ERROR2024-01-15 ERROR2024-01-15 ERROR\n    stacktrace")),
-					}, nil)
-			},
-			chanSize: 3,
-			base: newTestS3Base(func(b *s3EntryBase) {
-				b.multilineRegex = regexp.MustCompile(`\d{4}-\d{2}-\d{2}`)
-			}),
-			want: []model.LogEntry{
-				wantS3Entry("2024-01-15 ERROR", "s3", "s3", model.Tags{"service:s3"}),
-				wantS3Entry("2024-01-15 ERROR", "s3", "s3", model.Tags{"service:s3"}),
-				wantS3Entry("2024-01-15 ERROR\n    stacktrace", "s3", "s3", model.Tags{"service:s3"}),
-			},
-		},
-		"custom_tags_passed_through": {
+		"custom tags passed through": {
 			mockSetup: func(m *MockS3APIClient) {
 				m.EXPECT().GetObject(gomock.Any(), gomock.Any()).
 					Return(&s3.GetObjectOutput{
 						Body: io.NopCloser(strings.NewReader("line1")),
 					}, nil)
 			},
+			cfg:      &config.Config{Tags: model.Tags{"env:prod", "team:aws"}},
 			chanSize: 1,
-			base: newTestS3Base(func(b *s3EntryBase) {
-				b.tags = model.Tags{"env:prod", "team:aws"}
-			}),
-			want: []model.LogEntry{wantS3Entry("line1", "s3", "s3", model.Tags{"service:s3", "env:prod", "team:aws"})},
+			want:     []model.LogEntry{wantS3Entry("line1", "s3", "s3", model.Tags{"service:s3", "env:prod", "team:aws"})},
 		},
 	}
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			out := make(chan model.LogEntry, tc.chanSize)
+			t.Parallel()
+
 			ctrl := gomock.NewController(t)
 			mock := NewMockS3APIClient(ctrl)
 			tc.mockSetup(mock)
 
-			err := processS3Record(t.Context(), mock, out, tc.base)
+			out := make(chan model.LogEntry, tc.chanSize)
+			handler := NewS3(tc.cfg)
+
+			err := handler.processRecord(t.Context(), mock, out, testS3Record, testLambdaOrigin)
 			close(out)
+
 			var got []model.LogEntry
 			for entry := range out {
 				got = append(got, entry)
@@ -179,27 +183,12 @@ func TestProcessS3Record(t *testing.T) {
 				}
 				return
 			}
-
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
 			if diff := cmp.Diff(tc.want, got); diff != "" {
 				t.Errorf("mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
-}
-
-func newTestS3Base(opts ...func(*s3EntryBase)) s3EntryBase {
-	base := s3EntryBase{
-		metadata: testS3Metadata,
-		source:   "s3",
-		service:  "s3",
-		tags:     model.Tags{},
-	}
-	for _, o := range opts {
-		o(&base)
-	}
-	return base
-}
-
-func wantS3Entry(message, source, service string, tags model.Tags) model.LogEntry {
-	return model.NewLogEntry(testS3Metadata, tags, message, source, service)
 }

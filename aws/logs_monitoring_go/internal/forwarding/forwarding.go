@@ -15,16 +15,14 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/batching"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/concurrent"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 	"golang.org/x/sync/errgroup"
 )
 
-const (
-	numWorkers        = 3
-	CloudwatchStorage = "cloudwatch"
-	S3Storage         = "s3"
-)
+const numWorkers = 3
 
 var Client *http.Client = &http.Client{Timeout: 10 * time.Second}
 
@@ -34,21 +32,28 @@ type Forwarder struct {
 	storage string
 }
 
-func NewForwarder(config *config.Config, client *http.Client, storage string) Forwarder {
+func NewForwarder(cfg *config.Config, client *http.Client, storage string) Forwarder {
 	return Forwarder{
-		config:  config,
+		config:  cfg,
 		client:  client,
 		storage: storage,
 	}
 }
 
-func (f Forwarder) Forward(ctx context.Context, in <-chan []byte) error {
+func (f Forwarder) Start(ctx context.Context, in <-chan model.LogEntry) error {
 	g, ctx := errgroup.WithContext(ctx)
+
+	batches := make(chan []byte)
+	batcher := batching.NewBatcher()
+	g.Go(func() error {
+		defer close(batches)
+		return batcher.Batch(ctx, in, batches)
+	})
 
 	for range numWorkers {
 		g.Go(func() error {
 			for {
-				body, ok, err := concurrent.SafeReader(ctx, in)
+				body, ok, err := concurrent.SafeReader(ctx, batches)
 				if err != nil {
 					return err
 				}
@@ -87,7 +92,9 @@ func (f Forwarder) send(ctx context.Context, body []byte) error {
 	req.Header.Set("Content-Encoding", "gzip")
 	req.Header.Set("DD-EVP-ORIGIN", "aws_forwarder")
 	req.Header.Set("DD-EVP-ORIGIN-VERSION", config.ForwarderVersion)
-	req.Header.Set("DD-STORAGE-TAG", f.storage)
+	if f.storage != "" {
+		req.Header.Set("DD-STORAGE-TAG", f.storage)
+	}
 
 	resp, err := f.client.Do(req)
 	if err != nil {

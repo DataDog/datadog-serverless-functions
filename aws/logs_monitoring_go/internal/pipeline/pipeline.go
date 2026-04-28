@@ -8,41 +8,30 @@ package pipeline
 import (
 	"context"
 	"encoding/json"
+	"errors"
 
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/forwarding"
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/processing"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 	"golang.org/x/sync/errgroup"
 )
 
-func Run[T any](
+func Start(
 	ctx context.Context,
 	event json.RawMessage,
-	cfg *config.Config,
-	storage string,
-	handler func(context.Context, json.RawMessage, *config.Config, chan<- T) error,
+	run *Run,
 ) error {
-	g, ctx := errgroup.WithContext(ctx) // Fragile because if one goroutine fails, all stages will stop gracefully
+	g, ctx := errgroup.WithContext(ctx)
 
-	entries := make(chan T)
-	batches := make(chan []byte)
-
-	batcher := processing.NewBatcher[T]()
-	forwarder := forwarding.NewForwarder(cfg, forwarding.Client, storage)
+	entries := make(chan model.LogEntry)
+	forwarder := forwarding.NewForwarder(run.Cfg, forwarding.Client, run.Storage)
 
 	g.Go(func() error {
 		defer close(entries)
-		return handler(ctx, event, cfg, entries)
+		return run.Handler.Handle(ctx, event, entries)
 	})
 
-	g.Go(func() error {
-		defer close(batches)
-		return batcher.Batch(ctx, entries, batches)
-	})
+	forwarderErr := forwarder.Start(ctx, entries)
+	waitErr := g.Wait()
 
-	g.Go(func() error {
-		return forwarder.Forward(ctx, batches)
-	})
-
-	return g.Wait()
+	return errors.Join(forwarderErr, waitErr)
 }

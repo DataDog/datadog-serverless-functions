@@ -7,104 +7,62 @@ package config
 
 import (
 	"testing"
-
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
-func TestLoadConfig(t *testing.T) {
+func TestLoad(t *testing.T) {
 	tests := map[string]struct {
-		env  map[string]string
-		want Config
+		env       map[string]string
+		wantSite  string
+		wantURL   string
+		wantAPI   string
+		wantSrc   string
+		wantHost  string
+		wantFIPS  bool
+		wantRegex bool
+		wantErr   bool
 	}{
-		"default": {
-			want: Config{
-				Site:      "datadoghq.com",
-				IntakeURL: "https://http-intake.logs.datadoghq.com/api/v2/logs",
-				APIURL:    "https://api.datadoghq.com",
-				LogLevel:  "INFO",
-				UseFIPS:   false,
-			},
+		"defaults": {
+			wantSite: "datadoghq.com",
+			wantURL:  "https://http-intake.logs.datadoghq.com/api/v2/logs",
+			wantAPI:  "https://api.datadoghq.com",
 		},
-		"eu_site": {
-			env: map[string]string{"DD_SITE": "datadoghq.eu"},
-			want: Config{
-				Site:      "datadoghq.eu",
-				IntakeURL: "https://http-intake.logs.datadoghq.eu/api/v2/logs",
-				APIURL:    "https://api.datadoghq.eu",
-				LogLevel:  "INFO",
-			},
+		"eu site": {
+			env:      map[string]string{"DD_SITE": "datadoghq.eu"},
+			wantSite: "datadoghq.eu",
+			wantURL:  "https://http-intake.logs.datadoghq.eu/api/v2/logs",
+			wantAPI:  "https://api.datadoghq.eu",
 		},
-		"custom_url": {
-			env: map[string]string{
-				"DD_SITE": "datadoghq.com",
-				"DD_URL":  "https://custom-intake.example.com",
-			},
-			want: Config{
-				Site:      "datadoghq.com",
-				IntakeURL: "https://custom-intake.example.com",
-				APIURL:    "https://api.datadoghq.com",
-				LogLevel:  "INFO",
-			},
+		"custom url": {
+			env:      map[string]string{"DD_URL": "https://custom.example.com"},
+			wantSite: "datadoghq.com",
+			wantURL:  "https://custom.example.com",
+			wantAPI:  "https://api.datadoghq.com",
 		},
-		"custom_source_host_tags": {
-			env: map[string]string{
-				"DD_SOURCE": "custom-source",
-				"DD_HOST":   "my-host",
-				"DD_TAGS":   "env:prod,team:aws",
-			},
-			want: Config{
-				Site:       "datadoghq.com",
-				IntakeURL:  "https://http-intake.logs.datadoghq.com/api/v2/logs",
-				APIURL:     "https://api.datadoghq.com",
-				LogLevel:   "INFO",
-				Source:     "custom-source",
-				Host:       "my-host",
-				CustomTags: "env:prod,team:aws",
-			},
+		"source and host": {
+			env:      map[string]string{"DD_SOURCE": "custom", "DD_HOST": "my-host"},
+			wantSite: "datadoghq.com",
+			wantURL:  "https://http-intake.logs.datadoghq.com/api/v2/logs",
+			wantAPI:  "https://api.datadoghq.com",
+			wantSrc:  "custom",
+			wantHost: "my-host",
 		},
-		"scrubbing_ip_enabled": {
-			env: map[string]string{"REDACT_IP": "true"},
-			want: Config{
-				Site:      "datadoghq.com",
-				IntakeURL: "https://http-intake.logs.datadoghq.com/api/v2/logs",
-				APIURL:    "https://api.datadoghq.com",
-				LogLevel:  "INFO",
-				Scrubbing: ScrubbingConfig{ScrubIP: true},
-			},
+		"fips enabled": {
+			env:      map[string]string{"DD_USE_FIPS": "true"},
+			wantSite: "datadoghq.com",
+			wantURL:  "https://http-intake.logs.datadoghq.com/api/v2/logs",
+			wantAPI:  "https://api.datadoghq.com",
+			wantFIPS: true,
 		},
-		"scrubbing_custom_rule": {
-			env: map[string]string{
-				"DD_SCRUBBING_RULE":             `\d+`,
-				"DD_SCRUBBING_RULE_REPLACEMENT": "X",
-			},
-			want: Config{
-				Site:      "datadoghq.com",
-				IntakeURL: "https://http-intake.logs.datadoghq.com/api/v2/logs",
-				APIURL:    "https://api.datadoghq.com",
-				LogLevel:  "INFO",
-				Scrubbing: ScrubbingConfig{CustomRule: `\d+`, CustomReplacement: "X"},
-			},
+		"valid multiline regex": {
+			env:       map[string]string{"DD_MULTILINE_LOG_REGEX_PATTERN": `\d{4}-\d{2}-\d{2}`},
+			wantSite:  "datadoghq.com",
+			wantURL:   "https://http-intake.logs.datadoghq.com/api/v2/logs",
+			wantAPI:   "https://api.datadoghq.com",
+			wantRegex: true,
 		},
-		"filtering_include": {
-			env: map[string]string{"INCLUDE_AT_MATCH": `error|warn`},
-			want: Config{
-				Site:      "datadoghq.com",
-				IntakeURL: "https://http-intake.logs.datadoghq.com/api/v2/logs",
-				APIURL:    "https://api.datadoghq.com",
-				LogLevel:  "INFO",
-				Filtering: FilteringConfig{IncludePattern: `error|warn`},
-			},
-		},
-		"filtering_exclude": {
-			env: map[string]string{"EXCLUDE_AT_MATCH": `DEBUG`},
-			want: Config{
-				Site:      "datadoghq.com",
-				IntakeURL: "https://http-intake.logs.datadoghq.com/api/v2/logs",
-				APIURL:    "https://api.datadoghq.com",
-				LogLevel:  "INFO",
-				Filtering: FilteringConfig{ExcludePattern: `DEBUG`},
-			},
+		"invalid multiline regex": {
+			env:     map[string]string{"DD_MULTILINE_LOG_REGEX_PATTERN": `[invalid`},
+			wantErr: true,
 		},
 	}
 
@@ -113,49 +71,39 @@ func TestLoadConfig(t *testing.T) {
 			for k, v := range tc.env {
 				t.Setenv(k, v)
 			}
-			got := loadConfig()
-			if diff := cmp.Diff(tc.want, *got, cmpopts.IgnoreFields(Config{}, "APIKey")); diff != "" {
-				t.Errorf("mismatch (-want +got):\n%s", diff)
-			}
-		})
-	}
-}
 
-func TestLoadS3MultilineLogRegex(t *testing.T) {
-	tests := map[string]struct {
-		env     string
-		wantNil bool
-	}{
-		"empty_pattern_returns_nil": {
-			env:     "",
-			wantNil: true,
-		},
-		"valid_pattern_returns_compiled_regex": {
-			env: `\d{4}-\d{2}-\d{2}`,
-		},
-		"invalid_pattern_returns_nil": {
-			env:     `[invalid`,
-			wantNil: true,
-		},
-	}
+			got, err := Load()
 
-	for name, tc := range tests {
-		t.Run(name, func(t *testing.T) {
-			if tc.env != "" {
-				t.Setenv("DD_MULTILINE_LOG_REGEX_PATTERN", tc.env)
-			}
-
-			got := loadS3MultilineLogRegex()
-
-			if tc.wantNil {
-				if got != nil {
-					t.Fatalf("want nil, got `%v", got)
+			if tc.wantErr {
+				if err == nil {
+					t.Fatal("want error, got nil")
 				}
 				return
 			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
 
-			if got == nil {
-				t.Fatal("want non-nil, got nil")
+			if got.Site != tc.wantSite {
+				t.Errorf("Site: got %q, want %q", got.Site, tc.wantSite)
+			}
+			if got.IntakeURL != tc.wantURL {
+				t.Errorf("IntakeURL: got %q, want %q", got.IntakeURL, tc.wantURL)
+			}
+			if got.APIURL != tc.wantAPI {
+				t.Errorf("APIURL: got %q, want %q", got.APIURL, tc.wantAPI)
+			}
+			if got.Source != tc.wantSrc {
+				t.Errorf("Source: got %q, want %q", got.Source, tc.wantSrc)
+			}
+			if got.Host != tc.wantHost {
+				t.Errorf("Host: got %q, want %q", got.Host, tc.wantHost)
+			}
+			if got.UseFIPS != tc.wantFIPS {
+				t.Errorf("UseFIPS: got %v, want %v", got.UseFIPS, tc.wantFIPS)
+			}
+			if (got.S3MultilineLogRegex != nil) != tc.wantRegex {
+				t.Errorf("S3MultilineLogRegex: got nil=%v, want nil=%v", got.S3MultilineLogRegex == nil, !tc.wantRegex)
 			}
 		})
 	}
