@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambdacontext"
 )
@@ -25,6 +26,10 @@ func LambdaContext(t *testing.T) context.Context {
 	return lambdacontext.NewContext(t.Context(), &lambdacontext.LambdaContext{
 		InvokedFunctionArn: ARN,
 	})
+}
+
+func LambdaOrigin() model.LambdaOrigin {
+	return model.LambdaOrigin{ARN: ARN}
 }
 
 func EmptyConfig() *config.Config {

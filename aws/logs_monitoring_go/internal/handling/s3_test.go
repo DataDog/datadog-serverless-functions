@@ -21,27 +21,11 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-var (
-	testS3Record = events.S3EventRecord{
-		S3: events.S3Entity{
-			Bucket: events.S3Bucket{Name: "b"},
-			Object: events.S3Object{URLDecodedKey: "k"},
-		},
-	}
-	testLambdaOrigin = model.LambdaOrigin{ARN: "arn:aws:lambda:us-east-1:123456789012:function:forwarder"}
-)
-
-func wantS3Entry(message, source, service string, tags model.Tags) model.LogEntry {
-	entry := model.NewLogEntry()
-	entry.Message = message
-	entry.Source = source
-	entry.Service = service
-	entry.Tags = tags
-	entry.Metadata = model.S3Metadata{
-		LambdaOrigin: testLambdaOrigin,
-		Origin:       model.S3Origin{Bucket: "b", Key: "k"},
-	}
-	return entry
+var testS3Record = events.S3EventRecord{
+	S3: events.S3Entity{
+		Bucket: events.S3Bucket{Name: "b"},
+		Object: events.S3Object{URLDecodedKey: "k"},
+	},
 }
 
 func TestProcessS3Record(t *testing.T) {
@@ -169,7 +153,7 @@ func TestProcessS3Record(t *testing.T) {
 			out := make(chan model.LogEntry, tc.chanSize)
 			handler := NewS3(tc.cfg)
 
-			err := handler.processRecord(t.Context(), mock, out, testS3Record, testLambdaOrigin)
+			err := handler.processRecord(t.Context(), mock, out, testS3Record, testutil.LambdaOrigin())
 			close(out)
 
 			var got []model.LogEntry
@@ -191,4 +175,17 @@ func TestProcessS3Record(t *testing.T) {
 			}
 		})
 	}
+}
+
+func wantS3Entry(message, source, service string, tags model.Tags) model.LogEntry {
+	entry := model.NewLogEntry()
+	entry.Message = message
+	entry.Source = source
+	entry.Service = service
+	entry.Tags = tags
+	entry.Metadata = model.S3Metadata{
+		LambdaOrigin: testutil.LambdaOrigin(),
+		Origin:       model.S3Origin{Bucket: "b", Key: "k"},
+	}
+	return entry
 }
