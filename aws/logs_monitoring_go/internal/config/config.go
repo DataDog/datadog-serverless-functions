@@ -88,10 +88,3 @@ func (c *Config) compileS3MultilineLogRegex() error {
 	c.S3MultilineLogRegex = re
 	return nil
 }
-
-// if err := cfg.resolveAPIKey(ctx); err != nil {
-// 	return nil, fmt.Errorf("resolving API key: %w", err)
-// }
-// if err := cfg.validateAPIKey(ctx); err != nil {
-// 	return nil, fmt.Errorf("validating API key: %w", err)
-// }
