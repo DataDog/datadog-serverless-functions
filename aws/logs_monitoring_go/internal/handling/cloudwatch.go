@@ -13,6 +13,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"slices"
 	"strings"
 
@@ -68,7 +69,11 @@ func decompressCloudwatchLogs(data []byte) (events.CloudwatchLogsData, error) {
 	if err != nil {
 		return events.CloudwatchLogsData{}, fmt.Errorf("gzip: %w", err)
 	}
-	defer zr.Close()
+	defer func() {
+		if err := zr.Close(); err != nil {
+			slog.Warn("failed to close gzip reader", slog.Any("error", err))
+		}
+	}()
 
 	var d events.CloudwatchLogsData
 	if err := json.NewDecoder(zr).Decode(&d); err != nil {
