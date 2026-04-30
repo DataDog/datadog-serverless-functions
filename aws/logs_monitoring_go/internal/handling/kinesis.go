@@ -32,7 +32,7 @@ func (h KinesisHandler) Handle(ctx context.Context, event json.RawMessage, out c
 		return fmt.Errorf("unmarshal: %w", err)
 	}
 
-	cw := CloudwatchHandler{cfg: h.cfg}
+	cw := CloudwatchHandler(h)
 	for i, record := range kinesisEvent.Records {
 		cwData, err := decompressCloudwatchLogs(record.Kinesis.Data)
 		if err != nil {
