@@ -9,7 +9,9 @@ import (
 	"bufio"
 	"bytes"
 	"io"
+	"iter"
 	"regexp"
+	"strings"
 )
 
 const (
@@ -76,4 +78,19 @@ func (s *Scanner) splitOnLines(data []byte, atEOF bool) (advance int, token []by
 	}
 
 	return 0, nil, nil
+}
+
+func scan(r io.Reader, re *regexp.Regexp) iter.Seq[s3Record] {
+	return func(yield func(s3Record) bool) {
+		scanner := NewScanner(r, re)
+		for scanner.Scan() {
+			message := strings.ToValidUTF8(scanner.Text(), "")
+			if !yield(s3Record{Message: message}) {
+				return
+			}
+		}
+		if err := scanner.Err(); err != nil {
+			yield(s3Record{Err: err})
+		}
+	}
 }

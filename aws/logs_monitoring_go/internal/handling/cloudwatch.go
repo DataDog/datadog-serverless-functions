@@ -134,6 +134,13 @@ func (h CloudwatchHandler) newCloudwatchLogEntry(event events.CloudwatchLogsLogE
 	entry.Message = message
 	entry.ID = event.ID
 	entry.Timestamp = event.Timestamp
+
+	if entry.Source == sourceCloudtrail {
+		if host := cloudtrailHostFromMessage(event.Message); host != "" {
+			entry.Host = host
+		}
+	}
+
 	return entry
 }
 

@@ -118,6 +118,80 @@ func TestCloudwatchHandler_Handle(t *testing.T) {
 				},
 			},
 		},
+		"cloudtrail with ec2 host": {
+			event: testutil.MustCloudwatchEvent(t, testutil.MustGzipJSON(t, map[string]any{
+				"messageType": "DATA_MESSAGE",
+				"owner":       "601427279990",
+				"logGroup":    "cloudtrail-logs",
+				"logStream":   "601427279990_CloudTrail_us-east-1",
+				"logEvents": []map[string]any{
+					{
+						"id":        "ct1",
+						"timestamp": 1620000000000,
+						"message":   `{"eventName":"DescribeTable","userIdentity":{"arn":"arn:aws:sts::601427279990:assumed-role/MyRole/i-08014e4f62ccf762d"}}`,
+					},
+				},
+			})),
+			config:   testutil.EmptyConfig(),
+			chanSize: 1,
+			want: []model.LogEntry{
+				{
+					Message:        `{"eventName":"DescribeTable","userIdentity":{"arn":"arn:aws:sts::601427279990:assumed-role/MyRole/i-08014e4f62ccf762d"}}`,
+					Source:         "cloudtrail",
+					SourceCategory: "aws",
+					Service:        "cloudtrail",
+					Tags:           model.Tags{"service:cloudtrail"},
+					Host:           "i-08014e4f62ccf762d",
+					ID:             "ct1",
+					Timestamp:      1620000000000,
+					Metadata: model.CloudwatchMetadata{
+						LambdaOrigin: model.LambdaOrigin{ARN: testutil.ARN},
+						Origin: model.CloudwatchOrigin{
+							LogGroup:  "cloudtrail-logs",
+							LogStream: "601427279990_CloudTrail_us-east-1",
+							Owner:     "601427279990",
+						},
+					},
+				},
+			},
+		},
+		"cloudtrail without ec2 host": {
+			event: testutil.MustCloudwatchEvent(t, testutil.MustGzipJSON(t, map[string]any{
+				"messageType": "DATA_MESSAGE",
+				"owner":       "601427279990",
+				"logGroup":    "cloudtrail-logs",
+				"logStream":   "601427279990_CloudTrail_us-east-1",
+				"logEvents": []map[string]any{
+					{
+						"id":        "ct2",
+						"timestamp": 1620000000000,
+						"message":   `{"eventName":"DescribeTable","userIdentity":{"arn":"arn:aws:iam::601427279990:user/admin"}}`,
+					},
+				},
+			})),
+			config:   testutil.EmptyConfig(),
+			chanSize: 1,
+			want: []model.LogEntry{
+				{
+					Message:        `{"eventName":"DescribeTable","userIdentity":{"arn":"arn:aws:iam::601427279990:user/admin"}}`,
+					Source:         "cloudtrail",
+					SourceCategory: "aws",
+					Service:        "cloudtrail",
+					Tags:           model.Tags{"service:cloudtrail"},
+					Host:           "cloudtrail-logs",
+					ID:             "ct2",
+					Timestamp:      1620000000000,
+					Metadata: model.CloudwatchMetadata{
+						LambdaOrigin: model.LambdaOrigin{ARN: testutil.ARN},
+						Origin: model.CloudwatchOrigin{
+							LogGroup:  "cloudtrail-logs",
+							LogStream: "601427279990_CloudTrail_us-east-1",
+							Owner:     "601427279990",
+						},
+					},
+				},
+			},
+		},
 		"config overrides source, host, service and tags": {
 			event: testutil.MustCloudwatchEvent(t, testutil.MustGzipJSON(t, map[string]any{
 				"messageType": "DATA_MESSAGE",

@@ -10,6 +10,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"iter"
 	"log/slog"
 	"slices"
 	"strings"
@@ -26,6 +27,12 @@ const (
 	s3KeyKinesis    = "amazon_kinesis"
 	s3KeyCloudtrail = "_CloudTrail_"
 )
+
+type s3Record struct {
+	Message string
+	Host    string
+	Err     error
+}
 
 type S3Handler struct {
 	cfg *config.Config
@@ -53,17 +60,17 @@ func (h S3Handler) Handle(ctx context.Context, event json.RawMessage, out chan<-
 		return err
 	}
 
-	for _, record := range s3Event.Records {
-		if err := h.processRecord(ctx, client, out, record, lambdaOrigin); err != nil {
+	for _, eventRecord := range s3Event.Records {
+		if err := h.processRecord(ctx, client, out, eventRecord, lambdaOrigin); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (h S3Handler) processRecord(ctx context.Context, client S3APIClient, out chan<- model.LogEntry, record events.S3EventRecord, lambdaOrigin model.LambdaOrigin) error {
-	bucket := record.S3.Bucket.Name
-	key := record.S3.Object.URLDecodedKey
+func (h S3Handler) processRecord(ctx context.Context, client S3APIClient, out chan<- model.LogEntry, eventRecord events.S3EventRecord, lambdaOrigin model.LambdaOrigin) error {
+	bucket := eventRecord.S3.Bucket.Name
+	key := eventRecord.S3.Object.URLDecodedKey
 
 	body, err := getS3Object(ctx, client, bucket, key)
 	if err != nil {
@@ -75,32 +82,37 @@ func (h S3Handler) processRecord(ctx context.Context, client S3APIClient, out ch
 		}
 	}()
 
-	scanner := NewScanner(body, h.cfg.S3MultilineLogRegex)
-	for scanner.Scan() {
-		message := strings.ToValidUTF8(scanner.Text(), "")
-		entry := h.newS3LogEntry(record, message, lambdaOrigin)
+	var records iter.Seq[s3Record]
+	if cloudTrailRegex().MatchString(key) {
+		records = decodeCloudTrail(body)
+	} else {
+		records = scan(body, h.cfg.S3MultilineLogRegex)
+	}
+
+	for rec := range records {
+		if rec.Err != nil {
+			return rec.Err
+		}
+		entry := h.newS3LogEntry(eventRecord, rec.Message, lambdaOrigin)
 		if h.cfg.Filter.ShouldExclude(entry.Message) {
 			continue
 		}
 
+		entry.Host = cmp.Or(h.cfg.Host, rec.Host)
 		entry.Message = h.cfg.Scrubber.Scrub(entry.Message)
 		if err := concurrent.SafeSender(ctx, out, entry); err != nil {
 			return err
 		}
 	}
-
-	if err := scanner.Err(); err != nil {
-		return err
-	}
 	return nil
 }
 
-func (h S3Handler) newS3LogEntry(record events.S3EventRecord, message string, lambdaOrigin model.LambdaOrigin) model.LogEntry {
-	key := record.S3.Object.URLDecodedKey
+func (h S3Handler) newS3LogEntry(eventRecord events.S3EventRecord, message string, lambdaOrigin model.LambdaOrigin) model.LogEntry {
+	key := eventRecord.S3.Object.URLDecodedKey
 	metadata := model.S3Metadata{
 		LambdaOrigin: lambdaOrigin,
 		Origin: model.S3Origin{
-			Bucket: record.S3.Bucket.Name,
+			Bucket: eventRecord.S3.Bucket.Name,
 			Key:    key,
 		},
 	}
