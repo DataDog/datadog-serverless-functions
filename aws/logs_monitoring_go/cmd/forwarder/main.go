@@ -8,10 +8,11 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"log/slog"
+	"errors"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/forwarding"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/handling"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/parsing"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/pipeline"
 
@@ -19,29 +20,37 @@ import (
 )
 
 func main() {
-	ctx := context.Background()
-	cfg, err := config.Load(ctx)
+	cfg, err := config.Load()
 	if err != nil {
-		slog.Error("config load failed", slog.Any("error", err))
-		return
+		panic(err)
 	}
+	err = cfg.ResolveAPIKey(context.Background())
+	if err != nil {
+		panic(err)
+	}
+	err = cfg.ValidateAPIKey(context.Background())
+	if err != nil {
+		panic(err)
+	}
+
+	cwHandler := handling.NewCloudwatch(cfg)
+	kinesisHandler := handling.NewKinesis(cfg)
+	s3Handler := handling.NewS3(cfg)
+	handling.Register(parsing.InvocationSourceCloudwatchLogs, cwHandler)
+	handling.Register(parsing.InvocationSourceKinesis, kinesisHandler)
+	handling.Register(parsing.InvocationSourceS3, s3Handler)
 
 	lambda.Start(handleRequest(cfg))
 }
 
-func handleRequest(cfg *config.Config) func(context.Context, json.RawMessage) error {
+func handleRequest(cfg *config.Config) func(ctx context.Context, event json.RawMessage) error {
 	return func(ctx context.Context, event json.RawMessage) error {
-		invocationSource := parsing.DetectInvocationSource(event)
-		switch invocationSource {
-		case parsing.InvocationSourceCloudwatchLogs:
-			return pipeline.Run(ctx, event, cfg, forwarding.CloudwatchStorage, parsing.HandleCloudwatch)
-		case parsing.InvocationSourceKinesis:
-			return pipeline.Run(ctx, event, cfg, forwarding.CloudwatchStorage, parsing.HandleKinesis)
-		case parsing.InvocationSourceS3:
-			return pipeline.Run(ctx, event, cfg, forwarding.S3Storage, parsing.HandleS3)
-		default:
-			slog.Error("unsupported invocation source", slog.String("source", invocationSource.String()))
-			return nil
+		invocation := parsing.DetectInvocationSource(event)
+		if invocation == parsing.InvocationSourceUnknown {
+			return errors.New("unknown invocation")
 		}
+
+		run := pipeline.NewRun(cfg, handling.Handlers[invocation], forwarding.Storage(invocation))
+		return pipeline.Start(ctx, event, run)
 	}
 }

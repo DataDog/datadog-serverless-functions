@@ -16,66 +16,61 @@ import (
 	"testing"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 )
 
-func TestForward(t *testing.T) {
+func TestForwarder_Start(t *testing.T) {
 	t.Parallel()
 
 	tests := map[string]struct {
 		statusCode int
 		storage    string
-		payloads   [][]byte
+		entries    []model.LogEntry
 		cancelCtx  bool
 		wantErr    bool
 		wantErrMsg string
 		wantCalls  int
 	}{
-		"single_message_accepted": {
+		"single message accepted": {
 			statusCode: http.StatusAccepted,
-			storage:    CloudwatchStorage,
-			payloads:   [][]byte{[]byte("test payload")},
+			storage:    cloudwatchStorage,
+			entries:    []model.LogEntry{{Message: "test payload"}},
 			wantCalls:  1,
 		},
-		"multiple_messages_accepted": {
+		"empty channel": {
 			statusCode: http.StatusAccepted,
-			storage:    CloudwatchStorage,
-			payloads:   [][]byte{[]byte("first"), []byte("second"), []byte("third")},
-			wantCalls:  3,
-		},
-		"empty_channel": {
-			statusCode: http.StatusAccepted,
-			storage:    CloudwatchStorage,
-			payloads:   [][]byte{},
+			storage:    cloudwatchStorage,
+			entries:    []model.LogEntry{},
 			wantCalls:  0,
 		},
-		"server_returns_400": {
+		"server returns 400": {
 			statusCode: http.StatusBadRequest,
-			storage:    CloudwatchStorage,
-			payloads:   [][]byte{[]byte("test payload")},
+			storage:    cloudwatchStorage,
+			entries:    []model.LogEntry{{Message: "test payload"}},
 			wantErr:    true,
 			wantErrMsg: "unexpected status from intake",
 			wantCalls:  1,
 		},
-		"server_returns_500": {
+		"server returns 500": {
 			statusCode: http.StatusInternalServerError,
-			storage:    CloudwatchStorage,
-			payloads:   [][]byte{[]byte("test payload")},
+			storage:    cloudwatchStorage,
+			entries:    []model.LogEntry{{Message: "test payload"}},
 			wantErr:    true,
 			wantErrMsg: "unexpected status from intake",
 			wantCalls:  1,
 		},
-		"context_cancelled": {
+		"context cancelled": {
 			statusCode: http.StatusAccepted,
-			storage:    CloudwatchStorage,
-			payloads:   [][]byte{[]byte("test payload")},
+			storage:    cloudwatchStorage,
+			entries:    []model.LogEntry{{Message: "test payload"}},
 			cancelCtx:  true,
 			wantErr:    true,
 			wantCalls:  0,
 		},
-		"s3_storage": {
+		"s3 storage": {
 			statusCode: http.StatusAccepted,
-			storage:    S3Storage,
-			payloads:   [][]byte{[]byte("test payload")},
+			storage:    s3Storage,
+			entries:    []model.LogEntry{{Message: "test payload"}},
 			wantCalls:  1,
 		},
 	}
@@ -136,13 +131,13 @@ func TestForward(t *testing.T) {
 				cancel()
 			}
 
-			in := make(chan []byte, len(tc.payloads))
-			for _, p := range tc.payloads {
-				in <- p
+			in := make(chan model.LogEntry, len(tc.entries))
+			for _, e := range tc.entries {
+				in <- e
 			}
 			close(in)
 
-			err := f.Forward(ctx, in)
+			err := f.Start(ctx, in)
 
 			if tc.wantErr {
 				if err == nil {

@@ -3,9 +3,9 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2026-Present Datadog, Inc.
 
-package parsing
+package handling
 
-//go:generate go tool mockgen -source=s3_client.go -package=parsing -destination=s3_client_mockgen.go
+//go:generate go tool mockgen -source=s3_client.go -package=handling -destination=s3_client_mockgen.go
 
 import (
 	"context"

@@ -3,11 +3,10 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2026-Present Datadog, Inc.
 
-package parsing
+package handling
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -17,25 +16,31 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 )
 
-func HandleKinesis(ctx context.Context, event json.RawMessage, cfg *config.Config, out chan<- model.CloudwatchLogEntry) error {
+type KinesisHandler struct {
+	cfg *config.Config
+}
+
+func NewKinesis(cfg *config.Config) *KinesisHandler {
+	return &KinesisHandler{
+		cfg: cfg,
+	}
+}
+
+func (h KinesisHandler) Handle(ctx context.Context, event json.RawMessage, out chan<- model.LogEntry) error {
 	var kinesisEvent events.KinesisEvent
 	if err := json.Unmarshal(event, &kinesisEvent); err != nil {
 		return fmt.Errorf("unmarshal: %w", err)
 	}
 
+	cw := CloudwatchHandler(h)
 	for i, record := range kinesisEvent.Records {
-		cwEvent := events.CloudwatchLogsEvent{
-			AWSLogs: events.CloudwatchLogsRawData{
-				Data: base64.StdEncoding.EncodeToString(record.Kinesis.Data),
-			},
-		}
-
-		cwRaw, err := json.Marshal(cwEvent)
+		cwData, err := decompressCloudwatchLogs(record.Kinesis.Data)
 		if err != nil {
-			return fmt.Errorf("marshal: %w", err)
+			slog.WarnContext(ctx, "skipping kinesis record", slog.Int("i", i), slog.Any("error", err))
+			continue
 		}
 
-		if err := HandleCloudwatch(ctx, cwRaw, cfg, out); err != nil {
+		if err := cw.handleCloudwatchData(ctx, cwData, out); err != nil {
 			slog.WarnContext(ctx, "skipping kinesis record", slog.Int("i", i), slog.Any("error", err))
 			continue
 		}

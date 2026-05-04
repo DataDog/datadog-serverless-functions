@@ -3,7 +3,7 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2026-Present Datadog, Inc.
 
-package parsing
+package handling
 
 import (
 	"encoding/json"
@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 )
 
@@ -91,7 +92,7 @@ func TestExtractFromMessage(t *testing.T) {
 		},
 		"ddtags is empty string": {
 			message:     `{"msg":"hello","ddtags":""}`,
-			wantTags:    model.Tags{""},
+			wantTags:    nil,
 			wantService: "",
 			wantMessage: `{"msg":"hello"}`,
 		},
@@ -110,13 +111,13 @@ func TestExtractFromMessage(t *testing.T) {
 			gotTags, gotService, gotMessage := extractFromMessage(tc.message)
 
 			if !slices.Equal(gotTags, tc.wantTags) {
-				t.Errorf("tags: got %v, want %v", gotTags, tc.wantTags)
+				t.Errorf("extractFromMessage(%q) tags: got %v, want %v", tc.message, gotTags, tc.wantTags)
 			}
 			if gotService != tc.wantService {
-				t.Errorf("service: got %q, want %q", gotService, tc.wantService)
+				t.Errorf("extractFromMessage(%q) service: got %q, want %q", tc.message, gotService, tc.wantService)
 			}
 			if gotMessage != tc.wantMessage {
-				t.Errorf("message: got %q, want %q", gotMessage, tc.wantMessage)
+				t.Errorf("extractFromMessage(%q) message: got %q, want %q", tc.message, gotMessage, tc.wantMessage)
 			}
 		})
 	}
@@ -150,8 +151,8 @@ func FuzzExtractFromMessage(f *testing.F) {
 			if err := json.Unmarshal([]byte(outMessage), &parsed); err != nil {
 				t.Errorf("output message is not valid JSON: %v", err)
 			}
-			if _, ok := parsed[ddtagsJSONKey]; ok {
-				t.Errorf("output message still contains %q key", ddtagsJSONKey)
+			if _, ok := parsed[config.DdtagsJSONKey]; ok {
+				t.Errorf("output message still contains %q key", config.DdtagsJSONKey)
 			}
 		}
 

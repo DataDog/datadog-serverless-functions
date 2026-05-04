@@ -13,22 +13,20 @@ import (
 const sourceCategory = "aws"
 
 type LogEntry struct {
-	Message        string `json:"message"`
+	Host           string `json:"hostname,omitempty"`
+	ID             string `json:"id,omitempty"`
+	Timestamp      int64  `json:"timestamp,omitempty"`
+	Message        string `json:"message,omitempty"`
+	Service        string `json:"service,omitempty"`
 	Source         string `json:"ddsource"`
 	SourceCategory string `json:"ddsourcecategory"`
-	Service        string `json:"service"`
 	Tags           Tags   `json:"ddtags"`
 	Metadata       any    `json:"aws"`
 }
 
-func NewLogEntry(metadata any, tags Tags, message, source, service string) LogEntry {
+func NewLogEntry() LogEntry {
 	return LogEntry{
-		Message:        message,
-		Source:         source,
 		SourceCategory: sourceCategory,
-		Service:        service,
-		Tags:           tags,
-		Metadata:       metadata,
 	}
 }
 

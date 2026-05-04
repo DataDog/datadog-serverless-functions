@@ -3,7 +3,7 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2026-Present Datadog, Inc.
 
-package processing
+package batching
 
 import (
 	"bytes"
@@ -12,6 +12,7 @@ import (
 	"log/slog"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/concurrent"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 )
 
 const (
@@ -20,18 +21,18 @@ const (
 	maxItemsPerBatch = 1000
 )
 
-type Batcher[T any] struct {
+type Batcher struct {
 	batch     [][]byte
 	batchSize int
 }
 
-func NewBatcher[T any]() *Batcher[T] {
-	return &Batcher[T]{
+func NewBatcher() *Batcher {
+	return &Batcher{
 		batch: make([][]byte, 0, maxItemsPerBatch),
 	}
 }
 
-func (b *Batcher[T]) Batch(ctx context.Context, in <-chan T, out chan<- []byte) error {
+func (b *Batcher) Batch(ctx context.Context, in <-chan model.LogEntry, out chan<- []byte) error {
 	for {
 		entry, ok, err := concurrent.SafeReader(ctx, in)
 		if err != nil {
@@ -66,7 +67,7 @@ func (b *Batcher[T]) Batch(ctx context.Context, in <-chan T, out chan<- []byte) 
 	}
 }
 
-func (b *Batcher[T]) flush(ctx context.Context, out chan<- []byte) error {
+func (b *Batcher) flush(ctx context.Context, out chan<- []byte) error {
 	if len(b.batch) == 0 {
 		return nil
 	}

@@ -6,10 +6,13 @@
 package config
 
 import (
-	"context"
+	"errors"
 	"fmt"
-	"log/slog"
 	"regexp"
+
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/filtering"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/scrubbing"
 )
 
 const ForwarderVersion = "6.0"
@@ -23,96 +26,65 @@ type Config struct {
 	UseFIPS             bool
 	Source              string
 	Host                string
-	CustomTags          string
-	Scrubbing           ScrubbingConfig
-	Filtering           FilteringConfig
+	Tags                model.Tags
+	Service             string
+	Scrubber            *scrubbing.Scrubber
+	Filter              *filtering.Filter
 	S3MultilineLogRegex *regexp.Regexp
 }
 
-type ScrubbingConfig struct {
-	ScrubIP           bool
-	ScrubEmail        bool
-	CustomRule        string
-	CustomReplacement string
-}
-
-type FilteringConfig struct {
-	IncludePattern string
-	ExcludePattern string
-}
-
-func Load(ctx context.Context) (*Config, error) {
-	initLogger(envOrDefault("DD_LOG_LEVEL", "INFO"))
+func Load() (*Config, error) {
+	logLevel := envOrDefault("DD_LOG_LEVEL", "INFO")
+	initLogger(logLevel)
 	logDroppedEnvVars()
 
-	cfg := loadConfig()
-	slog.Debug("config loaded", "config", cfg)
+	var cfg Config
+	cfg.LogLevel = logLevel
+	cfg.loadEnv()
+	cfg.extractFromEnv()
 
-	if err := cfg.resolveAPIKey(ctx); err != nil {
-		return nil, fmt.Errorf("resolving API key: %w", err)
+	err := cfg.compileS3MultilineLogRegex()
+
+	scrubber, scrubbingErr := scrubbing.NewScrubber(
+		envOrDefault("DD_SCRUBBING_RULE", ""),
+		envOrDefault("DD_SCRUBBING_RULE_REPLACEMENT", ""),
+		envOrDefaultBool("REDACT_IP", false),
+		envOrDefaultBool("REDACT_EMAIL", false),
+	)
+	err = errors.Join(err, scrubbingErr)
+
+	filter, filteringErr := filtering.NewFilter(
+		envOrDefault("INCLUDE_AT_MATCH", ""),
+		envOrDefault("EXCLUDE_AT_MATCH", ""),
+	)
+	err = errors.Join(err, filteringErr)
+	if err != nil {
+		return nil, err
 	}
 
-	if err := cfg.validateAPIKey(ctx); err != nil {
-		return nil, fmt.Errorf("validating API key: %w", err)
-	}
-
-	return cfg, nil
+	cfg.Scrubber = scrubber
+	cfg.Filter = filter
+	return &cfg, nil
 }
 
-func loadConfig() *Config {
-	S3MultilineLogRegex := loadS3MultilineLogRegex()
-	site := envOrDefault("DD_SITE", "datadoghq.com")
-
-	return &Config{
-		Site:       site,
-		IntakeURL:  envOrDefault("DD_URL", "https://http-intake.logs."+site+"/api/v2/logs"),
-		APIURL:     envOrDefault("DD_API_URL", "https://api."+site),
-		LogLevel:   envOrDefault("DD_LOG_LEVEL", "INFO"),
-		UseFIPS:    envOrDefaultBool("DD_USE_FIPS", false),
-		Source:     envOrDefault("DD_SOURCE", ""),
-		Host:       envOrDefault("DD_HOST", ""),
-		CustomTags: envOrDefault("DD_TAGS", ""),
-		Scrubbing: ScrubbingConfig{
-			ScrubIP:           envOrDefaultBool("REDACT_IP", false),
-			ScrubEmail:        envOrDefaultBool("REDACT_EMAIL", false),
-			CustomRule:        envOrDefault("DD_SCRUBBING_RULE", ""),
-			CustomReplacement: envOrDefault("DD_SCRUBBING_RULE_REPLACEMENT", ""),
-		},
-		Filtering: FilteringConfig{
-			IncludePattern: envOrDefault("INCLUDE_AT_MATCH", ""),
-			ExcludePattern: envOrDefault("EXCLUDE_AT_MATCH", ""),
-		},
-		S3MultilineLogRegex: S3MultilineLogRegex,
-	}
+func (c *Config) loadEnv() {
+	c.Site = envOrDefault("DD_SITE", "datadoghq.com")
+	c.IntakeURL = envOrDefault("DD_URL", "https://http-intake.logs."+c.Site+"/api/v2/logs")
+	c.APIURL = envOrDefault("DD_API_URL", "https://api."+c.Site)
+	c.UseFIPS = envOrDefaultBool("DD_USE_FIPS", false)
+	c.Source = envOrDefault("DD_SOURCE", "")
+	c.Host = envOrDefault("DD_HOST", "")
 }
 
-func loadS3MultilineLogRegex() *regexp.Regexp {
+func (c *Config) compileS3MultilineLogRegex() error {
 	pattern := envOrDefault("DD_MULTILINE_LOG_REGEX_PATTERN", "")
 	if pattern == "" {
 		return nil
 	}
-
 	re, err := regexp.Compile(pattern)
 	if err != nil {
-		slog.Error("invalid multiline log pattern", slog.String("pattern", pattern), slog.Any("error", err))
-		return nil
+		return fmt.Errorf("compile multiline log regex: %w", err)
 	}
-
-	return re
-}
-
-func (c Config) LogValue() slog.Value {
-	return slog.GroupValue(
-		slog.String("site", c.Site),
-		slog.String("intakeUrl", c.IntakeURL),
-		slog.String("apiUrl", c.APIURL),
-		slog.String("loglevel", c.LogLevel),
-		slog.Bool("fips", c.UseFIPS),
-		slog.Bool("redactIP", c.Scrubbing.ScrubIP),
-		slog.Bool("redactEmail", c.Scrubbing.ScrubEmail),
-		slog.Bool("customScrubbing", c.Scrubbing.CustomRule != ""),
-		slog.Bool("includeFilter", c.Filtering.IncludePattern != ""),
-		slog.Bool("excludeFilter", c.Filtering.ExcludePattern != ""),
-		slog.Bool("multilineRegex", c.S3MultilineLogRegex != nil),
-	)
+	c.S3MultilineLogRegex = re
+	return nil
 }

@@ -5,13 +5,6 @@
 
 package model
 
-type CloudwatchLogEntry struct {
-	LogEntry
-	ID        string `json:"id"`
-	Timestamp int64  `json:"timestamp"`
-	Host      string `json:"hostname"`
-}
-
 type CloudwatchMetadata struct {
 	LambdaOrigin
 	Origin CloudwatchOrigin `json:"awslogs"`

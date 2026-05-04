@@ -3,7 +3,7 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2026-Present Datadog, Inc.
 
-package parsing
+package handling
 
 import (
 	"errors"
@@ -16,13 +16,15 @@ import (
 )
 
 func TestGetS3Object(t *testing.T) {
+	t.Parallel()
+
 	tests := map[string]struct {
 		mockSetup func(m *MockS3APIClient)
 		bucket    string
 		key       string
 		wantErr   bool
 	}{
-		"success": {
+		"returns body on success": {
 			mockSetup: func(m *MockS3APIClient) {
 				m.EXPECT().
 					GetObject(gomock.Any(), gomock.Any()).
@@ -33,7 +35,7 @@ func TestGetS3Object(t *testing.T) {
 			bucket: "my-bucket",
 			key:    "my-key",
 		},
-		"error": {
+		"returns error on S3 failure": {
 			mockSetup: func(m *MockS3APIClient) {
 				m.EXPECT().
 					GetObject(gomock.Any(), gomock.Any()).
@@ -47,6 +49,7 @@ func TestGetS3Object(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
 			ctrl := gomock.NewController(t)
 			mock := NewMockS3APIClient(ctrl)
 			tc.mockSetup(mock)

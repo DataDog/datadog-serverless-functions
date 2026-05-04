@@ -3,13 +3,11 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2026-Present Datadog, Inc.
 
-package processing
+package scrubbing
 
 import (
-	"log/slog"
+	"fmt"
 	"regexp"
-
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
 )
 
 const (
@@ -29,44 +27,40 @@ type Scrubber struct {
 	rules []scrubbingRule
 }
 
-func NewScrubber(cfg config.ScrubbingConfig) Scrubber {
+func NewScrubber(customMatch, customReplacement string, ip, email bool) (*Scrubber, error) {
 	var rules []scrubbingRule
-
-	if cfg.ScrubIP {
+	if ip {
 		rules = append(rules, scrubbingRule{
 			regex:       regexp.MustCompile(ipPattern),
 			replacement: ipReplacement,
 		})
 	}
-
-	if cfg.ScrubEmail {
+	if email {
 		rules = append(rules, scrubbingRule{
 			regex:       regexp.MustCompile(emailPattern),
 			replacement: emailReplacement,
 		})
 	}
-
-	if cfg.CustomRule != "" {
-		re, err := regexp.Compile(cfg.CustomRule)
+	if customMatch != "" {
+		re, err := regexp.Compile(customMatch)
 		if err != nil {
-			slog.Error("invalid custom scrubbing rule, make sure your regex is RE2 compatible",
-				slog.String("pattern", cfg.CustomRule),
-				slog.Any("error", err),
-			)
-		} else {
-			rules = append(rules, scrubbingRule{
-				regex:       re,
-				replacement: cfg.CustomReplacement,
-			})
+			return nil, fmt.Errorf("compile custom scrubbing: %w", err)
 		}
-	}
 
-	return Scrubber{rules: rules}
+		rules = append(rules, scrubbingRule{
+			regex:       re,
+			replacement: customReplacement,
+		})
+	}
+	return &Scrubber{rules: rules}, nil
 }
 
-func (s Scrubber) ScrubMessage(msg string) string {
-	for _, rule := range s.rules {
-		msg = rule.regex.ReplaceAllString(msg, rule.replacement)
+func (s *Scrubber) Scrub(content string) string {
+	if s == nil {
+		return content
 	}
-	return msg
+	for _, rule := range s.rules {
+		content = rule.regex.ReplaceAllString(content, rule.replacement)
+	}
+	return content
 }

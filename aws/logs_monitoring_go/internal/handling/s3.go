@@ -3,7 +3,7 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2026-Present Datadog, Inc.
 
-package parsing
+package handling
 
 import (
 	"cmp"
@@ -11,7 +11,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"regexp"
 	"slices"
 	"strings"
 
@@ -28,21 +27,23 @@ const (
 	s3KeyCloudtrail = "_CloudTrail_"
 )
 
-type s3EntryBase struct {
-	metadata       model.S3Metadata
-	source         string
-	service        string
-	tags           model.Tags
-	multilineRegex *regexp.Regexp
+type S3Handler struct {
+	cfg *config.Config
 }
 
-func HandleS3(ctx context.Context, event json.RawMessage, cfg *config.Config, out chan<- model.LogEntry) error {
+func NewS3(cfg *config.Config) *S3Handler {
+	return &S3Handler{
+		cfg: cfg,
+	}
+}
+
+func (h S3Handler) Handle(ctx context.Context, event json.RawMessage, out chan<- model.LogEntry) error {
 	var s3Event events.S3Event
 	if err := json.Unmarshal(event, &s3Event); err != nil {
 		return fmt.Errorf("unmarshal: %w", err)
 	}
 
-	client, err := getS3APIClient(ctx, cfg.UseFIPS)
+	client, err := getS3APIClient(ctx, h.cfg.UseFIPS)
 	if err != nil {
 		return fmt.Errorf("get S3 client: %w", err)
 	}
@@ -53,16 +54,18 @@ func HandleS3(ctx context.Context, event json.RawMessage, cfg *config.Config, ou
 	}
 
 	for _, record := range s3Event.Records {
-		base := newS3EntryBase(record, cfg, lambdaOrigin)
-		if err := processS3Record(ctx, client, out, base); err != nil {
-			return fmt.Errorf("process s3://%s/%s: %w", base.metadata.Origin.Bucket, base.metadata.Origin.Key, err)
+		if err := h.processRecord(ctx, client, out, record, lambdaOrigin); err != nil {
+			return err
 		}
 	}
 	return nil
 }
 
-func processS3Record(ctx context.Context, client S3APIClient, out chan<- model.LogEntry, base s3EntryBase) error {
-	body, err := getS3Object(ctx, client, base.metadata.Origin.Bucket, base.metadata.Origin.Key)
+func (h S3Handler) processRecord(ctx context.Context, client S3APIClient, out chan<- model.LogEntry, record events.S3EventRecord, lambdaOrigin model.LambdaOrigin) error {
+	bucket := record.S3.Bucket.Name
+	key := record.S3.Object.URLDecodedKey
+
+	body, err := getS3Object(ctx, client, bucket, key)
 	if err != nil {
 		return err
 	}
@@ -72,10 +75,16 @@ func processS3Record(ctx context.Context, client S3APIClient, out chan<- model.L
 		}
 	}()
 
-	scanner := NewScanner(body, base.multilineRegex)
+	scanner := NewScanner(body, h.cfg.S3MultilineLogRegex)
 	for scanner.Scan() {
 		message := strings.ToValidUTF8(scanner.Text(), "")
-		if err := concurrent.SafeSender(ctx, out, newS3LogEntry(base, message)); err != nil {
+		entry := h.newS3LogEntry(record, message, lambdaOrigin)
+		if h.cfg.Filter.ShouldExclude(entry.Message) {
+			continue
+		}
+
+		entry.Message = h.cfg.Scrubber.Scrub(entry.Message)
+		if err := concurrent.SafeSender(ctx, out, entry); err != nil {
 			return err
 		}
 	}
@@ -86,36 +95,27 @@ func processS3Record(ctx context.Context, client S3APIClient, out chan<- model.L
 	return nil
 }
 
-func newS3EntryBase(record events.S3EventRecord, cfg *config.Config, lambdaOrigin model.LambdaOrigin) s3EntryBase {
-	bucket := record.S3.Bucket.Name
+func (h S3Handler) newS3LogEntry(record events.S3EventRecord, message string, lambdaOrigin model.LambdaOrigin) model.LogEntry {
 	key := record.S3.Object.URLDecodedKey
-	source := cmp.Or(cfg.Source, getS3Source(key))
-	tags, service := getTagsAndService(cfg)
-	service = cmp.Or(service, source)
-
-	return s3EntryBase{
-		metadata: model.S3Metadata{
-			LambdaOrigin: lambdaOrigin,
-			Origin: model.S3Origin{
-				Bucket: bucket,
-				Key:    key,
-			},
+	metadata := model.S3Metadata{
+		LambdaOrigin: lambdaOrigin,
+		Origin: model.S3Origin{
+			Bucket: record.S3.Bucket.Name,
+			Key:    key,
 		},
-		source:         source,
-		service:        service,
-		tags:           tags,
-		multilineRegex: cfg.S3MultilineLogRegex,
 	}
-}
-
-func newS3LogEntry(base s3EntryBase, message string) model.LogEntry {
 	tags, service, message := extractFromMessage(message)
-	service = cmp.Or(service, base.service)
-	tags = slices.Concat(tags, model.Tags{"service:" + service}, base.tags)
-	return model.NewLogEntry(base.metadata, tags, message, base.source, service)
+
+	entry := model.NewLogEntry()
+	entry.Message = message
+	entry.Metadata = metadata
+	entry.Source = cmp.Or(h.cfg.Source, S3Source(key))
+	entry.Service = cmp.Or(h.cfg.Service, service, entry.Source)
+	entry.Tags = slices.Concat(tags, model.Tags{"service:" + entry.Service}, h.cfg.Tags)
+	return entry
 }
 
-func getS3Source(key string) string {
+func S3Source(key string) string {
 	if strings.Contains(key, s3KeyWAF1) || strings.Contains(key, s3KeyWAF2) {
 		return sourceWAF
 	}
