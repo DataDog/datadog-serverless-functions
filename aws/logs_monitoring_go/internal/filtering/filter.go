@@ -33,7 +33,7 @@ func compilePattern(pattern string) (*regexp.Regexp, error) {
 
 	re, err := regexp.Compile(pattern)
 	if err != nil {
-		return nil, fmt.Errorf("compile custom: %w", err)
+		return nil, fmt.Errorf("compile '%s': %w", pattern, err)
 	}
 	return re, nil
 }

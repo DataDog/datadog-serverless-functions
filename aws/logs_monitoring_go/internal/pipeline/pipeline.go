@@ -8,7 +8,6 @@ package pipeline
 import (
 	"context"
 	"encoding/json"
-	"errors"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/forwarding"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
@@ -30,8 +29,9 @@ func Start(
 		return run.Handler.Handle(ctx, event, entries)
 	})
 
-	forwarderErr := forwarder.Start(ctx, entries)
-	waitErr := g.Wait()
+	g.Go(func() error {
+		return forwarder.Start(ctx, entries)
+	})
 
-	return errors.Join(forwarderErr, waitErr)
+	return g.Wait()
 }
