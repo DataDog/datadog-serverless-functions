@@ -17,28 +17,25 @@ type Filter struct {
 }
 
 func NewFilter(includeMatch, excludeMatch string) (*Filter, error) {
-	var filter Filter
-	var err error
-	if includeMatch != "" {
-		re, includeErr := regexp.Compile(includeMatch)
-		if includeErr != nil {
-			err = errors.Join(err, fmt.Errorf("compile custom include: %w", includeErr))
-		} else {
-			filter.includeRegex = re
-		}
-	}
-	if excludeMatch != "" {
-		re, excludeErr := regexp.Compile(excludeMatch)
-		if excludeErr != nil {
-			err = errors.Join(err, fmt.Errorf("compile custom exclude: %w", excludeErr))
-		} else {
-			filter.excludeRegex = re
-		}
-	}
-	if err != nil {
+	includeRegex, includeErr := compilePattern(includeMatch)
+	excludeRegex, excludeErr := compilePattern(excludeMatch)
+
+	if err := errors.Join(includeErr, excludeErr); err != nil {
 		return nil, err
 	}
-	return &filter, nil
+	return &Filter{includeRegex: includeRegex, excludeRegex: excludeRegex}, nil
+}
+
+func compilePattern(pattern string) (*regexp.Regexp, error) {
+	if pattern == "" {
+		return nil, nil
+	}
+
+	re, err := regexp.Compile(pattern)
+	if err != nil {
+		return nil, fmt.Errorf("compile custom: %w", err)
+	}
+	return re, nil
 }
 
 func (f *Filter) ShouldExclude(content string) bool {

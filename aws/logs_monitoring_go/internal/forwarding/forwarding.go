@@ -41,17 +41,17 @@ func NewForwarder(cfg *config.Config, client *http.Client, storage string) Forwa
 }
 
 func (f Forwarder) Start(ctx context.Context, in <-chan model.LogEntry) error {
-	g, ctx := errgroup.WithContext(ctx)
+	eg, ctx := errgroup.WithContext(ctx)
 
 	batches := make(chan []byte)
 	batcher := batching.NewBatcher()
-	g.Go(func() error {
+	eg.Go(func() error {
 		defer close(batches)
 		return batcher.Batch(ctx, in, batches)
 	})
 
 	for range numWorkers {
-		g.Go(func() error {
+		eg.Go(func() error {
 			for {
 				body, ok, err := concurrent.SafeReader(ctx, batches)
 				if err != nil {
@@ -68,7 +68,7 @@ func (f Forwarder) Start(ctx context.Context, in <-chan model.LogEntry) error {
 		})
 	}
 
-	return g.Wait()
+	return eg.Wait()
 }
 
 // TODO: add retry mechanism for resiliency

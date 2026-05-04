@@ -75,11 +75,11 @@ func decompressCloudwatchLogs(data []byte) (events.CloudwatchLogsData, error) {
 		}
 	}()
 
-	var d events.CloudwatchLogsData
-	if err := json.NewDecoder(zr).Decode(&d); err != nil {
+	var cwData events.CloudwatchLogsData
+	if err := json.NewDecoder(zr).Decode(&cwData); err != nil {
 		return events.CloudwatchLogsData{}, fmt.Errorf("json decode: %w", err)
 	}
-	return d, nil
+	return cwData, nil
 }
 
 func (h CloudwatchHandler) handleCloudwatchData(ctx context.Context, cwData events.CloudwatchLogsData, out chan<- model.LogEntry) error {
