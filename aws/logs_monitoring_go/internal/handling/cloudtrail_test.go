@@ -57,7 +57,7 @@ func TestCloudTrailRegex(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			got := cloudTrailRegex().MatchString(tc.key)
+			got := cloudTrailRegex.MatchString(tc.key)
 			if got != tc.want {
 				t.Errorf("cloudTrailRegex().MatchString(%q) = %v, want %v", tc.key, got, tc.want)
 			}

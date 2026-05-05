@@ -77,7 +77,7 @@ func (h S3Handler) processRecord(ctx context.Context, client S3APIClient, out ch
 	}()
 
 	var records iter.Seq2[string, error]
-	isCloudTrail := cloudTrailRegex().MatchString(key)
+	isCloudTrail := cloudTrailRegex.MatchString(key)
 	if isCloudTrail {
 		records = decodeCloudTrail(body)
 	} else {

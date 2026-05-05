@@ -15,7 +15,6 @@ import (
 	"log/slog"
 	"regexp"
 	"strings"
-	"sync"
 )
 
 const (
@@ -23,11 +22,10 @@ const (
 	cloudTrailUserIdentityKey = "userIdentity"
 )
 
-var cloudTrailRegex = regexp.MustCompile(`\d+_CloudTrail(|-Digest|-Insight)_\w{2}(|-gov|-cn)-\w{4,9}-\d_(|.+)\d{8}T\d{4,6}Z(|.+)\.json\.gz$`)
-
-var ec2InstanceRegexp = sync.OnceValue(func() *regexp.Regexp {
-	return regexp.MustCompile(`^arn:aws:sts::.*?:assumed-role/(?P<role>.*?)/(?P<host>i-([0-9a-f]{8}|[0-9a-f]{17}))$`)
-})
+var (
+	cloudTrailRegex   = regexp.MustCompile(`\d+_CloudTrail(|-Digest|-Insight)_\w{2}(|-gov|-cn)-\w{4,9}-\d_(|.+)\d{8}T\d{4,6}Z(|.+)\.json\.gz$`)
+	ec2InstanceRegexp = regexp.MustCompile(`^arn:aws:sts::.*?:assumed-role/(?P<role>.*?)/(?P<host>i-([0-9a-f]{8}|[0-9a-f]{17}))$`)
+)
 
 func decodeCloudTrail(r io.Reader) iter.Seq2[string, error] {
 	return func(yield func(string, error) bool) {
@@ -107,13 +105,12 @@ func cloudtrailHost(message string) string {
 				return ""
 			}
 
-			re := ec2InstanceRegexp()
-			matches := re.FindStringSubmatch(arn)
+			matches := ec2InstanceRegexp.FindStringSubmatch(arn)
 			if matches == nil {
 				slog.Debug(arn + " arn did not match an EC2 host instance, cloudtrail host extraction skipped")
 				return ""
 			}
-			return matches[re.SubexpIndex("host")]
+			return matches[ec2InstanceRegexp.SubexpIndex("host")]
 		}
 		return ""
 	}
