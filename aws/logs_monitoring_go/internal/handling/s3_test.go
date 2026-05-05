@@ -30,7 +30,7 @@ var (
 		},
 	}
 
-	testCloudTrailKey    = "601427279990_CloudTrail_us-east-1_20210503T0000Z_QrttGEk4ZcBTLwj5.json.gz"
+	testCloudTrailKey         = "601427279990_CloudTrail_us-east-1_20210503T0000Z_QrttGEk4ZcBTLwj5.json.gz"
 	testCloudTrailEventRecord = events.S3EventRecord{
 		S3: events.S3Entity{
 			Bucket: events.S3Bucket{Name: "trail-bucket"},
@@ -43,11 +43,11 @@ func TestProcessS3Record(t *testing.T) {
 	t.Parallel()
 
 	tests := map[string]struct {
-		mockSetup func(m *MockS3APIClient)
-		cfg       *config.Config
+		mockSetup   func(m *MockS3APIClient)
+		cfg         *config.Config
 		eventRecord events.S3EventRecord
-		want     []model.LogEntry
-		wantErr   bool
+		want        []model.LogEntry
+		wantErr     bool
 	}{
 		"single line": {
 			mockSetup: func(m *MockS3APIClient) {
@@ -170,7 +170,7 @@ func TestProcessS3Record(t *testing.T) {
 						Body: io.NopCloser(bytes.NewReader(data)),
 					}, nil)
 			},
-			cfg:      testutil.EmptyConfig(),
+			cfg:         testutil.EmptyConfig(),
 			eventRecord: testCloudTrailEventRecord,
 			want: []model.LogEntry{
 				wantCloudTrailEntry(
@@ -196,7 +196,7 @@ func TestProcessS3Record(t *testing.T) {
 						Body: io.NopCloser(bytes.NewReader(data)),
 					}, nil)
 			},
-			cfg:      testutil.EmptyConfig(),
+			cfg:         testutil.EmptyConfig(),
 			eventRecord: testCloudTrailEventRecord,
 			want: []model.LogEntry{
 				wantCloudTrailEntry(
