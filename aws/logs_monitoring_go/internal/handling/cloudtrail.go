@@ -23,9 +23,7 @@ const (
 	cloudTrailUserIdentityKey = "userIdentity"
 )
 
-var cloudTrailRegex = sync.OnceValue(func() *regexp.Regexp {
-	return regexp.MustCompile(`\d+_CloudTrail(|-Digest|-Insight)_\w{2}(|-gov|-cn)-\w{4,9}-\d_(|.+)\d{8}T\d{4,6}Z(|.+)\.json\.gz$`)
-})
+var cloudTrailRegex = regexp.MustCompile(`\d+_CloudTrail(|-Digest|-Insight)_\w{2}(|-gov|-cn)-\w{4,9}-\d_(|.+)\d{8}T\d{4,6}Z(|.+)\.json\.gz$`)
 
 var ec2InstanceRegexp = sync.OnceValue(func() *regexp.Regexp {
 	return regexp.MustCompile(`^arn:aws:sts::.*?:assumed-role/(?P<role>.*?)/(?P<host>i-([0-9a-f]{8}|[0-9a-f]{17}))$`)
