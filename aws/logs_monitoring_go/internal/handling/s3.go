@@ -31,7 +31,6 @@ const (
 type s3Record struct {
 	Message string
 	Host    string
-	Err     error
 }
 
 type S3Handler struct {
@@ -82,16 +81,16 @@ func (h S3Handler) processRecord(ctx context.Context, client S3APIClient, out ch
 		}
 	}()
 
-	var records iter.Seq[s3Record]
+	var records iter.Seq2[s3Record, error]
 	if cloudTrailRegex().MatchString(key) {
 		records = decodeCloudTrail(body)
 	} else {
 		records = scan(body, h.cfg.S3MultilineLogRegex)
 	}
 
-	for rec := range records {
-		if rec.Err != nil {
-			return rec.Err
+	for rec, err := range records {
+		if err != nil {
+			return err
 		}
 		entry := h.newS3LogEntry(eventRecord, rec.Message, lambdaOrigin)
 		if h.cfg.Filter.ShouldExclude(entry.Message) {

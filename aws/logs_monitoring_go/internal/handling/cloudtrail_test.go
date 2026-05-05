@@ -198,10 +198,10 @@ func TestDecodeCloudTrail(t *testing.T) {
 			t.Parallel()
 
 			var got []s3Record
-			for rec := range decodeCloudTrail(bytes.NewReader(tc.input)) {
-				if rec.Err != nil {
+			for rec, err := range decodeCloudTrail(bytes.NewReader(tc.input)) {
+				if err != nil {
 					if !tc.wantErr {
-						t.Fatalf("unexpected error: %v", rec.Err)
+						t.Fatalf("unexpected error: %v", err)
 					}
 					return
 				}

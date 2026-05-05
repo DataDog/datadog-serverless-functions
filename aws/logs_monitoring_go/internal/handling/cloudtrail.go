@@ -30,11 +30,11 @@ var ec2InstanceRegexp = sync.OnceValue(func() *regexp.Regexp {
 	return regexp.MustCompile(`^arn:aws:sts::.*?:assumed-role/(?P<role>.*?)/(?P<host>i-([0-9a-f]{8}|[0-9a-f]{17}))$`)
 })
 
-func decodeCloudTrail(r io.Reader) iter.Seq[s3Record] {
-	return func(yield func(s3Record) bool) {
+func decodeCloudTrail(r io.Reader) iter.Seq2[s3Record, error] {
+	return func(yield func(s3Record, error) bool) {
 		gz, err := gzip.NewReader(r)
 		if err != nil {
-			yield(s3Record{Err: fmt.Errorf("decode cloudtrail gzip: %w", err)})
+			yield(s3Record{}, fmt.Errorf("decode cloudtrail gzip: %w", err))
 			return
 		}
 		defer gz.Close() //nolint:errcheck
@@ -42,33 +42,33 @@ func decodeCloudTrail(r io.Reader) iter.Seq[s3Record] {
 		dec := json.NewDecoder(gz)
 
 		if t, err := dec.Token(); err != nil || t != json.Delim('{') {
-			yield(s3Record{Err: errors.New("decode cloudtrail: expected '{' at start of JSON")})
+			yield(s3Record{}, errors.New("decode cloudtrail: expected '{' at start of JSON"))
 			return
 		}
 		if t, err := dec.Token(); err != nil || t != "Records" {
-			yield(s3Record{Err: errors.New("decode cloudtrail: expected 'Records' key")})
+			yield(s3Record{}, errors.New("decode cloudtrail: expected 'Records' key"))
 			return
 		}
 		if t, err := dec.Token(); err != nil || t != json.Delim('[') {
-			yield(s3Record{Err: errors.New("decode cloudtrail: expected '[' at start of Records array")})
+			yield(s3Record{}, errors.New("decode cloudtrail: expected '[' at start of Records array"))
 			return
 		}
 
 		for dec.More() {
 			var record map[string]any
 			if err := dec.Decode(&record); err != nil {
-				yield(s3Record{Err: fmt.Errorf("decode cloudtrail record: %w", err)})
+				yield(s3Record{}, fmt.Errorf("decode cloudtrail record: %w", err))
 				return
 			}
 
 			msg, err := json.Marshal(record)
 			if err != nil {
-				yield(s3Record{Err: fmt.Errorf("marshal cloudtrail record: %w", err)})
+				yield(s3Record{}, fmt.Errorf("marshal cloudtrail record: %w", err))
 				return
 			}
 
 			host := cloudtrailHost(record)
-			if !yield(s3Record{Message: string(msg), Host: host}) {
+			if !yield(s3Record{Message: string(msg), Host: host}, nil) {
 				return
 			}
 		}
@@ -98,7 +98,7 @@ func cloudtrailHost(record map[string]any) string {
 	re := ec2InstanceRegexp()
 	matches := re.FindStringSubmatch(arn)
 	if matches == nil {
-		slog.Debug(arn + " arn did not match, cloudtrail host extraction skipped")
+		slog.Debug(arn + " arn did not match an EC2 host instance, cloudtrail host extraction skipped")
 		return ""
 	}
 
