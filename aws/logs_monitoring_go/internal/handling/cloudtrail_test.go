@@ -69,53 +69,44 @@ func TestCloudtrailHost(t *testing.T) {
 	t.Parallel()
 
 	tests := map[string]struct {
-		record map[string]any
-		want   string
+		message string
+		want    string
 	}{
 		"ec2 instance (17)": {
-			record: map[string]any{
-				"userIdentity": map[string]any{
-					"arn": "arn:aws:sts::601427279990:assumed-role/MyRole/i-08014e4f62ccf762d",
-				},
-			},
-			want: "i-08014e4f62ccf762d",
+			message: `{"userIdentity":{"arn":"arn:aws:sts::601427279990:assumed-role/MyRole/i-08014e4f62ccf762d"}}`,
+			want:    "i-08014e4f62ccf762d",
 		},
 		"ec2 instance (8)": {
-			record: map[string]any{
-				"userIdentity": map[string]any{
-					"arn": "arn:aws:sts::601427279990:assumed-role/MyRole/i-abcd1234",
-				},
-			},
-			want: "i-abcd1234",
+			message: `{"userIdentity":{"arn":"arn:aws:sts::601427279990:assumed-role/MyRole/i-abcd1234"}}`,
+			want:    "i-abcd1234",
 		},
 		"non ec2 arn": {
-			record: map[string]any{
-				"userIdentity": map[string]any{
-					"arn": "arn:aws:sts::601427279990:assumed-role/MyRole/my-session",
-				},
-			},
-			want: "",
+			message: `{"userIdentity":{"arn":"arn:aws:sts::601427279990:assumed-role/MyRole/my-session"}}`,
+			want:    "",
 		},
 		"missing userIdentity": {
-			record: map[string]any{"eventName": "DescribeTable"},
-			want:   "",
+			message: `{"eventName":"DescribeTable"}`,
+			want:    "",
 		},
 		"missing arn": {
-			record: map[string]any{
-				"userIdentity": map[string]any{
-					"type": "AssumedRole",
-				},
-			},
-			want: "",
+			message: `{"userIdentity":{"type":"AssumedRole"}}`,
+			want:    "",
+		},
+		"invalid json": {
+			message: "not json",
+			want:    "",
+		},
+		"empty message": {
+			message: "",
+			want:    "",
 		},
 	}
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			host := cloudtrailHost(tc.record)
-			if host != tc.want {
-				t.Errorf("want %q, got %q", tc.want, host)
+			if got := cloudtrailHost(tc.message); got != tc.want {
+				t.Errorf("want %q, got %q", tc.want, got)
 			}
 		})
 	}
@@ -126,10 +117,10 @@ func TestDecodeCloudTrail(t *testing.T) {
 
 	tests := map[string]struct {
 		input   []byte
-		want    []s3Record
+		want    []string
 		wantErr bool
 	}{
-		"single record with ec2 host": {
+		"single record": {
 			input: testutil.MustGzipJSON(t, map[string]any{
 				"Records": []any{
 					map[string]any{
@@ -140,29 +131,8 @@ func TestDecodeCloudTrail(t *testing.T) {
 					},
 				},
 			}),
-			want: []s3Record{
-				{
-					Message: `{"eventName":"DescribeTable","userIdentity":{"arn":"arn:aws:sts::601427279990:assumed-role/MyRole/i-08014e4f62ccf762d"}}`,
-					Host:    "i-08014e4f62ccf762d",
-				},
-			},
-		},
-		"single record without ec2 host": {
-			input: testutil.MustGzipJSON(t, map[string]any{
-				"Records": []any{
-					map[string]any{
-						"eventName": "DescribeTable",
-						"userIdentity": map[string]any{
-							"arn": "arn:aws:iam::601427279990:user/admin",
-						},
-					},
-				},
-			}),
-			want: []s3Record{
-				{
-					Message: `{"eventName":"DescribeTable","userIdentity":{"arn":"arn:aws:iam::601427279990:user/admin"}}`,
-					Host:    "",
-				},
+			want: []string{
+				`{"eventName":"DescribeTable","userIdentity":{"arn":"arn:aws:sts::601427279990:assumed-role/MyRole/i-08014e4f62ccf762d"}}`,
 			},
 		},
 		"multiple records": {
@@ -172,9 +142,9 @@ func TestDecodeCloudTrail(t *testing.T) {
 					map[string]any{"eventName": "event2"},
 				},
 			}),
-			want: []s3Record{
-				{Message: `{"eventName":"event1"}`},
-				{Message: `{"eventName":"event2"}`},
+			want: []string{
+				`{"eventName":"event1"}`,
+				`{"eventName":"event2"}`,
 			},
 		},
 		"empty records array": {
@@ -197,15 +167,15 @@ func TestDecodeCloudTrail(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			var got []s3Record
-			for rec, err := range decodeCloudTrail(bytes.NewReader(tc.input)) {
+			var got []string
+			for msg, err := range decodeCloudTrail(bytes.NewReader(tc.input)) {
 				if err != nil {
 					if !tc.wantErr {
 						t.Fatalf("unexpected error: %v", err)
 					}
 					return
 				}
-				got = append(got, rec)
+				got = append(got, msg)
 			}
 
 			if tc.wantErr {

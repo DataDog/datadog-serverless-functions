@@ -28,11 +28,6 @@ const (
 	s3KeyCloudtrail = "_CloudTrail_"
 )
 
-type s3Record struct {
-	Message string
-	Host    string
-}
-
 type S3Handler struct {
 	cfg *config.Config
 }
@@ -81,23 +76,27 @@ func (h S3Handler) processRecord(ctx context.Context, client S3APIClient, out ch
 		}
 	}()
 
-	var records iter.Seq2[s3Record, error]
-	if cloudTrailRegex().MatchString(key) {
+	var records iter.Seq2[string, error]
+	isCloudTrail := cloudTrailRegex().MatchString(key)
+	if isCloudTrail {
 		records = decodeCloudTrail(body)
 	} else {
 		records = scan(body, h.cfg.S3MultilineLogRegex)
 	}
 
-	for rec, err := range records {
+	for message, err := range records {
 		if err != nil {
 			return err
 		}
-		entry := h.newS3LogEntry(eventRecord, rec.Message, lambdaOrigin)
+		entry := h.newS3LogEntry(eventRecord, message, lambdaOrigin)
 		if h.cfg.Filter.ShouldExclude(entry.Message) {
 			continue
 		}
 
-		entry.Host = cmp.Or(h.cfg.Host, rec.Host)
+		if isCloudTrail {
+			entry.Host = cloudtrailHost(message)
+		}
+		entry.Host = cmp.Or(h.cfg.Host, entry.Host)
 		entry.Message = h.cfg.Scrubber.Scrub(entry.Message)
 		if err := concurrent.SafeSender(ctx, out, entry); err != nil {
 			return err
