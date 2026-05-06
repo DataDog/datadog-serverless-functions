@@ -8,17 +8,28 @@ package handling
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/parsing"
 )
-
-var Handlers = make(map[parsing.InvocationSource]Handler)
 
 type Handler interface {
 	Handle(ctx context.Context, event json.RawMessage, out chan<- model.LogEntry) error
 }
 
-func Register(invocation parsing.InvocationSource, handler Handler) {
-	Handlers[invocation] = handler
+func NewHandler(ct parsing.ContentType, cfg *config.Config) (Handler, error) {
+	switch ct {
+	case parsing.ContentTypeCloudwatchLogs:
+		return NewCloudwatch(cfg), nil
+	case parsing.ContentTypeS3:
+		return NewS3(cfg), nil
+	case parsing.ContentTypeKinesis:
+		return NewKinesis(cfg), nil
+	case parsing.ContentTypeEventBridge:
+		return NewEventBridge(cfg), nil
+	default:
+		return nil, fmt.Errorf("unsupported content type: %v", ct)
+	}
 }

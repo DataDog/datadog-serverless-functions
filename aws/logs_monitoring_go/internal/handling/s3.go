@@ -38,7 +38,7 @@ func NewS3(cfg *config.Config) *S3Handler {
 	}
 }
 
-func (h S3Handler) Handle(ctx context.Context, event json.RawMessage, out chan<- model.LogEntry) error {
+func (h *S3Handler) Handle(ctx context.Context, event json.RawMessage, out chan<- model.LogEntry) error {
 	var s3Event events.S3Event
 	if err := json.Unmarshal(event, &s3Event); err != nil {
 		return fmt.Errorf("unmarshal: %w", err)
