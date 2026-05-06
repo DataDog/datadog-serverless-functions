@@ -111,7 +111,7 @@ func (h S3Handler) newS3LogEntry(record events.S3EventRecord, message string, la
 	entry.Metadata = metadata
 	entry.Source = cmp.Or(h.cfg.Source, S3Source(key))
 	entry.Service = cmp.Or(h.cfg.Service, service, entry.Source)
-	entry.Tags = slices.Concat(tags, model.Tags{"service:" + entry.Service}, h.cfg.Tags)
+	entry.Tags = slices.Concat(tags, h.cfg.Tags)
 	return entry
 }
 
