@@ -94,7 +94,7 @@ func (h S3Handler) processRecord(ctx context.Context, client S3APIClient, out ch
 		}
 
 		if isCloudTrail {
-			entry.Host = cmp.Or(h.cfg.Host, cloudtrailHost(message))
+			entry.Host = cloudtrailHost(message)
 		}
 		entry.Message = h.cfg.Scrubber.Scrub(entry.Message)
 		if err := concurrent.SafeSender(ctx, out, entry); err != nil {

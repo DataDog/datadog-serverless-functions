@@ -135,10 +135,8 @@ func (h CloudwatchHandler) newCloudwatchLogEntry(event events.CloudwatchLogsLogE
 	entry.ID = event.ID
 	entry.Timestamp = event.Timestamp
 
-	if h.cfg.Host == "" && entry.Source == sourceCloudtrail {
-		if host := cloudtrailHost(event.Message); host != "" {
-			entry.Host = host
-		}
+	if entry.Source == sourceCloudtrail {
+		entry.Host = cloudtrailHost(event.Message)
 	}
 
 	return entry

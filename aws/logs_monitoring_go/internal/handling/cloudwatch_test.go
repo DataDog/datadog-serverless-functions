@@ -178,7 +178,7 @@ func TestCloudwatchHandler_Handle(t *testing.T) {
 					SourceCategory: "aws",
 					Service:        "cloudtrail",
 					Tags:           model.Tags{"service:cloudtrail"},
-					Host:           "cloudtrail-logs",
+					Host:           "",
 					ID:             "ct2",
 					Timestamp:      1620000000000,
 					Metadata: model.CloudwatchMetadata{
