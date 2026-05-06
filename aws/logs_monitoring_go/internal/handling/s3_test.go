@@ -56,9 +56,8 @@ func TestProcessS3Record(t *testing.T) {
 						Body: io.NopCloser(strings.NewReader("line1")),
 					}, nil)
 			},
-			cfg:      testutil.EmptyConfig(),
-			chanSize: 1,
-			want:     []model.LogEntry{wantS3Entry("line1", "s3", "s3", nil)},
+			cfg:  testutil.EmptyConfig(),
+			want: []model.LogEntry{wantS3Entry("line1", "s3", "s3", nil)},
 		},
 		"multiple lines": {
 			mockSetup: func(m *MockS3APIClient) {
@@ -102,9 +101,8 @@ func TestProcessS3Record(t *testing.T) {
 						Body: io.NopCloser(strings.NewReader(`{"ddtags":"env:prod,service:myapp","msg":"hello"}`)),
 					}, nil)
 			},
-			cfg:      testutil.EmptyConfig(),
-			chanSize: 1,
-			want:     []model.LogEntry{wantS3Entry(`{"msg":"hello"}`, "s3", "myapp", model.Tags{"env:prod"})},
+			cfg:  testutil.EmptyConfig(),
+			want: []model.LogEntry{wantS3Entry(`{"msg":"hello"}`, "s3", "myapp", model.Tags{"env:prod"})},
 		},
 		"invalid utf8 stripped": {
 			mockSetup: func(m *MockS3APIClient) {
@@ -113,9 +111,8 @@ func TestProcessS3Record(t *testing.T) {
 						Body: io.NopCloser(strings.NewReader("hello\x80world")),
 					}, nil)
 			},
-			cfg:      testutil.EmptyConfig(),
-			chanSize: 1,
-			want:     []model.LogEntry{wantS3Entry("helloworld", "s3", "s3", nil)},
+			cfg:  testutil.EmptyConfig(),
+			want: []model.LogEntry{wantS3Entry("helloworld", "s3", "s3", nil)},
 		},
 		"multiline groups continuation lines": {
 			mockSetup: func(m *MockS3APIClient) {
@@ -138,9 +135,8 @@ func TestProcessS3Record(t *testing.T) {
 						Body: io.NopCloser(strings.NewReader("2024-01-15 ERROR\n    stacktrace")),
 					}, nil)
 			},
-			cfg:      &config.Config{S3MultilineLogRegex: regexp.MustCompile(`\d{4}-\d{2}-\d{2}`)},
-			chanSize: 1,
-			want:     []model.LogEntry{wantS3Entry("2024-01-15 ERROR\n    stacktrace", "s3", "s3", nil)},
+			cfg:  &config.Config{S3MultilineLogRegex: regexp.MustCompile(`\d{4}-\d{2}-\d{2}`)},
+			want: []model.LogEntry{wantS3Entry("2024-01-15 ERROR\n    stacktrace", "s3", "s3", nil)},
 		},
 		"custom tags passed through": {
 			mockSetup: func(m *MockS3APIClient) {
@@ -149,9 +145,8 @@ func TestProcessS3Record(t *testing.T) {
 						Body: io.NopCloser(strings.NewReader("line1")),
 					}, nil)
 			},
-			cfg:      &config.Config{Tags: model.Tags{"env:prod", "team:aws"}},
-			chanSize: 1,
-			want:     []model.LogEntry{wantS3Entry("line1", "s3", "s3", model.Tags{"env:prod", "team:aws"})},
+			cfg:  &config.Config{Tags: model.Tags{"env:prod", "team:aws"}},
+			want: []model.LogEntry{wantS3Entry("line1", "s3", "s3", model.Tags{"env:prod", "team:aws"})},
 		},
 		"cloudtrail with ec2 host": {
 			mockSetup: func(m *MockS3APIClient) {
