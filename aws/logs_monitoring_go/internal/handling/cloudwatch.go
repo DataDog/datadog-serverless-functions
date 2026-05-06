@@ -130,7 +130,7 @@ func (h CloudwatchHandler) newCloudwatchBaseEntry(data events.CloudwatchLogsData
 func (h CloudwatchHandler) newCloudwatchLogEntry(event events.CloudwatchLogsLogEvent, entry model.LogEntry) model.LogEntry {
 	tags, service, message := extractFromMessage(event.Message)
 	entry.Service = cmp.Or(h.cfg.Service, service, entry.Source)
-	entry.Tags = slices.Concat(tags, model.Tags{"service:" + entry.Service}, h.cfg.Tags)
+	entry.Tags = slices.Concat(tags, h.cfg.Tags)
 	entry.Message = message
 	entry.ID = event.ID
 	entry.Timestamp = event.Timestamp

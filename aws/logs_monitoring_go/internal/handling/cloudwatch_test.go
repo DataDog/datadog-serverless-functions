@@ -70,7 +70,6 @@ func TestCloudwatchHandler_Handle(t *testing.T) {
 					Source:         "lambda",
 					SourceCategory: "aws",
 					Service:        "lambda",
-					Tags:           model.Tags{"service:lambda"},
 					Host:           "/aws/lambda/testing-datadog",
 					ID:             "ev1",
 					Timestamp:      1583425836114,
@@ -101,7 +100,7 @@ func TestCloudwatchHandler_Handle(t *testing.T) {
 			want: []model.LogEntry{
 				{
 					Message: "first", Source: "lambda", SourceCategory: "aws",
-					Service: "lambda", Tags: model.Tags{"service:lambda"},
+					Service: "lambda",
 					Host: "/aws/lambda/fn", ID: "a1", Timestamp: 1000,
 					Metadata: model.CloudwatchMetadata{
 						LambdaOrigin: model.LambdaOrigin{ARN: "arn:aws:lambda:us-east-1:123456789012:function:forwarder"},
@@ -110,7 +109,7 @@ func TestCloudwatchHandler_Handle(t *testing.T) {
 				},
 				{
 					Message: "second", Source: "lambda", SourceCategory: "aws",
-					Service: "lambda", Tags: model.Tags{"service:lambda"},
+					Service: "lambda",
 					Host: "/aws/lambda/fn", ID: "a2", Timestamp: 2000,
 					Metadata: model.CloudwatchMetadata{
 						LambdaOrigin: model.LambdaOrigin{ARN: "arn:aws:lambda:us-east-1:123456789012:function:forwarder"},
@@ -140,7 +139,7 @@ func TestCloudwatchHandler_Handle(t *testing.T) {
 				{
 					Message: "hello", Source: "custom-source", SourceCategory: "aws",
 					Service: "custom-service",
-					Tags:    model.Tags{"service:custom-service", "env:prod", "team:infra"},
+					Tags:    model.Tags{"env:prod", "team:infra"},
 					Host:    "custom-host", ID: "ev1", Timestamp: 1000,
 					Metadata: model.CloudwatchMetadata{
 						LambdaOrigin: model.LambdaOrigin{ARN: "arn:aws:lambda:us-east-1:123456789012:function:forwarder"},

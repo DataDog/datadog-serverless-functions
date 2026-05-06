@@ -47,7 +47,7 @@ func TestProcessS3Record(t *testing.T) {
 			},
 			cfg:      testutil.EmptyConfig(),
 			chanSize: 1,
-			want:     []model.LogEntry{wantS3Entry("line1", "s3", "s3", model.Tags{"service:s3"})},
+			want:     []model.LogEntry{wantS3Entry("line1", "s3", "s3", nil)},
 		},
 		"multiple lines": {
 			mockSetup: func(m *MockS3APIClient) {
@@ -59,9 +59,9 @@ func TestProcessS3Record(t *testing.T) {
 			cfg:      testutil.EmptyConfig(),
 			chanSize: 3,
 			want: []model.LogEntry{
-				wantS3Entry("line1", "s3", "s3", model.Tags{"service:s3"}),
-				wantS3Entry("line2", "s3", "s3", model.Tags{"service:s3"}),
-				wantS3Entry("line3", "s3", "s3", model.Tags{"service:s3"}),
+				wantS3Entry("line1", "s3", "s3", nil),
+				wantS3Entry("line2", "s3", "s3", nil),
+				wantS3Entry("line3", "s3", "s3", nil),
 			},
 		},
 		"empty file": {
@@ -91,7 +91,7 @@ func TestProcessS3Record(t *testing.T) {
 			},
 			cfg:      testutil.EmptyConfig(),
 			chanSize: 1,
-			want:     []model.LogEntry{wantS3Entry(`{"msg":"hello"}`, "s3", "myapp", model.Tags{"env:prod", "service:myapp"})},
+			want:     []model.LogEntry{wantS3Entry(`{"msg":"hello"}`, "s3", "myapp", model.Tags{"env:prod"})},
 		},
 		"invalid utf8 stripped": {
 			mockSetup: func(m *MockS3APIClient) {
@@ -102,7 +102,7 @@ func TestProcessS3Record(t *testing.T) {
 			},
 			cfg:      testutil.EmptyConfig(),
 			chanSize: 1,
-			want:     []model.LogEntry{wantS3Entry("helloworld", "s3", "s3", model.Tags{"service:s3"})},
+			want:     []model.LogEntry{wantS3Entry("helloworld", "s3", "s3", nil)},
 		},
 		"multiline groups continuation lines": {
 			mockSetup: func(m *MockS3APIClient) {
@@ -114,8 +114,8 @@ func TestProcessS3Record(t *testing.T) {
 			cfg:      &config.Config{S3MultilineLogRegex: regexp.MustCompile(`\d{4}-\d{2}-\d{2}`)},
 			chanSize: 2,
 			want: []model.LogEntry{
-				wantS3Entry("2024-01-15 ERROR NullPointer\n    at com.foo.Bar\n", "s3", "s3", model.Tags{"service:s3"}),
-				wantS3Entry("2024-01-15 INFO started", "s3", "s3", model.Tags{"service:s3"}),
+				wantS3Entry("2024-01-15 ERROR NullPointer\n    at com.foo.Bar\n", "s3", "s3", nil),
+				wantS3Entry("2024-01-15 INFO started", "s3", "s3", nil),
 			},
 		},
 		"multiline flushes at eof": {
@@ -127,7 +127,7 @@ func TestProcessS3Record(t *testing.T) {
 			},
 			cfg:      &config.Config{S3MultilineLogRegex: regexp.MustCompile(`\d{4}-\d{2}-\d{2}`)},
 			chanSize: 1,
-			want:     []model.LogEntry{wantS3Entry("2024-01-15 ERROR\n    stacktrace", "s3", "s3", model.Tags{"service:s3"})},
+			want:     []model.LogEntry{wantS3Entry("2024-01-15 ERROR\n    stacktrace", "s3", "s3", nil)},
 		},
 		"custom tags passed through": {
 			mockSetup: func(m *MockS3APIClient) {
@@ -138,7 +138,7 @@ func TestProcessS3Record(t *testing.T) {
 			},
 			cfg:      &config.Config{Tags: model.Tags{"env:prod", "team:aws"}},
 			chanSize: 1,
-			want:     []model.LogEntry{wantS3Entry("line1", "s3", "s3", model.Tags{"service:s3", "env:prod", "team:aws"})},
+			want:     []model.LogEntry{wantS3Entry("line1", "s3", "s3", model.Tags{"env:prod", "team:aws"})},
 		},
 	}
 
