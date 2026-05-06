@@ -7,31 +7,47 @@ package pipeline
 
 import (
 	"context"
-	"encoding/json"
+	"errors"
 
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/forwarding"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/handling"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/parsing"
 	"golang.org/x/sync/errgroup"
 )
 
 func Start(
 	ctx context.Context,
-	event json.RawMessage,
-	run *Run,
+	parsedEvents []parsing.ParsedEvent,
+	cfg *config.Config,
 ) error {
-	g, ctx := errgroup.WithContext(ctx)
+	if len(parsedEvents) == 0 {
+		return errors.New("no events to process")
+	}
+
+	eg, ctx := errgroup.WithContext(ctx)
 
 	entries := make(chan model.LogEntry)
-	forwarder := forwarding.NewForwarder(run.Cfg, forwarding.Client, run.Storage)
+	forwarder := forwarding.NewForwarder(cfg, forwarding.Client, forwarding.StorageFromContentType(parsedEvents[0].ContentType))
 
-	g.Go(func() error {
+	eg.Go(func() error {
 		defer close(entries)
-		return run.Handler.Handle(ctx, event, entries)
+		for _, parsedEvent := range parsedEvents {
+			handler, err := handling.NewHandler(parsedEvent.ContentType, cfg)
+			if err != nil {
+				return err
+			}
+			if err := handler.Handle(ctx, parsedEvent.Payload, entries); err != nil {
+				return err
+			}
+		}
+		return nil
 	})
 
-	g.Go(func() error {
+	eg.Go(func() error {
 		return forwarder.Start(ctx, entries)
 	})
 
-	return g.Wait()
+	return eg.Wait()
 }
