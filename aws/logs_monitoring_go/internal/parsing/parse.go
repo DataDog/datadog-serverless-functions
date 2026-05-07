@@ -13,6 +13,8 @@ import (
 )
 
 const (
+	eventSourceKey     = "eventSource"
+	eventSourceSNSKey  = "EventSource"
 	eventSourceS3      = "aws:s3"
 	eventSourceKinesis = "aws:kinesis"
 )
@@ -61,7 +63,7 @@ func parseRecords(event json.RawMessage, dec *json.Decoder) ([]ParsedEvent, erro
 		if err != nil {
 			return nil, fmt.Errorf("read record key: %w", err)
 		}
-		if key != "eventSource" && key != "EventSource" {
+		if key != eventSourceKey && key != eventSourceSNSKey {
 			var skip json.RawMessage
 			if err := dec.Decode(&skip); err != nil {
 				return nil, fmt.Errorf("skip record field: %w", err)
@@ -74,17 +76,17 @@ func parseRecords(event json.RawMessage, dec *json.Decoder) ([]ParsedEvent, erro
 			return nil, fmt.Errorf("read event source value: %w", err)
 		}
 
-		source, ok := val.(string)
+		eventSource, ok := val.(string)
 		if !ok {
 			return nil, fmt.Errorf("eventSource is not a string: %v", val)
 		}
-		switch source {
+		switch eventSource {
 		case eventSourceS3:
 			return []ParsedEvent{{ContentTypeS3, event}}, nil
 		case eventSourceKinesis:
 			return []ParsedEvent{{ContentTypeKinesis, event}}, nil
 		default:
-			return nil, fmt.Errorf("parse records: unsupported event source %q", source)
+			return nil, fmt.Errorf("parse records: unsupported event source %q", eventSource)
 		}
 	}
 
