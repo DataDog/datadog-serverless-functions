@@ -64,7 +64,7 @@ func parseRecords(event json.RawMessage, dec *json.Decoder) ([]ParsedEvent, erro
 			return nil, fmt.Errorf("read record key: %w", err)
 		}
 
-		if !strings.EqualFold(key.(string), eventSourceKey) { // SNS has EventSource, others have eventSource
+		if !strings.EqualFold(key.(string), eventSourceKey) { // SNS event source key has a capital letter
 			var skip json.RawMessage
 			if err := dec.Decode(&skip); err != nil {
 				return nil, fmt.Errorf("skip record field: %w", err)
