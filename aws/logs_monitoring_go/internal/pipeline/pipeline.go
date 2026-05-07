@@ -45,9 +45,9 @@ func Start(
 		return nil
 	})
 
-	eg.Go(func() error {
-		return forwarder.Start(ctx, entries)
-	})
-
-	return eg.Wait()
+	err := forwarder.Start(ctx, entries)
+	if waitErr := eg.Wait(); waitErr != nil {
+		return errors.Join(err, waitErr)
+	}
+	return err
 }

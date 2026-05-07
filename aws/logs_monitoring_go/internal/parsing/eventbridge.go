@@ -31,17 +31,17 @@ func parseEventBridge(event json.RawMessage) ([]ParsedEvent, error) {
 		if err != nil {
 			return nil, fmt.Errorf("build s3 event from eventbridge: %w", err)
 		}
-		return []ParsedEvent{{ContentTypeS3, s3Event}}, nil
+		return []ParsedEvent{{ContentType: ContentTypeS3, Payload: s3Event}}, nil
 	}
 
-	return []ParsedEvent{{ContentTypeEventBridge, event}}, nil
+	return []ParsedEvent{{ContentType: ContentTypeEventBridge, Payload: event}}, nil
 }
 
 func decodeEventBridgeEnvelope(event json.RawMessage) (source, detailType string, detail json.RawMessage, err error) {
 	dec := json.NewDecoder(bytes.NewReader(event))
 
 	if t, err := dec.Token(); err != nil || t != json.Delim('{') {
-		return "", "", nil, errors.New("eventbridge envelope: expected '{'")
+		return "", "", nil, errors.New("expected '{'")
 	}
 
 	for dec.More() {
@@ -49,18 +49,19 @@ func decodeEventBridgeEnvelope(event json.RawMessage) (source, detailType string
 		if err != nil {
 			return "", "", nil, fmt.Errorf("read key: %w", err)
 		}
+
 		switch key {
 		case "source":
 			if err := dec.Decode(&source); err != nil {
-				return "", "", nil, fmt.Errorf("decode source: %w", err)
+				return "", "", nil, fmt.Errorf("source: %w", err)
 			}
 		case "detail-type":
 			if err := dec.Decode(&detailType); err != nil {
-				return "", "", nil, fmt.Errorf("decode detail-type: %w", err)
+				return "", "", nil, fmt.Errorf("detail-type: %w", err)
 			}
 		case "detail":
 			if err := dec.Decode(&detail); err != nil {
-				return "", "", nil, fmt.Errorf("decode detail: %w", err)
+				return "", "", nil, fmt.Errorf("detail: %w", err)
 			}
 		default:
 			var skip json.RawMessage
@@ -76,7 +77,7 @@ func decodeEventBridgeEnvelope(event json.RawMessage) (source, detailType string
 func buildS3EventFromEventBridge(detail json.RawMessage) (json.RawMessage, error) {
 	bucketName, objectKey, err := decodeEventBridgeS3Detail(detail)
 	if err != nil {
-		return nil, fmt.Errorf("decode eventbridge s3 detail: %w", err)
+		return nil, fmt.Errorf("decode: %w", err)
 	}
 
 	s3Event := events.S3Event{
@@ -90,7 +91,7 @@ func buildS3EventFromEventBridge(detail json.RawMessage) (json.RawMessage, error
 	}
 	payload, err := json.Marshal(s3Event)
 	if err != nil {
-		return nil, fmt.Errorf("marshal synthetic s3 event: %w", err)
+		return nil, fmt.Errorf("marshal: %w", err)
 	}
 	return payload, nil
 }
@@ -99,7 +100,7 @@ func decodeEventBridgeS3Detail(detail json.RawMessage) (bucket, key string, err 
 	dec := json.NewDecoder(bytes.NewReader(detail))
 
 	if t, err := dec.Token(); err != nil || t != json.Delim('{') {
-		return "", "", errors.New("eventbridge s3 detail: expected '{'")
+		return "", "", errors.New("expected '{'")
 	}
 
 	for dec.More() {
@@ -107,13 +108,14 @@ func decodeEventBridgeS3Detail(detail json.RawMessage) (bucket, key string, err 
 		if err != nil {
 			return "", "", fmt.Errorf("read key: %w", err)
 		}
+
 		switch k {
 		case "bucket":
 			var b struct {
 				Name string `json:"name"`
 			}
 			if err := dec.Decode(&b); err != nil {
-				return "", "", fmt.Errorf("decode bucket: %w", err)
+				return "", "", fmt.Errorf("bucket: %w", err)
 			}
 			bucket = b.Name
 		case "object":
@@ -121,7 +123,7 @@ func decodeEventBridgeS3Detail(detail json.RawMessage) (bucket, key string, err 
 				Key string `json:"key"`
 			}
 			if err := dec.Decode(&o); err != nil {
-				return "", "", fmt.Errorf("decode object: %w", err)
+				return "", "", fmt.Errorf("object: %w", err)
 			}
 			key = o.Key
 		default:

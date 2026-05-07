@@ -10,11 +10,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 )
 
 const (
 	eventSourceKey     = "eventSource"
-	eventSourceSNSKey  = "EventSource"
 	eventSourceS3      = "aws:s3"
 	eventSourceKinesis = "aws:kinesis"
 )
@@ -34,7 +34,7 @@ func Parse(event json.RawMessage) ([]ParsedEvent, error) {
 
 		switch key {
 		case "awslogs":
-			return []ParsedEvent{{ContentTypeCloudwatchLogs, event}}, nil
+			return []ParsedEvent{{ContentType: ContentTypeCloudwatchLogs, Payload: event}}, nil
 		case "Records":
 			return parseRecords(event, dec)
 		case "detail":
@@ -52,10 +52,10 @@ func Parse(event json.RawMessage) ([]ParsedEvent, error) {
 
 func parseRecords(event json.RawMessage, dec *json.Decoder) ([]ParsedEvent, error) {
 	if t, err := dec.Token(); err != nil || t != json.Delim('[') {
-		return nil, errors.New("parse records: expected array")
+		return nil, errors.New("records: expected array")
 	}
 	if t, err := dec.Token(); err != nil || t != json.Delim('{') {
-		return nil, errors.New("parse records: expected object")
+		return nil, errors.New("records: expected object")
 	}
 
 	for dec.More() {
@@ -63,7 +63,8 @@ func parseRecords(event json.RawMessage, dec *json.Decoder) ([]ParsedEvent, erro
 		if err != nil {
 			return nil, fmt.Errorf("read record key: %w", err)
 		}
-		if key != eventSourceKey && key != eventSourceSNSKey {
+
+		if strings.EqualFold(key.(string), eventSourceKey) { // SNS has EventSource, others have eventSource
 			var skip json.RawMessage
 			if err := dec.Decode(&skip); err != nil {
 				return nil, fmt.Errorf("skip record field: %w", err)
@@ -80,15 +81,16 @@ func parseRecords(event json.RawMessage, dec *json.Decoder) ([]ParsedEvent, erro
 		if !ok {
 			return nil, fmt.Errorf("eventSource is not a string: %v", val)
 		}
+
 		switch eventSource {
 		case eventSourceS3:
-			return []ParsedEvent{{ContentTypeS3, event}}, nil
+			return []ParsedEvent{{ContentType: ContentTypeS3, Payload: event}}, nil
 		case eventSourceKinesis:
-			return []ParsedEvent{{ContentTypeKinesis, event}}, nil
+			return []ParsedEvent{{ContentType: ContentTypeKinesis, Payload: event}}, nil
 		default:
-			return nil, fmt.Errorf("parse records: unsupported event source %q", eventSource)
+			return nil, fmt.Errorf("records: unsupported event source %q", eventSource)
 		}
 	}
 
-	return nil, errors.New("parse records: no eventSource found")
+	return nil, errors.New("no eventSource found in records")
 }
