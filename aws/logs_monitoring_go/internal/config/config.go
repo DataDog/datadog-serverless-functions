@@ -15,7 +15,27 @@ import (
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/scrubbing"
 )
 
-const ForwarderVersion = "6.0"
+const (
+	DefaultSite                = "datadoghq.com"
+	DefaultLogLevel            = "INFO"
+	EnvAPIKey                  = "DD_API_KEY"
+	EnvSite                    = "DD_SITE"
+	EnvURL                     = "DD_URL"
+	EnvAPIURL                  = "DD_API_URL"
+	EnvLogLevel                = "DD_LOG_LEVEL"
+	EnvUseFIPS                 = "DD_USE_FIPS"
+	EnvSource                  = "DD_SOURCE"
+	EnvHost                    = "DD_HOST"
+	EnvTags                    = "DD_TAGS"
+	EnvMultilineLogRegex       = "DD_MULTILINE_LOG_REGEX_PATTERN"
+	EnvScrubbingRule           = "DD_SCRUBBING_RULE"
+	EnvScrubbingRuleReplcement = "DD_SCRUBBING_RULE_REPLACEMENT"
+	EnvRedactIP                = "REDACT_IP"
+	EnvRedactEmail             = "REDACT_EMAIL"
+	EnvIncludeAtMatch          = "INCLUDE_AT_MATCH"
+	EnvExcludeAtMatch          = "EXCLUDE_AT_MATCH"
+	ForwarderVersion           = "6.0"
+)
 
 type Config struct {
 	APIKey              string
@@ -34,7 +54,7 @@ type Config struct {
 }
 
 func Load() (*Config, error) {
-	logLevel := envOrDefault("DD_LOG_LEVEL", "INFO")
+	logLevel := envOrDefault(EnvLogLevel, DefaultLogLevel)
 	initLogger(logLevel)
 	logDroppedEnvVars()
 
@@ -46,16 +66,16 @@ func Load() (*Config, error) {
 	err := cfg.compileS3MultilineLogRegex()
 
 	scrubber, scrubbingErr := scrubbing.NewScrubber(
-		envOrDefault("DD_SCRUBBING_RULE", ""),
-		envOrDefault("DD_SCRUBBING_RULE_REPLACEMENT", ""),
-		envOrDefaultBool("REDACT_IP", false),
-		envOrDefaultBool("REDACT_EMAIL", false),
+		envOrDefault(EnvScrubbingRule, ""),
+		envOrDefault(EnvScrubbingRuleReplcement, ""),
+		envOrDefaultBool(EnvRedactIP, false),
+		envOrDefaultBool(EnvRedactEmail, false),
 	)
 	err = errors.Join(err, scrubbingErr)
 
 	filter, filteringErr := filtering.NewFilter(
-		envOrDefault("INCLUDE_AT_MATCH", ""),
-		envOrDefault("EXCLUDE_AT_MATCH", ""),
+		envOrDefault(EnvIncludeAtMatch, ""),
+		envOrDefault(EnvExcludeAtMatch, ""),
 	)
 	err = errors.Join(err, filteringErr)
 	if err != nil {
@@ -68,16 +88,16 @@ func Load() (*Config, error) {
 }
 
 func (c *Config) loadEnv() {
-	c.Site = envOrDefault("DD_SITE", "datadoghq.com")
-	c.IntakeURL = envOrDefault("DD_URL", "https://http-intake.logs."+c.Site+"/api/v2/logs")
-	c.APIURL = envOrDefault("DD_API_URL", "https://api."+c.Site)
-	c.UseFIPS = envOrDefaultBool("DD_USE_FIPS", false)
-	c.Source = envOrDefault("DD_SOURCE", "")
-	c.Host = envOrDefault("DD_HOST", "")
+	c.Site = envOrDefault(EnvSite, DefaultSite)
+	c.IntakeURL = envOrDefault(EnvURL, "https://http-intake.logs."+c.Site+"/api/v2/logs")
+	c.APIURL = envOrDefault(EnvAPIURL, "https://api."+c.Site)
+	c.UseFIPS = envOrDefaultBool(EnvUseFIPS, false)
+	c.Source = envOrDefault(EnvSource, "")
+	c.Host = envOrDefault(EnvHost, "")
 }
 
 func (c *Config) compileS3MultilineLogRegex() error {
-	pattern := envOrDefault("DD_MULTILINE_LOG_REGEX_PATTERN", "")
+	pattern := envOrDefault(EnvMultilineLogRegex, "")
 	if pattern == "" {
 		return nil
 	}

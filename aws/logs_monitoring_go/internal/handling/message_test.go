@@ -7,12 +7,12 @@ package handling
 
 import (
 	"encoding/json"
-	"slices"
 	"strings"
 	"testing"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestExtractFromMessage(t *testing.T) {
@@ -110,15 +110,9 @@ func TestExtractFromMessage(t *testing.T) {
 
 			gotTags, gotService, gotMessage := extractFromMessage(tc.message)
 
-			if !slices.Equal(gotTags, tc.wantTags) {
-				t.Errorf("extractFromMessage(%q) tags: got %v, want %v", tc.message, gotTags, tc.wantTags)
-			}
-			if gotService != tc.wantService {
-				t.Errorf("extractFromMessage(%q) service: got %q, want %q", tc.message, gotService, tc.wantService)
-			}
-			if gotMessage != tc.wantMessage {
-				t.Errorf("extractFromMessage(%q) message: got %q, want %q", tc.message, gotMessage, tc.wantMessage)
-			}
+			assert.Equal(t, tc.wantTags, gotTags, "tags")
+			assert.Equal(t, tc.wantService, gotService, "service")
+			assert.Equal(t, tc.wantMessage, gotMessage, "message")
 		})
 	}
 }
@@ -148,18 +142,13 @@ func FuzzExtractFromMessage(f *testing.F) {
 
 		if outMessage != message {
 			var parsed map[string]any
-			if err := json.Unmarshal([]byte(outMessage), &parsed); err != nil {
-				t.Errorf("output message is not valid JSON: %v", err)
-			}
-			if _, ok := parsed[config.DdtagsJSONKey]; ok {
-				t.Errorf("output message still contains %q key", config.DdtagsJSONKey)
-			}
+			assert.NoError(t, json.Unmarshal([]byte(outMessage), &parsed), "output message is not valid JSON")
+			_, ok := parsed[config.DdtagsJSONKey]
+			assert.False(t, ok, "output message still contains %q key", config.DdtagsJSONKey)
 		}
 
 		for _, tag := range tags {
-			if strings.HasPrefix(tag, "service:") {
-				t.Errorf("tag %q should have been extracted as service, not returned in tags", tag)
-			}
+			assert.False(t, strings.HasPrefix(tag, "service:"), "tag %q should have been extracted as service", tag)
 		}
 	})
 }

@@ -11,6 +11,8 @@ import (
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/testutil"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestKinesisHandler_Handle(t *testing.T) {
@@ -82,22 +84,16 @@ func TestKinesisHandler_Handle(t *testing.T) {
 			close(out)
 
 			if tc.wantErr {
-				if err == nil {
-					t.Fatal("want error, got nil")
-				}
+				require.Error(t, err)
 				return
 			}
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
+			require.NoError(t, err)
 
 			var got int
 			for range out {
 				got++
 			}
-			if got != tc.wantN {
-				t.Errorf("got %d entries, want %d", got, tc.wantN)
-			}
+			assert.Equal(t, tc.wantN, got)
 		})
 	}
 }

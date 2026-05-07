@@ -11,6 +11,8 @@ import (
 	"testing"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBatch(t *testing.T) {
@@ -64,9 +66,7 @@ func TestBatch(t *testing.T) {
 
 			batcher := NewBatcher()
 			err := batcher.Batch(t.Context(), in, out)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
+			require.NoError(t, err)
 			close(out)
 
 			var batches [][]byte
@@ -74,18 +74,12 @@ func TestBatch(t *testing.T) {
 				batches = append(batches, b)
 			}
 
-			if len(batches) != tc.wantBatchCount {
-				t.Fatalf("Batch() got %d batches, want %d", len(batches), tc.wantBatchCount)
-			}
+			require.Len(t, batches, tc.wantBatchCount)
 
 			for i, wantCount := range tc.wantEntryCounts {
 				var entries []model.LogEntry
-				if err := json.Unmarshal(batches[i], &entries); err != nil {
-					t.Fatalf("Batch() failed to unmarshal batch %d: %v", i, err)
-				}
-				if len(entries) != wantCount {
-					t.Errorf("Batch() batch %d: got %d entries, want %d", i, len(entries), wantCount)
-				}
+				require.NoError(t, json.Unmarshal(batches[i], &entries))
+				assert.Len(t, entries, wantCount)
 			}
 		})
 	}

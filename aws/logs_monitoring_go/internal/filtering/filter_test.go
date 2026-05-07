@@ -7,6 +7,9 @@ package filtering
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestFilterShouldExclude(t *testing.T) {
@@ -86,12 +89,8 @@ func TestFilterShouldExclude(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			f, err := NewFilter(tc.include, tc.exclude)
-			if err != nil {
-				t.Fatalf("NewFilter: %v", err)
-			}
-			if got := f.ShouldExclude(tc.msg); got != tc.want {
-				t.Errorf("ShouldExclude(%q) = %v, want %v", tc.msg, got, tc.want)
-			}
+			require.NoError(t, err)
+			assert.Equal(t, tc.want, f.ShouldExclude(tc.msg))
 		})
 	}
 }
