@@ -8,6 +8,7 @@ package pipeline
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/forwarding"
@@ -36,10 +37,11 @@ func Start(
 		for _, parsedEvent := range parsedEvents {
 			handler, err := handling.NewHandler(parsedEvent.ContentType, cfg)
 			if err != nil {
-				return err
+				return fmt.Errorf("new handler: %w", err)
 			}
+
 			if err := handler.Handle(ctx, parsedEvent.Payload, entries); err != nil {
-				return err
+				return fmt.Errorf("handle: %w", err)
 			}
 		}
 		return nil
