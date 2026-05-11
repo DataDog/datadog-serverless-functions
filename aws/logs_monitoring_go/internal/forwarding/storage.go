@@ -12,11 +12,11 @@ const (
 	s3Storage         = "s3"
 )
 
-func Storage(source parsing.InvocationSource) string {
-	switch source {
-	case parsing.InvocationSourceS3:
+func StorageFromContentType(contentType parsing.ContentType) string {
+	switch contentType {
+	case parsing.ContentTypeS3:
 		return s3Storage
-	case parsing.InvocationSourceCloudwatchLogs, parsing.InvocationSourceKinesis:
+	case parsing.ContentTypeCloudwatchLogs, parsing.ContentTypeKinesis:
 		return cloudwatchStorage
 	default:
 		return ""

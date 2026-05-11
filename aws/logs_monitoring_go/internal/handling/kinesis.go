@@ -26,13 +26,13 @@ func NewKinesis(cfg *config.Config) *KinesisHandler {
 	}
 }
 
-func (h KinesisHandler) Handle(ctx context.Context, event json.RawMessage, out chan<- model.LogEntry) error {
+func (h *KinesisHandler) Handle(ctx context.Context, event json.RawMessage, out chan<- model.LogEntry) error {
 	var kinesisEvent events.KinesisEvent
 	if err := json.Unmarshal(event, &kinesisEvent); err != nil {
 		return fmt.Errorf("unmarshal: %w", err)
 	}
 
-	cw := CloudwatchHandler(h)
+	cw := CloudwatchHandler(*h)
 	for i, record := range kinesisEvent.Records {
 		cwData, err := decompressCloudwatchLogs(record.Kinesis.Data)
 		if err != nil {

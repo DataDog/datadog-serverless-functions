@@ -42,7 +42,7 @@ func NewCloudwatch(cfg *config.Config) *CloudwatchHandler {
 	}
 }
 
-func (h CloudwatchHandler) Handle(ctx context.Context, event json.RawMessage, out chan<- model.LogEntry) error {
+func (h *CloudwatchHandler) Handle(ctx context.Context, event json.RawMessage, out chan<- model.LogEntry) error {
 	var cwEvent events.CloudwatchLogsEvent
 	if err := json.Unmarshal(event, &cwEvent); err != nil {
 		return fmt.Errorf("unmarshal: %w", err)
