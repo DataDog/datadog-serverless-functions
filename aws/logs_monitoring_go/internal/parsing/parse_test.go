@@ -46,6 +46,10 @@ func TestParse(t *testing.T) {
 			event: json.RawMessage(`{"version":"0","detail-type":"Object Deleted","source":"aws.s3","detail":{}}`),
 			want:  []ContentType{ContentTypeEventBridge},
 		},
+		"sns with s3": {
+			event: json.RawMessage(`{"Records":[{"EventSource":"aws:sns","Sns":{"Type":"Notification","Message":"{\"Records\":[{\"s3\":{\"bucket\":{\"name\":\"b\"},\"object\":{\"key\":\"k\"}}}]}"}}]}`),
+			want:  []ContentType{ContentTypeS3},
+		},
 		"empty object": {
 			event:   json.RawMessage(`{}`),
 			wantErr: true,
