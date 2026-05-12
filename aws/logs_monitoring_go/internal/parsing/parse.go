@@ -162,17 +162,6 @@ func skipToRecords(dec *json.Decoder) error {
 	return nil
 }
 
-func skipToEnd(dec *json.Decoder) error {
-	for dec.More() {
-		if err := skip(dec); err != nil {
-			return err
-		}
-	}
-
-	_, err := dec.Token()
-	return err
-}
-
 func skip(dec *json.Decoder) error {
 	var skip json.RawMessage
 	if err := dec.Decode(&skip); err != nil {
