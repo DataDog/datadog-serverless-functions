@@ -7,6 +7,9 @@ package scrubbing
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewScrubber(t *testing.T) {
@@ -59,17 +62,11 @@ func TestNewScrubber(t *testing.T) {
 			t.Parallel()
 			s, err := NewScrubber(tc.customMatch, tc.customReplacement, tc.ip, tc.email)
 			if tc.wantErr {
-				if err == nil {
-					t.Fatal("want error, got nil")
-				}
+				require.Error(t, err)
 				return
 			}
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			if got := len(s.rules); got != tc.nRules {
-				t.Errorf("got %d rules, want %d", got, tc.nRules)
-			}
+			require.NoError(t, err)
+			assert.Len(t, s.rules, tc.nRules)
 		})
 	}
 }
@@ -135,12 +132,8 @@ func TestScrub(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			s, err := NewScrubber(tc.customMatch, tc.customReplacement, tc.ip, tc.email)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			if got := s.Scrub(tc.input); got != tc.want {
-				t.Errorf("got %q, want %q", got, tc.want)
-			}
+			require.NoError(t, err)
+			assert.Equal(t, tc.want, s.Scrub(tc.input))
 		})
 	}
 }

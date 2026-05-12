@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
 
@@ -57,14 +58,10 @@ func TestGetS3Object(t *testing.T) {
 			body, err := getS3Object(t.Context(), mock, tc.bucket, tc.key)
 
 			if tc.wantErr {
-				if err == nil {
-					t.Fatal("want error, got nil")
-				}
+				require.Error(t, err)
 				return
 			}
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
+			require.NoError(t, err)
 			_ = body.Close()
 		})
 	}

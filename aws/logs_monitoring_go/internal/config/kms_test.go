@@ -11,7 +11,8 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/service/kms"
-	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
 
@@ -81,17 +82,11 @@ func TestResolveFromKMS(t *testing.T) {
 
 			got, err := decryptKMSCiphertext(t.Context(), mock, tc.ciphertext)
 			if tc.wantErr {
-				if err == nil {
-					t.Fatal("expected error, got nil")
-				}
+				require.Error(t, err)
 				return
 			}
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			if diff := cmp.Diff(tc.wantKey, got); diff != "" {
-				t.Errorf("mismatch (-want +got):\n%s", diff)
-			}
+			require.NoError(t, err)
+			assert.Equal(t, tc.wantKey, got)
 		})
 	}
 }

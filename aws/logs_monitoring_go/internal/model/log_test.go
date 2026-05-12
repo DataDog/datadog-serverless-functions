@@ -7,8 +7,10 @@ package model
 
 import (
 	"encoding/json"
-	"slices"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestTags(t *testing.T) {
@@ -40,20 +42,15 @@ func TestTags(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			got, err := json.Marshal(tc.tags)
-			if err != nil {
-				t.Fatalf("unexpected marshal error: %v", err)
-			}
-			if string(got) != tc.want {
-				t.Errorf("got %s, want %s", got, tc.want)
-			}
+			require.NoError(t, err, "marshal")
+			assert.Equal(t, tc.want, string(got))
 
 			var tags Tags
-			err = json.Unmarshal(got, &tags)
-			if err != nil {
-				t.Fatalf("unexpected unmarshal error: %v", err)
-			}
-			if !slices.Equal(tc.tags, tags) {
-				t.Errorf("expected %v, got %v", tc.tags, tags)
+			require.NoError(t, json.Unmarshal(got, &tags), "unmarshal")
+			if len(tc.tags) == 0 {
+				assert.Empty(t, tags)
+			} else {
+				assert.Equal(t, tc.tags, tags)
 			}
 		})
 	}

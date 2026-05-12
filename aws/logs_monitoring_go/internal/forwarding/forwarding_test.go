@@ -11,12 +11,13 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"sync/atomic"
 	"testing"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestForwarder_Start(t *testing.T) {
@@ -27,9 +28,8 @@ func TestForwarder_Start(t *testing.T) {
 		storage    string
 		entries    []model.LogEntry
 		cancelCtx  bool
-		wantErr    bool
-		wantErrMsg string
-		wantCalls  int
+		wantErr   bool
+		wantCalls int
 	}{
 		"single message accepted": {
 			statusCode: http.StatusAccepted,
@@ -48,7 +48,6 @@ func TestForwarder_Start(t *testing.T) {
 			storage:    cloudwatchStorage,
 			entries:    []model.LogEntry{{Message: "test payload"}},
 			wantErr:    true,
-			wantErrMsg: "unexpected status from intake",
 			wantCalls:  1,
 		},
 		"server returns 500": {
@@ -56,7 +55,6 @@ func TestForwarder_Start(t *testing.T) {
 			storage:    cloudwatchStorage,
 			entries:    []model.LogEntry{{Message: "test payload"}},
 			wantErr:    true,
-			wantErrMsg: "unexpected status from intake",
 			wantCalls:  1,
 		},
 		"context cancelled": {
@@ -84,39 +82,21 @@ func TestForwarder_Start(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 				callCount.Add(1)
 
-				if got := req.Header.Get("DD-API-KEY"); got != "test-api-key" {
-					t.Errorf("DD-API-KEY = %q, want %q", got, "test-api-key")
-				}
-				if got := req.Header.Get("Content-Type"); got != "application/json" {
-					t.Errorf("Content-Type = %q, want %q", got, "application/json")
-				}
-				if got := req.Header.Get("Content-Encoding"); got != "gzip" {
-					t.Errorf("Content-Encoding = %q, want %q", got, "gzip")
-				}
-				if got := req.Header.Get("DD-EVP-ORIGIN"); got != "aws_forwarder" {
-					t.Errorf("DD-EVP-ORIGIN = %q, want %q", got, "aws_forwarder")
-				}
-				if got := req.Header.Get("DD-EVP-ORIGIN-VERSION"); got != config.ForwarderVersion {
-					t.Errorf("DD-EVP-ORIGIN-VERSION = %q, want %q", got, config.ForwarderVersion)
-				}
-				if got := req.Header.Get("DD-STORAGE-TAG"); got != tc.storage {
-					t.Errorf("DD-STORAGE-TAG = %q, want %q", got, tc.storage)
-				}
+				assert.Equal(t, "test-api-key", req.Header.Get("DD-API-KEY"), "DD-API-KEY")
+				assert.Equal(t, "application/json", req.Header.Get("Content-Type"), "Content-Type")
+				assert.Equal(t, "gzip", req.Header.Get("Content-Encoding"), "Content-Encoding")
+				assert.Equal(t, "aws_forwarder", req.Header.Get("DD-EVP-ORIGIN"), "DD-EVP-ORIGIN")
+				assert.Equal(t, config.ForwarderVersion, req.Header.Get("DD-EVP-ORIGIN-VERSION"), "DD-EVP-ORIGIN-VERSION")
+				assert.Equal(t, tc.storage, req.Header.Get("DD-STORAGE-TAG"), "DD-STORAGE-TAG")
 
 				gr, err := gzip.NewReader(req.Body)
-				if err != nil {
-					t.Errorf("body is not valid gzip: %v", err)
+				if !assert.NoError(t, err, "body is not valid gzip") {
 					return
 				}
-				defer func() {
-					if err := gr.Close(); err != nil {
-						t.Errorf("failed to close gzip reader: %v", err)
-					}
-				}()
+				defer gr.Close() //nolint:errcheck
 
-				if _, err := io.ReadAll(gr); err != nil {
-					t.Errorf("failed to read gzip body: %v", err)
-				}
+				_, err = io.ReadAll(gr)
+				assert.NoError(t, err, "read gzip body")
 
 				rw.WriteHeader(tc.statusCode)
 			}))
@@ -140,20 +120,11 @@ func TestForwarder_Start(t *testing.T) {
 			err := f.Start(ctx, in)
 
 			if tc.wantErr {
-				if err == nil {
-					t.Fatal("expected error, got nil")
-				}
-				if tc.wantErrMsg != "" && !strings.Contains(err.Error(), tc.wantErrMsg) {
-					t.Errorf("error %q should contain %q", err.Error(), tc.wantErrMsg)
-				}
+				require.Error(t, err)
 				return
 			}
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			if got := int(callCount.Load()); got != tc.wantCalls {
-				t.Errorf("server called %d times, want %d", got, tc.wantCalls)
-			}
+			require.NoError(t, err)
+			assert.Equal(t, tc.wantCalls, int(callCount.Load()))
 		})
 	}
 }

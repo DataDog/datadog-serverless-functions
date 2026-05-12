@@ -12,7 +12,8 @@ import (
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/testutil"
-	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCloudwatchHandler_Handle(t *testing.T) {
@@ -238,17 +239,11 @@ func TestCloudwatchHandler_Handle(t *testing.T) {
 			}
 
 			if tc.wantErr {
-				if err == nil {
-					t.Fatal("want error, got nil")
-				}
+				require.Error(t, err)
 				return
 			}
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			if diff := cmp.Diff(tc.want, got); diff != "" {
-				t.Errorf("mismatch (-want +got):\n%s", diff)
-			}
+			require.NoError(t, err)
+			assert.Equal(t, tc.want, got)
 		})
 	}
 }
@@ -274,9 +269,7 @@ func TestCloudwatchSource(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			if got := CloudwatchSource(tc.logGroup, tc.logStream); got != tc.want {
-				t.Errorf("CloudwatchSource(%q, %q) = %q, want %q", tc.logGroup, tc.logStream, got, tc.want)
-			}
+			assert.Equal(t, tc.want, CloudwatchSource(tc.logGroup, tc.logStream))
 		})
 	}
 }

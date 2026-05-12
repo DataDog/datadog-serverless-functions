@@ -7,61 +7,47 @@ package config
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLoad(t *testing.T) {
+	defaultURL := "https://http-intake.logs." + DefaultSite + "/api/v2/logs"
+	defaultAPI := "https://api." + DefaultSite
+
 	tests := map[string]struct {
 		env       map[string]string
-		wantSite  string
-		wantURL   string
-		wantAPI   string
-		wantSrc   string
-		wantHost  string
-		wantFIPS  bool
+		want      Config
 		wantRegex bool
 		wantErr   bool
 	}{
 		"defaults": {
-			wantSite: "datadoghq.com",
-			wantURL:  "https://http-intake.logs.datadoghq.com/api/v2/logs",
-			wantAPI:  "https://api.datadoghq.com",
+			want: Config{Site: DefaultSite, IntakeURL: defaultURL, APIURL: defaultAPI},
 		},
 		"eu site": {
-			env:      map[string]string{"DD_SITE": "datadoghq.eu"},
-			wantSite: "datadoghq.eu",
-			wantURL:  "https://http-intake.logs.datadoghq.eu/api/v2/logs",
-			wantAPI:  "https://api.datadoghq.eu",
+			env:  map[string]string{EnvSite: "datadoghq.eu"},
+			want: Config{Site: "datadoghq.eu", IntakeURL: "https://http-intake.logs.datadoghq.eu/api/v2/logs", APIURL: "https://api.datadoghq.eu"},
 		},
 		"custom url": {
-			env:      map[string]string{"DD_URL": "https://custom.example.com"},
-			wantSite: "datadoghq.com",
-			wantURL:  "https://custom.example.com",
-			wantAPI:  "https://api.datadoghq.com",
+			env:  map[string]string{EnvURL: "https://custom.example.com"},
+			want: Config{Site: DefaultSite, IntakeURL: "https://custom.example.com", APIURL: defaultAPI},
 		},
 		"source and host": {
-			env:      map[string]string{"DD_SOURCE": "custom", "DD_HOST": "my-host"},
-			wantSite: "datadoghq.com",
-			wantURL:  "https://http-intake.logs.datadoghq.com/api/v2/logs",
-			wantAPI:  "https://api.datadoghq.com",
-			wantSrc:  "custom",
-			wantHost: "my-host",
+			env:  map[string]string{EnvSource: "custom", EnvHost: "my-host"},
+			want: Config{Site: DefaultSite, IntakeURL: defaultURL, APIURL: defaultAPI, Source: "custom", Host: "my-host"},
 		},
 		"fips enabled": {
-			env:      map[string]string{"DD_USE_FIPS": "true"},
-			wantSite: "datadoghq.com",
-			wantURL:  "https://http-intake.logs.datadoghq.com/api/v2/logs",
-			wantAPI:  "https://api.datadoghq.com",
-			wantFIPS: true,
+			env:  map[string]string{EnvUseFIPS: "true"},
+			want: Config{Site: DefaultSite, IntakeURL: defaultURL, APIURL: defaultAPI, UseFIPS: true},
 		},
 		"valid multiline regex": {
-			env:       map[string]string{"DD_MULTILINE_LOG_REGEX_PATTERN": `\d{4}-\d{2}-\d{2}`},
-			wantSite:  "datadoghq.com",
-			wantURL:   "https://http-intake.logs.datadoghq.com/api/v2/logs",
-			wantAPI:   "https://api.datadoghq.com",
+			env:       map[string]string{EnvMultilineLogRegex: `\d{4}-\d{2}-\d{2}`},
+			want:      Config{Site: DefaultSite, IntakeURL: defaultURL, APIURL: defaultAPI},
 			wantRegex: true,
 		},
 		"invalid multiline regex": {
-			env:     map[string]string{"DD_MULTILINE_LOG_REGEX_PATTERN": `[invalid`},
+			env:     map[string]string{EnvMultilineLogRegex: `[invalid`},
 			wantErr: true,
 		},
 	}
@@ -75,36 +61,18 @@ func TestLoad(t *testing.T) {
 			got, err := Load()
 
 			if tc.wantErr {
-				if err == nil {
-					t.Fatal("want error, got nil")
-				}
+				require.Error(t, err)
 				return
 			}
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
+			require.NoError(t, err)
 
-			if got.Site != tc.wantSite {
-				t.Errorf("Site: got %q, want %q", got.Site, tc.wantSite)
-			}
-			if got.IntakeURL != tc.wantURL {
-				t.Errorf("IntakeURL: got %q, want %q", got.IntakeURL, tc.wantURL)
-			}
-			if got.APIURL != tc.wantAPI {
-				t.Errorf("APIURL: got %q, want %q", got.APIURL, tc.wantAPI)
-			}
-			if got.Source != tc.wantSrc {
-				t.Errorf("Source: got %q, want %q", got.Source, tc.wantSrc)
-			}
-			if got.Host != tc.wantHost {
-				t.Errorf("Host: got %q, want %q", got.Host, tc.wantHost)
-			}
-			if got.UseFIPS != tc.wantFIPS {
-				t.Errorf("UseFIPS: got %v, want %v", got.UseFIPS, tc.wantFIPS)
-			}
-			if (got.S3MultilineLogRegex != nil) != tc.wantRegex {
-				t.Errorf("S3MultilineLogRegex: got nil=%v, want nil=%v", got.S3MultilineLogRegex == nil, !tc.wantRegex)
-			}
+			assert.Equal(t, tc.want.Site, got.Site)
+			assert.Equal(t, tc.want.IntakeURL, got.IntakeURL)
+			assert.Equal(t, tc.want.APIURL, got.APIURL)
+			assert.Equal(t, tc.want.Source, got.Source)
+			assert.Equal(t, tc.want.Host, got.Host)
+			assert.Equal(t, tc.want.UseFIPS, got.UseFIPS)
+			assert.Equal(t, tc.wantRegex, got.S3MultilineLogRegex != nil)
 		})
 	}
 }

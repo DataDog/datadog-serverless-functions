@@ -12,6 +12,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/aws/aws-sdk-go-v2/service/ssm/types"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
 
@@ -91,17 +93,11 @@ func TestResolveFromSSM(t *testing.T) {
 
 			got, err := fetchSSMParameter(t.Context(), mock, tc.name)
 			if tc.wantErr {
-				if err == nil {
-					t.Fatal("expected error, got nil")
-				}
+				require.Error(t, err)
 				return
 			}
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			if got != tc.wantKey {
-				t.Errorf("got %q, want %q", got, tc.wantKey)
-			}
+			require.NoError(t, err)
+			assert.Equal(t, tc.wantKey, got)
 		})
 	}
 }

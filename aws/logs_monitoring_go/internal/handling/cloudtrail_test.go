@@ -10,7 +10,8 @@ import (
 	"testing"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/testutil"
-	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCloudTrailRegex(t *testing.T) {
@@ -57,10 +58,7 @@ func TestCloudTrailRegex(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			got := cloudTrailRegex.MatchString(tc.key)
-			if got != tc.want {
-				t.Errorf("cloudTrailRegex().MatchString(%q) = %v, want %v", tc.key, got, tc.want)
-			}
+			assert.Equal(t, tc.want, cloudTrailRegex.MatchString(tc.key))
 		})
 	}
 }
@@ -105,9 +103,7 @@ func TestCloudtrailHost(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			if got := cloudtrailHost(tc.message); got != tc.want {
-				t.Errorf("want %q, got %q", tc.want, got)
-			}
+			assert.Equal(t, tc.want, cloudtrailHost(tc.message))
 		})
 	}
 }
@@ -170,20 +166,14 @@ func TestDecodeCloudTrail(t *testing.T) {
 			var got []string
 			for msg, err := range decodeCloudTrail(bytes.NewReader(tc.input)) {
 				if err != nil {
-					if !tc.wantErr {
-						t.Fatalf("unexpected error: %v", err)
-					}
+					require.True(t, tc.wantErr, "unexpected error: %v", err)
 					return
 				}
 				got = append(got, msg)
 			}
 
-			if tc.wantErr {
-				t.Fatal("expected error, got none")
-			}
-			if diff := cmp.Diff(tc.want, got); diff != "" {
-				t.Errorf("mismatch (-want +got):\n%s", diff)
-			}
+			require.False(t, tc.wantErr, "expected error, got none")
+			assert.Equal(t, tc.want, got)
 		})
 	}
 }

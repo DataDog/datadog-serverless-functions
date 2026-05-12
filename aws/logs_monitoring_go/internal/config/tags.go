@@ -25,7 +25,7 @@ const (
 func (c *Config) extractFromEnv() {
 	var tags model.Tags
 
-	if customTags := os.Getenv("DD_TAGS"); customTags != "" {
+	if customTags := os.Getenv(EnvTags); customTags != "" {
 		for tag := range strings.SplitSeq(customTags, TagSeparator) {
 			v, found := strings.CutPrefix(tag, ServiceKey)
 			if found {

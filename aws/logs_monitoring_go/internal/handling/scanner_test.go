@@ -10,7 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestScanner(t *testing.T) {
@@ -57,13 +58,8 @@ func TestScanner(t *testing.T) {
 				}
 			}
 
-			if err := scanner.Err(); err != nil {
-				t.Fatalf("unexpected scanner error: %v", err)
-			}
-
-			if diff := cmp.Diff(tc.want, got); diff != "" {
-				t.Errorf("mismatch (-want +got):\n%s", diff)
-			}
+			require.NoError(t, scanner.Err())
+			assert.Equal(t, tc.want, got)
 		})
 	}
 }
@@ -90,18 +86,10 @@ func TestScannerWithOversizedToken(t *testing.T) {
 			for scanner.Scan() {
 				got = append(got, scanner.Text())
 			}
-			if err := scanner.Err(); err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			if len(got) != 2 {
-				t.Fatalf("want 2 tokens, got %d", len(got))
-			}
-			if len(got[0]) != maxTokenSize {
-				t.Errorf("first token: want %d bytes, got %d", maxTokenSize, len(got[0]))
-			}
-			if len(got[1]) != overflow {
-				t.Errorf("second token: want %d bytes, got %d", overflow, len(got[1]))
-			}
+			require.NoError(t, scanner.Err())
+			require.Len(t, got, 2)
+			assert.Len(t, got[0], maxTokenSize)
+			assert.Len(t, got[1], overflow)
 		})
 	}
 }

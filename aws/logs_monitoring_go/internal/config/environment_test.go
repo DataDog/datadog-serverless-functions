@@ -5,7 +5,11 @@
 
 package config
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
 
 func TestEnvOrDefault(t *testing.T) {
 	tests := map[string]struct {
@@ -25,10 +29,7 @@ func TestEnvOrDefault(t *testing.T) {
 			if tc.set {
 				t.Setenv(tc.key, tc.value)
 			}
-			got := envOrDefault(tc.key, tc.fallback)
-			if got != tc.want {
-				t.Errorf("got %q, want %q", got, tc.want)
-			}
+			assert.Equal(t, tc.want, envOrDefault(tc.key, tc.fallback))
 		})
 	}
 }
@@ -57,10 +58,7 @@ func TestEnvOrDefaultBool(t *testing.T) {
 			if tc.set {
 				t.Setenv("DD_TEST_BOOL", tc.value)
 			}
-			got := envOrDefaultBool("DD_TEST_BOOL", tc.fallback)
-			if got != tc.want {
-				t.Errorf("got %v, want %v", got, tc.want)
-			}
+			assert.Equal(t, tc.want, envOrDefaultBool("DD_TEST_BOOL", tc.fallback))
 		})
 	}
 }
