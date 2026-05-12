@@ -56,8 +56,8 @@ func parseSNS(event json.RawMessage) ([]ParsedEvent, error) {
 	return parsed, nil
 }
 
-func isS3(record json.RawMessage) bool {
-	dec := json.NewDecoder(bytes.NewReader(record))
+func isS3(message json.RawMessage) bool {
+	dec := json.NewDecoder(bytes.NewReader(message))
 
 	if err := skipToRecords(dec); err != nil {
 		return false

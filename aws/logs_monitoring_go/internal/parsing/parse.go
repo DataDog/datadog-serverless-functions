@@ -42,13 +42,13 @@ func Parse(event json.RawMessage) ([]ParsedEvent, error) {
 		case recordsKey:
 			parsed, err := parseRecords(event, dec)
 			if err != nil {
-				return nil, fmt.Errorf("records: %w")
+				return nil, fmt.Errorf("records: %w", err)
 			}
 			return parsed, nil
 		case detailKey:
 			parsed, err := parseEventBridge(event)
 			if err != nil {
-				return nil, fmt.Errorf("eventbridge: %w")
+				return nil, fmt.Errorf("eventbridge: %w", err)
 			}
 			return parsed, nil
 		default:
@@ -75,10 +75,15 @@ func parseRecords(event json.RawMessage, dec *json.Decoder) ([]ParsedEvent, erro
 			return nil, err
 		}
 
-		if !strings.EqualFold(key.(string), eventSourceKey) { // SNS event source key has a capital letter
-			var skip json.RawMessage
-			if err := dec.Decode(&skip); err != nil {
-				return nil, fmt.Errorf("decode: %w", err)
+		keyStr, ok := key.(string)
+		if !ok {
+			return nil, fmt.Errorf("expected string key, got %T", key)
+		}
+
+		// SNS uses "EventSource" so we compare case-insensitively.
+		if !strings.EqualFold(keyStr, eventSourceKey) {
+			if err := skip(dec); err != nil {
+				return nil, err
 			}
 			continue
 		}
@@ -90,7 +95,7 @@ func parseRecords(event json.RawMessage, dec *json.Decoder) ([]ParsedEvent, erro
 
 		eventSource, ok := val.(string)
 		if !ok {
-			return nil, fmt.Errorf("eventSource value should be a string: %v", val)
+			return nil, fmt.Errorf("eventSource value should be a string, got %T", eventSource)
 		}
 
 		switch eventSource {
@@ -110,14 +115,14 @@ func parseRecords(event json.RawMessage, dec *json.Decoder) ([]ParsedEvent, erro
 
 func skipBrace(dec *json.Decoder) error {
 	if t, err := dec.Token(); err != nil || t != json.Delim('{') {
-		return errors.New("expected '{'")
+		return fmt.Errorf("expected '{': %w", err)
 	}
 	return nil
 }
 
 func skipBracket(dec *json.Decoder) error {
 	if t, err := dec.Token(); err != nil || t != json.Delim('[') {
-		return errors.New("expected '['")
+		return fmt.Errorf("expected '[': %w", err)
 	}
 	return nil
 }

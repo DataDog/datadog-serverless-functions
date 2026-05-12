@@ -50,6 +50,10 @@ func TestParse(t *testing.T) {
 			event: json.RawMessage(`{"Records":[{"EventSource":"aws:sns","Sns":{"Type":"Notification","Message":"{\"Records\":[{\"s3\":{\"bucket\":{\"name\":\"b\"},\"object\":{\"key\":\"k\"}}}]}"}}]}`),
 			want:  []ContentType{ContentTypeS3},
 		},
+		"sns standalone": {
+			event: json.RawMessage(`{"Records":[{"EventSource":"aws:sns","Sns":{"Type":"Notification","Message":"hello world","TopicArn":"arn:aws:sns:us-east-1:123456789012:my-topic"}}]}`),
+			want:  []ContentType{ContentTypeSNS},
+		},
 		"empty object": {
 			event:   json.RawMessage(`{}`),
 			wantErr: true,
