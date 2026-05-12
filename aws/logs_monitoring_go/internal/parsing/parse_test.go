@@ -57,6 +57,44 @@ func TestParse(t *testing.T) {
 			event: json.RawMessage(`{"Records":[{"EventSource":"aws:sns","Sns":{"Type":"Notification","Message":"hello world","TopicArn":"arn:aws:sns:us-east-1:123456789012:my-topic"}}]}`),
 			want:  []ContentType{ContentTypeSNS},
 		},
+		"sqs with direct s3": {
+			event: json.RawMessage(`{"Records":[{"eventSource":"aws:sqs","body":"{\"Records\":[{\"s3\":{\"bucket\":{\"name\":\"b\"},\"object\":{\"key\":\"k\"}}}]}"}]}`),
+			want:  []ContentType{ContentTypeS3},
+		},
+		"sqs with sns s3": {
+			event: json.RawMessage(`{"Records":[{"eventSource":"aws:sqs","body":"{\"Type\":\"Notification\",\"Message\":\"{\\\"Records\\\":[{\\\"s3\\\":{\\\"bucket\\\":{\\\"name\\\":\\\"b\\\"},\\\"object\\\":{\\\"key\\\":\\\"k\\\"}}}]}\"}"}]}`),
+			want:  []ContentType{ContentTypeS3},
+		},
+		"sqs with multiple records": {
+			event: json.RawMessage(`{"Records":[` +
+				`{"eventSource":"aws:sqs","body":"{\"Records\":[{\"s3\":{\"bucket\":{\"name\":\"b1\"},\"object\":{\"key\":\"k1\"}}}]}"},` +
+				`{"eventSource":"aws:sqs","body":"{\"Records\":[{\"s3\":{\"bucket\":{\"name\":\"b2\"},\"object\":{\"key\":\"k2\"}}}]}"}` +
+				`]}`),
+			want: []ContentType{ContentTypeS3, ContentTypeS3},
+		},
+		"sqs with sns standalone": {
+			event: json.RawMessage(`{"Records":[{"eventSource":"aws:sqs","body":"{\"Type\":\"Notification\",\"Message\":\"hello world\"}"}]}`),
+			want:  []ContentType{ContentTypeSNS},
+		},
+		"sqs with subscription confirmation skipped": {
+			event:   json.RawMessage(`{"Records":[{"eventSource":"aws:sqs","body":"{\"Type\":\"SubscriptionConfirmation\",\"Message\":\"confirm\"}"}]}`),
+			wantErr: true,
+		},
+		"sqs mixed valid and unrecognized": {
+			event: json.RawMessage(`{"Records":[` +
+				`{"eventSource":"aws:sqs","body":"{\"foo\":\"bar\"}"},` +
+				`{"eventSource":"aws:sqs","body":"{\"Records\":[{\"s3\":{\"bucket\":{\"name\":\"b\"},\"object\":{\"key\":\"k\"}}}]}"}` +
+				`]}`),
+			want: []ContentType{ContentTypeS3},
+		},
+		"sqs with extra fields after body": {
+			event: json.RawMessage(`{"Records":[{"eventSource":"aws:sqs","body":"{\"Records\":[{\"s3\":{\"bucket\":{\"name\":\"b\"},\"object\":{\"key\":\"k\"}}}]}","messageId":"abc","receiptHandle":"xyz","attributes":{"ApproximateReceiveCount":"1"}}]}`),
+			want:  []ContentType{ContentTypeS3},
+		},
+		"sqs with malformed body json": {
+			event:   json.RawMessage(`{"Records":[{"eventSource":"aws:sqs","body":"not json"}]}`),
+			wantErr: true,
+		},
 		"empty object": {
 			event:   json.RawMessage(`{}`),
 			wantErr: true,
