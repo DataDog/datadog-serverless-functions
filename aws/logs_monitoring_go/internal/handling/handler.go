@@ -29,6 +29,8 @@ func NewHandler(ct parsing.ContentType, cfg *config.Config) (Handler, error) {
 		return NewKinesis(cfg), nil
 	case parsing.ContentTypeEventBridge:
 		return NewEventBridge(cfg), nil
+	case parsing.ContentTypeSNS:
+		return NewSNS(cfg), nil
 	default:
 		return nil, fmt.Errorf("unsupported content type: %v", ct)
 	}

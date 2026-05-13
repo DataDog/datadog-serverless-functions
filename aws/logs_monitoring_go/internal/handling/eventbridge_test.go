@@ -12,7 +12,8 @@ import (
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/testutil"
-	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestEventBridgeHandler_Handle(t *testing.T) {
@@ -83,24 +84,18 @@ func TestEventBridgeHandler_Handle(t *testing.T) {
 			close(out)
 
 			if tc.wantErr {
-				if err == nil {
-					t.Fatal("expected error, got nil")
-				}
+				require.Error(t, err)
 				return
 			}
 
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
+			require.NoError(t, err)
 
 			var got []model.LogEntry
 			for entry := range out {
 				got = append(got, entry)
 			}
 
-			if diff := cmp.Diff(tc.want, got); diff != "" {
-				t.Errorf("entries mismatch (-want +got):\n%s", diff)
-			}
+			assert.Equal(t, tc.want, got)
 		})
 	}
 }
@@ -124,9 +119,7 @@ func TestEventBridgeSource(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			got := eventBridgeSource(tc.source)
-			if got != tc.want {
-				t.Errorf("got %q, want %q", got, tc.want)
-			}
+			assert.Equal(t, tc.want, got)
 		})
 	}
 }

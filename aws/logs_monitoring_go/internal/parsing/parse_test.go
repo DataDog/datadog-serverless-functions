@@ -8,6 +8,9 @@ package parsing
 import (
 	"encoding/json"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestParse(t *testing.T) {
@@ -46,6 +49,14 @@ func TestParse(t *testing.T) {
 			event: json.RawMessage(`{"version":"0","detail-type":"Object Deleted","source":"aws.s3","detail":{}}`),
 			want:  []ContentType{ContentTypeEventBridge},
 		},
+		"sns with s3": {
+			event: json.RawMessage(`{"Records":[{"EventSource":"aws:sns","Sns":{"Type":"Notification","Message":"{\"Records\":[{\"s3\":{\"bucket\":{\"name\":\"b\"},\"object\":{\"key\":\"k\"}}}]}"}}]}`),
+			want:  []ContentType{ContentTypeS3},
+		},
+		"sns standalone": {
+			event: json.RawMessage(`{"Records":[{"EventSource":"aws:sns","Sns":{"Type":"Notification","Message":"hello world","TopicArn":"arn:aws:sns:us-east-1:123456789012:my-topic"}}]}`),
+			want:  []ContentType{ContentTypeSNS},
+		},
 		"empty object": {
 			event:   json.RawMessage(`{}`),
 			wantErr: true,
@@ -67,27 +78,16 @@ func TestParse(t *testing.T) {
 			got, err := Parse(tc.event)
 
 			if tc.wantErr {
-				if err == nil {
-					t.Fatal("expected error, got nil")
-				}
+				require.Error(t, err)
 				return
 			}
 
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-
-			if len(got) != len(tc.want) {
-				t.Fatalf("got %d events, want %d", len(got), len(tc.want))
-			}
+			require.NoError(t, err)
+			require.Len(t, got, len(tc.want))
 
 			for i, pe := range got {
-				if pe.ContentType != tc.want[i] {
-					t.Errorf("event[%d]: got ContentType %v, want %v", i, pe.ContentType, tc.want[i])
-				}
-				if len(pe.Payload) == 0 {
-					t.Errorf("event[%d]: empty payload", i)
-				}
+				assert.Equal(t, tc.want[i], pe.ContentType)
+				assert.NotEmpty(t, pe.Payload)
 			}
 		})
 	}

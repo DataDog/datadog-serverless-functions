@@ -8,7 +8,6 @@ package parsing
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -39,9 +38,8 @@ func parseEventBridge(event json.RawMessage) ([]ParsedEvent, error) {
 
 func decodeEventBridgeEnvelope(event json.RawMessage) (source, detailType string, detail json.RawMessage, err error) {
 	dec := json.NewDecoder(bytes.NewReader(event))
-
-	if t, err := dec.Token(); err != nil || t != json.Delim('{') {
-		return "", "", nil, errors.New("expected '{'")
+	if err := skipBrace(dec); err != nil {
+		return "", "", nil, err
 	}
 
 	for dec.More() {
@@ -64,9 +62,8 @@ func decodeEventBridgeEnvelope(event json.RawMessage) (source, detailType string
 				return "", "", nil, fmt.Errorf("detail: %w", err)
 			}
 		default:
-			var skip json.RawMessage
-			if err := dec.Decode(&skip); err != nil {
-				return "", "", nil, fmt.Errorf("skip field: %w", err)
+			if err := skip(dec); err != nil {
+				return "", "", nil, err
 			}
 		}
 	}
@@ -99,8 +96,8 @@ func buildS3EventFromEventBridge(detail json.RawMessage) (json.RawMessage, error
 func decodeEventBridgeS3Detail(detail json.RawMessage) (bucket, key string, err error) {
 	dec := json.NewDecoder(bytes.NewReader(detail))
 
-	if t, err := dec.Token(); err != nil || t != json.Delim('{') {
-		return "", "", errors.New("expected '{'")
+	if err := skipBrace(dec); err != nil {
+		return "", "", err
 	}
 
 	for dec.More() {
@@ -127,9 +124,8 @@ func decodeEventBridgeS3Detail(detail json.RawMessage) (bucket, key string, err 
 			}
 			key = o.Key
 		default:
-			var skip json.RawMessage
-			if err := dec.Decode(&skip); err != nil {
-				return "", "", fmt.Errorf("skip field: %w", err)
+			if err := skip(dec); err != nil {
+				return "", "", err
 			}
 		}
 	}

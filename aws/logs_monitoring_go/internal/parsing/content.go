@@ -16,6 +16,7 @@ const (
 	ContentTypeS3
 	ContentTypeKinesis
 	ContentTypeEventBridge
+	ContentTypeSNS
 )
 
 type ParsedEvent struct {

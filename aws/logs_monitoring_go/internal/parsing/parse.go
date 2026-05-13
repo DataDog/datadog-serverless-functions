@@ -14,35 +14,46 @@ import (
 )
 
 const (
-	eventSourceKey     = "eventSource"
+	cloudwatchLogsKey = "awslogs"
+	detailKey         = "detail"
+	eventSourceKey    = "eventSource"
+	recordsKey        = "Records"
+
 	eventSourceS3      = "aws:s3"
 	eventSourceKinesis = "aws:kinesis"
+	eventSourceSNS     = "aws:sns"
 )
 
 func Parse(event json.RawMessage) ([]ParsedEvent, error) {
 	dec := json.NewDecoder(bytes.NewReader(event))
-
-	if t, err := dec.Token(); err != nil || t != json.Delim('{') {
-		return nil, errors.New("expected JSON object")
+	if err := skipBrace(dec); err != nil {
+		return nil, err
 	}
 
 	for dec.More() {
 		key, err := dec.Token()
 		if err != nil {
-			return nil, fmt.Errorf("read key: %w", err)
+			return nil, err
 		}
 
 		switch key {
-		case "awslogs":
+		case cloudwatchLogsKey:
 			return []ParsedEvent{{ContentType: ContentTypeCloudwatchLogs, Payload: event}}, nil
-		case "Records":
-			return parseRecords(event, dec)
-		case "detail":
-			return parseEventBridge(event)
+		case recordsKey:
+			parsed, err := parseRecords(event, dec)
+			if err != nil {
+				return nil, fmt.Errorf("records: %w", err)
+			}
+			return parsed, nil
+		case detailKey:
+			parsed, err := parseEventBridge(event)
+			if err != nil {
+				return nil, fmt.Errorf("eventbridge: %w", err)
+			}
+			return parsed, nil
 		default:
-			var skip json.RawMessage
-			if err := dec.Decode(&skip); err != nil {
-				return nil, fmt.Errorf("skip value: %w", err)
+			if err := skip(dec); err != nil {
+				return nil, fmt.Errorf("decode: %w", err)
 			}
 		}
 	}
@@ -51,35 +62,40 @@ func Parse(event json.RawMessage) ([]ParsedEvent, error) {
 }
 
 func parseRecords(event json.RawMessage, dec *json.Decoder) ([]ParsedEvent, error) {
-	if t, err := dec.Token(); err != nil || t != json.Delim('[') {
-		return nil, errors.New("records: expected array")
+	if err := skipBracket(dec); err != nil {
+		return nil, err
 	}
-	if t, err := dec.Token(); err != nil || t != json.Delim('{') {
-		return nil, errors.New("records: expected object")
+	if err := skipBrace(dec); err != nil {
+		return nil, err
 	}
 
 	for dec.More() {
 		key, err := dec.Token()
 		if err != nil {
-			return nil, fmt.Errorf("read record key: %w", err)
+			return nil, err
 		}
 
-		if !strings.EqualFold(key.(string), eventSourceKey) { // SNS event source key has a capital letter
-			var skip json.RawMessage
-			if err := dec.Decode(&skip); err != nil {
-				return nil, fmt.Errorf("skip record field: %w", err)
+		keyStr, ok := key.(string)
+		if !ok {
+			return nil, fmt.Errorf("expected string key, got %T", key)
+		}
+
+		// SNS uses "EventSource" so we compare case-insensitively.
+		if !strings.EqualFold(keyStr, eventSourceKey) {
+			if err := skip(dec); err != nil {
+				return nil, err
 			}
 			continue
 		}
 
 		val, err := dec.Token()
 		if err != nil {
-			return nil, fmt.Errorf("read event source value: %w", err)
+			return nil, err
 		}
 
 		eventSource, ok := val.(string)
 		if !ok {
-			return nil, fmt.Errorf("eventSource is not a string: %v", val)
+			return nil, fmt.Errorf("eventSource value should be a string, got %T", eventSource)
 		}
 
 		switch eventSource {
@@ -87,10 +103,69 @@ func parseRecords(event json.RawMessage, dec *json.Decoder) ([]ParsedEvent, erro
 			return []ParsedEvent{{ContentType: ContentTypeS3, Payload: event}}, nil
 		case eventSourceKinesis:
 			return []ParsedEvent{{ContentType: ContentTypeKinesis, Payload: event}}, nil
+		case eventSourceSNS:
+			return parseSNS(event)
 		default:
-			return nil, fmt.Errorf("records: unsupported event source %q", eventSource)
+			return nil, fmt.Errorf("unsupported event source %q", eventSource)
 		}
 	}
 
-	return nil, errors.New("no eventSource found in records")
+	return nil, errors.New("no eventSource found")
+}
+
+func skipBrace(dec *json.Decoder) error {
+	if t, err := dec.Token(); err != nil || t != json.Delim('{') {
+		return fmt.Errorf("expected '{': %w", err)
+	}
+	return nil
+}
+
+func skipBracket(dec *json.Decoder) error {
+	if t, err := dec.Token(); err != nil || t != json.Delim('[') {
+		return fmt.Errorf("expected '[': %w", err)
+	}
+	return nil
+}
+
+func skipToKey(dec *json.Decoder, key string) error {
+	for dec.More() {
+		k, err := dec.Token()
+		if err != nil {
+			return err
+		}
+
+		if k != key {
+			if err := skip(dec); err != nil {
+				return err
+			}
+			continue
+		}
+
+		return nil
+	}
+
+	return &KeyNotFoundError{key}
+}
+
+func skipToRecords(dec *json.Decoder) error {
+	if err := skipBrace(dec); err != nil {
+		return err
+	}
+
+	if err := skipToKey(dec, recordsKey); err != nil {
+		return err
+	}
+
+	if err := skipBracket(dec); err != nil {
+		return err
+	}
+	return nil
+}
+
+func skip(dec *json.Decoder) error {
+	var skip json.RawMessage
+	if err := dec.Decode(&skip); err != nil {
+		return fmt.Errorf("skip: %w", err)
+	}
+	return nil
 }
