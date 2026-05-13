@@ -32,7 +32,8 @@ func (h *SNSHandler) Handle(ctx context.Context, event json.RawMessage, out chan
 		return fmt.Errorf("get lambda origin: %w", err)
 	}
 
-	if h.cfg.Filter.ShouldExclude(entry.Message) {
+	message := string(event)
+	if h.cfg.Filter.ShouldExclude(message) {
 		return nil
 	}
 
@@ -40,7 +41,7 @@ func (h *SNSHandler) Handle(ctx context.Context, event json.RawMessage, out chan
 	service := cmp.Or(h.cfg.Service, source)
 
 	entry := model.NewLogEntry()
-	entry.Message = string(event)
+	entry.Message = message
 	entry.Source = source
 	entry.Service = service
 	entry.Tags = h.cfg.Tags
