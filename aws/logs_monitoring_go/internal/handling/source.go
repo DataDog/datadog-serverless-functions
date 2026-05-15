@@ -7,11 +7,12 @@ package handling
 
 const (
 	sourceCloudtrail   = "cloudtrail"
+	sourceCloudwatch   = "cloudwatch"
 	sourceKinesis      = "kinesis"
 	sourceLambda       = "lambda"
-	sourceWAF          = "waf"
 	sourceS3           = "s3"
-	sourceCloudwatch   = "cloudwatch"
+	sourceSecurityHub  = "securityhub"
 	sourceSNS          = "sns"
 	sourceStepFunction = "stepfunction"
+	sourceWAF          = "waf"
 )
