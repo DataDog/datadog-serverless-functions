@@ -15,7 +15,7 @@ import (
 
 func parseSQS(event json.RawMessage) ([]ParsedEvent, error) {
 	dec := json.NewDecoder(bytes.NewReader(event))
-	if err := skipToRecords(dec); err != nil {
+	if err := SkipToRecords(dec); err != nil {
 		return nil, fmt.Errorf("skip to records: %w", err)
 	}
 
@@ -45,11 +45,11 @@ func parseSQS(event json.RawMessage) ([]ParsedEvent, error) {
 }
 
 func extractBody(dec *json.Decoder) (string, error) {
-	if err := skipBrace(dec); err != nil {
+	if err := SkipBrace(dec); err != nil {
 		return "", err
 	}
 
-	if err := skipToKey(dec, "body"); err != nil {
+	if err := SkipToKey(dec, "body"); err != nil {
 		return "", fmt.Errorf("skip to key: %w", err)
 	}
 
@@ -69,7 +69,7 @@ func parseSQSBody(body string) (ParsedEvent, error) {
 	inner := json.RawMessage(body)
 	dec := json.NewDecoder(bytes.NewReader(inner))
 
-	if err := skipBrace(dec); err != nil {
+	if err := SkipBrace(dec); err != nil {
 		return ParsedEvent{}, err
 	}
 
@@ -95,7 +95,7 @@ func parseSQSBody(body string) (ParsedEvent, error) {
 			}
 			return ParsedEvent{}, errUnknownEvent
 		default:
-			if err := skip(dec); err != nil {
+			if err := Skip(dec); err != nil {
 				return ParsedEvent{}, err
 			}
 		}

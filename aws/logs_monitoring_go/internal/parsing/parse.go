@@ -186,7 +186,7 @@ func skipToEnd(dec *json.Decoder) error {
 		if _, err := dec.Token(); err != nil {
 			return err
 		}
-		if err := skip(dec); err != nil {
+		if err := Skip(dec); err != nil {
 			return err
 		}
 	}
