@@ -5,7 +5,12 @@
 
 package parsing
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
+
+var errUnknownEvent = errors.New("unknown event")
 
 type KeyNotFoundError struct {
 	Key string

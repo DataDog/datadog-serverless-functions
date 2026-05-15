@@ -21,6 +21,7 @@ const (
 
 	eventSourceS3      = "aws:s3"
 	eventSourceKinesis = "aws:kinesis"
+	eventSourceSQS     = "aws:sqs"
 	eventSourceSNS     = "aws:sns"
 )
 
@@ -95,7 +96,7 @@ func parseRecords(event json.RawMessage, dec *json.Decoder) ([]ParsedEvent, erro
 
 		eventSource, ok := val.(string)
 		if !ok {
-			return nil, fmt.Errorf("eventSource value should be a string, got %T", eventSource)
+			return nil, fmt.Errorf("eventSource value should be a string, got %T", val)
 		}
 
 		switch eventSource {
@@ -103,8 +104,18 @@ func parseRecords(event json.RawMessage, dec *json.Decoder) ([]ParsedEvent, erro
 			return []ParsedEvent{{ContentType: ContentTypeS3, Payload: event}}, nil
 		case eventSourceKinesis:
 			return []ParsedEvent{{ContentType: ContentTypeKinesis, Payload: event}}, nil
+		case eventSourceSQS:
+			parsed, err := parseSQS(event)
+			if err != nil {
+				return nil, fmt.Errorf("sqs: %w", err)
+			}
+			return parsed, nil
 		case eventSourceSNS:
-			return parseSNS(event)
+			parsed, err := parseSNS(event)
+			if err != nil {
+				return nil, fmt.Errorf("sns: %w", err)
+			}
+			return parsed, nil
 		default:
 			return nil, fmt.Errorf("unsupported event source %q", eventSource)
 		}
@@ -163,9 +174,22 @@ func skipToRecords(dec *json.Decoder) error {
 }
 
 func skip(dec *json.Decoder) error {
-	var skip json.RawMessage
-	if err := dec.Decode(&skip); err != nil {
+	var s json.RawMessage
+	if err := dec.Decode(&s); err != nil {
 		return fmt.Errorf("skip: %w", err)
 	}
 	return nil
+}
+
+func skipToEnd(dec *json.Decoder) error {
+	for dec.More() {
+		if _, err := dec.Token(); err != nil {
+			return err
+		}
+		if err := skip(dec); err != nil {
+			return err
+		}
+	}
+	_, err := dec.Token()
+	return err
 }
