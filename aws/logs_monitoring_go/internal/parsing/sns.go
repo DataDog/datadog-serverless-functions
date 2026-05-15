@@ -14,7 +14,7 @@ import (
 func parseSNS(event json.RawMessage) ([]ParsedEvent, error) {
 	dec := json.NewDecoder(bytes.NewReader(event))
 
-	if err := skipToRecords(dec); err != nil {
+	if err := SkipToRecords(dec); err != nil {
 		return nil, fmt.Errorf("skip to records: %w", err)
 	}
 
@@ -26,16 +26,16 @@ func parseSNS(event json.RawMessage) ([]ParsedEvent, error) {
 		}
 
 		recDec := json.NewDecoder(bytes.NewReader(record))
-		if err := skipBrace(recDec); err != nil {
+		if err := SkipBrace(recDec); err != nil {
 			return nil, err
 		}
-		if err := skipToKey(recDec, "Sns"); err != nil {
+		if err := SkipToKey(recDec, "Sns"); err != nil {
 			return nil, fmt.Errorf("skip to key: %w", err)
 		}
-		if err := skipBrace(recDec); err != nil {
+		if err := SkipBrace(recDec); err != nil {
 			return nil, err
 		}
-		if err := skipToKey(recDec, "Message"); err != nil {
+		if err := SkipToKey(recDec, "Message"); err != nil {
 			return nil, fmt.Errorf("skip to key: %w", err)
 		}
 
@@ -59,13 +59,13 @@ func parseSNS(event json.RawMessage) ([]ParsedEvent, error) {
 func isS3(message json.RawMessage) bool {
 	dec := json.NewDecoder(bytes.NewReader(message))
 
-	if err := skipToRecords(dec); err != nil {
+	if err := SkipToRecords(dec); err != nil {
 		return false
 	}
 
-	if err := skipBrace(dec); err != nil {
+	if err := SkipBrace(dec); err != nil {
 		return false
 	}
 
-	return skipToKey(dec, "s3") == nil
+	return SkipToKey(dec, "s3") == nil
 }

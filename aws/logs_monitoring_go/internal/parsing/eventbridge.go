@@ -38,7 +38,7 @@ func parseEventBridge(event json.RawMessage) ([]ParsedEvent, error) {
 
 func decodeEventBridgeEnvelope(event json.RawMessage) (source, detailType string, detail json.RawMessage, err error) {
 	dec := json.NewDecoder(bytes.NewReader(event))
-	if err := skipBrace(dec); err != nil {
+	if err := SkipBrace(dec); err != nil {
 		return "", "", nil, err
 	}
 
@@ -62,7 +62,7 @@ func decodeEventBridgeEnvelope(event json.RawMessage) (source, detailType string
 				return "", "", nil, fmt.Errorf("detail: %w", err)
 			}
 		default:
-			if err := skip(dec); err != nil {
+			if err := Skip(dec); err != nil {
 				return "", "", nil, err
 			}
 		}
@@ -96,7 +96,7 @@ func buildS3EventFromEventBridge(detail json.RawMessage) (json.RawMessage, error
 func decodeEventBridgeS3Detail(detail json.RawMessage) (bucket, key string, err error) {
 	dec := json.NewDecoder(bytes.NewReader(detail))
 
-	if err := skipBrace(dec); err != nil {
+	if err := SkipBrace(dec); err != nil {
 		return "", "", err
 	}
 
@@ -124,7 +124,7 @@ func decodeEventBridgeS3Detail(detail json.RawMessage) (bucket, key string, err 
 			}
 			key = o.Key
 		default:
-			if err := skip(dec); err != nil {
+			if err := Skip(dec); err != nil {
 				return "", "", err
 			}
 		}
