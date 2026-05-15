@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"errors"
 	"io"
-	"regexp"
 	"strings"
 	"testing"
 
@@ -36,6 +35,14 @@ var (
 		S3: events.S3Entity{
 			Bucket: events.S3Bucket{Name: "trail-bucket"},
 			Object: events.S3Object{URLDecodedKey: testCloudTrailKey},
+		},
+	}
+
+	testWAFKey         = "AWSLogs/123456779121/WAFLogs/us-east-1/webacl/aws-waf-logs-example.log.gz"
+	testWAFEventRecord = events.S3EventRecord{
+		S3: events.S3Entity{
+			Bucket: events.S3Bucket{Name: "waf-bucket"},
+			Object: events.S3Object{URLDecodedKey: testWAFKey},
 		},
 	}
 )
@@ -125,7 +132,7 @@ func TestProcessS3Record(t *testing.T) {
 						Body: io.NopCloser(strings.NewReader("2024-01-15 ERROR NullPointer\n    at com.foo.Bar\n2024-01-15 INFO started")),
 					}, nil)
 			},
-			cfg:         &config.Config{S3MultilineLogRegex: regexp.MustCompile(`\d{4}-\d{2}-\d{2}`)},
+			cfg:         testutil.Config(t, testutil.WithMultilineRegex(`\d{4}-\d{2}-\d{2}`)),
 			eventRecord: testS3EventRecord,
 			want: []model.LogEntry{
 				wantS3Entry("2024-01-15 ERROR NullPointer\n    at com.foo.Bar\n", "s3", "s3", nil),
@@ -139,7 +146,7 @@ func TestProcessS3Record(t *testing.T) {
 						Body: io.NopCloser(strings.NewReader("2024-01-15 ERROR\n    stacktrace")),
 					}, nil)
 			},
-			cfg:         &config.Config{S3MultilineLogRegex: regexp.MustCompile(`\d{4}-\d{2}-\d{2}`)},
+			cfg:         testutil.Config(t, testutil.WithMultilineRegex(`\d{4}-\d{2}-\d{2}`)),
 			eventRecord: testS3EventRecord,
 			want:        []model.LogEntry{wantS3Entry("2024-01-15 ERROR\n    stacktrace", "s3", "s3", nil)},
 		},
@@ -150,7 +157,7 @@ func TestProcessS3Record(t *testing.T) {
 						Body: io.NopCloser(strings.NewReader("line1")),
 					}, nil)
 			},
-			cfg:         &config.Config{Tags: model.Tags{"env:prod", "team:aws"}},
+			cfg:         testutil.Config(t, testutil.WithTags("env:prod", "team:aws")),
 			eventRecord: testS3EventRecord,
 			want:        []model.LogEntry{wantS3Entry("line1", "s3", "s3", model.Tags{"env:prod", "team:aws"})},
 		},
@@ -206,6 +213,77 @@ func TestProcessS3Record(t *testing.T) {
 				),
 			},
 		},
+		"waf single line": {
+			mockSetup: func(m *MockS3APIClient) {
+				data := testutil.MustGzip(t, []byte(`{"httpRequest":{"headers":[{"name":"Host","value":"example.com"}]}}`))
+				m.EXPECT().GetObject(gomock.Any(), gomock.Any()).
+					Return(&s3.GetObjectOutput{
+						Body: io.NopCloser(bytes.NewReader(data)),
+					}, nil)
+			},
+			cfg:         testutil.EmptyConfig(),
+			eventRecord: testWAFEventRecord,
+			want:        []model.LogEntry{wantWAFEntry(`{"httpRequest":{"headers":{"Host":"example.com"}}}`)},
+		},
+		"waf multiple lines": {
+			mockSetup: func(m *MockS3APIClient) {
+				lines := `{"httpRequest":{"headers":[{"name":"h1","value":"v1"}]}}` + "\n" +
+					`{"httpRequest":{"headers":[{"name":"h2","value":"v2"}]}}`
+				data := testutil.MustGzip(t, []byte(lines))
+				m.EXPECT().GetObject(gomock.Any(), gomock.Any()).
+					Return(&s3.GetObjectOutput{
+						Body: io.NopCloser(bytes.NewReader(data)),
+					}, nil)
+			},
+			cfg:         testutil.EmptyConfig(),
+			eventRecord: testWAFEventRecord,
+			want: []model.LogEntry{
+				wantWAFEntry(`{"httpRequest":{"headers":{"h1":"v1"}}}`),
+				wantWAFEntry(`{"httpRequest":{"headers":{"h2":"v2"}}}`),
+			},
+		},
+		"waf does not apply multiline regex": {
+			mockSetup: func(m *MockS3APIClient) {
+				lines := `{"action":"ALLOW"}` + "\n" + `{"action":"BLOCK"}`
+				data := testutil.MustGzip(t, []byte(lines))
+				m.EXPECT().GetObject(gomock.Any(), gomock.Any()).
+					Return(&s3.GetObjectOutput{
+						Body: io.NopCloser(bytes.NewReader(data)),
+					}, nil)
+			},
+			cfg:         testutil.Config(t, testutil.WithMultilineRegex(`\{`)),
+			eventRecord: testWAFEventRecord,
+			want: []model.LogEntry{
+				wantWAFEntry(`{"action":"ALLOW"}`),
+				wantWAFEntry(`{"action":"BLOCK"}`),
+			},
+		},
+		"waf exclude at match": {
+			mockSetup: func(m *MockS3APIClient) {
+				lines := `{"action":"ALLOW","httpRequest":{}}` + "\n" + `{"action":"BLOCK","httpRequest":{}}`
+				data := testutil.MustGzip(t, []byte(lines))
+				m.EXPECT().GetObject(gomock.Any(), gomock.Any()).
+					Return(&s3.GetObjectOutput{
+						Body: io.NopCloser(bytes.NewReader(data)),
+					}, nil)
+			},
+			cfg:         testutil.Config(t, testutil.WithExcludeFilter(`"action":"BLOCK"`)),
+			eventRecord: testWAFEventRecord,
+			want:        []model.LogEntry{wantWAFEntry(`{"action":"ALLOW","httpRequest":{}}`)},
+		},
+		"waf include at match": {
+			mockSetup: func(m *MockS3APIClient) {
+				lines := `{"action":"ALLOW","httpRequest":{}}` + "\n" + `{"action":"BLOCK","httpRequest":{}}`
+				data := testutil.MustGzip(t, []byte(lines))
+				m.EXPECT().GetObject(gomock.Any(), gomock.Any()).
+					Return(&s3.GetObjectOutput{
+						Body: io.NopCloser(bytes.NewReader(data)),
+					}, nil)
+			},
+			cfg:         testutil.Config(t, testutil.WithIncludeFilter(`"action":"ALLOW"`)),
+			eventRecord: testWAFEventRecord,
+			want:        []model.LogEntry{wantWAFEntry(`{"action":"ALLOW","httpRequest":{}}`)},
+		},
 	}
 
 	for name, tc := range tests {
@@ -246,6 +324,18 @@ func wantCloudTrailEntry(message, host string) model.LogEntry {
 	entry.Metadata = model.S3Metadata{
 		LambdaOrigin: testutil.LambdaOrigin(),
 		Origin:       model.S3Origin{Bucket: "trail-bucket", Key: testCloudTrailKey},
+	}
+	return entry
+}
+
+func wantWAFEntry(message string) model.LogEntry {
+	entry := model.NewLogEntry()
+	entry.Message = message
+	entry.Source = sourceWAF
+	entry.Service = sourceWAF
+	entry.Metadata = model.S3Metadata{
+		LambdaOrigin: testutil.LambdaOrigin(),
+		Origin:       model.S3Origin{Bucket: "waf-bucket", Key: testWAFKey},
 	}
 	return entry
 }

@@ -11,9 +11,11 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"regexp"
 	"testing"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/filtering"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambdacontext"
@@ -36,6 +38,66 @@ func EmptyConfig() *config.Config {
 	return &config.Config{}
 }
 
+type ConfigOption func(t *testing.T, cfg *config.Config)
+
+func Config(t *testing.T, opts ...ConfigOption) *config.Config {
+	t.Helper()
+	cfg := EmptyConfig()
+	for _, opt := range opts {
+		opt(t, cfg)
+	}
+	return cfg
+}
+
+func WithIncludeFilter(pattern string) ConfigOption {
+	return func(t *testing.T, cfg *config.Config) {
+		t.Helper()
+		f, err := filtering.NewFilter(pattern, "")
+		if err != nil {
+			t.Fatalf("include filter: %v", err)
+		}
+		cfg.Filter = f
+	}
+}
+
+func WithExcludeFilter(pattern string) ConfigOption {
+	return func(t *testing.T, cfg *config.Config) {
+		t.Helper()
+		f, err := filtering.NewFilter("", pattern)
+		if err != nil {
+			t.Fatalf("exclude filter: %v", err)
+		}
+		cfg.Filter = f
+	}
+}
+
+func WithMultilineRegex(pattern string) ConfigOption {
+	return func(t *testing.T, cfg *config.Config) {
+		t.Helper()
+		cfg.S3MultilineLogRegex = regexp.MustCompile(pattern)
+	}
+}
+
+func WithTags(tags ...string) ConfigOption {
+	return func(_ *testing.T, cfg *config.Config) {
+		cfg.Tags = tags
+	}
+}
+
+func MustGzip(t *testing.T, data []byte) []byte {
+	t.Helper()
+
+	var buf bytes.Buffer
+	w := gzip.NewWriter(&buf)
+	if _, err := w.Write(data); err != nil {
+		t.Fatalf("gzip write: %v", err)
+	}
+	if err := w.Close(); err != nil {
+		t.Fatalf("gzip close: %v", err)
+	}
+	return buf.Bytes()
+}
+
 func MustGzipJSON(t *testing.T, v any) []byte {
 	t.Helper()
 
@@ -43,17 +105,7 @@ func MustGzipJSON(t *testing.T, v any) []byte {
 	if err != nil {
 		t.Fatalf("marshal: %v", err)
 	}
-
-	var buf bytes.Buffer
-	w := gzip.NewWriter(&buf)
-	if _, err := w.Write(raw); err != nil {
-		t.Fatalf("gzip write: %v", err)
-	}
-	if err := w.Close(); err != nil {
-		t.Fatalf("gzip close: %v", err)
-	}
-
-	return buf.Bytes()
+	return MustGzip(t, raw)
 }
 
 func MustCloudwatchEvent(t *testing.T, data []byte) json.RawMessage {

@@ -8,13 +8,14 @@ package handling
 import (
 	"compress/gzip"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"iter"
 	"log/slog"
 	"regexp"
 	"strings"
+
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/parsing"
 )
 
 const (
@@ -31,23 +32,14 @@ func decodeCloudTrail(r io.Reader) iter.Seq2[string, error] {
 	return func(yield func(string, error) bool) {
 		gz, err := gzip.NewReader(r)
 		if err != nil {
-			yield("", fmt.Errorf("decode cloudtrail gzip: %w", err))
+			yield("", fmt.Errorf("gzip: %w", err))
 			return
 		}
 		defer gz.Close() //nolint:errcheck
 
 		dec := json.NewDecoder(gz)
-
-		if t, err := dec.Token(); err != nil || t != json.Delim('{') {
-			yield("", errors.New("decode cloudtrail: expected '{' at start of JSON"))
-			return
-		}
-		if t, err := dec.Token(); err != nil || t != "Records" {
-			yield("", errors.New("decode cloudtrail: expected 'Records' key"))
-			return
-		}
-		if t, err := dec.Token(); err != nil || t != json.Delim('[') {
-			yield("", errors.New("decode cloudtrail: expected '[' at start of Records array"))
+		if err := parsing.SkipToRecords(dec); err != nil {
+			yield("", fmt.Errorf("cloudtrail: %w", err))
 			return
 		}
 
@@ -64,55 +56,33 @@ func decodeCloudTrail(r io.Reader) iter.Seq2[string, error] {
 	}
 }
 
-func cloudtrailHost(message string) string {
+func cloudtrailHost(message string) (host string) {
 	dec := json.NewDecoder(strings.NewReader(message))
-	if t, err := dec.Token(); err != nil || t != json.Delim('{') {
-		return ""
+	if err := parsing.SkipBrace(dec); err != nil {
+		return
 	}
 
-	for dec.More() {
-		key, err := dec.Token()
-		if err != nil {
-			return ""
-		}
-		if key != cloudTrailUserIdentityKey {
-			var skip json.RawMessage
-			if err := dec.Decode(&skip); err != nil {
-				return ""
-			}
-			continue
-		}
-
-		if t, err := dec.Token(); err != nil || t != json.Delim('{') {
-			return ""
-		}
-
-		for dec.More() {
-			innerKey, err := dec.Token()
-			if err != nil {
-				return ""
-			}
-			if innerKey != cloudTrailARNKey {
-				var skip json.RawMessage
-				if err := dec.Decode(&skip); err != nil {
-					return ""
-				}
-				continue
-			}
-
-			var arn string
-			if err := dec.Decode(&arn); err != nil {
-				return ""
-			}
-
-			matches := ec2InstanceRegexp.FindStringSubmatch(arn)
-			if matches == nil {
-				slog.Debug(arn + " arn did not match an EC2 host instance, cloudtrail host extraction skipped")
-				return ""
-			}
-			return matches[ec2InstanceRegexp.SubexpIndex("host")]
-		}
-		return ""
+	if err := parsing.SkipToKey(dec, "userIdentity"); err != nil {
+		return
 	}
-	return ""
+
+	if err := parsing.SkipBrace(dec); err != nil {
+		return
+	}
+
+	if err := parsing.SkipToKey(dec, "arn"); err != nil {
+		return
+	}
+
+	var arn string
+	if err := dec.Decode(&arn); err != nil {
+		return
+	}
+
+	matches := ec2InstanceRegexp.FindStringSubmatch(arn)
+	if matches != nil {
+		host = matches[ec2InstanceRegexp.SubexpIndex("host")]
+		slog.Debug("ec2 host found in userIdentity.arn")
+	}
+	return
 }

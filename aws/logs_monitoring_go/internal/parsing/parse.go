@@ -27,7 +27,7 @@ const (
 
 func Parse(event json.RawMessage) ([]ParsedEvent, error) {
 	dec := json.NewDecoder(bytes.NewReader(event))
-	if err := skipBrace(dec); err != nil {
+	if err := SkipBrace(dec); err != nil {
 		return nil, err
 	}
 
@@ -53,8 +53,8 @@ func Parse(event json.RawMessage) ([]ParsedEvent, error) {
 			}
 			return parsed, nil
 		default:
-			if err := skip(dec); err != nil {
-				return nil, fmt.Errorf("decode: %w", err)
+			if err := Skip(dec); err != nil {
+				return nil, err
 			}
 		}
 	}
@@ -63,10 +63,10 @@ func Parse(event json.RawMessage) ([]ParsedEvent, error) {
 }
 
 func parseRecords(event json.RawMessage, dec *json.Decoder) ([]ParsedEvent, error) {
-	if err := skipBracket(dec); err != nil {
+	if err := SkipBracket(dec); err != nil {
 		return nil, err
 	}
-	if err := skipBrace(dec); err != nil {
+	if err := SkipBrace(dec); err != nil {
 		return nil, err
 	}
 
@@ -83,7 +83,7 @@ func parseRecords(event json.RawMessage, dec *json.Decoder) ([]ParsedEvent, erro
 
 		// SNS uses "EventSource" so we compare case-insensitively.
 		if !strings.EqualFold(keyStr, eventSourceKey) {
-			if err := skip(dec); err != nil {
+			if err := Skip(dec); err != nil {
 				return nil, err
 			}
 			continue
@@ -124,21 +124,21 @@ func parseRecords(event json.RawMessage, dec *json.Decoder) ([]ParsedEvent, erro
 	return nil, errors.New("no eventSource found")
 }
 
-func skipBrace(dec *json.Decoder) error {
+func SkipBrace(dec *json.Decoder) error {
 	if t, err := dec.Token(); err != nil || t != json.Delim('{') {
 		return fmt.Errorf("expected '{': %w", err)
 	}
 	return nil
 }
 
-func skipBracket(dec *json.Decoder) error {
+func SkipBracket(dec *json.Decoder) error {
 	if t, err := dec.Token(); err != nil || t != json.Delim('[') {
 		return fmt.Errorf("expected '[': %w", err)
 	}
 	return nil
 }
 
-func skipToKey(dec *json.Decoder, key string) error {
+func SkipToKey(dec *json.Decoder, key string) error {
 	for dec.More() {
 		k, err := dec.Token()
 		if err != nil {
@@ -146,7 +146,7 @@ func skipToKey(dec *json.Decoder, key string) error {
 		}
 
 		if k != key {
-			if err := skip(dec); err != nil {
+			if err := Skip(dec); err != nil {
 				return err
 			}
 			continue
@@ -158,24 +158,24 @@ func skipToKey(dec *json.Decoder, key string) error {
 	return &KeyNotFoundError{key}
 }
 
-func skipToRecords(dec *json.Decoder) error {
-	if err := skipBrace(dec); err != nil {
+func SkipToRecords(dec *json.Decoder) error {
+	if err := SkipBrace(dec); err != nil {
 		return err
 	}
 
-	if err := skipToKey(dec, recordsKey); err != nil {
+	if err := SkipToKey(dec, recordsKey); err != nil {
 		return err
 	}
 
-	if err := skipBracket(dec); err != nil {
+	if err := SkipBracket(dec); err != nil {
 		return err
 	}
 	return nil
 }
 
-func skip(dec *json.Decoder) error {
-	var s json.RawMessage
-	if err := dec.Decode(&s); err != nil {
+func Skip(dec *json.Decoder) error {
+	var skip json.RawMessage
+	if err := dec.Decode(&skip); err != nil {
 		return fmt.Errorf("skip: %w", err)
 	}
 	return nil
