@@ -45,6 +45,7 @@ func flattenByKey(src map[string]any, field, keyField, outputField string, alway
 		if !ok {
 			continue
 		}
+
 		key, _ := obj[keyField].(string)
 		if key == "" {
 			continue
@@ -77,6 +78,7 @@ func flattenHeaders(msg map[string]any) {
 		if !ok {
 			continue
 		}
+
 		name, _ := header["name"].(string)
 		if name == "" {
 			continue
@@ -98,9 +100,9 @@ func flattenRuleGroupList(msg map[string]any) {
 		if !ok {
 			continue
 		}
+
 		groupID, _ := group[ruleGroupIdKey].(string)
 		delete(group, ruleGroupIdKey)
-
 		existing, ok := result[groupID].(map[string]any)
 		if !ok {
 			existing = make(map[string]any)

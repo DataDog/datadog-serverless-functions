@@ -61,8 +61,8 @@ func (h *EventBridgeHandler) eventBridge(ctx context.Context, event json.RawMess
 }
 
 func (h *EventBridgeHandler) securityHub(ctx context.Context, event json.RawMessage, source string, out chan<- model.LogEntry, lambdaOrigin model.LambdaOrigin) error {
-	messages, ok := separateFindings(event)
-	if !ok {
+	messages := separateFindings(event)
+	if len(messages) == 0 {
 		return h.eventBridge(ctx, event, source, out, lambdaOrigin)
 	}
 

@@ -5,23 +5,26 @@
 
 package handling
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"log/slog"
+)
 
 const (
 	findingKey  = "finding"
 	findingsKey = "findings"
 )
 
-func separateFindings(event json.RawMessage) ([]string, bool) {
+func separateFindings(event json.RawMessage) []string {
 	var raw map[string]any
 	if err := json.Unmarshal(event, &raw); err != nil {
-		return nil, false
+		return nil
 	}
 
 	detail, _ := raw["detail"].(map[string]any)
 	findings, _ := detail[findingsKey].([]any)
 	if len(findings) == 0 {
-		return nil, false
+		return nil
 	}
 
 	delete(detail, findingsKey)
@@ -37,9 +40,10 @@ func separateFindings(event json.RawMessage) ([]string, bool) {
 
 		out, err := json.Marshal(raw)
 		if err != nil {
+			slog.Warn("marshal securityhub finding, skipped", slog.Any("error", err))
 			continue
 		}
 		messages = append(messages, string(out))
 	}
-	return messages, true
+	return messages
 }

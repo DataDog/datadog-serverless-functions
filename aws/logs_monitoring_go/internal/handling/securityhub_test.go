@@ -17,44 +17,33 @@ func TestSeparateFindings(t *testing.T) {
 	t.Parallel()
 
 	tests := map[string]struct {
-		input   string
-		wantOK  bool
-		wantLen int
-		want    []string
+		input string
+		want  []string
 	}{
 		"no findings field": {
-			input:  `{"source":"aws.securityhub"}`,
-			wantOK: false,
+			input: `{"source":"aws.securityhub"}`,
 		},
 		"empty findings": {
-			input:  `{"detail":{"findings":[]}}`,
-			wantOK: false,
+			input: `{"detail":{"findings":[]}}`,
 		},
 		"invalid json": {
-			input:  `not json`,
-			wantOK: false,
+			input: `not json`,
 		},
 		"one finding no resources": {
-			input:   `{"ddsource":"securityhub","detail":{"findings":[{"myattribute":"somevalue"}]}}`,
-			wantOK:  true,
-			wantLen: 1,
+			input: `{"ddsource":"securityhub","detail":{"findings":[{"myattribute":"somevalue"}]}}`,
 			want: []string{
 				`{"ddsource":"securityhub","detail":{"finding":{"myattribute":"somevalue","resources":{}}}}`,
 			},
 		},
 		"two findings one resource each": {
-			input:   `{"ddsource":"securityhub","detail":{"findings":[{"myattribute":"somevalue","Resources":[{"Region":"us-east-1","Type":"AwsEc2SecurityGroup"}]},{"myattribute":"somevalue","Resources":[{"Region":"us-east-1","Type":"AwsEc2SecurityGroup"}]}]}}`,
-			wantOK:  true,
-			wantLen: 2,
+			input: `{"ddsource":"securityhub","detail":{"findings":[{"myattribute":"somevalue","Resources":[{"Region":"us-east-1","Type":"AwsEc2SecurityGroup"}]},{"myattribute":"somevalue","Resources":[{"Region":"us-east-1","Type":"AwsEc2SecurityGroup"}]}]}}`,
 			want: []string{
 				`{"ddsource":"securityhub","detail":{"finding":{"myattribute":"somevalue","resources":{"AwsEc2SecurityGroup":{"Region":"us-east-1"}}}}}`,
 				`{"ddsource":"securityhub","detail":{"finding":{"myattribute":"somevalue","resources":{"AwsEc2SecurityGroup":{"Region":"us-east-1"}}}}}`,
 			},
 		},
 		"multiple findings multiple resources": {
-			input:   `{"ddsource":"securityhub","detail":{"findings":[{"myattribute":"somevalue","Resources":[{"Region":"us-east-1","Type":"AwsEc2SecurityGroup"}]},{"myattribute":"somevalue","Resources":[{"Region":"us-east-1","Type":"AwsEc2SecurityGroup"},{"Region":"us-east-1","Type":"AwsOtherSecurityGroup"}]},{"myattribute":"somevalue","Resources":[{"Region":"us-east-1","Type":"AwsEc2SecurityGroup"},{"Region":"us-east-1","Type":"AwsOtherSecurityGroup"},{"Region":"us-east-1","Type":"AwsAnotherSecurityGroup"}]}]}}`,
-			wantOK:  true,
-			wantLen: 3,
+			input: `{"ddsource":"securityhub","detail":{"findings":[{"myattribute":"somevalue","Resources":[{"Region":"us-east-1","Type":"AwsEc2SecurityGroup"}]},{"myattribute":"somevalue","Resources":[{"Region":"us-east-1","Type":"AwsEc2SecurityGroup"},{"Region":"us-east-1","Type":"AwsOtherSecurityGroup"}]},{"myattribute":"somevalue","Resources":[{"Region":"us-east-1","Type":"AwsEc2SecurityGroup"},{"Region":"us-east-1","Type":"AwsOtherSecurityGroup"},{"Region":"us-east-1","Type":"AwsAnotherSecurityGroup"}]}]}}`,
 			want: []string{
 				`{"ddsource":"securityhub","detail":{"finding":{"myattribute":"somevalue","resources":{"AwsEc2SecurityGroup":{"Region":"us-east-1"}}}}}`,
 				`{"ddsource":"securityhub","detail":{"finding":{"myattribute":"somevalue","resources":{"AwsEc2SecurityGroup":{"Region":"us-east-1"},"AwsOtherSecurityGroup":{"Region":"us-east-1"}}}}}`,
@@ -66,13 +55,8 @@ func TestSeparateFindings(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			got, ok := separateFindings(json.RawMessage(tc.input))
-			assert.Equal(t, tc.wantOK, ok)
-			if !tc.wantOK {
-				assert.Nil(t, got)
-				return
-			}
-			require.Len(t, got, tc.wantLen)
+			got := separateFindings(json.RawMessage(tc.input))
+			require.Len(t, got, len(tc.want))
 			for i, want := range tc.want {
 				assert.JSONEq(t, want, got[i])
 			}
