@@ -258,6 +258,17 @@ func TestProcessS3Record(t *testing.T) {
 				wantWAFEntry(`{"action":"BLOCK"}`),
 			},
 		},
+		"waf non-gzipped": {
+			mockSetup: func(m *MockS3APIClient) {
+				m.EXPECT().GetObject(gomock.Any(), gomock.Any()).
+					Return(&s3.GetObjectOutput{
+						Body: io.NopCloser(strings.NewReader(`{"httpRequest":{"headers":[{"name":"Host","value":"example.com"}]}}`)),
+					}, nil)
+			},
+			cfg:         testutil.EmptyConfig(),
+			eventRecord: testWAFEventRecord,
+			want:        []model.LogEntry{wantWAFEntry(`{"httpRequest":{"headers":{"Host":"example.com"}}}`)},
+		},
 		"waf exclude at match": {
 			mockSetup: func(m *MockS3APIClient) {
 				lines := `{"action":"ALLOW","httpRequest":{}}` + "\n" + `{"action":"BLOCK","httpRequest":{}}`

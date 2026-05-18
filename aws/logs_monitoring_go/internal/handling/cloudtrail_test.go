@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -117,44 +116,24 @@ func TestDecodeCloudTrail(t *testing.T) {
 		wantErr bool
 	}{
 		"single record": {
-			input: testutil.MustGzipJSON(t, map[string]any{
-				"Records": []any{
-					map[string]any{
-						"eventName": "DescribeTable",
-						"userIdentity": map[string]any{
-							"arn": "arn:aws:sts::601427279990:assumed-role/MyRole/i-08014e4f62ccf762d",
-						},
-					},
-				},
-			}),
+			input: []byte(`{"Records":[{"eventName":"DescribeTable","userIdentity":{"arn":"arn:aws:sts::601427279990:assumed-role/MyRole/i-08014e4f62ccf762d"}}]}`),
 			want: []string{
 				`{"eventName":"DescribeTable","userIdentity":{"arn":"arn:aws:sts::601427279990:assumed-role/MyRole/i-08014e4f62ccf762d"}}`,
 			},
 		},
 		"multiple records": {
-			input: testutil.MustGzipJSON(t, map[string]any{
-				"Records": []any{
-					map[string]any{"eventName": "event1"},
-					map[string]any{"eventName": "event2"},
-				},
-			}),
+			input: []byte(`{"Records":[{"eventName":"event1"},{"eventName":"event2"}]}`),
 			want: []string{
 				`{"eventName":"event1"}`,
 				`{"eventName":"event2"}`,
 			},
 		},
 		"empty records array": {
-			input: testutil.MustGzipJSON(t, map[string]any{
-				"Records": []any{},
-			}),
-			want: nil,
-		},
-		"invalid gzip": {
-			input:   []byte("not gzip"),
-			wantErr: true,
+			input: []byte(`{"Records":[]}`),
+			want:  nil,
 		},
 		"invalid json": {
-			input:   testutil.MustGzipJSON(t, "not an object"),
+			input:   []byte("not json"),
 			wantErr: true,
 		},
 	}
