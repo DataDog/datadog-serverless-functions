@@ -91,7 +91,7 @@ func TestEventBridgeHandler_Handle(t *testing.T) {
 			t.Parallel()
 
 			handler := NewEventBridge(tc.cfg)
-			out := make(chan model.LogEntry, 10)
+			out := make(chan model.LogEntry, len(tc.want))
 
 			err := handler.Handle(ctx, tc.event, out)
 			close(out)
@@ -148,7 +148,7 @@ func TestEventBridgeHandler_SecurityHub(t *testing.T) {
 			t.Parallel()
 
 			handler := NewEventBridge(tc.cfg)
-			out := make(chan model.LogEntry, 10)
+			out := make(chan model.LogEntry, len(tc.want))
 
 			err := handler.Handle(ctx, tc.event, out)
 			close(out)
