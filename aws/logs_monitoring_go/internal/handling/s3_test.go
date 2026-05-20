@@ -38,6 +38,14 @@ var (
 		},
 	}
 
+	testVpcFlowLogsKey         = "AWSLogs/123456789012/vpcflowlogs/us-east-1/2024/01/01/log.log.gz"
+	testVpcFlowLogsEventRecord = events.S3EventRecord{
+		S3: events.S3Entity{
+			Bucket: events.S3Bucket{Name: "vpc-bucket"},
+			Object: events.S3Object{URLDecodedKey: testVpcFlowLogsKey},
+		},
+	}
+
 	testWAFKey         = "AWSLogs/123456779121/WAFLogs/us-east-1/webacl/aws-waf-logs-example.log.gz"
 	testWAFEventRecord = events.S3EventRecord{
 		S3: events.S3Entity{
@@ -213,6 +221,20 @@ func TestProcessS3Record(t *testing.T) {
 				),
 			},
 		},
+		"vpc flow logs skips header line": {
+			mockSetup: func(m *MockS3APIClient) {
+				m.EXPECT().GetObject(gomock.Any(), gomock.Any()).
+					Return(&s3.GetObjectOutput{
+						Body: io.NopCloser(strings.NewReader("version account-id interface-id srcaddr dstaddr srcport dstport protocol\n2 123456789012 eni-abc123 10.0.0.1 10.0.0.2 443 49152 6\n2 123456789012 eni-abc123 10.0.0.2 10.0.0.1 49152 443 6")),
+					}, nil)
+			},
+			cfg:         testutil.EmptyConfig(),
+			eventRecord: testVpcFlowLogsEventRecord,
+			want: []model.LogEntry{
+				wantVpcFlowLogsEntry("2 123456789012 eni-abc123 10.0.0.1 10.0.0.2 443 49152 6"),
+				wantVpcFlowLogsEntry("2 123456789012 eni-abc123 10.0.0.2 10.0.0.1 49152 443 6"),
+			},
+		},
 		"waf single line": {
 			mockSetup: func(m *MockS3APIClient) {
 				data := testutil.MustGzip(t, []byte(`{"httpRequest":{"headers":[{"name":"Host","value":"example.com"}]}}`))
@@ -335,6 +357,18 @@ func wantCloudTrailEntry(message, host string) model.LogEntry {
 	entry.Metadata = model.S3Metadata{
 		LambdaOrigin: testutil.LambdaOrigin(),
 		Origin:       model.S3Origin{Bucket: "trail-bucket", Key: testCloudTrailKey},
+	}
+	return entry
+}
+
+func wantVpcFlowLogsEntry(message string) model.LogEntry {
+	entry := model.NewLogEntry()
+	entry.Message = message
+	entry.Source = sourceS3
+	entry.Service = sourceS3
+	entry.Metadata = model.S3Metadata{
+		LambdaOrigin: testutil.LambdaOrigin(),
+		Origin:       model.S3Origin{Bucket: "vpc-bucket", Key: testVpcFlowLogsKey},
 	}
 	return entry
 }
