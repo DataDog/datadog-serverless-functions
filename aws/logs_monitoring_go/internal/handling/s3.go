@@ -22,9 +22,10 @@ import (
 )
 
 const (
-	s3KeyWAF1    = "aws-waf-logs"
-	s3KeyWAF2    = "waflogs"
-	s3KeyKinesis = "amazon_kinesis"
+	s3KeyKinesis     = "amazon_kinesis"
+	s3KeyVpcFlowLogs = "vpcflowlogs"
+	s3KeyWAF1        = "aws-waf-logs"
+	s3KeyWAF2        = "waflogs"
 )
 
 type S3Handler struct {
@@ -112,10 +113,18 @@ func S3Source(key string) string {
 }
 
 func (h S3Handler) S3(ctx context.Context, out chan<- model.LogEntry, r io.Reader, eventRecord events.S3EventRecord, lambdaOrigin model.LambdaOrigin) error {
+	var headerSkipped bool
+	isVpcFlowLogs := strings.Contains(eventRecord.S3.Object.URLDecodedKey, s3KeyVpcFlowLogs)
+
 	base := h.newBaseEntry(eventRecord, lambdaOrigin)
 	for message, err := range scan(r, h.cfg.S3MultilineLogRegex) {
 		if err != nil {
 			return err
+		}
+
+		if isVpcFlowLogs && !headerSkipped {
+			headerSkipped = true
+			continue
 		}
 
 		tags, service, message := extractFromMessage(message)
