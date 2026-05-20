@@ -101,14 +101,14 @@ func eventBridgeSource(event json.RawMessage) (string, error) {
 		return "", err
 	}
 
-	var raw string
-	if err := dec.Decode(&raw); err != nil {
+	var rawSource string
+	if err := dec.Decode(&rawSource); err != nil {
 		return "", fmt.Errorf("decode: %w", err)
 	}
 
-	_, after, found := strings.Cut(raw, ".")
+	_, source, found := strings.Cut(rawSource, ".")
 	if found {
-		return after, nil
+		return source, nil
 	}
 	return sourceCloudwatch, nil
 }
