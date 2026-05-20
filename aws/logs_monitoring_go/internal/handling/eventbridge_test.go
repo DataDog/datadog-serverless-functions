@@ -71,6 +71,19 @@ func TestEventBridgeHandler_Handle(t *testing.T) {
 			cfg:     testutil.EmptyConfig(),
 			wantErr: true,
 		},
+		"securityhub no findings falls back": {
+			event: json.RawMessage(`{"source":"aws.securityhub","detail":{}}`),
+			cfg:   testutil.EmptyConfig(),
+			want: []model.LogEntry{
+				{
+					Message:        `{"source":"aws.securityhub","detail":{}}`,
+					Source:         sourceSecurityHub,
+					SourceCategory: "aws",
+					Service:        sourceSecurityHub,
+					Metadata:       testutil.LambdaOrigin(),
+				},
+			},
+		},
 	}
 
 	for name, tc := range tests {
@@ -100,26 +113,57 @@ func TestEventBridgeHandler_Handle(t *testing.T) {
 	}
 }
 
-func TestEventBridgeSource(t *testing.T) {
+func TestEventBridgeHandler_SecurityHub(t *testing.T) {
 	t.Parallel()
 
+	ctx := testutil.LambdaContext(t)
+
 	tests := map[string]struct {
-		source string
-		want   string
+		event json.RawMessage
+		cfg   *config.Config
+		want  []string
 	}{
-		"aws.events":   {source: "aws.events", want: "events"},
-		"aws.ec2":      {source: "aws.ec2", want: "ec2"},
-		"aws.s3":       {source: "aws.s3", want: "s3"},
-		"custom.app":   {source: "custom.app", want: "app"},
-		"no dot":       {source: "nodot", want: "cloudwatch"},
-		"empty string": {source: "", want: "cloudwatch"},
+		"one finding": {
+			event: json.RawMessage(`{"source":"aws.securityhub","detail-type":"Security Hub Findings - Imported","detail":{"findings":[{"myattribute":"somevalue","Resources":[{"Region":"us-east-1","Type":"AwsEc2SecurityGroup"}]}]}}`),
+			cfg:   testutil.EmptyConfig(),
+			want:  []string{`{"source":"aws.securityhub","detail-type":"Security Hub Findings - Imported","detail":{"finding":{"myattribute":"somevalue","resources":{"AwsEc2SecurityGroup":{"Region":"us-east-1"}}}}}`},
+		},
+		"multiple findings": {
+			event: json.RawMessage(`{"source":"aws.securityhub","detail":{"findings":[{"id":"f1","Resources":[{"Type":"AwsEc2SecurityGroup","Region":"us-east-1"}]},{"id":"f2","Resources":[{"Type":"AwsIamRole","Region":"us-west-2"}]}]}}`),
+			cfg:   testutil.EmptyConfig(),
+			want: []string{
+				`{"source":"aws.securityhub","detail":{"finding":{"id":"f1","resources":{"AwsEc2SecurityGroup":{"Region":"us-east-1"}}}}}`,
+				`{"source":"aws.securityhub","detail":{"finding":{"id":"f2","resources":{"AwsIamRole":{"Region":"us-west-2"}}}}}`,
+			},
+		},
+		"with filtering": {
+			event: json.RawMessage(`{"source":"aws.securityhub","detail":{"findings":[{"id":"keep","Resources":[]},{"id":"drop","Resources":[]}]}}`),
+			cfg:   testutil.Config(t, testutil.WithExcludeFilter(`"id":"drop"`)),
+			want:  []string{`{"source":"aws.securityhub","detail":{"finding":{"id":"keep","resources":{}}}}`},
+		},
 	}
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			got := eventBridgeSource(tc.source)
-			assert.Equal(t, tc.want, got)
+
+			handler := NewEventBridge(tc.cfg)
+			out := make(chan model.LogEntry, len(tc.want))
+
+			err := handler.Handle(ctx, tc.event, out)
+			close(out)
+
+			require.NoError(t, err)
+
+			var got []model.LogEntry
+			for entry := range out {
+				got = append(got, entry)
+			}
+
+			require.Len(t, got, len(tc.want))
+			for i := range tc.want {
+				assert.JSONEq(t, tc.want[i], got[i].Message)
+			}
 		})
 	}
 }

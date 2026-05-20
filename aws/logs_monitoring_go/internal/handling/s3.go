@@ -7,7 +7,6 @@ package handling
 
 import (
 	"cmp"
-	"compress/gzip"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -73,14 +72,24 @@ func (h S3Handler) processRecord(ctx context.Context, client S3APIClient, out ch
 		}
 	}()
 
+	reader, close, err := gunzip(body)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err := close(); err != nil {
+			slog.Warn("close gunzip", slog.Any("error", err))
+		}
+	}()
+
 	source := S3Source(eventRecord.S3.Object.URLDecodedKey)
 	switch source {
 	case sourceCloudtrail:
-		err = h.CloudTrail(ctx, out, body, eventRecord, lambdaOrigin)
+		err = h.CloudTrail(ctx, out, reader, eventRecord, lambdaOrigin)
 	case sourceWAF:
-		err = h.WAF(ctx, out, body, eventRecord, lambdaOrigin)
+		err = h.WAF(ctx, out, reader, eventRecord, lambdaOrigin)
 	default:
-		err = h.S3(ctx, out, body, eventRecord, lambdaOrigin)
+		err = h.S3(ctx, out, reader, eventRecord, lambdaOrigin)
 	}
 
 	if err != nil {
@@ -102,9 +111,9 @@ func S3Source(key string) string {
 	return sourceS3
 }
 
-func (h S3Handler) S3(ctx context.Context, out chan<- model.LogEntry, body io.ReadCloser, eventRecord events.S3EventRecord, lambdaOrigin model.LambdaOrigin) error {
+func (h S3Handler) S3(ctx context.Context, out chan<- model.LogEntry, r io.Reader, eventRecord events.S3EventRecord, lambdaOrigin model.LambdaOrigin) error {
 	base := h.newBaseEntry(eventRecord, lambdaOrigin)
-	for message, err := range scan(body, h.cfg.S3MultilineLogRegex) {
+	for message, err := range scan(r, h.cfg.S3MultilineLogRegex) {
 		if err != nil {
 			return err
 		}
@@ -126,19 +135,9 @@ func (h S3Handler) S3(ctx context.Context, out chan<- model.LogEntry, body io.Re
 	return nil
 }
 
-func (h S3Handler) WAF(ctx context.Context, out chan<- model.LogEntry, body io.ReadCloser, eventRecord events.S3EventRecord, lambdaOrigin model.LambdaOrigin) error {
-	gz, err := gzip.NewReader(body)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if err := gz.Close(); err != nil {
-			slog.Warn("close gzip reader", slog.Any("error", err))
-		}
-	}()
-
+func (h S3Handler) WAF(ctx context.Context, out chan<- model.LogEntry, r io.Reader, eventRecord events.S3EventRecord, lambdaOrigin model.LambdaOrigin) error {
 	base := h.newBaseEntry(eventRecord, lambdaOrigin)
-	for message, err := range scan(gz, nil) {
+	for message, err := range scan(r, nil) {
 		if err != nil {
 			return err
 		}
@@ -158,9 +157,9 @@ func (h S3Handler) WAF(ctx context.Context, out chan<- model.LogEntry, body io.R
 	return nil
 }
 
-func (h S3Handler) CloudTrail(ctx context.Context, out chan<- model.LogEntry, body io.ReadCloser, eventRecord events.S3EventRecord, lambdaOrigin model.LambdaOrigin) error {
+func (h S3Handler) CloudTrail(ctx context.Context, out chan<- model.LogEntry, r io.Reader, eventRecord events.S3EventRecord, lambdaOrigin model.LambdaOrigin) error {
 	base := h.newBaseEntry(eventRecord, lambdaOrigin)
-	for message, err := range decodeCloudTrail(body) {
+	for message, err := range decodeCloudTrail(r) {
 		if err != nil {
 			return err
 		}

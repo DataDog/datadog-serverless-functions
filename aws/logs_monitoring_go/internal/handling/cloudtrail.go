@@ -6,7 +6,6 @@
 package handling
 
 import (
-	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -25,14 +24,7 @@ var (
 
 func decodeCloudTrail(r io.Reader) iter.Seq2[string, error] {
 	return func(yield func(string, error) bool) {
-		gz, err := gzip.NewReader(r)
-		if err != nil {
-			yield("", fmt.Errorf("gzip: %w", err))
-			return
-		}
-		defer gz.Close() //nolint:errcheck
-
-		dec := json.NewDecoder(gz)
+		dec := json.NewDecoder(r)
 		if err := parsing.SkipToRecords(dec); err != nil {
 			yield("", fmt.Errorf("cloudtrail: %w", err))
 			return

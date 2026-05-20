@@ -7,7 +7,13 @@ package handling
 
 import "encoding/json"
 
-const ruleIDKey = "ruleId"
+const (
+	headersKey                     = "headers"
+	nonTerminatingMatchingRulesKey = "nonTerminatingMatchingRules"
+	ruleGroupListKey               = "ruleGroupList"
+	ruleGroupIdKey                 = "ruleGroupId"
+	ruleIDKey                      = "ruleId"
+)
 
 func flattenWAFMessage(message string) string {
 	var msg map[string]any
@@ -17,8 +23,8 @@ func flattenWAFMessage(message string) string {
 
 	flattenHeaders(msg)
 	flattenRuleGroupList(msg)
-	flattenByKey(msg, "rateBasedRuleList", "rateBasedRuleName")
-	flattenByKey(msg, "nonTerminatingMatchingRules", ruleIDKey)
+	flattenByKey(msg, "rateBasedRuleList", "rateBasedRuleName", "", false)
+	flattenByKey(msg, nonTerminatingMatchingRulesKey, ruleIDKey, "", false)
 
 	out, err := json.Marshal(msg)
 	if err != nil {
@@ -32,7 +38,7 @@ func flattenHeaders(msg map[string]any) {
 	if !ok {
 		return
 	}
-	headers, ok := httpReq["headers"].([]any)
+	headers, ok := httpReq[headersKey].([]any)
 	if !ok {
 		return
 	}
@@ -43,39 +49,18 @@ func flattenHeaders(msg map[string]any) {
 		if !ok {
 			continue
 		}
+
 		name, _ := header["name"].(string)
 		if name == "" {
 			continue
 		}
 		result[name] = header["value"]
 	}
-	httpReq["headers"] = result
-}
-
-func flattenByKey(msg map[string]any, field, keyField string) {
-	arr, ok := msg[field].([]any)
-	if !ok {
-		return
-	}
-
-	result := make(map[string]any, len(arr))
-	for _, item := range arr {
-		entry, ok := item.(map[string]any)
-		if !ok {
-			continue
-		}
-		key, _ := entry[keyField].(string)
-		if key == "" {
-			continue
-		}
-		delete(entry, keyField)
-		result[key] = entry
-	}
-	msg[field] = result
+	httpReq[headersKey] = result
 }
 
 func flattenRuleGroupList(msg map[string]any) {
-	arr, ok := msg["ruleGroupList"].([]any)
+	arr, ok := msg[ruleGroupListKey].([]any)
 	if !ok {
 		return
 	}
@@ -86,9 +71,9 @@ func flattenRuleGroupList(msg map[string]any) {
 		if !ok {
 			continue
 		}
-		groupID, _ := group["ruleGroupId"].(string)
-		delete(group, "ruleGroupId")
 
+		groupID, _ := group[ruleGroupIdKey].(string)
+		delete(group, ruleGroupIdKey)
 		existing, ok := result[groupID].(map[string]any)
 		if !ok {
 			existing = make(map[string]any)
@@ -96,10 +81,10 @@ func flattenRuleGroupList(msg map[string]any) {
 		}
 
 		flattenRuleGroupField(group, existing, "terminatingRule")
-		flattenRuleGroupField(group, existing, "nonTerminatingMatchingRules")
+		flattenRuleGroupField(group, existing, nonTerminatingMatchingRulesKey)
 		flattenRuleGroupField(group, existing, "excludedRules")
 	}
-	msg["ruleGroupList"] = result
+	msg[ruleGroupListKey] = result
 }
 
 func flattenRuleGroupField(group, dest map[string]any, field string) {
