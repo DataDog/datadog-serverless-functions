@@ -28,3 +28,32 @@ func gunzip(r io.Reader) (io.Reader, func() error, error) {
 	}
 	return gz, func() error { return gz.Close() }, nil
 }
+
+func flattenByKey(src map[string]any, field, keyField, outputField string, alwaysWrite bool) {
+	arr, ok := src[field].([]any)
+	if !ok && !alwaysWrite {
+		return
+	}
+
+	result := make(map[string]any, len(arr))
+	for _, item := range arr {
+		obj, ok := item.(map[string]any)
+		if !ok {
+			continue
+		}
+
+		key, _ := obj[keyField].(string)
+		if key == "" {
+			continue
+		}
+		delete(obj, keyField)
+		result[key] = obj
+	}
+
+	out := field
+	if outputField != "" {
+		delete(src, field)
+		out = outputField
+	}
+	src[out] = result
+}

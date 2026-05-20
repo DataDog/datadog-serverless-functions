@@ -33,35 +33,6 @@ func flattenWAFMessage(message string) string {
 	return string(out)
 }
 
-func flattenByKey(src map[string]any, field, keyField, outputField string, alwaysWrite bool) {
-	arr, ok := src[field].([]any)
-	if !ok && !alwaysWrite {
-		return
-	}
-
-	result := make(map[string]any, len(arr))
-	for _, item := range arr {
-		obj, ok := item.(map[string]any)
-		if !ok {
-			continue
-		}
-
-		key, _ := obj[keyField].(string)
-		if key == "" {
-			continue
-		}
-		delete(obj, keyField)
-		result[key] = obj
-	}
-
-	out := field
-	if outputField != "" {
-		delete(src, field)
-		out = outputField
-	}
-	src[out] = result
-}
-
 func flattenHeaders(msg map[string]any) {
 	httpReq, ok := msg["httpRequest"].(map[string]any)
 	if !ok {
