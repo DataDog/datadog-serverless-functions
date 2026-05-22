@@ -3,9 +3,9 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2026-Present Datadog, Inc.
 
-package handling
+package client
 
-//go:generate go tool mockgen -source=s3_client.go -package=handling -destination=s3_client_mockgen.go
+//go:generate go tool mockgen -source=s3.go -package=client -destination=s3_mockgen.go
 
 import (
 	"context"
@@ -25,22 +25,25 @@ const timeout = 10 * time.Second
 
 var (
 	s3ClientOnce sync.Once
-	s3Client     S3APIClient
+	s3Client     S3
 	s3ClientErr  error
 )
 
-type S3APIClient interface {
+type S3 interface {
 	GetObject(ctx context.Context, params *s3.GetObjectInput, optFns ...func(*s3.Options)) (*s3.GetObjectOutput, error)
+	PutObject(ctx context.Context, params *s3.PutObjectInput, optFns ...func(*s3.Options)) (*s3.PutObjectOutput, error)
+	DeleteObject(ctx context.Context, params *s3.DeleteObjectInput, optFns ...func(*s3.Options)) (*s3.DeleteObjectOutput, error)
+	ListObjectsV2(ctx context.Context, params *s3.ListObjectsV2Input, optFns ...func(*s3.Options)) (*s3.ListObjectsV2Output, error)
 }
 
-func getS3APIClient(ctx context.Context, useFIPS bool) (S3APIClient, error) {
+func GetS3(ctx context.Context, useFIPS bool) (S3, error) {
 	s3ClientOnce.Do(func() {
-		s3Client, s3ClientErr = createS3APIClient(ctx, useFIPS)
+		s3Client, s3ClientErr = newS3(ctx, useFIPS)
 	})
 	return s3Client, s3ClientErr
 }
 
-func createS3APIClient(ctx context.Context, useFIPS bool) (S3APIClient, error) {
+func newS3(ctx context.Context, useFIPS bool) (S3, error) {
 	cfg, err := awsconfig.LoadDefaultConfig(ctx, awsconfig.WithHTTPClient(awshttp.NewBuildableClient().WithTimeout(timeout)))
 	if err != nil {
 		return nil, err
@@ -67,7 +70,7 @@ func createS3APIClient(ctx context.Context, useFIPS bool) (S3APIClient, error) {
 	}), nil
 }
 
-func getS3Object(ctx context.Context, client S3APIClient, bucket, key string) (io.ReadCloser, error) {
+func GetS3Object(ctx context.Context, client S3, bucket, key string) (io.ReadCloser, error) {
 	result, err := client.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),

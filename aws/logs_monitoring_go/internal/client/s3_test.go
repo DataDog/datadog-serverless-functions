@@ -3,7 +3,7 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2026-Present Datadog, Inc.
 
-package handling
+package client
 
 import (
 	"errors"
@@ -20,13 +20,13 @@ func TestGetS3Object(t *testing.T) {
 	t.Parallel()
 
 	tests := map[string]struct {
-		mockSetup func(m *MockS3APIClient)
+		mockSetup func(m *MockS3)
 		bucket    string
 		key       string
 		wantErr   bool
 	}{
 		"returns body on success": {
-			mockSetup: func(m *MockS3APIClient) {
+			mockSetup: func(m *MockS3) {
 				m.EXPECT().
 					GetObject(gomock.Any(), gomock.Any()).
 					Return(&s3.GetObjectOutput{
@@ -37,7 +37,7 @@ func TestGetS3Object(t *testing.T) {
 			key:    "my-key",
 		},
 		"returns error on S3 failure": {
-			mockSetup: func(m *MockS3APIClient) {
+			mockSetup: func(m *MockS3) {
 				m.EXPECT().
 					GetObject(gomock.Any(), gomock.Any()).
 					Return(nil, errors.New(""))
@@ -52,10 +52,10 @@ func TestGetS3Object(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			ctrl := gomock.NewController(t)
-			mock := NewMockS3APIClient(ctrl)
+			mock := NewMockS3(ctrl)
 			tc.mockSetup(mock)
 
-			body, err := getS3Object(t.Context(), mock, tc.bucket, tc.key)
+			body, err := GetS3Object(t.Context(), mock, tc.bucket, tc.key)
 
 			if tc.wantErr {
 				require.Error(t, err)

@@ -3,7 +3,7 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2026-Present Datadog, Inc.
 
-package config
+package client
 
 import (
 	"errors"
@@ -16,15 +16,15 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func TestResolveFromSecretsManager(t *testing.T) {
+func TestFetchSecret(t *testing.T) {
 	tests := map[string]struct {
-		mockSetup func(m *MockSecretsManagerAPIClient)
+		mockSetup func(m *MockSecretsManager)
 		arn       string
 		wantKey   string
 		wantErr   bool
 	}{
 		"success": {
-			mockSetup: func(m *MockSecretsManagerAPIClient) {
+			mockSetup: func(m *MockSecretsManager) {
 				m.EXPECT().
 					GetSecretValue(gomock.Any(), gomock.Any()).
 					Return(&secretsmanager.GetSecretValueOutput{
@@ -35,7 +35,7 @@ func TestResolveFromSecretsManager(t *testing.T) {
 			wantKey: "abcdef1234567890abcdef1234567890",
 		},
 		"whitespace_trimmed": {
-			mockSetup: func(m *MockSecretsManagerAPIClient) {
+			mockSetup: func(m *MockSecretsManager) {
 				m.EXPECT().
 					GetSecretValue(gomock.Any(), gomock.Any()).
 					Return(&secretsmanager.GetSecretValueOutput{
@@ -46,7 +46,7 @@ func TestResolveFromSecretsManager(t *testing.T) {
 			wantKey: "abcdef1234567890abcdef1234567890",
 		},
 		"aws_error": {
-			mockSetup: func(m *MockSecretsManagerAPIClient) {
+			mockSetup: func(m *MockSecretsManager) {
 				m.EXPECT().
 					GetSecretValue(gomock.Any(), gomock.Any()).
 					Return(nil, errors.New("AccessDeniedException: access denied"))
@@ -55,7 +55,7 @@ func TestResolveFromSecretsManager(t *testing.T) {
 			wantErr: true,
 		},
 		"nil_secret_string": {
-			mockSetup: func(m *MockSecretsManagerAPIClient) {
+			mockSetup: func(m *MockSecretsManager) {
 				m.EXPECT().
 					GetSecretValue(gomock.Any(), gomock.Any()).
 					Return(&secretsmanager.GetSecretValueOutput{
@@ -70,10 +70,10 @@ func TestResolveFromSecretsManager(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
-			mock := NewMockSecretsManagerAPIClient(ctrl)
+			mock := NewMockSecretsManager(ctrl)
 			tc.mockSetup(mock)
 
-			got, err := fetchSecret(t.Context(), mock, tc.arn)
+			got, err := FetchSecret(t.Context(), mock, tc.arn)
 			if tc.wantErr {
 				require.Error(t, err)
 				return

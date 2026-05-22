@@ -3,7 +3,7 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2026-Present Datadog, Inc.
 
-package config
+package client
 
 import (
 	"encoding/base64"
@@ -16,17 +16,17 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func TestResolveFromKMS(t *testing.T) {
+func TestDecryptKMSCiphertext(t *testing.T) {
 	validCiphertext := base64.StdEncoding.EncodeToString([]byte("encrypted-blob"))
 
 	tests := map[string]struct {
-		mockSetup  func(m *MockKMSAPIClient)
+		mockSetup  func(m *MockKMS)
 		ciphertext string
 		wantKey    string
 		wantErr    bool
 	}{
 		"success": {
-			mockSetup: func(m *MockKMSAPIClient) {
+			mockSetup: func(m *MockKMS) {
 				m.EXPECT().
 					Decrypt(gomock.Any(), gomock.Any()).
 					Return(&kms.DecryptOutput{
@@ -37,7 +37,7 @@ func TestResolveFromKMS(t *testing.T) {
 			wantKey:    "abcdef1234567890abcdef1234567890",
 		},
 		"whitespace_trimmed": {
-			mockSetup: func(m *MockKMSAPIClient) {
+			mockSetup: func(m *MockKMS) {
 				m.EXPECT().
 					Decrypt(gomock.Any(), gomock.Any()).
 					Return(&kms.DecryptOutput{
@@ -48,12 +48,12 @@ func TestResolveFromKMS(t *testing.T) {
 			wantKey:    "abcdef1234567890abcdef1234567890",
 		},
 		"invalid_base64": {
-			mockSetup:  func(m *MockKMSAPIClient) {},
+			mockSetup:  func(m *MockKMS) {},
 			ciphertext: "not-valid-base64!@#$",
 			wantErr:    true,
 		},
 		"aws_error": {
-			mockSetup: func(m *MockKMSAPIClient) {
+			mockSetup: func(m *MockKMS) {
 				m.EXPECT().
 					Decrypt(gomock.Any(), gomock.Any()).
 					Return(nil, errors.New("InvalidCiphertextException: invalid ciphertext"))
@@ -62,7 +62,7 @@ func TestResolveFromKMS(t *testing.T) {
 			wantErr:    true,
 		},
 		"nil_plaintext": {
-			mockSetup: func(m *MockKMSAPIClient) {
+			mockSetup: func(m *MockKMS) {
 				m.EXPECT().
 					Decrypt(gomock.Any(), gomock.Any()).
 					Return(&kms.DecryptOutput{
@@ -77,10 +77,10 @@ func TestResolveFromKMS(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
-			mock := NewMockKMSAPIClient(ctrl)
+			mock := NewMockKMS(ctrl)
 			tc.mockSetup(mock)
 
-			got, err := decryptKMSCiphertext(t.Context(), mock, tc.ciphertext)
+			got, err := DecryptKMSCiphertext(t.Context(), mock, tc.ciphertext)
 			if tc.wantErr {
 				require.Error(t, err)
 				return

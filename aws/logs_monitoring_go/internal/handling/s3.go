@@ -15,6 +15,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/client"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/concurrent"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
@@ -44,7 +45,7 @@ func (h *S3Handler) Handle(ctx context.Context, event json.RawMessage, out chan<
 		return fmt.Errorf("unmarshal: %w", err)
 	}
 
-	client, err := getS3APIClient(ctx, h.cfg.UseFIPS)
+	s3Client, err := client.GetS3(ctx, h.cfg.UseFIPS)
 	if err != nil {
 		return fmt.Errorf("get S3 client: %w", err)
 	}
@@ -55,15 +56,15 @@ func (h *S3Handler) Handle(ctx context.Context, event json.RawMessage, out chan<
 	}
 
 	for _, eventRecord := range s3Event.Records {
-		if err := h.processRecord(ctx, client, out, eventRecord, lambdaOrigin); err != nil {
+		if err := h.processRecord(ctx, s3Client, out, eventRecord, lambdaOrigin); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (h S3Handler) processRecord(ctx context.Context, client S3APIClient, out chan<- model.LogEntry, eventRecord events.S3EventRecord, lambdaOrigin model.LambdaOrigin) error {
-	body, err := getS3Object(ctx, client, eventRecord.S3.Bucket.Name, eventRecord.S3.Object.URLDecodedKey)
+func (h S3Handler) processRecord(ctx context.Context, s3Client client.S3, out chan<- model.LogEntry, eventRecord events.S3EventRecord, lambdaOrigin model.LambdaOrigin) error {
+	body, err := client.GetS3Object(ctx, s3Client, eventRecord.S3.Bucket.Name, eventRecord.S3.Object.URLDecodedKey)
 	if err != nil {
 		return err
 	}
