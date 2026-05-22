@@ -13,7 +13,7 @@ import (
 const sourceCategory = "aws"
 
 type LogEntry struct {
-	Host           string `json:"hostname,omitempty"`
+	Host           string `json:"host,omitempty"`
 	ID             string `json:"id,omitempty"`
 	Timestamp      int64  `json:"timestamp,omitempty"`
 	Message        string `json:"message,omitempty"`
