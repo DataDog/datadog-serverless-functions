@@ -3,7 +3,7 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2026-Present Datadog, Inc.
 
-package config
+package client
 
 import (
 	"errors"
@@ -17,15 +17,15 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func TestResolveFromSSM(t *testing.T) {
+func TestFetchSSMParameter(t *testing.T) {
 	tests := map[string]struct {
-		mockSetup func(m *MockSSMAPIClient)
+		mockSetup func(m *MockSSM)
 		name      string
 		wantKey   string
 		wantErr   bool
 	}{
 		"success": {
-			mockSetup: func(m *MockSSMAPIClient) {
+			mockSetup: func(m *MockSSM) {
 				m.EXPECT().
 					GetParameter(gomock.Any(), gomock.Any()).
 					Return(&ssm.GetParameterOutput{
@@ -38,7 +38,7 @@ func TestResolveFromSSM(t *testing.T) {
 			wantKey: "abcdef1234567890abcdef1234567890",
 		},
 		"whitespace_trimmed": {
-			mockSetup: func(m *MockSSMAPIClient) {
+			mockSetup: func(m *MockSSM) {
 				m.EXPECT().
 					GetParameter(gomock.Any(), gomock.Any()).
 					Return(&ssm.GetParameterOutput{
@@ -51,7 +51,7 @@ func TestResolveFromSSM(t *testing.T) {
 			wantKey: "abcdef1234567890abcdef1234567890",
 		},
 		"aws_error": {
-			mockSetup: func(m *MockSSMAPIClient) {
+			mockSetup: func(m *MockSSM) {
 				m.EXPECT().
 					GetParameter(gomock.Any(), gomock.Any()).
 					Return(nil, errors.New("ParameterNotFound: parameter not found"))
@@ -60,7 +60,7 @@ func TestResolveFromSSM(t *testing.T) {
 			wantErr: true,
 		},
 		"nil_parameter": {
-			mockSetup: func(m *MockSSMAPIClient) {
+			mockSetup: func(m *MockSSM) {
 				m.EXPECT().
 					GetParameter(gomock.Any(), gomock.Any()).
 					Return(&ssm.GetParameterOutput{
@@ -71,7 +71,7 @@ func TestResolveFromSSM(t *testing.T) {
 			wantErr: true,
 		},
 		"nil_value": {
-			mockSetup: func(m *MockSSMAPIClient) {
+			mockSetup: func(m *MockSSM) {
 				m.EXPECT().
 					GetParameter(gomock.Any(), gomock.Any()).
 					Return(&ssm.GetParameterOutput{
@@ -88,10 +88,10 @@ func TestResolveFromSSM(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
-			mock := NewMockSSMAPIClient(ctrl)
+			mock := NewMockSSM(ctrl)
 			tc.mockSetup(mock)
 
-			got, err := fetchSSMParameter(t.Context(), mock, tc.name)
+			got, err := FetchSSMParameter(t.Context(), mock, tc.name)
 			if tc.wantErr {
 				require.Error(t, err)
 				return
