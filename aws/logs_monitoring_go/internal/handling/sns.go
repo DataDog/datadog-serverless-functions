@@ -38,12 +38,11 @@ func (h *SNSHandler) Handle(ctx context.Context, event json.RawMessage, out chan
 	}
 
 	source := cmp.Or(h.cfg.Source, sourceSNS)
-	service := cmp.Or(h.cfg.Service, source)
 
 	entry := model.NewLogEntry()
 	entry.Message = message
 	entry.Source = source
-	entry.Service = service
+	entry.Service = h.cfg.Service
 	entry.Tags = h.cfg.Tags
 	entry.Metadata = lambdaOrigin
 
