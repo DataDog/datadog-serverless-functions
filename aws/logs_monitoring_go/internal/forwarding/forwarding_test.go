@@ -28,8 +28,8 @@ func TestForwarder_Start(t *testing.T) {
 		storage    string
 		entries    []model.LogEntry
 		cancelCtx  bool
-		wantErr   bool
-		wantCalls int
+		wantErr    bool
+		wantCalls  int
 	}{
 		"single message accepted": {
 			statusCode: http.StatusAccepted,
@@ -55,7 +55,7 @@ func TestForwarder_Start(t *testing.T) {
 			storage:    cloudwatchStorage,
 			entries:    []model.LogEntry{{Message: "test payload"}},
 			wantErr:    true,
-			wantCalls:  1,
+			wantCalls:  defaultMaxAttempts,
 		},
 		"context cancelled": {
 			statusCode: http.StatusAccepted,
@@ -101,8 +101,9 @@ func TestForwarder_Start(t *testing.T) {
 				rw.WriteHeader(tc.statusCode)
 			}))
 			t.Cleanup(server.Close)
-
-			f := NewForwarder(&config.Config{IntakeURL: server.URL, APIKey: "test-api-key"}, server.Client(), tc.storage)
+			client := server.Client()
+			client.Transport = WithCompression(WithRetry(defaultMaxAttempts, client.Transport))
+			forwarder := NewForwarder(&config.Config{IntakeURL: server.URL, APIKey: "test-api-key"}, client, tc.storage)
 
 			ctx, cancel := context.WithCancel(t.Context())
 			t.Cleanup(cancel)
@@ -117,7 +118,7 @@ func TestForwarder_Start(t *testing.T) {
 			}
 			close(in)
 
-			err := f.Start(ctx, in)
+			err := forwarder.Start(ctx, in)
 
 			if tc.wantErr {
 				require.Error(t, err)
