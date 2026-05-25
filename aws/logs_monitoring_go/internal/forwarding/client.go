@@ -12,22 +12,23 @@ import (
 )
 
 const (
-	dialContextTimeout  = 500 * time.Millisecond
-	tlsHandshakeTimeout = 1 * time.Second
-	timeout             = 5 * time.Second
-	defaultMaxAttempts  = 3
+	dialContextTimeout   = 1 * time.Second
+	dialContextKeepAlive = 60 * time.Second
+	tlsHandshakeTimeout  = 2 * time.Second
+	timeout              = 7 * time.Second
+	defaultMaxAttempts   = 3
 )
 
-var Client *http.Client
+var Client = newClient()
 
-func init() {
+func newClient() *http.Client {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	transport.TLSHandshakeTimeout = tlsHandshakeTimeout
 	transport.DialContext = (&net.Dialer{
-		Timeout: dialContextTimeout,
+		Timeout:   dialContextTimeout,
+		KeepAlive: dialContextKeepAlive,
 	}).DialContext
-	Client = &http.Client{
-		Timeout: timeout,
+	return &http.Client{
 		Transport: WithCompression(
 			WithRetry(defaultMaxAttempts,
 				transport,

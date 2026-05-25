@@ -13,6 +13,7 @@ import (
 	"net/http/httptest"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
@@ -27,7 +28,6 @@ func TestForwarder_Start(t *testing.T) {
 		statusCode int
 		storage    string
 		entries    []model.LogEntry
-		cancelCtx  bool
 		wantErr    bool
 		wantCalls  int
 	}{
@@ -57,14 +57,6 @@ func TestForwarder_Start(t *testing.T) {
 			wantErr:    true,
 			wantCalls:  defaultMaxAttempts,
 		},
-		"context cancelled": {
-			statusCode: http.StatusAccepted,
-			storage:    cloudwatchStorage,
-			entries:    []model.LogEntry{{Message: "test payload"}},
-			cancelCtx:  true,
-			wantErr:    true,
-			wantCalls:  0,
-		},
 		"s3 storage": {
 			statusCode: http.StatusAccepted,
 			storage:    s3Storage,
@@ -78,8 +70,7 @@ func TestForwarder_Start(t *testing.T) {
 			t.Parallel()
 
 			var callCount atomic.Int32
-
-			server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 				callCount.Add(1)
 
 				assert.Equal(t, "test-api-key", req.Header.Get("DD-API-KEY"), "DD-API-KEY")
@@ -87,7 +78,9 @@ func TestForwarder_Start(t *testing.T) {
 				assert.Equal(t, "gzip", req.Header.Get("Content-Encoding"), "Content-Encoding")
 				assert.Equal(t, "aws_forwarder", req.Header.Get("DD-EVP-ORIGIN"), "DD-EVP-ORIGIN")
 				assert.Equal(t, config.ForwarderVersion, req.Header.Get("DD-EVP-ORIGIN-VERSION"), "DD-EVP-ORIGIN-VERSION")
-				assert.Equal(t, tc.storage, req.Header.Get("DD-STORAGE-TAG"), "DD-STORAGE-TAG")
+				if tc.storage != "" {
+					assert.Equal(t, tc.storage, req.Header.Get("DD-STORAGE-TAG"), "DD-STORAGE-TAG")
+				}
 
 				gr, err := gzip.NewReader(req.Body)
 				if !assert.NoError(t, err, "body is not valid gzip") {
@@ -98,19 +91,14 @@ func TestForwarder_Start(t *testing.T) {
 				_, err = io.ReadAll(gr)
 				assert.NoError(t, err, "read gzip body")
 
-				rw.WriteHeader(tc.statusCode)
+				w.WriteHeader(tc.statusCode)
 			}))
 			t.Cleanup(server.Close)
 			client := server.Client()
 			client.Transport = WithCompression(WithRetry(defaultMaxAttempts, client.Transport))
 			forwarder := NewForwarder(&config.Config{IntakeURL: server.URL, APIKey: "test-api-key"}, client, tc.storage)
-
 			ctx, cancel := context.WithCancel(t.Context())
 			t.Cleanup(cancel)
-
-			if tc.cancelCtx {
-				cancel()
-			}
 
 			in := make(chan model.LogEntry, len(tc.entries))
 			for _, e := range tc.entries {
@@ -120,12 +108,72 @@ func TestForwarder_Start(t *testing.T) {
 
 			err := forwarder.Start(ctx, in)
 
+			assert.Equal(t, tc.wantCalls, int(callCount.Load()))
 			if tc.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			assert.Equal(t, tc.wantCalls, int(callCount.Load()))
+		})
+	}
+}
+
+func TestForwarder_Start_Context(t *testing.T) {
+	t.Parallel()
+
+	tests := map[string]struct {
+		ctxBuilder func(t *testing.T) (context.Context, context.CancelFunc)
+		throttling time.Duration
+		wantErr    error
+	}{
+		"pre-canceled": {
+			ctxBuilder: func(t *testing.T) (context.Context, context.CancelFunc) {
+				ctx, cancel := context.WithCancel(t.Context())
+				cancel()
+				return ctx, cancel
+			},
+			wantErr: context.Canceled,
+		},
+		"pre-timeout": {
+			ctxBuilder: func(t *testing.T) (context.Context, context.CancelFunc) {
+				return context.WithTimeout(t.Context(), -1)
+			},
+			wantErr: context.DeadlineExceeded,
+		},
+		"mid-flight timeout": {
+			ctxBuilder: func(t *testing.T) (context.Context, context.CancelFunc) {
+				return context.WithTimeout(t.Context(), 50*time.Millisecond)
+			},
+			throttling: 100 * time.Millisecond,
+			wantErr:    context.DeadlineExceeded,
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+				time.Sleep(tc.throttling)
+			}))
+			t.Cleanup(server.Close)
+			client := server.Client()
+			client.Transport = WithCompression(WithRetry(defaultMaxAttempts, client.Transport))
+			forwarder := NewForwarder(&config.Config{IntakeURL: server.URL, APIKey: "test-api-key"}, client, "")
+			ctx, cancel := tc.ctxBuilder(t)
+			t.Cleanup(cancel)
+
+			in := make(chan model.LogEntry, 1)
+			in <- model.LogEntry{}
+			close(in)
+
+			err := forwarder.Start(ctx, in)
+
+			if tc.wantErr != nil {
+				require.ErrorIs(t, err, tc.wantErr)
+				return
+			}
+			require.NoError(t, err)
 		})
 	}
 }

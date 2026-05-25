@@ -35,7 +35,7 @@ func TestWithCompression(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			req, err := http.NewRequest(http.MethodPost, "http://test", io.NopCloser(strings.NewReader(tc.input)))
+			req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "http://test", io.NopCloser(strings.NewReader(tc.input)))
 			require.NoError(t, err)
 
 			next := RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
@@ -104,7 +104,7 @@ func TestWithRetry(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			req, err := http.NewRequest(http.MethodPost, "http://test", io.NopCloser(strings.NewReader("")))
+			req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "http://test", io.NopCloser(strings.NewReader("")))
 			require.NoError(t, err)
 
 			var callCount atomic.Int32

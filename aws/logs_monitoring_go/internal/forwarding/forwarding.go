@@ -80,8 +80,10 @@ func (f Forwarder) Start(ctx context.Context, in <-chan model.LogEntry) error {
 }
 
 func (f Forwarder) send(ctx context.Context, payload []byte) error {
-	body := bytes.NewReader(payload)
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, f.cfg.IntakeURL, body)
+	reqCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(reqCtx, http.MethodPost, f.cfg.IntakeURL, bytes.NewReader(payload))
 	if err != nil {
 		return err
 	}

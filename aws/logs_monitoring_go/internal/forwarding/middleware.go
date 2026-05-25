@@ -15,6 +15,8 @@ import (
 	"net/http"
 	"sync/atomic"
 	"time"
+
+	"github.com/aws/aws-lambda-go/lambdacontext"
 )
 
 var requestSeq atomic.Int64
@@ -72,6 +74,10 @@ func WithRetry(maxAttempts int, next http.RoundTripper) RoundTripperFunc {
 				slog.Duration("duration", time.Since(start)),
 			}
 
+			if lc, ok := lambdacontext.FromContext(req.Context()); ok {
+				attrs = append(attrs, slog.String("aws_request_id", lc.AwsRequestID))
+			}
+
 			if err != nil {
 				slog.LogAttrs(req.Context(), slog.LevelWarn, "request failed", append(attrs, slog.String("error", err.Error()))...)
 				continue
@@ -85,9 +91,9 @@ func WithRetry(maxAttempts int, next http.RoundTripper) RoundTripperFunc {
 			}
 
 			slog.LogAttrs(req.Context(), slog.LevelWarn, "retryable response", attrs...)
-			drainClose(resp)
 
 			if attempt < maxAttempts-1 {
+				drainClose(resp)
 				backoff(req.Context(), attempt)
 			}
 		}
