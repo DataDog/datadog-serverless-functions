@@ -24,6 +24,7 @@ var Client = newClient()
 func newClient() *http.Client {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	transport.TLSHandshakeTimeout = tlsHandshakeTimeout
+	transport.MaxIdleConnsPerHost = maxConcurrency
 	transport.DialContext = (&net.Dialer{
 		Timeout:   dialContextTimeout,
 		KeepAlive: dialContextKeepAlive,
