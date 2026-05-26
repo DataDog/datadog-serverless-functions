@@ -1,14 +1,7 @@
 import unittest
 import sys
-import types
 from unittest.mock import MagicMock, patch
 
-botocore = types.ModuleType("botocore")
-botocore.config = types.ModuleType("botocore.config")
-botocore.config.Config = MagicMock()
-sys.modules["boto3"] = MagicMock()
-sys.modules["botocore"] = botocore
-sys.modules["botocore.config"] = botocore.config
 sys.modules["requests"] = MagicMock()
 sys.modules["requests_futures.sessions"] = MagicMock()
 
