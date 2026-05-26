@@ -80,10 +80,10 @@ func (f Forwarder) Start(ctx context.Context, in <-chan model.LogEntry) error {
 }
 
 func (f Forwarder) send(ctx context.Context, payload []byte) error {
-	reqCtx, cancel := context.WithTimeout(ctx, timeout)
+	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(reqCtx, http.MethodPost, f.cfg.IntakeURL, bytes.NewReader(payload))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, f.cfg.IntakeURL, bytes.NewReader(payload))
 	if err != nil {
 		return err
 	}
@@ -103,7 +103,11 @@ func (f Forwarder) send(ctx context.Context, payload []byte) error {
 	defer drainClose(resp)
 
 	if resp.StatusCode != http.StatusAccepted {
-		return fmt.Errorf("intake: %s", resp.Status)
+		body, _ := io.ReadAll(resp.Body)
+		if len(body) > 0 {
+			return fmt.Errorf("intake (%s): %s", resp.Status, string(body))
+		}
+		return fmt.Errorf("intake (%s)", resp.Status)
 	}
 
 	return nil
