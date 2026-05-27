@@ -13,13 +13,30 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/aws/aws-lambda-go/lambdacontext"
 )
 
-var requestSeq atomic.Int64
+var (
+	requestSeq atomic.Int64
+	bufPool    = sync.Pool{
+		New: func() any { return new(bytes.Buffer) },
+	}
+	gzipPool = sync.Pool{
+		New: func() any { return gzip.NewWriter(nil) },
+	}
+)
+
+func getBuffer() *bytes.Buffer {
+	return bufPool.Get().(*bytes.Buffer)
+}
+
+func getGzipWriter() *gzip.Writer {
+	return gzipPool.Get().(*gzip.Writer)
+}
 
 type RoundTripperFunc func(*http.Request) (*http.Response, error)
 
@@ -29,8 +46,13 @@ func (f RoundTripperFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 
 func WithCompression(next http.RoundTripper) RoundTripperFunc {
 	return func(req *http.Request) (*http.Response, error) {
-		var buf bytes.Buffer
-		gz := gzip.NewWriter(&buf)
+		buf := getBuffer()
+		gz := getGzipWriter()
+		defer bufPool.Put(buf)
+		defer gzipPool.Put(gz)
+		buf.Reset()
+		gz.Reset(buf)
+
 		if _, err := io.Copy(gz, req.Body); err != nil {
 			return nil, fmt.Errorf("compress: %w", err)
 		}
@@ -73,62 +95,42 @@ func WithRetry(maxAttempts int, next http.RoundTripper) RoundTripperFunc {
 				slog.Int("attempt", attempt+1),
 				slog.Duration("duration", time.Since(start)),
 			}
-
 			if lc, ok := lambdacontext.FromContext(req.Context()); ok {
 				attrs = append(attrs, slog.String("aws_request_id", lc.AwsRequestID))
 			}
 
 			if err != nil {
 				slog.LogAttrs(req.Context(), slog.LevelWarn, "request failed", append(attrs, slog.String("error", err.Error()))...)
+				if attempt < maxAttempts-1 {
+					backoff(req.Context(), attempt)
+				}
 				continue
 			}
 
 			attrs = append(attrs, slog.Int("status", resp.StatusCode))
 
-			if !isRetryable(resp.StatusCode) {
-				slog.LogAttrs(req.Context(), slog.LevelDebug, "request complete", attrs...)
-				if isPermanent(resp.StatusCode) {
-					body, err := io.ReadAll(resp.Body)
-					if err != nil {
-						slog.Warn("reading body response", slog.Any("error", err))
-					}
-					return nil, &PermanentError{
-						StatusCode: resp.StatusCode,
-						Reason:     string(body),
-					}
-				}
-				return resp, nil
-			}
-
-			slog.LogAttrs(req.Context(), slog.LevelWarn, "retryable response", attrs...)
-
-			if attempt < maxAttempts-1 {
+			if isRetryable(resp.StatusCode) && attempt < maxAttempts-1 {
+				slog.LogAttrs(req.Context(), slog.LevelWarn, "retryable response", attrs...)
 				drainClose(resp)
 				backoff(req.Context(), attempt)
+				continue
 			}
+
+			slog.LogAttrs(req.Context(), slog.LevelDebug, "request complete", attrs...)
+			return resp, nil
 		}
 
 		return resp, err
 	}
 }
 
-func isPermanent(statusCode int) bool {
-	switch statusCode {
-	case http.StatusBadRequest,
-		http.StatusUnauthorized,
-		http.StatusForbidden,
-		http.StatusRequestEntityTooLarge:
-		return true
-	default:
-		return statusCode >= 400
-	}
-}
 
 func isRetryable(statusCode int) bool {
 	switch statusCode {
 	case http.StatusTooManyRequests,
 		http.StatusRequestTimeout,
 		http.StatusInternalServerError,
+		http.StatusGatewayTimeout,
 		http.StatusServiceUnavailable:
 		return true
 	default:
@@ -143,7 +145,7 @@ func backoff(ctx context.Context, attempt int) {
 	default:
 	}
 
-	duration := time.Duration(1<<attempt) * 50 * time.Millisecond // 50ms, 100ms, 200ms
+	duration := time.Duration(1<<attempt) * 500 * time.Millisecond // 500ms, 1s, 2s
 	select {
 	case <-time.After(duration):
 	case <-ctx.Done():

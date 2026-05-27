@@ -105,9 +105,9 @@ func (f Forwarder) Send(ctx context.Context, payload []byte) error {
 	if resp.StatusCode != http.StatusAccepted {
 		body, _ := io.ReadAll(resp.Body)
 		if len(body) > 0 {
-			return fmt.Errorf("intake (%s): %s", resp.Status, string(body))
+			return fmt.Errorf("intake (http/%d): %s", resp.StatusCode, string(body))
 		}
-		return fmt.Errorf("intake (%s)", resp.Status)
+		return fmt.Errorf("intake (http/%d)", resp.StatusCode)
 	}
 
 	return nil
