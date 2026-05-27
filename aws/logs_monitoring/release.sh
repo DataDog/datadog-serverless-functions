@@ -24,6 +24,29 @@ log_error() {
     exit 1
 }
 
+log_warning() {
+    local YELLOW='\033[0;33m'
+    local RESET='\033[0m'
+
+    printf -- "%b%b%b\n" "${YELLOW}" "${*}" "${RESET}" 1>&2
+}
+
+print_restart_hint_on_failure() {
+    local exit_code=$?
+    if [[ ${exit_code} -eq 0 ]]; then
+        return
+    fi
+    if [[ ${ACCOUNT:-} != "prod" ]]; then
+        return
+    fi
+    log_warning ""
+    log_warning "Release failed (exit ${exit_code}). To restart from the asset-push step (after the version-bump PR has been merged), run:"
+    log_warning "\tPROD_GITHUB_RESTART=true ./release.sh ${FORWARDER_VERSION:-<version>} prod"
+    log_warning "If a specific region is in an outage, also pass SKIP_REGIONS, e.g.:"
+    log_warning "\tPROD_GITHUB_RESTART=true SKIP_REGIONS=me-south-1 ./release.sh ${FORWARDER_VERSION:-<version>} prod"
+}
+trap print_restart_hint_on_failure EXIT
+
 user_read_input() {
     if [[ ${#} -lt 2 ]]; then
         var_red "Usage: var_read_input VAR_PROMPT VAR_NAME"
@@ -278,6 +301,8 @@ prod_release() {
     fi
 
     log_info "You are about to\n\t- bump the version from ${CURRENT_VERSION} to ${FORWARDER_VERSION}\n\t- create lambda layer version ${LAYER_VERSION}\n\t- create a release of aws-dd-forwarder-${FORWARDER_VERSION} on GitHub\n\t- upload the template.yaml to s3://${BUCKET}/aws/forwarder/${FORWARDER_VERSION}.yaml\n"
+
+    log_info "Tip: if this script fails after the version-bump PR is merged, you can restart from the asset-push step with:\n\tPROD_GITHUB_RESTART=true ./release.sh ${FORWARDER_VERSION} prod\nTo skip regions during an AWS outage, pass SKIP_REGIONS=region-a,region-b (e.g. SKIP_REGIONS=me-south-1).\n"
 
     # Confirm to proceed
     if ! user_confirm "Continue"; then

@@ -97,6 +97,20 @@ LAYER_PATHS=(".forwarder/aws-dd-forwarder-${FORWARDER_VERSION}-layer.zip")
 AVAILABLE_LAYERS=("Datadog-Forwarder")
 AVAILABLE_REGIONS=$(aws ec2 describe-regions | jq -r '.[] | .[] | .RegionName')
 
+# SKIP_REGIONS is a comma-separated list of regions to skip (e.g. during a
+# regional outage). Example: SKIP_REGIONS=me-south-1,ap-northeast-1
+is_region_skipped() {
+    local region=$1
+    if [[ -z ${SKIP_REGIONS:-} ]]; then
+        return 1
+    fi
+    local clean_skip="${SKIP_REGIONS// /}"
+    if [[ ",${clean_skip}," == *",${region},"* ]]; then
+        return 0
+    fi
+    return 1
+}
+
 # Check that the layer files exist
 for layer_file in "${LAYER_PATHS[@]}"; do
     if [[ ! -f ${layer_file} ]]; then
@@ -131,6 +145,10 @@ if [[ -z ${LAYER_VERSION:-} ]]; then
     log_error "Layer version not specified"
 else
     log_info "Layer version specified: $LAYER_VERSION"
+fi
+
+if [[ -n ${SKIP_REGIONS:-} ]]; then
+    log_warning "Skipping regions (SKIP_REGIONS): ${SKIP_REGIONS}"
 fi
 
 if [[ ${NO_INPUT:-} == "true" ]]; then
@@ -176,6 +194,11 @@ publish_layer() {
 }
 
 for region in $REGIONS; do
+    if is_region_skipped "$region"; then
+        log_warning "Skipping region $region (SKIP_REGIONS)"
+        continue
+    fi
+
     log_info "Starting publishing layer for region $region..."
 
     # Publish the layers for each version of python
