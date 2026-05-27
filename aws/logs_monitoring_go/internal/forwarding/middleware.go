@@ -87,6 +87,16 @@ func WithRetry(maxAttempts int, next http.RoundTripper) RoundTripperFunc {
 
 			if !isRetryable(resp.StatusCode) {
 				slog.LogAttrs(req.Context(), slog.LevelDebug, "request complete", attrs...)
+				if isPermanent(resp.StatusCode) {
+					body, err := io.ReadAll(resp.Body)
+					if err != nil {
+						slog.Warn("reading body response", slog.Any("error", err))
+					}
+					return nil, &PermanentError{
+						StatusCode: resp.StatusCode,
+						Reason:     string(body),
+					}
+				}
 				return resp, nil
 			}
 
@@ -99,6 +109,18 @@ func WithRetry(maxAttempts int, next http.RoundTripper) RoundTripperFunc {
 		}
 
 		return resp, err
+	}
+}
+
+func isPermanent(statusCode int) bool {
+	switch statusCode {
+	case http.StatusBadRequest,
+		http.StatusUnauthorized,
+		http.StatusForbidden,
+		http.StatusRequestEntityTooLarge:
+		return true
+	default:
+		return statusCode >= 400
 	}
 }
 

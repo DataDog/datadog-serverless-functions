@@ -22,7 +22,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-const maxConcurrency = 5
+const MaxConcurrency = 5
 
 type Forwarder struct {
 	cfg     *config.Config
@@ -39,7 +39,7 @@ func NewForwarder(cfg *config.Config, client *http.Client, storage string) Forwa
 }
 
 func (f Forwarder) Start(ctx context.Context, in <-chan model.LogEntry) error {
-	batches := make(chan []byte, maxConcurrency)
+	batches := make(chan []byte, MaxConcurrency)
 	batcher := batching.NewBatcher()
 
 	producerErrCh := make(chan error, 1)
@@ -49,7 +49,7 @@ func (f Forwarder) Start(ctx context.Context, in <-chan model.LogEntry) error {
 	}()
 
 	var eg errgroup.Group
-	eg.SetLimit(maxConcurrency)
+	eg.SetLimit(MaxConcurrency)
 
 	var errs []error
 	var mu sync.Mutex
@@ -66,7 +66,7 @@ func (f Forwarder) Start(ctx context.Context, in <-chan model.LogEntry) error {
 		}
 
 		eg.Go(func() error {
-			if err := f.send(ctx, body); err != nil {
+			if err := f.Send(ctx, body); err != nil {
 				mu.Lock()
 				errs = append(errs, err)
 				mu.Unlock()
@@ -79,7 +79,7 @@ func (f Forwarder) Start(ctx context.Context, in <-chan model.LogEntry) error {
 	return errors.Join(append(errs, <-producerErrCh)...)
 }
 
-func (f Forwarder) send(ctx context.Context, payload []byte) error {
+func (f Forwarder) Send(ctx context.Context, payload []byte) error {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 

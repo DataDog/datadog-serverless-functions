@@ -73,6 +73,7 @@ func TestWithRetry(t *testing.T) {
 		statusCodes []int
 		wantCalls   int
 		wantStatus  int
+		wantErr     error
 	}{
 		"one success": {
 			maxAttempts: defaultMaxAttempts,
@@ -92,11 +93,12 @@ func TestWithRetry(t *testing.T) {
 			wantCalls:   defaultMaxAttempts,
 			wantStatus:  http.StatusInternalServerError,
 		},
-		"non retriable": {
+		"permanent error": {
 			maxAttempts: defaultMaxAttempts,
-			statusCodes: []int{http.StatusForbidden},
+			statusCodes: []int{http.StatusUnauthorized},
 			wantCalls:   1,
-			wantStatus:  http.StatusForbidden,
+			wantStatus:  http.StatusUnauthorized,
+			wantErr:     &PermanentError{},
 		},
 	}
 
@@ -121,6 +123,11 @@ func TestWithRetry(t *testing.T) {
 			resp, err := retry.RoundTrip(req)
 
 			assert.Equal(t, tc.wantCalls, int(callCount.Load()), "call count")
+			if tc.wantErr != nil {
+				var permErr *PermanentError
+				require.ErrorAs(t, err, &permErr)
+				return
+			}
 			assert.Equal(t, tc.wantStatus, resp.StatusCode, "response status")
 			assert.NoError(t, err, "RoundTrip error")
 		})
