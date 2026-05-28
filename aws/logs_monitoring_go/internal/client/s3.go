@@ -21,6 +21,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
+// See https://github.com/aws/aws-sdk-go-v2/issues/3416 for future configuration
 const timeout = 10 * time.Second
 
 var (

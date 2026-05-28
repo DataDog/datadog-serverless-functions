@@ -7,13 +7,13 @@ package forwarding
 
 import (
 	"bytes"
-	"compress/gzip"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
-	"time"
+	"sync"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/batching"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/concurrent"
@@ -22,96 +22,102 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-const numWorkers = 3
-
-var Client *http.Client = &http.Client{Timeout: 10 * time.Second}
+const MaxConcurrency = 5
 
 type Forwarder struct {
-	config  *config.Config
+	cfg     *config.Config
 	client  *http.Client
 	storage string
 }
 
 func NewForwarder(cfg *config.Config, client *http.Client, storage string) Forwarder {
 	return Forwarder{
-		config:  cfg,
+		cfg:     cfg,
 		client:  client,
 		storage: storage,
 	}
 }
 
 func (f Forwarder) Start(ctx context.Context, in <-chan model.LogEntry) error {
-	eg, ctx := errgroup.WithContext(ctx)
-
-	batches := make(chan []byte)
+	batches := make(chan []byte, MaxConcurrency)
 	batcher := batching.NewBatcher()
-	eg.Go(func() error {
+
+	producerErrCh := make(chan error, 1)
+	go func() {
 		defer close(batches)
-		return batcher.Batch(ctx, in, batches)
-	})
+		producerErrCh <- batcher.Batch(ctx, in, batches)
+	}()
 
-	for range numWorkers {
+	var eg errgroup.Group
+	eg.SetLimit(MaxConcurrency)
+
+	var errs []error
+	var mu sync.Mutex
+
+	for {
+		body, ok, err := concurrent.SafeReader(ctx, batches)
+		if err != nil {
+			mu.Lock()
+			errs = append(errs, err)
+			mu.Unlock()
+		}
+		if !ok {
+			break
+		}
+
 		eg.Go(func() error {
-			for {
-				body, ok, err := concurrent.SafeReader(ctx, batches)
-				if err != nil {
-					return err
-				}
-				if !ok {
-					return nil
-				}
-
-				if err := f.send(ctx, body); err != nil {
-					return err
-				}
+			if err := f.Send(ctx, body); err != nil {
+				mu.Lock()
+				errs = append(errs, err)
+				mu.Unlock()
 			}
+			return nil
 		})
 	}
+	_ = eg.Wait()
 
-	return eg.Wait()
+	return errors.Join(append(errs, <-producerErrCh)...)
 }
 
-// TODO: add retry mechanism for resiliency
-func (f Forwarder) send(ctx context.Context, body []byte) error {
-	var compressedBody bytes.Buffer
-	zw := gzip.NewWriter(&compressedBody)
-	if _, err := zw.Write(body); err != nil {
-		return fmt.Errorf("compressing body: %w", err)
-	}
-	if err := zw.Close(); err != nil {
-		return fmt.Errorf("closing gzip writer: %w", err)
-	}
+func (f Forwarder) Send(ctx context.Context, payload []byte) error {
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, f.config.IntakeURL, bytes.NewReader(compressedBody.Bytes()))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, f.cfg.IntakeURL, bytes.NewReader(payload))
 	if err != nil {
 		return err
 	}
 
-	req.Header.Set("DD-API-KEY", f.config.APIKey)
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Content-Encoding", "gzip")
+	req.Header.Set("DD-API-KEY", f.cfg.APIKey)
 	req.Header.Set("DD-EVP-ORIGIN", "aws_forwarder")
 	req.Header.Set("DD-EVP-ORIGIN-VERSION", config.ForwarderVersion)
+	req.Header.Set("Content-Type", "application/json")
 	if f.storage != "" {
 		req.Header.Set("DD-STORAGE-TAG", f.storage)
 	}
 
 	resp, err := f.client.Do(req)
 	if err != nil {
-		return fmt.Errorf("sending to intake: %w", err)
+		return fmt.Errorf("intake: %w", err)
 	}
-	defer func() {
-		if _, err := io.Copy(io.Discard, resp.Body); err != nil {
-			slog.Warn("failed to drain response body", slog.Any("error", err))
-		}
-		if err := resp.Body.Close(); err != nil {
-			slog.Warn("failed to close response body", slog.Any("error", err))
-		}
-	}()
+	defer drainClose(resp)
 
 	if resp.StatusCode != http.StatusAccepted {
-		return fmt.Errorf("unexpected status from intake: %s", resp.Status)
+		body, _ := io.ReadAll(resp.Body)
+		if len(body) > 0 {
+			return fmt.Errorf("intake (http/%d): %s", resp.StatusCode, string(body))
+		}
+		return fmt.Errorf("intake (http/%d)", resp.StatusCode)
 	}
 
 	return nil
+}
+
+func drainClose(resp *http.Response) {
+	if _, err := io.Copy(io.Discard, resp.Body); err != nil {
+		slog.Warn("draining response body", slog.Any("error", err))
+	}
+	if err := resp.Body.Close(); err != nil {
+		slog.Warn("closing response body", slog.Any("error", err))
+	}
 }
