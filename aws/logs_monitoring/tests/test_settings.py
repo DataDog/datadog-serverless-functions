@@ -6,6 +6,7 @@ from settings import is_api_key_valid
 
 VALID_API_KEY = "11111111111111111111111111111111"
 
+
 class TestIsApiKeyValid(unittest.TestCase):
     @patch("settings.DD_API_KEY", VALID_API_KEY)
     @patch("settings.requests.Session")
