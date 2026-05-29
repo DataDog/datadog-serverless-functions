@@ -6,6 +6,10 @@ from settings import is_api_key_valid
 
 VALID_API_KEY = "11111111111111111111111111111111"
 
+# For the integration tests to work because of other tests set sys.modules["requests"] as a MagicMock.
+class _FakeNetworkError(Exception):
+    pass
+
 
 class TestIsApiKeyValid(unittest.TestCase):
     @patch("settings.DD_API_KEY", VALID_API_KEY)
@@ -30,10 +34,11 @@ class TestIsApiKeyValid(unittest.TestCase):
 
     @patch("settings.DD_API_KEY", VALID_API_KEY)
     @patch("settings.logger")
+    @patch("settings.requests.exceptions.RequestException", _FakeNetworkError)
     @patch("settings.requests.Session")
     def test_on_connection_exception(self, mock_session_cls, mock_logger):
         mock_session_cls.return_value.__enter__.return_value.get.side_effect = (
-            _settings_module.requests.exceptions.ConnectionError
+            _FakeNetworkError("DNS resolution failed")
         )
         result = is_api_key_valid()
         self.assertFalse(result)
@@ -42,10 +47,11 @@ class TestIsApiKeyValid(unittest.TestCase):
 
     @patch("settings.DD_API_KEY", VALID_API_KEY)
     @patch("settings.logger")
+    @patch("settings.requests.exceptions.RequestException", _FakeNetworkError)
     @patch("settings.requests.Session")
     def test_on_timeout_exception(self, mock_session_cls, mock_logger):
         mock_session_cls.return_value.__enter__.return_value.get.side_effect = (
-            _settings_module.requests.exceptions.Timeout
+            _FakeNetworkError("Request timed out")
         )
         result = is_api_key_valid()
         self.assertFalse(result)
