@@ -272,7 +272,7 @@ def is_api_key_valid():
     except requests.exceptions.RequestException as e:
         logger.warning(
             f"Could not validate Datadog API key due to a network error: {e}. "
-            "Proceeding without validation — forwarding errors will surface if the key is invalid."
+            "Proceeding without validation."
         )
 
     return True
