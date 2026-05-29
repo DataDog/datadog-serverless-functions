@@ -105,7 +105,7 @@ func (f Forwarder) Send(ctx context.Context, payload []byte) error {
 	if f.storage != "" {
 		req.Header.Set("DD-STORAGE-TAG", f.storage)
 	}
-	if f.cfg.CompressionLevel != 0 {
+	if f.cfg.CompressionLevel != gzip.NoCompression {
 		compressed, err := f.compress(payload)
 		if err != nil {
 			return fmt.Errorf("compress: %w", err)
