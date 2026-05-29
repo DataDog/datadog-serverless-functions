@@ -6,6 +6,7 @@ from settings import is_api_key_valid
 
 VALID_API_KEY = "11111111111111111111111111111111"
 
+
 # For the integration tests to work because of other tests set sys.modules["requests"] as a MagicMock.
 class _FakeNetworkError(Exception):
     pass
