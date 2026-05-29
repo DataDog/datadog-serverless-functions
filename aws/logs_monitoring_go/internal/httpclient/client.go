@@ -6,7 +6,6 @@
 package httpclient
 
 import (
-	"crypto/tls"
 	"io"
 	"log/slog"
 	"net"
@@ -25,7 +24,7 @@ const (
 
 var Client *http.Client
 
-func Init(skipServerCertificate bool) {
+func Init(opts ...TLSOption) {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	transport.TLSHandshakeTimeout = tlsHandshakeTimeout
 	transport.MaxIdleConnsPerHost = MaxConcurrency
@@ -33,9 +32,11 @@ func Init(skipServerCertificate bool) {
 		Timeout:   dialContextTimeout,
 		KeepAlive: dialContextKeepAlive,
 	}).DialContext
-	transport.TLSClientConfig = &tls.Config{
-		InsecureSkipVerify: skipServerCertificate,
+
+	for _, opt := range opts {
+		opt(transport.TLSClientConfig)
 	}
+
 	Client = &http.Client{Transport: WithRetry(DefaultMaxAttempts, transport)}
 }
 

@@ -24,7 +24,11 @@ func main() {
 		panic(err)
 	}
 
-	httpclient.Init(cfg.SkipServerCertificate)
+	var tlsOpts []httpclient.TLSOption
+	if cfg.SkipServerCertificate {
+		tlsOpts = append(tlsOpts, httpclient.WithCertificateSkip())
+	}
+	httpclient.Init(tlsOpts...)
 
 	err = cfg.ResolveAPIKey(context.Background())
 	if err != nil {
