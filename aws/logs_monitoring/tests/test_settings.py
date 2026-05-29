@@ -1,7 +1,6 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-import settings as _settings_module
 from settings import is_api_key_valid
 
 VALID_API_KEY = "11111111111111111111111111111111"
