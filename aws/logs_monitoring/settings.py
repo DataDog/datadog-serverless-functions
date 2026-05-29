@@ -274,6 +274,7 @@ def is_api_key_valid():
             f"Could not validate Datadog API key due to a network error: {e}. "
             "Proceeding without validation."
         )
+        return False
 
     return True
 
