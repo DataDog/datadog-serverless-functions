@@ -74,8 +74,7 @@ func (c *Config) ValidateAPIKey(ctx context.Context) error {
 
 	resp, err := httpclient.Client.Do(req)
 	if err != nil {
-		slog.Warn("failed to validate API key", slog.Any("error", err))
-		return nil
+		return err
 	}
 	defer httpclient.DrainClose(resp)
 

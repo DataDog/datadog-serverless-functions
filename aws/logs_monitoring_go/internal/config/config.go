@@ -102,9 +102,9 @@ func (c *Config) loadEnv() {
 	c.SkipServerCertificate = envOrDefaultBool(EnvSkipServerCertificate, false)
 	c.UseHTTP = envOrDefaultBool(EnvUseHTTP, false)
 
-	scheme := "https"
+	protocol := "https"
 	if c.UseHTTP {
-		scheme = "http"
+		protocol = "http"
 	}
 
 	compressionLevel := envOrDefaultInt(EnvCompressionLevel, gzip.DefaultCompression)
@@ -115,8 +115,8 @@ func (c *Config) loadEnv() {
 	c.CompressionLevel = compressionLevel
 
 	c.Port = envOrDefault(EnvPort, "443")
-	c.IntakeURL = envOrDefault(EnvURL, scheme+"://http-intake.logs."+c.Site+":"+c.Port+"/api/v2/logs")
-	c.APIURL = envOrDefault(EnvAPIURL, scheme+"://api."+c.Site)
+	c.IntakeURL = envOrDefault(EnvURL, protocol+"://http-intake.logs."+c.Site+":"+c.Port+"/api/v2/logs")
+	c.APIURL = envOrDefault(EnvAPIURL, protocol+"://api."+c.Site)
 	c.UseFIPS = envOrDefaultBool(EnvUseFIPS, false)
 	c.Source = envOrDefault(EnvSource, "")
 	c.Host = envOrDefault(EnvHost, "")
