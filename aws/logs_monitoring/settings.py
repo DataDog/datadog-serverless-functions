@@ -250,24 +250,30 @@ def is_api_key_valid():
     # Validate the API key
     logger.debug("Validating the Datadog API key")
 
-    with requests.Session() as s:
-        retries = requests.adapters.Retry(
-            total=5, backoff_factor=1, status_forcelist=[429, 500, 502, 503, 504]
-        )
-
-        s.mount("http://", requests.adapters.HTTPAdapter(max_retries=retries))
-        s.mount("https://", requests.adapters.HTTPAdapter(max_retries=retries))
-
-        validation_res = s.get(
-            "{}/api/v1/validate?api_key={}".format(DD_API_URL, DD_API_KEY),
-            verify=(not DD_SKIP_SSL_VALIDATION),
-            timeout=10,
-        )
-        if not validation_res.ok:
-            logger.error(
-                f"Datadog API key validation failed (HTTP {validation_res.status_code}). Verify your API key is correct and DD_SITE matches your Datadog account region (current: {DD_SITE}). See: https://docs.datadoghq.com/getting_started/site/"
+    try:
+        with requests.Session() as s:
+            retries = requests.adapters.Retry(
+                total=5, backoff_factor=1, status_forcelist=[429, 500, 502, 503, 504]
             )
-            return False
+
+            s.mount("http://", requests.adapters.HTTPAdapter(max_retries=retries))
+            s.mount("https://", requests.adapters.HTTPAdapter(max_retries=retries))
+
+            validation_res = s.get(
+                "{}/api/v1/validate?api_key={}".format(DD_API_URL, DD_API_KEY),
+                verify=(not DD_SKIP_SSL_VALIDATION),
+                timeout=10,
+            )
+            if not validation_res.ok:
+                logger.error(
+                    f"Datadog API key validation failed (HTTP {validation_res.status_code}). Verify your API key is correct and DD_SITE matches your Datadog account region (current: {DD_SITE}). See: https://docs.datadoghq.com/getting_started/site/"
+                )
+                return False
+    except requests.exceptions.RequestException as e:
+        logger.warning(
+            f"Could not validate Datadog API key due to a network error: {e}. "
+            "Proceeding without validation — forwarding errors will surface if the key is invalid."
+        )
 
     return True
 
