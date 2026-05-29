@@ -67,7 +67,7 @@ func (c *Config) ValidateAPIKey(ctx context.Context) error {
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.APIURL+"/api/v1/validate", nil)
 	if err != nil {
-		return nil
+		return fmt.Errorf("new request: %w", err)
 	}
 
 	req.Header.Set("DD-API-KEY", c.APIKey)
