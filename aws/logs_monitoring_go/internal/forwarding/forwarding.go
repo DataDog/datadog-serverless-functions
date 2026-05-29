@@ -7,27 +7,31 @@ package forwarding
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"errors"
 	"fmt"
 	"io"
-	"log/slog"
 	"net/http"
 	"sync"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/batching"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/concurrent"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/httpclient"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 	"golang.org/x/sync/errgroup"
 )
 
-const MaxConcurrency = 5
+var bufPool = sync.Pool{
+	New: func() any { return new(bytes.Buffer) },
+}
 
 type Forwarder struct {
-	cfg     *config.Config
-	client  *http.Client
-	storage string
+	cfg      *config.Config
+	client   *http.Client
+	storage  string
+	gzipPool *sync.Pool
 }
 
 func NewForwarder(cfg *config.Config, client *http.Client, storage string) Forwarder {
@@ -35,11 +39,17 @@ func NewForwarder(cfg *config.Config, client *http.Client, storage string) Forwa
 		cfg:     cfg,
 		client:  client,
 		storage: storage,
+		gzipPool: &sync.Pool{
+			New: func() any {
+				w, _ := gzip.NewWriterLevel(nil, cfg.CompressionLevel)
+				return w
+			},
+		},
 	}
 }
 
 func (f Forwarder) Start(ctx context.Context, in <-chan model.LogEntry) error {
-	batches := make(chan []byte, MaxConcurrency)
+	batches := make(chan []byte, httpclient.MaxConcurrency)
 	batcher := batching.NewBatcher()
 
 	producerErrCh := make(chan error, 1)
@@ -49,7 +59,7 @@ func (f Forwarder) Start(ctx context.Context, in <-chan model.LogEntry) error {
 	}()
 
 	var eg errgroup.Group
-	eg.SetLimit(MaxConcurrency)
+	eg.SetLimit(httpclient.MaxConcurrency)
 
 	var errs []error
 	var mu sync.Mutex
@@ -80,7 +90,7 @@ func (f Forwarder) Start(ctx context.Context, in <-chan model.LogEntry) error {
 }
 
 func (f Forwarder) Send(ctx context.Context, payload []byte) error {
-	ctx, cancel := context.WithTimeout(ctx, timeout)
+	ctx, cancel := context.WithTimeout(ctx, httpclient.RequestTimeout)
 	defer cancel()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, f.cfg.IntakeURL, bytes.NewReader(payload))
@@ -95,12 +105,24 @@ func (f Forwarder) Send(ctx context.Context, payload []byte) error {
 	if f.storage != "" {
 		req.Header.Set("DD-STORAGE-TAG", f.storage)
 	}
+	if f.cfg.CompressionLevel != 0 {
+		compressed, err := f.compress(payload)
+		if err != nil {
+			return fmt.Errorf("compress: %w", err)
+		}
+		req.Body = io.NopCloser(bytes.NewReader(compressed))
+		req.ContentLength = int64(len(compressed))
+		req.GetBody = func() (io.ReadCloser, error) {
+			return io.NopCloser(bytes.NewReader(compressed)), nil
+		}
+		req.Header.Set("Content-Encoding", "gzip")
+	}
 
 	resp, err := f.client.Do(req)
 	if err != nil {
 		return fmt.Errorf("intake: %w", err)
 	}
-	defer drainClose(resp)
+	defer httpclient.DrainClose(resp)
 
 	if resp.StatusCode != http.StatusAccepted {
 		body, _ := io.ReadAll(resp.Body)
@@ -113,11 +135,23 @@ func (f Forwarder) Send(ctx context.Context, payload []byte) error {
 	return nil
 }
 
-func drainClose(resp *http.Response) {
-	if _, err := io.Copy(io.Discard, resp.Body); err != nil {
-		slog.Warn("draining response body", slog.Any("error", err))
+func (f Forwarder) compress(payload []byte) ([]byte, error) {
+	buf := bufPool.Get().(*bytes.Buffer)
+	gz := f.gzipPool.Get().(*gzip.Writer)
+	defer bufPool.Put(buf)
+	defer f.gzipPool.Put(gz)
+
+	buf.Reset()
+	gz.Reset(buf)
+
+	if _, err := gz.Write(payload); err != nil {
+		return nil, err
 	}
-	if err := resp.Body.Close(); err != nil {
-		slog.Warn("closing response body", slog.Any("error", err))
+	if err := gz.Close(); err != nil {
+		return nil, err
 	}
+
+	out := make([]byte, buf.Len())
+	copy(out, buf.Bytes())
+	return out, nil
 }

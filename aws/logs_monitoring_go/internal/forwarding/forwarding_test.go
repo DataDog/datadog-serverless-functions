@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/httpclient"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -55,7 +56,7 @@ func TestForwarder_Start(t *testing.T) {
 			storage:    cloudwatchStorage,
 			entries:    []model.LogEntry{{Message: "test payload"}},
 			wantErr:    true,
-			wantCalls:  defaultMaxAttempts,
+			wantCalls:  httpclient.DefaultMaxAttempts,
 		},
 		"s3 storage": {
 			statusCode: http.StatusAccepted,
@@ -95,8 +96,8 @@ func TestForwarder_Start(t *testing.T) {
 			}))
 			t.Cleanup(server.Close)
 			client := server.Client()
-			client.Transport = WithCompression(WithRetry(defaultMaxAttempts, client.Transport))
-			forwarder := NewForwarder(&config.Config{IntakeURL: server.URL, APIKey: "test-api-key"}, client, tc.storage)
+			client.Transport = httpclient.WithRetry(httpclient.DefaultMaxAttempts, client.Transport)
+			forwarder := NewForwarder(&config.Config{IntakeURL: server.URL, APIKey: "test-api-key", CompressionLevel: gzip.DefaultCompression}, client, tc.storage)
 			ctx, cancel := context.WithCancel(t.Context())
 			t.Cleanup(cancel)
 
@@ -158,8 +159,8 @@ func TestForwarder_Start_Context(t *testing.T) {
 			}))
 			t.Cleanup(server.Close)
 			client := server.Client()
-			client.Transport = WithCompression(WithRetry(defaultMaxAttempts, client.Transport))
-			forwarder := NewForwarder(&config.Config{IntakeURL: server.URL, APIKey: "test-api-key"}, client, "")
+			client.Transport = httpclient.WithRetry(httpclient.DefaultMaxAttempts, client.Transport)
+			forwarder := NewForwarder(&config.Config{IntakeURL: server.URL, APIKey: "test-api-key", CompressionLevel: gzip.DefaultCompression}, client, "")
 			ctx, cancel := tc.ctxBuilder(t)
 			t.Cleanup(cancel)
 

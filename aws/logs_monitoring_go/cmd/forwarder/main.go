@@ -11,6 +11,7 @@ import (
 	"fmt"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/httpclient"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/parsing"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/pipeline"
 
@@ -22,6 +23,9 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	httpclient.Init(cfg.SkipServerCertificate)
+
 	err = cfg.ResolveAPIKey(context.Background())
 	if err != nil {
 		panic(err)

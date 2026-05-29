@@ -8,13 +8,13 @@ package config
 import (
 	"context"
 
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/client"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/sdkclient"
 )
 
 func (c *Config) resolveAPIKeyFromSSM(ctx context.Context, name string) (string, error) {
-	ssmClient, err := client.NewSSM(ctx, c.UseFIPS)
+	ssmClient, err := sdkclient.NewSSM(ctx, c.UseFIPS)
 	if err != nil {
 		return "", err
 	}
-	return client.FetchSSMParameter(ctx, ssmClient, name)
+	return sdkclient.FetchSSMParameter(ctx, ssmClient, name)
 }

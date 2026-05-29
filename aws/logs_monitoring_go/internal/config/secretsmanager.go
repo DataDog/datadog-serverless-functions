@@ -8,13 +8,13 @@ package config
 import (
 	"context"
 
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/client"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/sdkclient"
 )
 
 func (c *Config) resolveAPIKeyFromSecretsManager(ctx context.Context, arn string) (string, error) {
-	smClient, err := client.NewSecretsManager(ctx, c.UseFIPS)
+	smClient, err := sdkclient.NewSecretsManager(ctx, c.UseFIPS)
 	if err != nil {
 		return "", err
 	}
-	return client.FetchSecret(ctx, smClient, arn)
+	return sdkclient.FetchSecret(ctx, smClient, arn)
 }

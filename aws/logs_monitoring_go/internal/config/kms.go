@@ -8,13 +8,13 @@ package config
 import (
 	"context"
 
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/client"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/sdkclient"
 )
 
 func (c *Config) resolveAPIKeyFromKMS(ctx context.Context, ciphertext string) (string, error) {
-	kmsClient, err := client.NewKMS(ctx, c.UseFIPS)
+	kmsClient, err := sdkclient.NewKMS(ctx, c.UseFIPS)
 	if err != nil {
 		return "", err
 	}
-	return client.DecryptKMSCiphertext(ctx, kmsClient, ciphertext)
+	return sdkclient.DecryptKMSCiphertext(ctx, kmsClient, ciphertext)
 }
