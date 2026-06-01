@@ -85,11 +85,14 @@ func (f Forwarder) Start(ctx context.Context, in <-chan model.LogEntry, storageT
 		}
 
 		eg.Go(func() error {
-			if err := f.Send(ctx, body, storageTag); err != nil {
-				mu.Lock()
-				errs = append(errs, err)
-				mu.Unlock()
+			err := f.Send(ctx, body, storageTag)
+			if err == nil {
+				return nil
 			}
+
+			mu.Lock()
+			errs = append(errs, err)
+			mu.Unlock()
 
 			if f.storage != nil {
 				if storeErr := f.storage.Put(ctx, body, storageTag); storeErr != nil {
@@ -114,8 +117,11 @@ func (f Forwarder) Send(ctx context.Context, payload []byte, storageTag string) 
 		return err
 	}
 
-	f.storageTag(storageTag)
-	req.Header = f.header
+	header := f.header.Clone()
+	if storageTag != "" {
+		header["DD-STORAGE-TAG"] = []string{storageTag}
+	}
+	req.Header = header
 
 	if f.cfg.CompressionLevel != gzip.NoCompression {
 		compressed, err := f.compress(payload)
@@ -163,14 +169,6 @@ func (f Forwarder) compress(payload []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	out := make([]byte, buf.Len())
-	copy(out, buf.Bytes())
+	out := bytes.Clone(buf.Bytes())
 	return out, nil
-}
-
-func (f Forwarder) storageTag(tag string) {
-	delete(f.header, storageTagHeader)
-	if tag != "" {
-		f.header["DD-STORAGE-TAG"] = []string{tag}
-	}
 }

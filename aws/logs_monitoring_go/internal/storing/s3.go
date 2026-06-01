@@ -20,9 +20,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
-const (
-	prefix = "failed_events/"
-)
+const prefix = "failed_events/"
 
 var seq atomic.Int64
 
@@ -68,7 +66,7 @@ func (s *S3) List(ctx context.Context) ([]string, error) {
 		return nil, err
 	}
 
-	var keys []string
+	keys := make([]string, 0, len(out.Contents))
 	for _, obj := range out.Contents {
 		keys = append(keys, aws.ToString(obj.Key))
 	}

@@ -114,7 +114,7 @@ func (c *Config) loadEnv() {
 	compressionLevel := envOrDefaultInt(EnvCompressionLevel, gzip.DefaultCompression)
 	if compressionLevel < gzip.HuffmanOnly || compressionLevel > gzip.BestCompression {
 		slog.Warn("invalid compression level, falling back to default", slog.Int("level", compressionLevel), slog.Int("fallback", gzip.DefaultCompression))
-		compressionLevel = gzip.BestCompression
+		compressionLevel = gzip.DefaultCompression
 	}
 	c.CompressionLevel = compressionLevel
 

@@ -75,12 +75,12 @@ func (h S3Handler) processRecord(ctx context.Context, out chan<- model.LogEntry,
 		}
 	}()
 
-	reader, close, err := gunzip(output.Body)
+	reader, gzClose, err := gunzip(output.Body)
 	if err != nil {
 		return err
 	}
 	defer func() {
-		if err := close(); err != nil {
+		if err := gzClose(); err != nil {
 			slog.Warn("close gunzip", slog.Any("error", err))
 		}
 	}()

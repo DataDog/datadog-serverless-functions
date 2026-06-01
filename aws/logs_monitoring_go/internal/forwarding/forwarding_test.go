@@ -34,33 +34,33 @@ func TestForwarder_Start(t *testing.T) {
 	}{
 		"single message accepted": {
 			statusCode: http.StatusAccepted,
-			storageTag: cloudwatchStorageTag,
+			storageTag: "cloudwatch",
 			entries:    []model.LogEntry{{Message: "test payload"}},
 			wantCalls:  1,
 		},
 		"empty channel": {
 			statusCode: http.StatusAccepted,
-			storageTag: cloudwatchStorageTag,
+			storageTag: "cloudwatch",
 			entries:    []model.LogEntry{},
 			wantCalls:  0,
 		},
 		"server returns 400": {
 			statusCode: http.StatusBadRequest,
-			storageTag: cloudwatchStorageTag,
+			storageTag: "cloudwatch",
 			entries:    []model.LogEntry{{Message: "test payload"}},
 			wantErr:    true,
 			wantCalls:  1,
 		},
 		"server returns 500": {
 			statusCode: http.StatusInternalServerError,
-			storageTag: cloudwatchStorageTag,
+			storageTag: "cloudwatch",
 			entries:    []model.LogEntry{{Message: "test payload"}},
 			wantErr:    true,
 			wantCalls:  httpclient.DefaultMaxAttempts,
 		},
 		"s3 storage": {
 			statusCode: http.StatusAccepted,
-			storageTag: s3StorageTag,
+			storageTag: "s3",
 			entries:    []model.LogEntry{{Message: "test payload"}},
 			wantCalls:  1,
 		},

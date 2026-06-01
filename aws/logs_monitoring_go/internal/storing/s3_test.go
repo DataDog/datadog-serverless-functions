@@ -39,7 +39,7 @@ func TestS3_Put(t *testing.T) {
 					PutObject(gomock.Any(), gomock.Cond(func(input *s3.PutObjectInput) bool {
 						return aws.ToString(input.Bucket) == testBucket &&
 							strings.HasPrefix(aws.ToString(input.Key), prefix) &&
-							input.Metadata[metadataStorageTagKey] == "s3"
+							input.Metadata["dd-storage-tag"] == "s3"
 					})).
 					Return(nil, nil)
 			},
@@ -153,7 +153,7 @@ func TestS3_Get(t *testing.T) {
 					})).
 					Return(&s3.GetObjectOutput{
 						Body:     io.NopCloser(strings.NewReader(`[{"message":"hello"}]`)),
-						Metadata: map[string]string{metadataStorageTagKey: "cloudwatch"},
+						Metadata: map[string]string{"dd-storage-tag": "cloudwatch"},
 					}, nil)
 			},
 			wantBody:       []byte(`[{"message":"hello"}]`),
