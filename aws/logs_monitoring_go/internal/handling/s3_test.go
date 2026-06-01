@@ -12,9 +12,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/sdkclient"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/sdkclient"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/testutil"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -329,9 +329,9 @@ func TestProcessS3Record(t *testing.T) {
 			tc.mockSetup(mock)
 
 			out := make(chan model.LogEntry, len(tc.want))
-			handler := NewS3(tc.cfg)
+			handler := NewS3(tc.cfg, mock)
 
-			err := handler.processRecord(t.Context(), mock, out, tc.eventRecord, testutil.LambdaOrigin())
+			err := handler.processRecord(t.Context(), out, tc.eventRecord, testutil.LambdaOrigin())
 			close(out)
 
 			var got []model.LogEntry

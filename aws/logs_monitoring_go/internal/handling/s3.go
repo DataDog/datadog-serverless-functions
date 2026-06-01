@@ -15,11 +15,12 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/sdkclient"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/concurrent"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/sdkclient"
 	"github.com/aws/aws-lambda-go/events"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
 const (
@@ -30,12 +31,14 @@ const (
 )
 
 type S3Handler struct {
-	cfg *config.Config
+	cfg    *config.Config
+	client sdkclient.S3
 }
 
-func NewS3(cfg *config.Config) *S3Handler {
+func NewS3(cfg *config.Config, client sdkclient.S3) *S3Handler {
 	return &S3Handler{
-		cfg: cfg,
+		cfg:    cfg,
+		client: client,
 	}
 }
 
@@ -45,36 +48,34 @@ func (h *S3Handler) Handle(ctx context.Context, event json.RawMessage, out chan<
 		return fmt.Errorf("unmarshal: %w", err)
 	}
 
-	s3Client, err := sdkclient.GetS3(ctx, h.cfg.UseFIPS)
-	if err != nil {
-		return fmt.Errorf("get S3 client: %w", err)
-	}
-
 	lambdaOrigin, err := model.GetLambdaOrigin(ctx)
 	if err != nil {
 		return err
 	}
 
 	for _, eventRecord := range s3Event.Records {
-		if err := h.processRecord(ctx, s3Client, out, eventRecord, lambdaOrigin); err != nil {
+		if err := h.processRecord(ctx, out, eventRecord, lambdaOrigin); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (h S3Handler) processRecord(ctx context.Context, s3Client sdkclient.S3, out chan<- model.LogEntry, eventRecord events.S3EventRecord, lambdaOrigin model.LambdaOrigin) error {
-	body, err := sdkclient.GetS3Object(ctx, s3Client, eventRecord.S3.Bucket.Name, eventRecord.S3.Object.URLDecodedKey)
+func (h S3Handler) processRecord(ctx context.Context, out chan<- model.LogEntry, eventRecord events.S3EventRecord, lambdaOrigin model.LambdaOrigin) error {
+	output, err := h.client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: &eventRecord.S3.Bucket.Name,
+		Key:    &eventRecord.S3.Object.URLDecodedKey,
+	})
 	if err != nil {
 		return err
 	}
 	defer func() {
-		if err := body.Close(); err != nil {
+		if err := output.Body.Close(); err != nil {
 			slog.Warn("close response body", slog.Any("error", err))
 		}
 	}()
 
-	reader, close, err := gunzip(body)
+	reader, close, err := gunzip(output.Body)
 	if err != nil {
 		return err
 	}

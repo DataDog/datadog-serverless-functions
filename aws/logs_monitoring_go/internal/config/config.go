@@ -40,6 +40,8 @@ const (
 	EnvRedactEmail              = "REDACT_EMAIL"
 	EnvIncludeAtMatch           = "INCLUDE_AT_MATCH"
 	EnvExcludeAtMatch           = "EXCLUDE_AT_MATCH"
+	EnvS3RetryBucketName        = "DD_S3_BUCKET_NAME"
+	EnvStoreFailedEvents        = "DD_STORE_FAILED_EVENTS"
 	ForwarderVersion            = "6.0"
 )
 
@@ -53,11 +55,13 @@ type Config struct {
 	LogLevel              string
 	Port                  string
 	S3MultilineLogRegex   *regexp.Regexp
+	S3RetryBucketName     string
 	Scrubber              *scrubbing.Scrubber
 	Service               string
 	Site                  string
 	SkipServerCertificate bool
 	Source                string
+	StoreOnFail           bool
 	Tags                  model.Tags
 	UseFIPS               bool
 	UseHTTP               bool
@@ -120,6 +124,8 @@ func (c *Config) loadEnv() {
 	c.UseFIPS = envOrDefaultBool(EnvUseFIPS, false)
 	c.Source = envOrDefault(EnvSource, "")
 	c.Host = envOrDefault(EnvHost, "")
+	c.S3RetryBucketName = envOrDefault(EnvS3RetryBucketName, "")
+	c.StoreOnFail = envOrDefaultBool(EnvStoreFailedEvents, false)
 }
 
 func (c *Config) compileS3MultilineLogRegex() error {

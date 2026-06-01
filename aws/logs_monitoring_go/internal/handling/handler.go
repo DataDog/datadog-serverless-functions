@@ -13,18 +13,23 @@ import (
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/parsing"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/sdkclient"
 )
 
 type Handler interface {
 	Handle(ctx context.Context, event json.RawMessage, out chan<- model.LogEntry) error
 }
 
-func NewHandler(ct parsing.ContentType, cfg *config.Config) (Handler, error) {
+func NewHandler(ctx context.Context, ct parsing.ContentType, cfg *config.Config) (Handler, error) {
 	switch ct {
 	case parsing.ContentTypeCloudwatchLogs:
 		return NewCloudwatch(cfg), nil
 	case parsing.ContentTypeS3:
-		return NewS3(cfg), nil
+		client, err := sdkclient.GetS3(ctx, cfg.UseFIPS)
+		if err != nil {
+			return nil, err
+		}
+		return NewS3(cfg, client), nil
 	case parsing.ContentTypeKinesis:
 		return NewKinesis(cfg), nil
 	case parsing.ContentTypeEventBridge:

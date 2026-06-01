@@ -5,12 +5,11 @@
 
 package sdkclient
 
-//go:generate go tool mockgen -source=s3.go -package=sdkclient -destination=s3_mockgen.go
+//go:generate go tool mockgen -source=s3.go -package=$GOPACKAGE -destination=s3_mockgen.go
 
 import (
 	"context"
 	"fmt"
-	"io"
 	"log/slog"
 	"sync"
 	"time"
@@ -31,10 +30,10 @@ var (
 )
 
 type S3 interface {
-	GetObject(ctx context.Context, params *s3.GetObjectInput, optFns ...func(*s3.Options)) (*s3.GetObjectOutput, error)
 	PutObject(ctx context.Context, params *s3.PutObjectInput, optFns ...func(*s3.Options)) (*s3.PutObjectOutput, error)
-	DeleteObject(ctx context.Context, params *s3.DeleteObjectInput, optFns ...func(*s3.Options)) (*s3.DeleteObjectOutput, error)
 	ListObjectsV2(ctx context.Context, params *s3.ListObjectsV2Input, optFns ...func(*s3.Options)) (*s3.ListObjectsV2Output, error)
+	GetObject(ctx context.Context, params *s3.GetObjectInput, optFns ...func(*s3.Options)) (*s3.GetObjectOutput, error)
+	DeleteObject(ctx context.Context, params *s3.DeleteObjectInput, optFns ...func(*s3.Options)) (*s3.DeleteObjectOutput, error)
 }
 
 func GetS3(ctx context.Context, useFIPS bool) (S3, error) {
@@ -69,16 +68,4 @@ func newS3(ctx context.Context, useFIPS bool) (S3, error) {
 	return s3.NewFromConfig(cfg, func(o *s3.Options) {
 		o.BaseEndpoint = aws.String(endpoint.URI.String())
 	}), nil
-}
-
-func GetS3Object(ctx context.Context, client S3, bucket, key string) (io.ReadCloser, error) {
-	result, err := client.GetObject(ctx, &s3.GetObjectInput{
-		Bucket: aws.String(bucket),
-		Key:    aws.String(key),
-	})
-	if err != nil {
-		return nil, fmt.Errorf("get object s3://%s/%s: %w", bucket, key, err)
-	}
-
-	return result.Body, nil
 }
