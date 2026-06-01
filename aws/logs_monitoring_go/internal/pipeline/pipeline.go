@@ -57,17 +57,18 @@ func Start(
 	return err
 }
 
-func Retry(ctx context.Context, cfg *config.Config) error {
+func Retry(ctx context.Context, cfg *config.Config) {
 	storage := storing.NewStorage(ctx, cfg)
 	if storage == nil {
-		return nil
+		return
 	}
 
 	forwarder := forwarding.NewForwarder(cfg, httpclient.Client, storage)
 
 	keys, listErr := storage.List(ctx)
 	if listErr != nil {
-		return fmt.Errorf("list: %w", listErr)
+		slog.WarnContext(ctx, "failed to list stored batches", slog.Any("error", listErr))
+		return
 	}
 
 	slog.InfoContext(ctx, "retrying stored batches", slog.Int("count", len(keys)))
@@ -90,6 +91,4 @@ func Retry(ctx context.Context, cfg *config.Config) error {
 
 		slog.DebugContext(ctx, "batch sent successfully", slog.String("key", key))
 	}
-
-	return nil
 }

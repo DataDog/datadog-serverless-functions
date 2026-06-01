@@ -54,7 +54,8 @@ func handleRequest(cfg *config.Config) func(ctx context.Context, event json.RawM
 		}
 
 		if len(parsed) == 1 && parsed[0].ContentType == parsing.ContentTypeRetry {
-			return pipeline.Retry(ctx, cfg)
+			pipeline.Retry(ctx, cfg)
+			return nil
 		}
 
 		return pipeline.Start(ctx, parsed, cfg)
