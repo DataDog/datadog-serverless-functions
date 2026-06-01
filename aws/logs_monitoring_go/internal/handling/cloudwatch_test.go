@@ -102,7 +102,7 @@ func TestCloudwatchHandler_Handle(t *testing.T) {
 				{
 					Message: "first", Source: "lambda", SourceCategory: "aws",
 					Service: "lambda",
-					Host: "/aws/lambda/fn", ID: "a1", Timestamp: 1000,
+					Host:    "/aws/lambda/fn", ID: "a1", Timestamp: 1000,
 					Metadata: model.CloudwatchMetadata{
 						LambdaOrigin: model.LambdaOrigin{ARN: "arn:aws:lambda:us-east-1:123456789012:function:forwarder"},
 						Origin:       model.CloudwatchOrigin{LogGroup: "/aws/lambda/fn", LogStream: "stream", Owner: "111111111111"},
@@ -111,7 +111,7 @@ func TestCloudwatchHandler_Handle(t *testing.T) {
 				{
 					Message: "second", Source: "lambda", SourceCategory: "aws",
 					Service: "lambda",
-					Host: "/aws/lambda/fn", ID: "a2", Timestamp: 2000,
+					Host:    "/aws/lambda/fn", ID: "a2", Timestamp: 2000,
 					Metadata: model.CloudwatchMetadata{
 						LambdaOrigin: model.LambdaOrigin{ARN: "arn:aws:lambda:us-east-1:123456789012:function:forwarder"},
 						Origin:       model.CloudwatchOrigin{LogGroup: "/aws/lambda/fn", LogStream: "stream", Owner: "111111111111"},

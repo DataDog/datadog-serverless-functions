@@ -9,20 +9,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
 	"os"
-	"time"
+
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/httpclient"
 )
 
 var (
 	ErrMissingAPIKey = errors.New("missing Datadog API key")
 	ErrInvalidAPIKey = errors.New("invalid Datadog API key format")
-)
-
-const (
-	httpClientTimeout = 5 * time.Second
 )
 
 type apiKeyResolver struct {
@@ -66,27 +62,21 @@ func (c *Config) ValidateAPIKey(ctx context.Context) error {
 
 	slog.Debug("validating Datadog API key")
 
+	ctx, cancel := context.WithTimeout(ctx, httpclient.RequestTimeout)
+	defer cancel()
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.APIURL+"/api/v1/validate", nil)
 	if err != nil {
-		slog.Warn("failed to build API key validation request", slog.Any("error", err))
-		return nil
+		return fmt.Errorf("new request: %w", err)
 	}
+
 	req.Header.Set("DD-API-KEY", c.APIKey)
 
-	client := &http.Client{Timeout: httpClientTimeout}
-	resp, err := client.Do(req)
+	resp, err := httpclient.Client.Do(req)
 	if err != nil {
-		slog.Warn("failed to validate API key", slog.Any("error", err))
-		return nil
+		return err
 	}
-	defer func() {
-		if _, err := io.Copy(io.Discard, resp.Body); err != nil {
-			slog.Warn("failed to drain response body", slog.Any("error", err))
-		}
-		if err := resp.Body.Close(); err != nil {
-			slog.Warn("failed to close response body", slog.Any("error", err))
-		}
-	}()
+	defer httpclient.DrainClose(resp)
 
 	if resp.StatusCode == http.StatusForbidden {
 		slog.Warn("invalid Datadog API key", slog.String("url", "https://app."+c.Site+"/organization-settings/api-keys"))

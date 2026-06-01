@@ -13,7 +13,7 @@ import (
 )
 
 func TestLoad(t *testing.T) {
-	defaultURL := "https://http-intake.logs." + DefaultSite + "/api/v2/logs"
+	defaultURL := "https://http-intake.logs." + DefaultSite + ":443/api/v2/logs"
 	defaultAPI := "https://api." + DefaultSite
 
 	tests := map[string]struct {
@@ -27,7 +27,7 @@ func TestLoad(t *testing.T) {
 		},
 		"eu site": {
 			env:  map[string]string{EnvSite: "datadoghq.eu"},
-			want: Config{Site: "datadoghq.eu", IntakeURL: "https://http-intake.logs.datadoghq.eu/api/v2/logs", APIURL: "https://api.datadoghq.eu"},
+			want: Config{Site: "datadoghq.eu", IntakeURL: "https://http-intake.logs.datadoghq.eu:443/api/v2/logs", APIURL: "https://api.datadoghq.eu"},
 		},
 		"custom url": {
 			env:  map[string]string{EnvURL: "https://custom.example.com"},

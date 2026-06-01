@@ -3,9 +3,9 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2026-Present Datadog, Inc.
 
-package client
+package sdkclient
 
-//go:generate go tool mockgen -source=secrets_manager.go -package=client -destination=secrets_manager_mockgen.go
+//go:generate go tool mockgen -source=secrets_manager.go -package=sdkclient -destination=secrets_manager_mockgen.go
 
 import (
 	"context"

@@ -13,6 +13,7 @@ import (
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/forwarding"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/handling"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/httpclient"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/parsing"
 	"golang.org/x/sync/errgroup"
@@ -30,7 +31,7 @@ func Start(
 	eg, ctx := errgroup.WithContext(ctx)
 
 	entries := make(chan model.LogEntry)
-	forwarder := forwarding.NewForwarder(cfg, forwarding.Client, forwarding.StorageFromContentType(parsedEvents[0].ContentType))
+	forwarder := forwarding.NewForwarder(cfg, httpclient.Client, forwarding.StorageFromContentType(parsedEvents[0].ContentType))
 
 	eg.Go(func() error {
 		defer close(entries)

@@ -9,8 +9,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/httpclient"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/parsing"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/pipeline"
 
@@ -20,15 +22,25 @@ import (
 func main() {
 	cfg, err := config.Load()
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
+
+	var tlsOpts []httpclient.TLSOption
+	if cfg.SkipServerCertificate {
+		tlsOpts = append(tlsOpts, httpclient.WithCertificateSkip())
+	}
+	httpclient.Init(tlsOpts...)
+
+	// Will refactor this in the future to not stop the forwarder if the api key resolution or validation fails.
+	// We may want to store the events in the storage retry mechanism even in case of API key resolution/expiration
+	// so we let the customer some time to configure it properly and not lose any of the events from then.
 	err = cfg.ResolveAPIKey(context.Background())
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	err = cfg.ValidateAPIKey(context.Background())
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	lambda.Start(handleRequest(cfg))

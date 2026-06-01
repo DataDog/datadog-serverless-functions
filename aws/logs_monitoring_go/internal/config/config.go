@@ -6,8 +6,10 @@
 package config
 
 import (
+	"compress/gzip"
 	"errors"
 	"fmt"
+	"log/slog"
 	"regexp"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/filtering"
@@ -16,41 +18,49 @@ import (
 )
 
 const (
-	DefaultSite                = "datadoghq.com"
-	DefaultLogLevel            = "INFO"
-	EnvAPIKey                  = "DD_API_KEY"
-	EnvSite                    = "DD_SITE"
-	EnvURL                     = "DD_URL"
-	EnvAPIURL                  = "DD_API_URL"
-	EnvLogLevel                = "DD_LOG_LEVEL"
-	EnvUseFIPS                 = "DD_USE_FIPS"
-	EnvSource                  = "DD_SOURCE"
-	EnvHost                    = "DD_HOST"
-	EnvTags                    = "DD_TAGS"
-	EnvMultilineLogRegex       = "DD_MULTILINE_LOG_REGEX_PATTERN"
-	EnvScrubbingRule           = "DD_SCRUBBING_RULE"
-	EnvScrubbingRuleReplcement = "DD_SCRUBBING_RULE_REPLACEMENT"
-	EnvRedactIP                = "REDACT_IP"
-	EnvRedactEmail             = "REDACT_EMAIL"
-	EnvIncludeAtMatch          = "INCLUDE_AT_MATCH"
-	EnvExcludeAtMatch          = "EXCLUDE_AT_MATCH"
-	ForwarderVersion           = "6.0"
+	DefaultSite                 = "datadoghq.com"
+	DefaultLogLevel             = "INFO"
+	EnvAPIKey                   = "DD_API_KEY"
+	EnvSite                     = "DD_SITE"
+	EnvURL                      = "DD_URL"
+	EnvAPIURL                   = "DD_API_URL"
+	EnvLogLevel                 = "DD_LOG_LEVEL"
+	EnvUseFIPS                  = "DD_USE_FIPS"
+	EnvPort                     = "DD_PORT"
+	EnvUseHTTP                  = "DD_NO_SSL"
+	EnvSkipServerCertificate    = "DD_SKIP_SSL_VALIDATION"
+	EnvCompressionLevel         = "DD_COMPRESSION_LEVEL"
+	EnvSource                   = "DD_SOURCE"
+	EnvHost                     = "DD_HOST"
+	EnvTags                     = "DD_TAGS"
+	EnvMultilineLogRegex        = "DD_MULTILINE_LOG_REGEX_PATTERN"
+	EnvScrubbingRule            = "DD_SCRUBBING_RULE"
+	EnvScrubbingRuleReplacement = "DD_SCRUBBING_RULE_REPLACEMENT"
+	EnvRedactIP                 = "REDACT_IP"
+	EnvRedactEmail              = "REDACT_EMAIL"
+	EnvIncludeAtMatch           = "INCLUDE_AT_MATCH"
+	EnvExcludeAtMatch           = "EXCLUDE_AT_MATCH"
+	ForwarderVersion            = "6.0"
 )
 
 type Config struct {
-	APIKey              string
-	Site                string
-	IntakeURL           string
-	APIURL              string
-	LogLevel            string
-	UseFIPS             bool
-	Source              string
-	Host                string
-	Tags                model.Tags
-	Service             string
-	Scrubber            *scrubbing.Scrubber
-	Filter              *filtering.Filter
-	S3MultilineLogRegex *regexp.Regexp
+	APIKey                string
+	APIURL                string
+	CompressionLevel      int
+	Filter                *filtering.Filter
+	Host                  string
+	IntakeURL             string
+	LogLevel              string
+	Port                  string
+	S3MultilineLogRegex   *regexp.Regexp
+	Scrubber              *scrubbing.Scrubber
+	Service               string
+	Site                  string
+	SkipServerCertificate bool
+	Source                string
+	Tags                  model.Tags
+	UseFIPS               bool
+	UseHTTP               bool
 }
 
 func Load() (*Config, error) {
@@ -67,7 +77,7 @@ func Load() (*Config, error) {
 
 	scrubber, scrubbingErr := scrubbing.NewScrubber(
 		envOrDefault(EnvScrubbingRule, ""),
-		envOrDefault(EnvScrubbingRuleReplcement, ""),
+		envOrDefault(EnvScrubbingRuleReplacement, ""),
 		envOrDefaultBool(EnvRedactIP, false),
 		envOrDefaultBool(EnvRedactEmail, false),
 	)
@@ -89,8 +99,24 @@ func Load() (*Config, error) {
 
 func (c *Config) loadEnv() {
 	c.Site = envOrDefault(EnvSite, DefaultSite)
-	c.IntakeURL = envOrDefault(EnvURL, "https://http-intake.logs."+c.Site+"/api/v2/logs")
-	c.APIURL = envOrDefault(EnvAPIURL, "https://api."+c.Site)
+	c.SkipServerCertificate = envOrDefaultBool(EnvSkipServerCertificate, false)
+	c.UseHTTP = envOrDefaultBool(EnvUseHTTP, false)
+
+	protocol := "https"
+	if c.UseHTTP {
+		protocol = "http"
+	}
+
+	compressionLevel := envOrDefaultInt(EnvCompressionLevel, gzip.DefaultCompression)
+	if compressionLevel < gzip.HuffmanOnly || compressionLevel > gzip.BestCompression {
+		slog.Warn("invalid compression level, falling back to default", slog.Int("level", compressionLevel), slog.Int("fallback", gzip.DefaultCompression))
+		compressionLevel = gzip.BestCompression
+	}
+	c.CompressionLevel = compressionLevel
+
+	c.Port = envOrDefault(EnvPort, "443")
+	c.IntakeURL = envOrDefault(EnvURL, protocol+"://http-intake.logs."+c.Site+":"+c.Port+"/api/v2/logs")
+	c.APIURL = envOrDefault(EnvAPIURL, protocol+"://api."+c.Site)
 	c.UseFIPS = envOrDefaultBool(EnvUseFIPS, false)
 	c.Source = envOrDefault(EnvSource, "")
 	c.Host = envOrDefault(EnvHost, "")

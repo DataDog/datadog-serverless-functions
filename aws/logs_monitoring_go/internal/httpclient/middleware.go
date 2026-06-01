@@ -3,73 +3,25 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2026-Present Datadog, Inc.
 
-package forwarding
+package httpclient
 
 import (
-	"bytes"
-	"compress/gzip"
 	"context"
 	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
-	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/aws/aws-lambda-go/lambdacontext"
 )
 
-var (
-	requestSeq atomic.Int64
-	bufPool    = sync.Pool{
-		New: func() any { return new(bytes.Buffer) },
-	}
-	gzipPool = sync.Pool{
-		New: func() any { return gzip.NewWriter(nil) },
-	}
-)
-
-func getBuffer() *bytes.Buffer {
-	return bufPool.Get().(*bytes.Buffer)
-}
-
-func getGzipWriter() *gzip.Writer {
-	return gzipPool.Get().(*gzip.Writer)
-}
+var requestSeq atomic.Int64
 
 type RoundTripperFunc func(*http.Request) (*http.Response, error)
 
 func (f RoundTripperFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 	return f(req)
-}
-
-func WithCompression(next http.RoundTripper) RoundTripperFunc {
-	return func(req *http.Request) (*http.Response, error) {
-		buf := getBuffer()
-		gz := getGzipWriter()
-		defer bufPool.Put(buf)
-		defer gzipPool.Put(gz)
-		buf.Reset()
-		gz.Reset(buf)
-
-		if _, err := io.Copy(gz, req.Body); err != nil {
-			return nil, fmt.Errorf("compress: %w", err)
-		}
-		if err := gz.Close(); err != nil {
-			return nil, fmt.Errorf("close: %w", err)
-		}
-
-		compressed := buf.Bytes()
-		req.Body = io.NopCloser(bytes.NewReader(compressed))
-		req.ContentLength = int64(len(compressed))
-		req.GetBody = func() (io.ReadCloser, error) {
-			return io.NopCloser(bytes.NewReader(compressed)), nil
-		}
-		req.Header.Set("Content-Encoding", "gzip")
-
-		return next.RoundTrip(req)
-	}
 }
 
 func WithRetry(maxAttempts int, next http.RoundTripper) RoundTripperFunc {
@@ -111,7 +63,7 @@ func WithRetry(maxAttempts int, next http.RoundTripper) RoundTripperFunc {
 
 			if isRetryable(resp.StatusCode) && attempt < maxAttempts-1 {
 				slog.LogAttrs(req.Context(), slog.LevelWarn, "retryable response", attrs...)
-				drainClose(resp)
+				DrainClose(resp)
 				backoff(req.Context(), attempt)
 				continue
 			}
@@ -123,7 +75,6 @@ func WithRetry(maxAttempts int, next http.RoundTripper) RoundTripperFunc {
 		return resp, err
 	}
 }
-
 
 func isRetryable(statusCode int) bool {
 	switch statusCode {
