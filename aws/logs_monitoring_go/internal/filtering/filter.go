@@ -6,8 +6,6 @@
 package filtering
 
 import (
-	"errors"
-	"fmt"
 	"regexp"
 )
 
@@ -16,26 +14,8 @@ type Filter struct {
 	excludeRegex *regexp.Regexp
 }
 
-func NewFilter(includeMatch, excludeMatch string) (*Filter, error) {
-	includeRegex, includeErr := compilePattern(includeMatch)
-	excludeRegex, excludeErr := compilePattern(excludeMatch)
-
-	if err := errors.Join(includeErr, excludeErr); err != nil {
-		return nil, err
-	}
-	return &Filter{includeRegex: includeRegex, excludeRegex: excludeRegex}, nil
-}
-
-func compilePattern(pattern string) (*regexp.Regexp, error) {
-	if pattern == "" {
-		return nil, nil
-	}
-
-	re, err := regexp.Compile(pattern)
-	if err != nil {
-		return nil, fmt.Errorf("compile '%s': %w", pattern, err)
-	}
-	return re, nil
+func NewFilter(includeMatch, excludeMatch *regexp.Regexp) *Filter {
+	return &Filter{includeRegex: includeMatch, excludeRegex: excludeMatch}
 }
 
 func (f *Filter) ShouldExclude(content string) bool {

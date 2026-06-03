@@ -8,13 +8,18 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/filtering"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/forwarding"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/httpclient"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/parsing"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/pipeline"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/scrubbing"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/storing"
 
 	"github.com/aws/aws-lambda-go/lambda"
 )
@@ -53,11 +58,14 @@ func handleRequest(cfg *config.Config) func(ctx context.Context, event json.RawM
 			return fmt.Errorf("parse: %w", err)
 		}
 
-		if len(parsed) == 1 && parsed[0].ContentType == parsing.ContentTypeRetry {
-			pipeline.Retry(ctx, cfg)
-			return nil
+		if len(parsed) == 0 {
+			return errors.New("no events to process")
 		}
 
-		return pipeline.Start(ctx, parsed, cfg)
+		filter := filtering.NewFilter(cfg.FilterInclude, cfg.FilterExclude)
+		scrubber := scrubbing.NewScrubber(cfg.ScrubbingRegex, cfg.ScrubbingReplacement, cfg.ScrubIP, cfg.ScrubEmail)
+		forwarder := forwarding.NewForwarder(cfg, httpclient.Client, storing.NewStorage(ctx, cfg))
+
+		return pipeline.New(cfg, filter, scrubber, forwarder).Start(ctx, parsed)
 	}
 }
