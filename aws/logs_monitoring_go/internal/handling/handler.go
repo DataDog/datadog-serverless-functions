@@ -23,8 +23,6 @@ type Handler interface {
 }
 
 type Config struct {
-	Scrubber            *scrubbing.Scrubber
-	Filterer            *filtering.Filterer
 	Host                string
 	Service             string
 	Source              string
@@ -33,27 +31,27 @@ type Config struct {
 	UseFIPS             bool
 }
 
-func NewHandler(ctx context.Context, hcfg Config, ct parsing.ContentType) (Handler, error) {
+func NewHandler(ctx context.Context, hcfg Config, scrubber *scrubbing.Scrubber, filterer *filtering.Filterer, ct parsing.ContentType) (Handler, error) {
 	switch ct {
 
 	case parsing.ContentTypeCloudwatchLogs:
-		return NewCloudwatch(&hcfg), nil
+		return newCloudwatch(&hcfg, scrubber, filterer), nil
 
 	case parsing.ContentTypeS3:
 		client, err := sdkclient.GetS3(ctx, hcfg.UseFIPS)
 		if err != nil {
 			return nil, err
 		}
-		return NewS3(&hcfg, client), nil
+		return newS3(&hcfg, client, scrubber, filterer), nil
 
 	case parsing.ContentTypeKinesis:
-		return NewKinesis(&hcfg), nil
+		return newKinesis(&hcfg, scrubber, filterer), nil
 
 	case parsing.ContentTypeEventBridge:
-		return NewEventBridge(&hcfg), nil
+		return newEventBridge(&hcfg, scrubber, filterer), nil
 
 	case parsing.ContentTypeSNS:
-		return NewSNS(&hcfg), nil
+		return newSNS(&hcfg, scrubber, filterer), nil
 
 	default:
 		return nil, fmt.Errorf("unsupported content type: %v", ct)

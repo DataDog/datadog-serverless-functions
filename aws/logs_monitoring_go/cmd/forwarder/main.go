@@ -66,8 +66,6 @@ func handleRequest(cfg *config.Config) func(ctx context.Context, event json.RawM
 		filterer := filtering.NewFilterer(cfg.FilterInclude, cfg.FilterExclude)
 		scrubber := scrubbing.NewScrubber(cfg.ScrubbingRegex, cfg.ScrubbingReplacement, cfg.ScrubIP, cfg.ScrubEmail)
 		handlerCfg := handling.Config{
-			Scrubber:            scrubber,
-			Filterer:            filterer,
 			Host:                cfg.Host,
 			Service:             cfg.Service,
 			Source:              cfg.Source,
@@ -94,6 +92,6 @@ func handleRequest(cfg *config.Config) func(ctx context.Context, event json.RawM
 			storage,
 		)
 
-		return pipeline.New(handlerCfg, forwarder).Start(ctx, parsed)
+		return pipeline.New(handlerCfg, scrubber, filterer, forwarder).Start(ctx, parsed)
 	}
 }

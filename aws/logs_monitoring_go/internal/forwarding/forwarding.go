@@ -118,7 +118,6 @@ func (f *Forwarder) Start(ctx context.Context, in <-chan model.LogEntry, storage
 func (f *Forwarder) Retry(ctx context.Context) error {
 	keys, listErr := f.storage.List(ctx)
 	if listErr != nil {
-		slog.WarnContext(ctx, "failed to list stored batches", slog.Any("error", listErr))
 		return fmt.Errorf("list: %w", listErr)
 	}
 

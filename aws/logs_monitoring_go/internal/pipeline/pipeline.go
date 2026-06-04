@@ -10,24 +10,32 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/filtering"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/forwarding"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/handling"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/parsing"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/scrubbing"
 	"golang.org/x/sync/errgroup"
 )
 
 type Pipeline struct {
 	hcfg      handling.Config
+	scrubber  *scrubbing.Scrubber
+	filterer  *filtering.Filterer
 	forwarder *forwarding.Forwarder
 }
 
 func New(
 	hcfg handling.Config,
+	scrubber *scrubbing.Scrubber,
+	filterer *filtering.Filterer,
 	forwarder *forwarding.Forwarder,
 ) *Pipeline {
 	return &Pipeline{
 		hcfg:      hcfg,
+		scrubber:  scrubber,
+		filterer:  filterer,
 		forwarder: forwarder,
 	}
 }
@@ -51,7 +59,7 @@ func (p *Pipeline) Start(
 	eg.Go(func() error {
 		defer close(entries)
 		for _, parsedEvent := range parsedEvents {
-			handler, err := handling.NewHandler(ctx, p.hcfg, parsedEvent.ContentType)
+			handler, err := handling.NewHandler(ctx, p.hcfg, p.scrubber, p.filterer, parsedEvent.ContentType)
 			if err != nil {
 				return fmt.Errorf("new handler: %w", err)
 			}
