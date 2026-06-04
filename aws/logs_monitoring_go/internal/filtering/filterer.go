@@ -9,16 +9,17 @@ import (
 	"regexp"
 )
 
-type Filter struct {
+type Filterer struct {
 	includeRegex *regexp.Regexp
 	excludeRegex *regexp.Regexp
 }
 
-func NewFilter(includeMatch, excludeMatch *regexp.Regexp) *Filter {
-	return &Filter{includeRegex: includeMatch, excludeRegex: excludeMatch}
+// nit: we may not want to return a pointer here since there is no reason for the filterer to change
+func NewFilterer(includeMatch, excludeMatch *regexp.Regexp) *Filterer {
+	return &Filterer{includeRegex: includeMatch, excludeRegex: excludeMatch}
 }
 
-func (f *Filter) ShouldExclude(content string) bool {
+func (f *Filterer) ShouldExclude(content string) bool {
 	if f == nil {
 		return false
 	}

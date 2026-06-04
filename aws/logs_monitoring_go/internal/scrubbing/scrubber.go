@@ -28,6 +28,7 @@ type Scrubber struct {
 	rules []scrubbingRule
 }
 
+// nit: we may not want to return a pointer here since there is no reason for the scrubber to change
 func NewScrubber(customMatch *regexp.Regexp, customReplacement string, ip, email bool) *Scrubber {
 	var rules []scrubbingRule
 
@@ -48,7 +49,7 @@ func NewScrubber(customMatch *regexp.Regexp, customReplacement string, ip, email
 	return &Scrubber{rules: rules}
 }
 
-func (s *Scrubber) Scrub(content string) string {
+func (s *Scrubber) Apply(content string) string {
 	if s == nil {
 		return content
 	}

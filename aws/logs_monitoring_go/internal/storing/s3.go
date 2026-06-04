@@ -29,7 +29,7 @@ type S3 struct {
 	bucket string
 }
 
-func NewS3(client sdkclient.S3, bucket string) *S3 {
+func newS3(client sdkclient.S3, bucket string) *S3 {
 	return &S3{client: client, bucket: bucket}
 }
 

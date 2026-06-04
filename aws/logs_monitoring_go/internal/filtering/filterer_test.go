@@ -6,13 +6,13 @@
 package filtering
 
 import (
+	"regexp"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
-func TestFilterShouldExclude(t *testing.T) {
+func TestFilterer_ShouldExclude(t *testing.T) {
 	t.Parallel()
 
 	tests := map[string]struct {
@@ -88,9 +88,12 @@ func TestFilterShouldExclude(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			f, err := NewFilter(tc.include, tc.exclude)
-			require.NoError(t, err)
-			assert.Equal(t, tc.want, f.ShouldExclude(tc.msg))
+
+			includeRe := regexp.MustCompile(tc.include)
+			excludeRe := regexp.MustCompile(tc.exclude)
+			filterer := NewFilterer(includeRe, excludeRe)
+
+			assert.Equal(t, tc.want, filterer.ShouldExclude(tc.msg))
 		})
 	}
 }

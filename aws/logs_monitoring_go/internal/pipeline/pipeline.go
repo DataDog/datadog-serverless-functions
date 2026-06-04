@@ -10,33 +10,24 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/filtering"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/forwarding"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/handling"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/parsing"
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/scrubbing"
 	"golang.org/x/sync/errgroup"
 )
 
 type Pipeline struct {
-	cfg       *config.Config
-	filter    *filtering.Filter
-	scrubber  *scrubbing.Scrubber
+	hcfg      handling.Config
 	forwarder *forwarding.Forwarder
 }
 
 func New(
-	cfg *config.Config,
-	filter *filtering.Filter,
-	scrubber *scrubbing.Scrubber,
+	hcfg handling.Config,
 	forwarder *forwarding.Forwarder,
 ) *Pipeline {
 	return &Pipeline{
-		cfg:       cfg,
-		filter:    filter,
-		scrubber:  scrubber,
+		hcfg:      hcfg,
 		forwarder: forwarder,
 	}
 }
@@ -47,7 +38,10 @@ func (p *Pipeline) Start(
 ) error {
 	contentType := parsedEvents[0].ContentType
 	if contentType == parsing.ContentTypeRetry {
-		p.forwarder.Retry(ctx)
+		if err := p.forwarder.Retry(ctx); err != nil {
+			return fmt.Errorf("retry: %w", err)
+		}
+		return nil
 	}
 
 	eg, ctx := errgroup.WithContext(ctx)
@@ -57,7 +51,7 @@ func (p *Pipeline) Start(
 	eg.Go(func() error {
 		defer close(entries)
 		for _, parsedEvent := range parsedEvents {
-			handler, err := handling.NewHandler(ctx, parsedEvent.ContentType, p.cfg)
+			handler, err := handling.NewHandler(ctx, p.hcfg, parsedEvent.ContentType)
 			if err != nil {
 				return fmt.Errorf("new handler: %w", err)
 			}

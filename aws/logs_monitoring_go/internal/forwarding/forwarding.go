@@ -30,14 +30,20 @@ var bufPool = sync.Pool{
 }
 
 type Forwarder struct {
-	cfg      *config.Config
+	cfg      Config
 	client   *http.Client
 	storage  storing.Storage
 	gzipPool *sync.Pool
 	header   http.Header
 }
 
-func NewForwarder(cfg *config.Config, client *http.Client, storage storing.Storage) *Forwarder {
+type Config struct {
+	APIKey           string
+	IntakeURL        string
+	CompressionLevel int
+}
+
+func NewForwarder(cfg Config, client *http.Client, storage storing.Storage) *Forwarder {
 	if storage == nil {
 		slog.Warn("failed event storage not configured, can lead to event loss")
 	}
@@ -109,33 +115,32 @@ func (f *Forwarder) Start(ctx context.Context, in <-chan model.LogEntry, storage
 	return errors.Join(append(errs, <-producerErrCh)...)
 }
 
-func (f *Forwarder) Retry(ctx context.Context) {
-	// keys, listErr := f.storage.List(ctx)
-	// if listErr != nil {
-	// 	slog.WarnContext(ctx, "failed to list stored batches", slog.Any("error", listErr))
-	// 	return
-	// }
+func (f *Forwarder) Retry(ctx context.Context) error {
+	keys, listErr := f.storage.List(ctx)
+	if listErr != nil {
+		slog.WarnContext(ctx, "failed to list stored batches", slog.Any("error", listErr))
+		return fmt.Errorf("list: %w", listErr)
+	}
 
-	// slog.InfoContext(ctx, "retrying stored batches", slog.Int("count", len(keys)))
-	// for _, key := range keys {
-	// 	payload, storageTag, getErr := f.storage.Get(ctx, key)
-	// 	if getErr != nil {
-	// 		slog.WarnContext(ctx, "failed to get stored batch", slog.String("key", key), slog.Any("error", getErr))
-	// 		continue
-	// 	}
+	slog.InfoContext(ctx, "retrying stored batches", slog.Int("count", len(keys)))
+	for _, key := range keys {
+		payload, storageTag, getErr := f.storage.Get(ctx, key)
+		if getErr != nil {
+			return fmt.Errorf("list: %w", getErr)
+		}
 
-	// 	if sendErr := f.send(ctx, payload, storageTag); sendErr != nil {
-	// 		slog.WarnContext(ctx, "failed to send batch", slog.String("key", key), slog.Any("error", sendErr))
-	// 		continue
-	// 	}
+		if sendErr := f.send(ctx, payload, storageTag); sendErr != nil {
+			return fmt.Errorf("send: %w", sendErr)
+		}
 
-	// 	if deleteErr := f.storage.Delete(ctx, key); deleteErr != nil {
-	// 		slog.WarnContext(ctx, "failed to delete successfully sent batch from storage, will lead to log duplication", slog.String("key", key), slog.Any("error", deleteErr))
-	// 		continue
-	// 	}
+		if deleteErr := f.storage.Delete(ctx, key); deleteErr != nil {
+			return fmt.Errorf("delete: %w", deleteErr)
+		}
 
-	// 	slog.DebugContext(ctx, "batch sent successfully", slog.String("key", key))
-	// }
+		slog.DebugContext(ctx, "batch sent successfully", slog.String("key", key))
+	}
+
+	return nil
 }
 
 func (f *Forwarder) send(ctx context.Context, payload []byte, storageTag string) error {

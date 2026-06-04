@@ -18,7 +18,6 @@ import (
 	"strings"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/concurrent"
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 	"github.com/aws/aws-lambda-go/events"
 )
@@ -33,12 +32,12 @@ const (
 )
 
 type CloudwatchHandler struct {
-	cfg *config.Config
+	cfg *Config
 }
 
-func NewCloudwatch(cfg *config.Config) *CloudwatchHandler {
+func NewCloudwatch(hcfg *Config) *CloudwatchHandler {
 	return &CloudwatchHandler{
-		cfg: cfg,
+		cfg: hcfg,
 	}
 }
 
@@ -95,11 +94,11 @@ func (h CloudwatchHandler) handleCloudwatchData(ctx context.Context, cwData even
 	base := h.newCloudwatchBaseEntry(cwData, lambdaOrigin)
 	for _, event := range cwData.LogEvents {
 		entry := h.newCloudwatchLogEntry(event, base)
-		if h.cfg.Filter.ShouldExclude(entry.Message) {
+		if h.cfg.Filterer.ShouldExclude(entry.Message) {
 			continue
 		}
 
-		entry.Message = h.cfg.Scrubber.Scrub(entry.Message)
+		entry.Message = h.cfg.Scrubber.Apply(entry.Message)
 		if err := concurrent.SafeSender(ctx, out, entry); err != nil {
 			return err
 		}

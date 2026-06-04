@@ -15,6 +15,7 @@ import (
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/filtering"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/forwarding"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/handling"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/httpclient"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/parsing"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/pipeline"
@@ -62,10 +63,37 @@ func handleRequest(cfg *config.Config) func(ctx context.Context, event json.RawM
 			return errors.New("no events to process")
 		}
 
-		filter := filtering.NewFilter(cfg.FilterInclude, cfg.FilterExclude)
+		filterer := filtering.NewFilterer(cfg.FilterInclude, cfg.FilterExclude)
 		scrubber := scrubbing.NewScrubber(cfg.ScrubbingRegex, cfg.ScrubbingReplacement, cfg.ScrubIP, cfg.ScrubEmail)
-		forwarder := forwarding.NewForwarder(cfg, httpclient.Client, storing.NewStorage(ctx, cfg))
+		handlerCfg := handling.Config{
+			Scrubber:            scrubber,
+			Filterer:            filterer,
+			Host:                cfg.Host,
+			Service:             cfg.Service,
+			Source:              cfg.Source,
+			Tags:                cfg.Tags,
+			S3MultilineLogRegex: cfg.S3MultilineLogRegex,
+			UseFIPS:             cfg.UseFIPS,
+		}
 
-		return pipeline.New(cfg, filter, scrubber, forwarder).Start(ctx, parsed)
+		forwarderCfg := forwarding.Config{
+			APIKey:           cfg.APIKey,
+			IntakeURL:        cfg.IntakeURL,
+			CompressionLevel: cfg.CompressionLevel,
+		}
+
+		storageOpts := storing.Options{Enabled: cfg.StoreOnFail, FIPS: cfg.UseFIPS, S3Bucket: cfg.S3RetryBucketName}
+		storage, err := storing.NewStorage(ctx, storageOpts)
+		if err != nil {
+			return fmt.Errorf("new storage: %w", err)
+		}
+
+		forwarder := forwarding.NewForwarder(
+			forwarderCfg,
+			httpclient.Client,
+			storage,
+		)
+
+		return pipeline.New(handlerCfg, forwarder).Start(ctx, parsed)
 	}
 }

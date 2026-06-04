@@ -14,16 +14,15 @@ import (
 	"strings"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/concurrent"
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/parsing"
 )
 
 type EventBridgeHandler struct {
-	cfg *config.Config
+	cfg *Config
 }
 
-func NewEventBridge(cfg *config.Config) *EventBridgeHandler {
+func NewEventBridge(cfg *Config) *EventBridgeHandler {
 	return &EventBridgeHandler{
 		cfg: cfg,
 	}
@@ -50,12 +49,12 @@ func (h *EventBridgeHandler) Handle(ctx context.Context, event json.RawMessage, 
 
 func (h *EventBridgeHandler) eventBridge(ctx context.Context, event json.RawMessage, source string, out chan<- model.LogEntry, lambdaOrigin model.LambdaOrigin) error {
 	message := string(event)
-	if h.cfg.Filter.ShouldExclude(message) {
+	if h.cfg.Filterer.ShouldExclude(message) {
 		return nil
 	}
 
 	entry := h.newEntry(source, lambdaOrigin)
-	entry.Message = h.cfg.Scrubber.Scrub(message)
+	entry.Message = h.cfg.Scrubber.Apply(message)
 
 	return concurrent.SafeSender(ctx, out, entry)
 }
@@ -68,12 +67,12 @@ func (h *EventBridgeHandler) securityHub(ctx context.Context, event json.RawMess
 
 	base := h.newEntry(source, lambdaOrigin)
 	for _, message := range messages {
-		if h.cfg.Filter.ShouldExclude(message) {
+		if h.cfg.Filterer.ShouldExclude(message) {
 			continue
 		}
 
 		entry := base
-		entry.Message = h.cfg.Scrubber.Scrub(message)
+		entry.Message = h.cfg.Scrubber.Apply(message)
 
 		if err := concurrent.SafeSender(ctx, out, entry); err != nil {
 			return err

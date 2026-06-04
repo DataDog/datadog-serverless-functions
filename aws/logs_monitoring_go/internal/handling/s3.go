@@ -16,7 +16,6 @@ import (
 	"strings"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/concurrent"
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/sdkclient"
 	"github.com/aws/aws-lambda-go/events"
@@ -31,11 +30,11 @@ const (
 )
 
 type S3Handler struct {
-	cfg    *config.Config
+	cfg    *Config
 	client sdkclient.S3
 }
 
-func NewS3(cfg *config.Config, client sdkclient.S3) *S3Handler {
+func NewS3(cfg *Config, client sdkclient.S3) *S3Handler {
 	return &S3Handler{
 		cfg:    cfg,
 		client: client,
@@ -130,12 +129,12 @@ func (h S3Handler) S3(ctx context.Context, out chan<- model.LogEntry, r io.Reade
 		}
 
 		tags, service, message := extractFromMessage(message)
-		if h.cfg.Filter.ShouldExclude(message) {
+		if h.cfg.Filterer.ShouldExclude(message) {
 			continue
 		}
 
 		entry := base
-		entry.Message = h.cfg.Scrubber.Scrub(message)
+		entry.Message = h.cfg.Scrubber.Apply(message)
 		entry.Service = cmp.Or(service, entry.Service)
 		entry.Tags = slices.Concat(tags, entry.Tags)
 
@@ -154,12 +153,12 @@ func (h S3Handler) WAF(ctx context.Context, out chan<- model.LogEntry, r io.Read
 		}
 
 		message = flattenWAFMessage(message)
-		if h.cfg.Filter.ShouldExclude(message) {
+		if h.cfg.Filterer.ShouldExclude(message) {
 			continue
 		}
 
 		entry := base
-		entry.Message = h.cfg.Scrubber.Scrub(message)
+		entry.Message = h.cfg.Scrubber.Apply(message)
 
 		if err := concurrent.SafeSender(ctx, out, entry); err != nil {
 			return err
@@ -174,13 +173,13 @@ func (h S3Handler) CloudTrail(ctx context.Context, out chan<- model.LogEntry, r 
 		if err != nil {
 			return err
 		}
-		if h.cfg.Filter.ShouldExclude(message) {
+		if h.cfg.Filterer.ShouldExclude(message) {
 			continue
 		}
 
 		entry := base
 		entry.Host = cloudtrailHost(message)
-		entry.Message = h.cfg.Scrubber.Scrub(message)
+		entry.Message = h.cfg.Scrubber.Apply(message)
 
 		if err := concurrent.SafeSender(ctx, out, entry); err != nil {
 			return err

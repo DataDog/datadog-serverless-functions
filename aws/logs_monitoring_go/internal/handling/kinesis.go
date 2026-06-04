@@ -11,16 +11,15 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 	"github.com/aws/aws-lambda-go/events"
 )
 
 type KinesisHandler struct {
-	cfg *config.Config
+	cfg *Config
 }
 
-func NewKinesis(cfg *config.Config) *KinesisHandler {
+func NewKinesis(cfg *Config) *KinesisHandler {
 	return &KinesisHandler{
 		cfg: cfg,
 	}

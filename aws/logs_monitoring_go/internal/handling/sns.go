@@ -12,15 +12,14 @@ import (
 	"fmt"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/concurrent"
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 )
 
 type SNSHandler struct {
-	cfg *config.Config
+	cfg *Config
 }
 
-func NewSNS(cfg *config.Config) *SNSHandler {
+func NewSNS(cfg *Config) *SNSHandler {
 	return &SNSHandler{
 		cfg: cfg,
 	}
@@ -33,7 +32,7 @@ func (h *SNSHandler) Handle(ctx context.Context, event json.RawMessage, out chan
 	}
 
 	message := string(event)
-	if h.cfg.Filter.ShouldExclude(message) {
+	if h.cfg.Filterer.ShouldExclude(message) {
 		return nil
 	}
 
@@ -46,6 +45,6 @@ func (h *SNSHandler) Handle(ctx context.Context, event json.RawMessage, out chan
 	entry.Tags = h.cfg.Tags
 	entry.Metadata = lambdaOrigin
 
-	entry.Message = h.cfg.Scrubber.Scrub(entry.Message)
+	entry.Message = h.cfg.Scrubber.Apply(entry.Message)
 	return concurrent.SafeSender(ctx, out, entry)
 }
