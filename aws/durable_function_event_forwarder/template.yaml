@@ -1,0 +1,615 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  Captures AWS Lambda Durable Function execution status change events from
+  EventBridge, transforms them into Datadog log documents, and forwards them
+  to the Datadog HTTP intake via Amazon Data Firehose.
+
+Metadata:
+  # W1030 is suppressed at the template level because cfn-lint can't model
+  # the KmsCiphertextRequiresKeyArn Rule: it sees DdApiKeyKmsKeyArn's
+  # empty-string default and warns that the resulting Resource arn might
+  # not match the IAM ARN regex, even though that resource only exists
+  # when the parameter is required to be a valid ARN.
+  cfn-lint:
+    config:
+      ignore_checks:
+        - W1030
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Datadog API key (one required)
+        Parameters:
+          - DdApiKey
+          - DdApiKeySecretArn
+          - DdApiKeySsmParameterName
+          - DdApiKeyKmsCiphertext
+          - DdApiKeyKmsKeyArn
+      - Label:
+          default: Datadog routing and tagging
+        Parameters:
+          - DdSite
+          - DdService
+          - DdEnv
+          - DdVersion
+          - DdTags
+      - Label:
+          default: Event filters
+        Parameters:
+          - Statuses
+          - FunctionNameFilter1
+          - FunctionNameFilter2
+          - FunctionNameFilter3
+          - FunctionNameFilter4
+          - FunctionNameFilter5
+      - Label:
+          default: Tuning
+        Parameters:
+          - BufferIntervalSeconds
+    ParameterLabels:
+      DdApiKey: { default: API key (plaintext) }
+      DdApiKeySecretArn: { default: Secrets Manager secret ARN }
+      DdApiKeySsmParameterName: { default: SSM SecureString parameter name }
+      DdApiKeyKmsCiphertext: { default: KMS ciphertext (base64) }
+      DdApiKeyKmsKeyArn: { default: KMS key ARN (for ciphertext) }
+      DdSite: { default: Datadog site }
+      DdService: { default: Service tag }
+      DdEnv: { default: Env tag }
+      DdVersion: { default: Version tag }
+      DdTags: { default: Additional tags }
+      Statuses: { default: Statuses to forward }
+      FunctionNameFilter1: { default: Function name filter 1 (optional) }
+      FunctionNameFilter2: { default: Function name filter 2 (optional) }
+      FunctionNameFilter3: { default: Function name filter 3 (optional) }
+      FunctionNameFilter4: { default: Function name filter 4 (optional) }
+      FunctionNameFilter5: { default: Function name filter 5 (optional) }
+      BufferIntervalSeconds: { default: Firehose buffer interval (seconds) }
+
+Mappings:
+  Constants:
+    DdDurableEventForwarder:
+      Version: "0.1.0"
+
+Parameters:
+  # ---- Datadog API key (exactly one of the three is required) ----
+  DdApiKey:
+    Type: String
+    NoEcho: true
+    Default: ""
+    Description: >-
+      Datadog API key. Provide a plaintext value here OR set DdApiKeySecretArn
+      OR DdApiKeySsmParameterName instead. The value is passed to Firehose as
+      the X-Amz-Firehose-Access-Key header and stored opaquely by Firehose; it
+      is not written to CloudWatch logs by this stack.
+  DdApiKeySecretArn:
+    Type: String
+    Default: ""
+    AllowedPattern: "^$|^arn:.*:secretsmanager:.*"
+    Description: >-
+      ARN of a Secrets Manager secret whose SecretString is the Datadog API
+      key. Resolved at deploy time via a CloudFormation `resolve:secretsmanager`
+      dynamic reference, so the secret value never appears in the template.
+  DdApiKeySsmParameterName:
+    Type: String
+    Default: ""
+    AllowedPattern: "^$|^/[a-zA-Z0-9/_.-]+$"
+    Description: >-
+      Name (not ARN) of an SSM Parameter Store SecureString parameter that
+      holds the Datadog API key. Resolved at deploy time via a CloudFormation
+      `resolve:ssm-secure` dynamic reference.
+  DdApiKeyKmsCiphertext:
+    Type: String
+    NoEcho: true
+    Default: ""
+    Description: >-
+      Base64-encoded KMS ciphertext of the Datadog API key (the output of
+      `aws kms encrypt --plaintext <api-key> --key-id <arn> --query
+      CiphertextBlob --output text`). A short-lived deploy-time Lambda
+      decrypts the value and hands the plaintext to Firehose. Requires
+      DdApiKeyKmsKeyArn so the decrypter's IAM role can be scoped to the
+      specific key.
+  DdApiKeyKmsKeyArn:
+    Type: String
+    Default: ""
+    AllowedPattern: "^$|^arn:.*:kms:.*"
+    Description: >-
+      ARN of the KMS key that encrypted DdApiKeyKmsCiphertext. Used to
+      scope the decrypter Lambda's `kms:Decrypt` permission. Required when
+      DdApiKeyKmsCiphertext is set; ignored otherwise.
+
+  # ---- Routing ----
+  DdSite:
+    Type: String
+    Default: datadoghq.com
+    AllowedPattern: .+
+    Description: >-
+      Datadog site to deliver events to. The Firehose destination URL is
+      derived as https://aws-kinesis-http-intake.logs.<DdSite>/v1/input.
+
+  # ---- Tagging ----
+  DdService:
+    Type: String
+    Default: datadog-durable-function-event-forwarder
+    AllowedPattern: .+
+    ConstraintDescription: DdService cannot be empty.
+    Description: >-
+      Datadog service tag applied to every forwarded event. Defaults to
+      "datadog-durable-function-event-forwarder"; override to match your
+      existing service taxonomy if you already have Datadog conventions for
+      this category of events.
+  DdEnv:
+    Type: String
+    Default: ""
+    Description: Datadog env tag. Optional.
+  DdVersion:
+    Type: String
+    Default: ""
+    Description: Datadog version tag. Optional.
+  DdTags:
+    Type: String
+    Default: ""
+    Description: >-
+      Extra comma-delimited tags appended to every forwarded event (for
+      example team:durable,owner:platform). Optional.
+
+  # ---- Event filters ----
+  Statuses:
+    Type: CommaDelimitedList
+    Default: "TIMED_OUT,STOPPED"
+    Description: >-
+      Comma-separated list of execution status values to forward. Values must
+      match the EventBridge detail.status field exactly (uppercase). Default
+      forwards only terminal failure-like statuses.
+  # Up to 5 independent function-name filters. CloudFormation has no
+  # native iteration that fits AWS::Events::Rule.EventPattern (a Json blob,
+  # not a schema-typed list), so each slot is exposed as its own optional
+  # parameter. Each populated slot emits two wildcard matchers — one for
+  # unqualified ARNs and one for version/alias-qualified ARNs. Slots left
+  # empty are removed from the EventPattern via AWS::NoValue, so they have
+  # no effect on the rendered rule.
+  FunctionNameFilter1:
+    Type: String
+    Default: ""
+    Description: >-
+      Optional Lambda function name or EventBridge wildcard pattern (for
+      example "my-fn" or "prod-*-orders") used to restrict which functions'
+      events are captured. If all five FunctionNameFilterN parameters are
+      empty, the rule matches every function in this region.
+  FunctionNameFilter2:
+    Type: String
+    Default: ""
+    Description: Optional additional function name or wildcard pattern.
+  FunctionNameFilter3:
+    Type: String
+    Default: ""
+    Description: Optional additional function name or wildcard pattern.
+  FunctionNameFilter4:
+    Type: String
+    Default: ""
+    Description: Optional additional function name or wildcard pattern.
+  FunctionNameFilter5:
+    Type: String
+    Default: ""
+    Description: Optional additional function name or wildcard pattern.
+
+  # ---- Tuning ----
+  BufferIntervalSeconds:
+    Type: Number
+    Default: 60
+    MinValue: 60
+    MaxValue: 900
+    Description: >-
+      Firehose buffer interval in seconds. Increasing this trades freshness
+      for fewer outbound requests; the maximum (900) is fine for low-volume
+      durable-execution streams.
+
+
+Conditions:
+  UseApiKey: !Not [!Equals [!Ref DdApiKey, ""]]
+  UseApiKeySecret: !Not [!Equals [!Ref DdApiKeySecretArn, ""]]
+  UseApiKeySsm: !Not [!Equals [!Ref DdApiKeySsmParameterName, ""]]
+  UseApiKeyKms: !Not [!Equals [!Ref DdApiKeyKmsCiphertext, ""]]
+  HasEnv: !Not [!Equals [!Ref DdEnv, ""]]
+  HasVersion: !Not [!Equals [!Ref DdVersion, ""]]
+  HasTags: !Not [!Equals [!Ref DdTags, ""]]
+  HasFilter1: !Not [!Equals [!Ref FunctionNameFilter1, ""]]
+  HasFilter2: !Not [!Equals [!Ref FunctionNameFilter2, ""]]
+  HasFilter3: !Not [!Equals [!Ref FunctionNameFilter3, ""]]
+  HasFilter4: !Not [!Equals [!Ref FunctionNameFilter4, ""]]
+  HasFilter5: !Not [!Equals [!Ref FunctionNameFilter5, ""]]
+  HasFunctionFilter: !Or
+    - !Condition HasFilter1
+    - !Condition HasFilter2
+    - !Condition HasFilter3
+    - !Condition HasFilter4
+    - !Condition HasFilter5
+
+Rules:
+  ApiKeyRequired:
+    Assertions:
+      - Assert: !Or
+          - !Not [!Equals [!Ref DdApiKey, ""]]
+          - !Not [!Equals [!Ref DdApiKeySecretArn, ""]]
+          - !Not [!Equals [!Ref DdApiKeySsmParameterName, ""]]
+          - !Not [!Equals [!Ref DdApiKeyKmsCiphertext, ""]]
+        AssertDescription: >-
+          One of DdApiKey, DdApiKeySecretArn, DdApiKeySsmParameterName, or
+          DdApiKeyKmsCiphertext must be set.
+  KmsCiphertextRequiresKeyArn:
+    RuleCondition: !Not [!Equals [!Ref DdApiKeyKmsCiphertext, ""]]
+    Assertions:
+      - Assert: !Not [!Equals [!Ref DdApiKeyKmsKeyArn, ""]]
+        AssertDescription: >-
+          DdApiKeyKmsKeyArn is required when DdApiKeyKmsCiphertext is set.
+          The ARN is used to scope the decrypter Lambda's kms:Decrypt
+          permission.
+
+Resources:
+  # ---------------------------------------------------------------------------
+  # Firehose backup bucket. Receives only records that fail to deliver to the
+  # Datadog endpoint (S3BackupMode: FailedDataOnly), so it stays empty under
+  # normal operation. Retained on stack deletion to preserve any failed
+  # records the operator may need to inspect or replay.
+  # ---------------------------------------------------------------------------
+  BackupBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+
+  BackupBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref BackupBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: EnforceSSL
+            Effect: Deny
+            Principal: "*"
+            Action: s3:*
+            Resource:
+              - !GetAtt BackupBucket.Arn
+              - !Sub "${BackupBucket.Arn}/*"
+            Condition:
+              Bool:
+                aws:SecureTransport: "false"
+
+  # ---------------------------------------------------------------------------
+  # Firehose delivery stream. HTTP endpoint destination targets the Datadog
+  # Firehose-specific intake (which speaks the Firehose protocol — do not use
+  # the standard /api/v2/logs endpoint here). Backup mode is FailedDataOnly so
+  # the bucket only receives records the endpoint rejected.
+  # ---------------------------------------------------------------------------
+  FirehoseLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/kinesisfirehose/${AWS::StackName}"
+      RetentionInDays: 7
+
+  FirehoseHttpLogStream:
+    Type: AWS::Logs::LogStream
+    Properties:
+      LogGroupName: !Ref FirehoseLogGroup
+      LogStreamName: HttpEndpointDelivery
+
+  FirehoseS3LogStream:
+    Type: AWS::Logs::LogStream
+    Properties:
+      LogGroupName: !Ref FirehoseLogGroup
+      LogStreamName: S3Backup
+
+  FirehoseRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: firehose.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: FirehoseDelivery
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:AbortMultipartUpload
+                  - s3:GetBucketLocation
+                  - s3:GetObject
+                  - s3:ListBucket
+                  - s3:ListBucketMultipartUploads
+                  - s3:PutObject
+                Resource:
+                  - !GetAtt BackupBucket.Arn
+                  - !Sub "${BackupBucket.Arn}/*"
+              - Effect: Allow
+                Action:
+                  - logs:PutLogEvents
+                Resource:
+                  - !GetAtt FirehoseLogGroup.Arn
+
+  # ---------------------------------------------------------------------------
+  # Deploy-time API key decrypter. Only created when DdApiKeyKmsCiphertext is
+  # set. The custom resource invokes the Lambda once per stack action; the
+  # Lambda calls KMS:Decrypt on the ciphertext blob and returns the plaintext
+  # API key in a NoEcho response. The Firehose AccessKey then references the
+  # returned value via !GetAtt. The plaintext is briefly present in the
+  # custom resource's response and in the Firehose resource's rendered
+  # properties — a security trade-off that customers using Secrets Manager
+  # or SSM SecureString dynamic references can avoid.
+  # ---------------------------------------------------------------------------
+  ApiKeyKmsDecrypterRole:
+    Type: AWS::IAM::Role
+    Condition: UseApiKeyKms
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - !Sub "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+      Policies:
+        - PolicyName: DecryptApiKey
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: kms:Decrypt
+                Resource: !Ref DdApiKeyKmsKeyArn
+
+  ApiKeyKmsDecrypterFunction:
+    Type: AWS::Lambda::Function
+    Condition: UseApiKeyKms
+    Properties:
+      Description: >-
+        Decrypts the KMS-encrypted Datadog API key at deploy time and
+        returns the plaintext to CloudFormation as a NoEcho custom-resource
+        attribute.
+      Runtime: nodejs22.x
+      Architectures: [arm64]
+      Handler: index.handler
+      Role: !GetAtt ApiKeyKmsDecrypterRole.Arn
+      Timeout: 30
+      MemorySize: 128
+      Code:
+        ZipFile: |
+          'use strict';
+          const https = require('https');
+          const { URL } = require('url');
+          const { KMSClient, DecryptCommand } = require('@aws-sdk/client-kms');
+
+          const respond = (event, context, status, data, reason) =>
+              new Promise((resolve, reject) => {
+                  const body = JSON.stringify({
+                      Status: status,
+                      Reason: reason || `See ${context.logGroupName}/${context.logStreamName}`,
+                      PhysicalResourceId: event.PhysicalResourceId || context.logStreamName,
+                      StackId: event.StackId,
+                      RequestId: event.RequestId,
+                      LogicalResourceId: event.LogicalResourceId,
+                      NoEcho: true,
+                      Data: data || {},
+                  });
+                  const u = new URL(event.ResponseURL);
+                  const req = https.request({
+                      hostname: u.hostname,
+                      port: 443,
+                      path: u.pathname + u.search,
+                      method: 'PUT',
+                      headers: { 'content-type': '', 'content-length': Buffer.byteLength(body) },
+                  }, (res) => { res.on('data', () => {}); res.on('end', resolve); });
+                  req.on('error', reject);
+                  req.write(body);
+                  req.end();
+              });
+
+          exports.handler = async (event, context) => {
+              try {
+                  if (event.RequestType === 'Delete') {
+                      return respond(event, context, 'SUCCESS', {});
+                  }
+                  const ciphertext = event.ResourceProperties && event.ResourceProperties.Ciphertext;
+                  if (!ciphertext) {
+                      return respond(event, context, 'FAILED', {}, 'Ciphertext property is required');
+                  }
+                  const kms = new KMSClient({});
+                  const out = await kms.send(new DecryptCommand({
+                      CiphertextBlob: Buffer.from(ciphertext, 'base64'),
+                  }));
+                  const apiKey = Buffer.from(out.Plaintext).toString('utf8');
+                  return respond(event, context, 'SUCCESS', { ApiKey: apiKey });
+              } catch (err) {
+                  // Do not log err.message — KMS errors can be informative
+                  // but plaintext should never reach CloudWatch.
+                  console.error('KMS decrypt failed:', err.name || 'Error');
+                  return respond(event, context, 'FAILED', {}, `Decrypt failed: ${err.name || 'Error'}`);
+              }
+          };
+
+  ApiKeyKmsDecrypterLogGroup:
+    Type: AWS::Logs::LogGroup
+    Condition: UseApiKeyKms
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${ApiKeyKmsDecrypterFunction}"
+      RetentionInDays: 7
+
+  DecryptedApiKey:
+    Type: Custom::DatadogApiKeyKmsDecrypt
+    Condition: UseApiKeyKms
+    Properties:
+      ServiceToken: !GetAtt ApiKeyKmsDecrypterFunction.Arn
+      # Including the ciphertext in the properties is what makes
+      # CloudFormation re-invoke the custom resource on update if the
+      # ciphertext changes.
+      Ciphertext: !Ref DdApiKeyKmsCiphertext
+
+  DeliveryStream:
+    Type: AWS::KinesisFirehose::DeliveryStream
+    Properties:
+      DeliveryStreamType: DirectPut
+      HttpEndpointDestinationConfiguration:
+        EndpointConfiguration:
+          Name: Datadog
+          # Firehose's Url field accepts only https://<domain>[/path], no
+          # query string. Static metadata is attached via CommonAttributes
+          # below (Firehose sends them as the X-Amz-Firehose-Common-
+          # Attributes header on each request, which Datadog's Firehose
+          # intake parses into log metadata / tags).
+          Url: !Sub "https://aws-kinesis-http-intake.logs.${DdSite}/v1/input"
+          AccessKey: !If
+            - UseApiKey
+            - !Ref DdApiKey
+            - !If
+              - UseApiKeySecret
+              - !Sub "{{resolve:secretsmanager:${DdApiKeySecretArn}:SecretString}}"
+              - !If
+                - UseApiKeySsm
+                - !Sub "{{resolve:ssm-secure:${DdApiKeySsmParameterName}}}"
+                - !If
+                  - UseApiKeyKms
+                  - !GetAtt DecryptedApiKey.ApiKey
+                  - !Ref AWS::NoValue
+        BufferingHints:
+          IntervalInSeconds: !Ref BufferIntervalSeconds
+          SizeInMBs: 4
+        RetryOptions:
+          DurationInSeconds: 60
+        # Datadog's Firehose intake does not interpret common-attributes
+        # header keys (dd-service / dd-source / dd-tags) as log metadata —
+        # it surfaces each as a raw tag with the literal key, and tag
+        # values can't contain commas so a joined dd-tags value would be
+        # mangled. We explicitly set CommonAttributes: [] (instead of
+        # omitting RequestConfiguration entirely) because CloudFormation
+        # does not push outright property removals to Firehose — omission
+        # would leave previously-configured attributes live on the stream.
+        # Datadog's AWS integration auto-tags service/source/region/
+        # aws_account from the raw envelope's source field and the
+        # Firehose ARN, so we get those for free. Any extra metadata
+        # (service override, env, version, custom tags) is set by a
+        # Datadog log processing pipeline against these events.
+        RequestConfiguration:
+          CommonAttributes: []
+        CloudWatchLoggingOptions:
+          Enabled: true
+          LogGroupName: !Ref FirehoseLogGroup
+          LogStreamName: !Ref FirehoseHttpLogStream
+        RoleARN: !GetAtt FirehoseRole.Arn
+        S3BackupMode: FailedDataOnly
+        S3Configuration:
+          BucketARN: !GetAtt BackupBucket.Arn
+          RoleARN: !GetAtt FirehoseRole.Arn
+          BufferingHints:
+            IntervalInSeconds: 300
+            SizeInMBs: 5
+          CompressionFormat: GZIP
+          CloudWatchLoggingOptions:
+            Enabled: true
+            LogGroupName: !Ref FirehoseLogGroup
+            LogStreamName: !Ref FirehoseS3LogStream
+        # Firehose forwards each EventBridge envelope to Datadog unchanged;
+        # all reshaping (function ARN qualifier stripping, detail.*
+        # flattening, ISO timestamp parsing) is configured on the Datadog
+        # side via a logs processing pipeline. We explicitly set
+        # Enabled: false instead of omitting ProcessingConfiguration —
+        # CloudFormation does not push outright property removals to
+        # Firehose, so omitting it would leave a previously-attached Lambda
+        # processor live on the stream.
+        ProcessingConfiguration:
+          Enabled: false
+
+  # ---------------------------------------------------------------------------
+  # EventBridge rule. Captures aws.lambda "Durable Execution Status Change"
+  # events and routes them to Firehose. The functionArn matcher uses two
+  # wildcard entries so it covers both unqualified ARNs and ARNs with a
+  # version or alias suffix; a single suffix() match would miss qualified
+  # ARNs.
+  # ---------------------------------------------------------------------------
+  EventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: >-
+        Routes Lambda Durable Function execution status-change events to the
+        Datadog Firehose delivery stream.
+      State: ENABLED
+      EventPattern:
+        source:
+          - aws.lambda
+        detail-type:
+          - Durable Execution Status Change
+        detail:
+          status: !Ref Statuses
+          # Two wildcard matchers per populated filter slot: one for
+          # unqualified ARNs and one for version/alias-qualified ARNs.
+          # Empty slots resolve to AWS::NoValue and are stripped from the
+          # rendered list by CloudFormation, so the EventPattern ends up
+          # with exactly 2N matchers where N is the count of populated
+          # FunctionNameFilterN slots.
+          functionArn: !If
+            - HasFunctionFilter
+            - - !If [HasFilter1, {wildcard: !Sub "*:function:${FunctionNameFilter1}"},   !Ref AWS::NoValue]
+              - !If [HasFilter1, {wildcard: !Sub "*:function:${FunctionNameFilter1}:*"}, !Ref AWS::NoValue]
+              - !If [HasFilter2, {wildcard: !Sub "*:function:${FunctionNameFilter2}"},   !Ref AWS::NoValue]
+              - !If [HasFilter2, {wildcard: !Sub "*:function:${FunctionNameFilter2}:*"}, !Ref AWS::NoValue]
+              - !If [HasFilter3, {wildcard: !Sub "*:function:${FunctionNameFilter3}"},   !Ref AWS::NoValue]
+              - !If [HasFilter3, {wildcard: !Sub "*:function:${FunctionNameFilter3}:*"}, !Ref AWS::NoValue]
+              - !If [HasFilter4, {wildcard: !Sub "*:function:${FunctionNameFilter4}"},   !Ref AWS::NoValue]
+              - !If [HasFilter4, {wildcard: !Sub "*:function:${FunctionNameFilter4}:*"}, !Ref AWS::NoValue]
+              - !If [HasFilter5, {wildcard: !Sub "*:function:${FunctionNameFilter5}"},   !Ref AWS::NoValue]
+              - !If [HasFilter5, {wildcard: !Sub "*:function:${FunctionNameFilter5}:*"}, !Ref AWS::NoValue]
+            - !Ref AWS::NoValue
+      Targets:
+        - Id: FirehoseTarget
+          Arn: !GetAtt DeliveryStream.Arn
+          RoleArn: !GetAtt EventBridgeRole.Arn
+
+  EventBridgeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: PutToFirehose
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - firehose:PutRecord
+                  - firehose:PutRecordBatch
+                Resource: !GetAtt DeliveryStream.Arn
+
+Outputs:
+  DeliveryStreamArn:
+    Description: ARN of the Firehose delivery stream.
+    Value: !GetAtt DeliveryStream.Arn
+  BackupBucketName:
+    Description: S3 bucket that captures records the Datadog intake rejected.
+    Value: !Ref BackupBucket
+  EventRuleArn:
+    Description: ARN of the EventBridge rule capturing durable execution events.
+    Value: !GetAtt EventRule.Arn
+  ForwarderVersion:
+    Description: Version of this forwarder template.
+    Value: !FindInMap [Constants, DdDurableEventForwarder, Version]
