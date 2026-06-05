@@ -14,7 +14,6 @@ import (
 	"log/slog"
 	"net/http"
 	"sync"
-	"sync/atomic"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/batching"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/concurrent"
@@ -67,6 +66,7 @@ func NewForwarder(cfg Config, client *http.Client, storage storing.Storage) *For
 
 func (f *Forwarder) Start(ctx context.Context, in <-chan model.LogEntry, storageTag string) error {
 	eg, ctx := errgroup.WithContext(ctx)
+	eg.SetLimit(1 + httpclient.MaxConcurrency)
 
 	batches := make(chan []byte)
 	eg.Go(func() error {
@@ -77,36 +77,38 @@ func (f *Forwarder) Start(ctx context.Context, in <-chan model.LogEntry, storage
 		return nil
 	})
 
-	var stopSending atomic.Bool
+	var sentErr error
+	var onceSent sync.Once
 	for range httpclient.MaxConcurrency {
 		eg.Go(func() error {
-			var sendingErr error
 			for {
 				batch, ok, _ := concurrent.SafeReader(ctx, batches)
 				if !ok {
 					break
 				}
 
-				if !stopSending.Load() {
-					sendingErr = f.send(ctx, batch, storageTag)
-					if sendingErr == nil {
+				if sentErr == nil {
+					err := f.send(ctx, batch, storageTag)
+					if err == nil {
 						continue
 					}
 
-					stopSending.Store(true)
-					slog.WarnContext(ctx, "failed to send batch", slog.Any("error", sendingErr))
+					onceSent.Do(func() { sentErr = err })
 				}
 
 				if err := f.store(ctx, batch, storageTag); err != nil {
 					return fmt.Errorf("store: %w", err)
 				}
 			}
-
-			return sendingErr
+			return nil
 		})
 	}
 
-	return eg.Wait()
+	if err := eg.Wait(); err != nil {
+		return err
+	}
+
+	return sentErr
 }
 
 func (f *Forwarder) store(ctx context.Context, batch []byte, storageTag string) error {
