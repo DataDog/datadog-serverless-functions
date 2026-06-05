@@ -9,10 +9,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"regexp"
 
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/filtering"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/parsing"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/scrubbing"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/sdkclient"
 )
 
@@ -20,22 +22,37 @@ type Handler interface {
 	Handle(ctx context.Context, event json.RawMessage, out chan<- model.LogEntry) error
 }
 
-func NewHandler(ctx context.Context, ct parsing.ContentType, cfg *config.Config) (Handler, error) {
+type Config struct {
+	Host                string
+	Service             string
+	Source              string
+	Tags                model.Tags
+	S3MultilineLogRegex *regexp.Regexp
+	UseFIPS             bool
+}
+
+func NewHandler(ctx context.Context, hcfg Config, scrubber *scrubbing.Scrubber, filterer *filtering.Filterer, ct parsing.ContentType) (Handler, error) {
 	switch ct {
+
 	case parsing.ContentTypeCloudwatchLogs:
-		return NewCloudwatch(cfg), nil
+		return newCloudwatch(&hcfg, scrubber, filterer), nil
+
 	case parsing.ContentTypeS3:
-		client, err := sdkclient.GetS3(ctx, cfg.UseFIPS)
+		client, err := sdkclient.GetS3(ctx, hcfg.UseFIPS)
 		if err != nil {
 			return nil, err
 		}
-		return NewS3(cfg, client), nil
+		return newS3(&hcfg, client, scrubber, filterer), nil
+
 	case parsing.ContentTypeKinesis:
-		return NewKinesis(cfg), nil
+		return newKinesis(&hcfg, scrubber, filterer), nil
+
 	case parsing.ContentTypeEventBridge:
-		return NewEventBridge(cfg), nil
+		return newEventBridge(&hcfg, scrubber, filterer), nil
+
 	case parsing.ContentTypeSNS:
-		return NewSNS(cfg), nil
+		return newSNS(&hcfg, scrubber, filterer), nil
+
 	default:
 		return nil, fmt.Errorf("unsupported content type: %v", ct)
 	}

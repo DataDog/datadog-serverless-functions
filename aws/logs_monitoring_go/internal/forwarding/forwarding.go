@@ -30,14 +30,24 @@ var bufPool = sync.Pool{
 }
 
 type Forwarder struct {
-	cfg      *config.Config
+	cfg      Config
 	client   *http.Client
 	storage  storing.Storage
 	gzipPool *sync.Pool
 	header   http.Header
 }
 
-func NewForwarder(cfg *config.Config, client *http.Client, storage storing.Storage) Forwarder {
+type Config struct {
+	APIKey           string
+	IntakeURL        string
+	CompressionLevel int
+}
+
+func NewForwarder(cfg Config, client *http.Client, storage storing.Storage) *Forwarder {
+	if storage == nil {
+		slog.Warn("failed event storage not configured, can lead to event loss")
+	}
+
 	header := http.Header{
 		"DD-API-KEY":            []string{cfg.APIKey},
 		"DD-EVP-ORIGIN":         []string{"aws_forwarder"},
@@ -45,10 +55,7 @@ func NewForwarder(cfg *config.Config, client *http.Client, storage storing.Stora
 		"Content-Type":          []string{"application/json"},
 	}
 
-	if storage == nil {
-		slog.Warn("failed event storage not configured, can lead to event loss")
-	}
-	return Forwarder{
+	return &Forwarder{
 		cfg:     cfg,
 		client:  client,
 		storage: storage,
@@ -62,7 +69,7 @@ func NewForwarder(cfg *config.Config, client *http.Client, storage storing.Stora
 	}
 }
 
-func (f Forwarder) Start(ctx context.Context, in <-chan model.LogEntry, storageTag string) error {
+func (f *Forwarder) Start(ctx context.Context, in <-chan model.LogEntry, storageTag string) error {
 	batches := make(chan []byte, httpclient.MaxConcurrency)
 	batcher := batching.NewBatcher()
 
@@ -85,7 +92,7 @@ func (f Forwarder) Start(ctx context.Context, in <-chan model.LogEntry, storageT
 		}
 
 		eg.Go(func() error {
-			err := f.Send(ctx, body, storageTag)
+			err := f.send(ctx, body, storageTag)
 			if err == nil {
 				return nil
 			}
@@ -108,7 +115,34 @@ func (f Forwarder) Start(ctx context.Context, in <-chan model.LogEntry, storageT
 	return errors.Join(append(errs, <-producerErrCh)...)
 }
 
-func (f Forwarder) Send(ctx context.Context, payload []byte, storageTag string) error {
+func (f *Forwarder) Retry(ctx context.Context) error {
+	keys, listErr := f.storage.List(ctx)
+	if listErr != nil {
+		return fmt.Errorf("list: %w", listErr)
+	}
+
+	slog.InfoContext(ctx, "retrying stored batches", slog.Int("count", len(keys)))
+	for _, key := range keys {
+		payload, storageTag, getErr := f.storage.Get(ctx, key)
+		if getErr != nil {
+			return fmt.Errorf("list: %w", getErr)
+		}
+
+		if sendErr := f.send(ctx, payload, storageTag); sendErr != nil {
+			return fmt.Errorf("send: %w", sendErr)
+		}
+
+		if deleteErr := f.storage.Delete(ctx, key); deleteErr != nil {
+			return fmt.Errorf("delete: %w", deleteErr)
+		}
+
+		slog.DebugContext(ctx, "batch sent successfully", slog.String("key", key))
+	}
+
+	return nil
+}
+
+func (f *Forwarder) send(ctx context.Context, payload []byte, storageTag string) error {
 	ctx, cancel := context.WithTimeout(ctx, httpclient.RequestTimeout)
 	defer cancel()
 
@@ -153,7 +187,7 @@ func (f Forwarder) Send(ctx context.Context, payload []byte, storageTag string) 
 	return nil
 }
 
-func (f Forwarder) compress(payload []byte) ([]byte, error) {
+func (f *Forwarder) compress(payload []byte) ([]byte, error) {
 	buf := bufPool.Get().(*bytes.Buffer)
 	gz := f.gzipPool.Get().(*gzip.Writer)
 	defer bufPool.Put(buf)

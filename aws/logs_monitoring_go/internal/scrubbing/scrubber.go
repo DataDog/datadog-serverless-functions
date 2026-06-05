@@ -6,16 +6,7 @@
 package scrubbing
 
 import (
-	"fmt"
 	"regexp"
-)
-
-const (
-	ipPattern    = `\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}`
-	emailPattern = `[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+`
-
-	ipReplacement    = "xxx.xxx.xxx.xxx"
-	emailReplacement = "xxxxx@xxxxx.com"
 )
 
 type scrubbingRule struct {
@@ -23,39 +14,42 @@ type scrubbingRule struct {
 	replacement string
 }
 
+var ipRule = scrubbingRule{
+	regex:       regexp.MustCompile(`\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}`),
+	replacement: "xxx.xxx.xxx.xxx",
+}
+
+var emailRule = scrubbingRule{
+	regex:       regexp.MustCompile(`[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+`),
+	replacement: "xxxxx@xxxxx.com",
+}
+
 type Scrubber struct {
 	rules []scrubbingRule
 }
 
-func NewScrubber(customMatch, customReplacement string, ip, email bool) (*Scrubber, error) {
+// nit: we may not want to return a pointer here since there is no reason for the scrubber to change
+func NewScrubber(customMatch *regexp.Regexp, customReplacement string, ip, email bool) *Scrubber {
 	var rules []scrubbingRule
+
 	if ip {
-		rules = append(rules, scrubbingRule{
-			regex:       regexp.MustCompile(ipPattern),
-			replacement: ipReplacement,
-		})
+		rules = append(rules, ipRule)
 	}
 	if email {
-		rules = append(rules, scrubbingRule{
-			regex:       regexp.MustCompile(emailPattern),
-			replacement: emailReplacement,
-		})
+		rules = append(rules, emailRule)
 	}
-	if customMatch != "" {
-		re, err := regexp.Compile(customMatch)
-		if err != nil {
-			return nil, fmt.Errorf("compile custom scrubbing: %w", err)
-		}
 
+	if customMatch != nil {
 		rules = append(rules, scrubbingRule{
-			regex:       re,
+			regex:       customMatch,
 			replacement: customReplacement,
 		})
 	}
-	return &Scrubber{rules: rules}, nil
+
+	return &Scrubber{rules: rules}
 }
 
-func (s *Scrubber) Scrub(content string) string {
+func (s *Scrubber) Apply(content string) string {
 	if s == nil {
 		return content
 	}

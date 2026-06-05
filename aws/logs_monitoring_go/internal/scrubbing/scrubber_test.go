@@ -6,22 +6,20 @@
 package scrubbing
 
 import (
+	"regexp"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewScrubber(t *testing.T) {
 	t.Parallel()
 
 	tests := map[string]struct {
-		customMatch       string
-		customReplacement string
-		ip                bool
-		email             bool
-		nRules            int
-		wantErr           bool
+		customMatchRe *regexp.Regexp
+		ip            bool
+		email         bool
+		nRules        int
 	}{
 		"no rules": {
 			nRules: 0,
@@ -40,33 +38,24 @@ func TestNewScrubber(t *testing.T) {
 			nRules: 2,
 		},
 		"custom rule": {
-			customMatch:       `\d+`,
-			customReplacement: "NUM",
-			nRules:            1,
+			customMatchRe: regexp.MustCompile("error"),
+			nRules:        1,
 		},
 		"all rules": {
-			ip:                true,
-			email:             true,
-			customMatch:       `secret`,
-			customReplacement: "[REDACTED]",
-			nRules:            3,
-		},
-		"invalid custom regex": {
-			customMatch: `([invalid`,
-			wantErr:     true,
+			ip:            true,
+			email:         true,
+			customMatchRe: regexp.MustCompile(`secret`),
+			nRules:        3,
 		},
 	}
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			s, err := NewScrubber(tc.customMatch, tc.customReplacement, tc.ip, tc.email)
-			if tc.wantErr {
-				require.Error(t, err)
-				return
-			}
-			require.NoError(t, err)
-			assert.Len(t, s.rules, tc.nRules)
+
+			scrubber := NewScrubber(tc.customMatchRe, "", tc.ip, tc.email)
+
+			assert.Len(t, scrubber.rules, tc.nRules)
 		})
 	}
 }
@@ -75,55 +64,55 @@ func TestScrub(t *testing.T) {
 	t.Parallel()
 
 	tests := map[string]struct {
-		customMatch       string
+		customMatchRe     *regexp.Regexp
 		customReplacement string
 		ip                bool
 		email             bool
-		input             string
+		content           string
 		want              string
 	}{
 		"ip_redaction": {
-			ip:    true,
-			input: "connected from 192.168.1.1 to 10.0.0.1",
-			want:  "connected from xxx.xxx.xxx.xxx to xxx.xxx.xxx.xxx",
+			ip:      true,
+			content: "connected from 192.168.1.1 to 10.0.0.1",
+			want:    "connected from xxx.xxx.xxx.xxx to xxx.xxx.xxx.xxx",
 		},
 		"email_redaction": {
-			email: true,
-			input: "user john.doe@example.com logged in",
-			want:  "user xxxxx@xxxxx.com logged in",
+			email:   true,
+			content: "user john.doe@example.com logged in",
+			want:    "user xxxxx@xxxxx.com logged in",
 		},
 		"custom_pattern": {
-			customMatch:       `secret-\w+`,
+			customMatchRe:     regexp.MustCompile(`secret-\w+`),
 			customReplacement: "[REDACTED]",
-			input:             "token=secret-abc123 visible",
+			content:           "token=secret-abc123 visible",
 			want:              "token=[REDACTED] visible",
 		},
 		"custom_empty_replacement": {
-			customMatch: `remove-this `,
-			input:       "remove-this here",
-			want:        "here",
+			customMatchRe: regexp.MustCompile(`remove-this `),
+			content:       "remove-this here",
+			want:          "here",
 		},
 		"ip_and_email_sequential": {
-			ip:    true,
-			email: true,
-			input: "192.168.1.1 user@host.com",
-			want:  "xxx.xxx.xxx.xxx xxxxx@xxxxx.com",
+			ip:      true,
+			email:   true,
+			content: "192.168.1.1 user@host.com",
+			want:    "xxx.xxx.xxx.xxx xxxxx@xxxxx.com",
 		},
 		"no_match": {
-			ip:    true,
-			email: true,
-			input: "clean message with no sensitive data",
-			want:  "clean message with no sensitive data",
+			ip:      true,
+			email:   true,
+			content: "clean message with no sensitive data",
+			want:    "clean message with no sensitive data",
 		},
 		"multiple_ips": {
-			ip:    true,
-			input: "src=1.2.3.4 dst=5.6.7.8 via=10.0.0.1",
-			want:  "src=xxx.xxx.xxx.xxx dst=xxx.xxx.xxx.xxx via=xxx.xxx.xxx.xxx",
+			ip:      true,
+			content: "src=1.2.3.4 dst=5.6.7.8 via=10.0.0.1",
+			want:    "src=xxx.xxx.xxx.xxx dst=xxx.xxx.xxx.xxx via=xxx.xxx.xxx.xxx",
 		},
 		"non_ascii_custom": {
-			customMatch:       `[^\x01-\x7f]+`,
+			customMatchRe:     regexp.MustCompile(`[^\x01-\x7f]+`),
 			customReplacement: "xxxxx",
-			input:             "abcdef\u65e5\u672c\u8a9eefg\u304b\u304d\u304f\u3051\u3053hij", // abcdef日本語efgかきくけこhij
+			content:           "abcdef\u65e5\u672c\u8a9eefg\u304b\u304d\u304f\u3051\u3053hij", // abcdef日本語efgかきくけこhij
 			want:              "abcdefxxxxxefgxxxxxhij",
 		},
 	}
@@ -131,9 +120,10 @@ func TestScrub(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			s, err := NewScrubber(tc.customMatch, tc.customReplacement, tc.ip, tc.email)
-			require.NoError(t, err)
-			assert.Equal(t, tc.want, s.Scrub(tc.input))
+
+			scrubber := NewScrubber(tc.customMatchRe, tc.customReplacement, tc.ip, tc.email)
+
+			assert.Equal(t, tc.want, scrubber.Apply(tc.content))
 		})
 	}
 }

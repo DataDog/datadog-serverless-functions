@@ -7,9 +7,7 @@ package storing
 
 import (
 	"context"
-	"log/slog"
 
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/sdkclient"
 )
 
@@ -22,20 +20,24 @@ type Storage interface {
 	Delete(ctx context.Context, key string) error
 }
 
-func NewStorage(ctx context.Context, cfg *config.Config) Storage {
-	if !cfg.StoreOnFail {
-		return nil
+type Options struct {
+	Enabled  bool
+	FIPS     bool
+	S3Bucket string
+}
+
+func NewStorage(ctx context.Context, opts Options) (Storage, error) {
+	if !opts.Enabled {
+		return nil, nil
 	}
 
-	if cfg.S3RetryBucketName != "" {
-		s3Client, err := sdkclient.GetS3(ctx, cfg.UseFIPS)
+	if opts.S3Bucket != "" {
+		s3Client, err := sdkclient.GetS3(ctx, opts.FIPS)
 		if err != nil {
-			slog.ErrorContext(ctx, "failed to create S3 client for retry storage", slog.Any("error", err))
-			return nil
+			return nil, err
 		}
-
-		return NewS3(s3Client, cfg.S3RetryBucketName)
+		return newS3(s3Client, opts.S3Bucket), nil
 	}
 
-	return nil
+	return nil, nil
 }
