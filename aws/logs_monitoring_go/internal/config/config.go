@@ -79,17 +79,17 @@ func Load() (*Config, error) {
 	var errs []error
 	patterns := []struct {
 		env   string
-		field *regexp.Regexp
+		field **regexp.Regexp
 	}{
-		{env: EnvScrubbingRule, field: cfg.ScrubbingRegex},
-		{env: EnvIncludeAtMatch, field: cfg.FilterInclude},
-		{env: EnvExcludeAtMatch, field: cfg.FilterExclude},
-		{env: EnvMultilineLogRegex, field: cfg.S3MultilineLogRegex},
+		{env: EnvScrubbingRule, field: &cfg.ScrubbingRegex},
+		{env: EnvIncludeAtMatch, field: &cfg.FilterInclude},
+		{env: EnvExcludeAtMatch, field: &cfg.FilterExclude},
+		{env: EnvMultilineLogRegex, field: &cfg.S3MultilineLogRegex},
 	}
 	for _, pattern := range patterns {
-		if os.Getenv(pattern.env) != "" {
-			re, err := regexp.Compile(pattern.env)
-			pattern.field = re
+		if envValue := os.Getenv(pattern.env); envValue != "" {
+			re, err := regexp.Compile(envValue)
+			*pattern.field = re
 			errs = append(errs, err)
 		}
 	}
