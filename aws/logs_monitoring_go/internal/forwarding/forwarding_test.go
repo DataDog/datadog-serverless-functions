@@ -97,7 +97,7 @@ func TestForwarder_Start(t *testing.T) {
 			t.Cleanup(server.Close)
 			client := server.Client()
 			client.Transport = httpclient.WithRetry(httpclient.DefaultMaxAttempts, client.Transport)
-			forwarder := NewForwarder(&config.Config{IntakeURL: server.URL, APIKey: "test-api-key", CompressionLevel: gzip.DefaultCompression}, client, nil)
+			forwarder := NewForwarder(Config{IntakeURL: server.URL, APIKey: "test-api-key", CompressionLevel: gzip.DefaultCompression}, client, nil)
 			ctx, cancel := context.WithCancel(t.Context())
 			t.Cleanup(cancel)
 
@@ -160,7 +160,7 @@ func TestForwarder_Start_Context(t *testing.T) {
 			t.Cleanup(server.Close)
 			client := server.Client()
 			client.Transport = httpclient.WithRetry(httpclient.DefaultMaxAttempts, client.Transport)
-			forwarder := NewForwarder(&config.Config{IntakeURL: server.URL, APIKey: "test-api-key", CompressionLevel: gzip.DefaultCompression}, client, nil)
+			forwarder := NewForwarder(Config{IntakeURL: server.URL, APIKey: "test-api-key", CompressionLevel: gzip.DefaultCompression}, client, nil)
 			ctx, cancel := tc.ctxBuilder(t)
 			t.Cleanup(cancel)
 

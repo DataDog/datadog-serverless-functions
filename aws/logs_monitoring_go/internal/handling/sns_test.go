@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/testutil"
 	"github.com/stretchr/testify/assert"
@@ -25,12 +24,12 @@ func TestSNSHandler_Handle(t *testing.T) {
 
 	tests := map[string]struct {
 		event json.RawMessage
-		cfg   *config.Config
+		cfg   *Config
 		want  []model.LogEntry
 	}{
 		"basic event": {
 			event: snsEvent,
-			cfg:   testutil.EmptyConfig(),
+			cfg:   &Config{},
 			want: []model.LogEntry{
 				{
 					Message:        string(snsEvent),
@@ -42,7 +41,7 @@ func TestSNSHandler_Handle(t *testing.T) {
 		},
 		"custom source override": {
 			event: snsEvent,
-			cfg:   &config.Config{Source: "custom-source"},
+			cfg:   &Config{Source: "custom-source"},
 			want: []model.LogEntry{
 				{
 					Message:        string(snsEvent),
@@ -54,7 +53,7 @@ func TestSNSHandler_Handle(t *testing.T) {
 		},
 		"custom service override": {
 			event: snsEvent,
-			cfg:   &config.Config{Service: "my-svc"},
+			cfg:   &Config{Service: "my-svc"},
 			want: []model.LogEntry{
 				{
 					Message:        string(snsEvent),
@@ -71,7 +70,7 @@ func TestSNSHandler_Handle(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			handler := NewSNS(tc.cfg)
+			handler := newSNS(tc.cfg, nil, nil)
 			out := make(chan model.LogEntry, len(tc.want))
 
 			err := handler.Handle(ctx, tc.event, out)

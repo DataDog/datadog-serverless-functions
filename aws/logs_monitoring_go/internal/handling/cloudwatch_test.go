@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/testutil"
 	"github.com/stretchr/testify/assert"
@@ -23,24 +22,24 @@ func TestCloudwatchHandler_Handle(t *testing.T) {
 
 	tests := map[string]struct {
 		event    json.RawMessage
-		config   *config.Config
+		config   *Config
 		chanSize int
 		want     []model.LogEntry
 		wantErr  bool
 	}{
 		"invalid JSON": {
 			event:   json.RawMessage(`not json`),
-			config:  testutil.EmptyConfig(),
+			config:  &Config{},
 			wantErr: true,
 		},
 		"invalid base64": {
 			event:   json.RawMessage(`{"awslogs":{"data":"!!!not-base64!!!"}}`),
-			config:  testutil.EmptyConfig(),
+			config:  &Config{},
 			wantErr: true,
 		},
 		"invalid gzip": {
 			event:   testutil.MustCloudwatchEvent(t, []byte("not gzip")),
-			config:  testutil.EmptyConfig(),
+			config:  &Config{},
 			wantErr: true,
 		},
 		"control message": {
@@ -50,7 +49,7 @@ func TestCloudwatchHandler_Handle(t *testing.T) {
 				"logStream":   "stream",
 				"logEvents":   []map[string]any{},
 			})),
-			config: testutil.EmptyConfig(),
+			config: &Config{},
 			want:   nil,
 		},
 		"single log": {
@@ -63,7 +62,7 @@ func TestCloudwatchHandler_Handle(t *testing.T) {
 					{"id": "ev1", "timestamp": 1583425836114, "message": "hello"},
 				},
 			})),
-			config:   testutil.EmptyConfig(),
+			config:   &Config{},
 			chanSize: 1,
 			want: []model.LogEntry{
 				{
@@ -96,7 +95,7 @@ func TestCloudwatchHandler_Handle(t *testing.T) {
 					{"id": "a2", "timestamp": 2000, "message": "second"},
 				},
 			})),
-			config:   testutil.EmptyConfig(),
+			config:   &Config{},
 			chanSize: 2,
 			want: []model.LogEntry{
 				{
@@ -133,7 +132,7 @@ func TestCloudwatchHandler_Handle(t *testing.T) {
 					},
 				},
 			})),
-			config:   testutil.EmptyConfig(),
+			config:   &Config{},
 			chanSize: 1,
 			want: []model.LogEntry{
 				{
@@ -169,7 +168,7 @@ func TestCloudwatchHandler_Handle(t *testing.T) {
 					},
 				},
 			})),
-			config:   testutil.EmptyConfig(),
+			config:   &Config{},
 			chanSize: 1,
 			want: []model.LogEntry{
 				{
@@ -201,7 +200,7 @@ func TestCloudwatchHandler_Handle(t *testing.T) {
 					{"id": "ev1", "timestamp": 1000, "message": "hello"},
 				},
 			})),
-			config: &config.Config{
+			config: &Config{
 				Source:  "custom-source",
 				Host:    "custom-host",
 				Service: "custom-service",
@@ -228,7 +227,7 @@ func TestCloudwatchHandler_Handle(t *testing.T) {
 			t.Parallel()
 
 			out := make(chan model.LogEntry, tc.chanSize)
-			handler := NewCloudwatch(tc.config)
+			handler := newCloudwatch(tc.config, nil, nil)
 
 			err := handler.Handle(ctx, tc.event, out)
 			close(out)

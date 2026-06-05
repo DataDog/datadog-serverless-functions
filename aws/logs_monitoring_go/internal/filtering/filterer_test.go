@@ -16,72 +16,72 @@ func TestFilterer_ShouldExclude(t *testing.T) {
 	t.Parallel()
 
 	tests := map[string]struct {
-		include string
-		exclude string
-		msg     string
-		want    bool
+		includeRe *regexp.Regexp
+		excludeRe *regexp.Regexp
+		msg       string
+		want      bool
 	}{
 		"no filter": {
 			msg:  "hello",
 			want: false,
 		},
 		"include match": {
-			include: `error`,
-			msg:     "an error occurred",
-			want:    false,
+			includeRe: regexp.MustCompile(`error`),
+			msg:       "an error occurred",
+			want:      false,
 		},
 		"include no match": {
-			include: `error`,
-			msg:     "hello",
-			want:    true,
+			includeRe: regexp.MustCompile(`error`),
+			msg:       "hello",
+			want:      true,
 		},
 		"exclude match": {
-			exclude: `DEBUG`,
-			msg:     "DEBUG message",
-			want:    true,
+			excludeRe: regexp.MustCompile(`DEBUG`),
+			msg:       "DEBUG message",
+			want:      true,
 		},
 		"exclude no match": {
-			exclude: `DEBUG`,
-			msg:     "INFO message",
-			want:    false,
+			excludeRe: regexp.MustCompile(`DEBUG`),
+			msg:       "INFO message",
+			want:      false,
 		},
 		"exclude overrides include": {
-			include: `error`,
-			exclude: `error`,
-			msg:     "error message",
-			want:    true,
+			includeRe: regexp.MustCompile(`error`),
+			excludeRe: regexp.MustCompile(`error`),
+			msg:       "error message",
+			want:      true,
 		},
 		"include match exclude not match": {
-			include: `error`,
-			exclude: `DEBUG`,
-			msg:     "error happened",
-			want:    false,
+			includeRe: regexp.MustCompile(`error`),
+			excludeRe: regexp.MustCompile(`DEBUG`),
+			msg:       "error happened",
+			want:      false,
 		},
 		"include and exclude neither match": {
-			include: `error`,
-			exclude: `DEBUG`,
-			msg:     "INFO normal",
-			want:    true,
+			includeRe: regexp.MustCompile(`error`),
+			excludeRe: regexp.MustCompile(`DEBUG`),
+			msg:       "INFO normal",
+			want:      true,
 		},
 		"partial match": {
-			include: `err`,
-			msg:     "some error here",
-			want:    false,
+			includeRe: regexp.MustCompile(`err`),
+			msg:       "some error here",
+			want:      false,
 		},
 		"case sensitive": {
-			include: `ERROR`,
-			msg:     "error",
-			want:    true,
+			includeRe: regexp.MustCompile(`ERROR`),
+			msg:       "error",
+			want:      true,
 		},
 		"special chars": {
-			include: `\d{3}`,
-			msg:     "error 404",
-			want:    false,
+			includeRe: regexp.MustCompile(`\d{3}`),
+			msg:       "error 404",
+			want:      false,
 		},
 		"empty message": {
-			include: `error`,
-			msg:     "",
-			want:    true,
+			includeRe: regexp.MustCompile(`error`),
+			msg:       "",
+			want:      true,
 		},
 	}
 
@@ -89,9 +89,7 @@ func TestFilterer_ShouldExclude(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			includeRe := regexp.MustCompile(tc.include)
-			excludeRe := regexp.MustCompile(tc.exclude)
-			filterer := NewFilterer(includeRe, excludeRe)
+			filterer := NewFilterer(tc.includeRe, tc.excludeRe)
 
 			assert.Equal(t, tc.want, filterer.ShouldExclude(tc.msg))
 		})

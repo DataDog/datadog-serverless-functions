@@ -15,7 +15,6 @@ import (
 	"testing"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/filtering"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambdacontext"
@@ -47,28 +46,6 @@ func Config(t *testing.T, opts ...ConfigOption) *config.Config {
 		opt(t, cfg)
 	}
 	return cfg
-}
-
-func WithIncludeFilter(pattern string) ConfigOption {
-	return func(t *testing.T, cfg *config.Config) {
-		t.Helper()
-		f, err := filtering.NewFilter(pattern, "")
-		if err != nil {
-			t.Fatalf("include filter: %v", err)
-		}
-		cfg.Filter = f
-	}
-}
-
-func WithExcludeFilter(pattern string) ConfigOption {
-	return func(t *testing.T, cfg *config.Config) {
-		t.Helper()
-		f, err := filtering.NewFilter("", pattern)
-		if err != nil {
-			t.Fatalf("exclude filter: %v", err)
-		}
-		cfg.Filter = f
-	}
 }
 
 func WithMultilineRegex(pattern string) ConfigOption {

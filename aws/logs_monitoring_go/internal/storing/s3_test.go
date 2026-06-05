@@ -62,7 +62,7 @@ func TestS3_Put(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			mock := sdkclient.NewMockS3(ctrl)
 			tc.mockSetup(mock)
-			storage := NewS3(mock, testBucket)
+			storage := newS3(mock, testBucket)
 
 			err := storage.Put(t.Context(), []byte{}, tc.storageTag)
 
@@ -121,7 +121,7 @@ func TestS3_List(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			mock := sdkclient.NewMockS3(ctrl)
 			tc.mockSetup(mock)
-			storage := NewS3(mock, testBucket)
+			storage := newS3(mock, testBucket)
 
 			keys, err := storage.List(t.Context())
 
@@ -176,7 +176,7 @@ func TestS3_Get(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			mock := sdkclient.NewMockS3(ctrl)
 			tc.mockSetup(mock)
-			storage := NewS3(mock, testBucket)
+			storage := newS3(mock, testBucket)
 
 			body, storageTag, err := storage.Get(t.Context(), testKey)
 
@@ -225,7 +225,7 @@ func TestS3_Delete(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			mock := sdkclient.NewMockS3(ctrl)
 			tc.mockSetup(mock)
-			storage := NewS3(mock, testBucket)
+			storage := newS3(mock, testBucket)
 
 			err := storage.Delete(t.Context(), testKey)
 

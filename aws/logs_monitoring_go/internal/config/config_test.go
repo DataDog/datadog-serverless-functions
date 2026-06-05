@@ -23,27 +23,27 @@ func TestLoad(t *testing.T) {
 		wantErr   bool
 	}{
 		"defaults": {
-			want: Config{Site: DefaultSite, IntakeURL: defaultURL, APIURL: defaultAPI},
+			want: Config{IntakeURL: defaultURL, APIURL: defaultAPI},
 		},
 		"eu site": {
 			env:  map[string]string{EnvSite: "datadoghq.eu"},
-			want: Config{Site: "datadoghq.eu", IntakeURL: "https://http-intake.logs.datadoghq.eu:443/api/v2/logs", APIURL: "https://api.datadoghq.eu"},
+			want: Config{IntakeURL: "https://http-intake.logs.datadoghq.eu:443/api/v2/logs", APIURL: "https://api.datadoghq.eu"},
 		},
 		"custom url": {
 			env:  map[string]string{EnvURL: "https://custom.example.com"},
-			want: Config{Site: DefaultSite, IntakeURL: "https://custom.example.com", APIURL: defaultAPI},
+			want: Config{IntakeURL: "https://custom.example.com", APIURL: defaultAPI},
 		},
 		"source and host": {
 			env:  map[string]string{EnvSource: "custom", EnvHost: "my-host"},
-			want: Config{Site: DefaultSite, IntakeURL: defaultURL, APIURL: defaultAPI, Source: "custom", Host: "my-host"},
+			want: Config{IntakeURL: defaultURL, APIURL: defaultAPI, Source: "custom", Host: "my-host"},
 		},
 		"fips enabled": {
 			env:  map[string]string{EnvUseFIPS: "true"},
-			want: Config{Site: DefaultSite, IntakeURL: defaultURL, APIURL: defaultAPI, UseFIPS: true},
+			want: Config{IntakeURL: defaultURL, APIURL: defaultAPI, UseFIPS: true},
 		},
 		"valid multiline regex": {
 			env:       map[string]string{EnvMultilineLogRegex: `\d{4}-\d{2}-\d{2}`},
-			want:      Config{Site: DefaultSite, IntakeURL: defaultURL, APIURL: defaultAPI},
+			want:      Config{IntakeURL: defaultURL, APIURL: defaultAPI},
 			wantRegex: true,
 		},
 		"invalid multiline regex": {
@@ -66,7 +66,6 @@ func TestLoad(t *testing.T) {
 			}
 			require.NoError(t, err)
 
-			assert.Equal(t, tc.want.Site, got.Site)
 			assert.Equal(t, tc.want.IntakeURL, got.IntakeURL)
 			assert.Equal(t, tc.want.APIURL, got.APIURL)
 			assert.Equal(t, tc.want.Source, got.Source)
