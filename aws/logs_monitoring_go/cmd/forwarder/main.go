@@ -80,10 +80,12 @@ func handleRequest(cfg *config.Config) func(ctx context.Context, event json.RawM
 			CompressionLevel: cfg.CompressionLevel,
 		}
 
-		storageOpts := storing.Options{Enabled: cfg.StoreOnFail, FIPS: cfg.UseFIPS, S3Bucket: cfg.S3RetryBucketName}
-		storage, err := storing.NewStorage(ctx, storageOpts)
-		if err != nil {
-			return fmt.Errorf("new storage: %w", err)
+		var storage storing.Storage
+		if cfg.StoreOnFail {
+			storageOpts := storing.Options{FIPS: cfg.UseFIPS, S3Bucket: cfg.S3RetryBucketName}
+			if storage, err = storing.NewStorage(ctx, storageOpts); err != nil {
+				return fmt.Errorf("new storage: %w", err)
+			}
 		}
 
 		forwarder := forwarding.NewForwarder(

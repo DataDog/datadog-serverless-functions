@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/concurrent"
@@ -26,7 +27,7 @@ type Batcher struct {
 	batchSize int
 }
 
-func NewBatcher() *Batcher {
+func New() *Batcher {
 	return &Batcher{
 		batch: make([][]byte, 0, maxItemsPerBatch),
 	}
@@ -44,8 +45,7 @@ func (b *Batcher) Batch(ctx context.Context, in <-chan model.LogEntry, out chan<
 
 		data, err := json.Marshal(entry)
 		if err != nil {
-			slog.Warn("failed to marshal log entry, skipped", slog.Any("error", err))
-			continue
+			return fmt.Errorf("marshal: %w", err)
 		}
 
 		if len(data) > maxItemSize {

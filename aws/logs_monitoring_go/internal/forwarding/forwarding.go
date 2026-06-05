@@ -9,12 +9,12 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
 	"sync"
+	"sync/atomic"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/batching"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/concurrent"
@@ -44,10 +44,6 @@ type Config struct {
 }
 
 func NewForwarder(cfg Config, client *http.Client, storage storing.Storage) *Forwarder {
-	if storage == nil {
-		slog.Warn("failed event storage not configured, can lead to event loss")
-	}
-
 	header := http.Header{
 		"DD-API-KEY":            []string{cfg.APIKey},
 		"DD-EVP-ORIGIN":         []string{"aws_forwarder"},
@@ -70,49 +66,59 @@ func NewForwarder(cfg Config, client *http.Client, storage storing.Storage) *For
 }
 
 func (f *Forwarder) Start(ctx context.Context, in <-chan model.LogEntry, storageTag string) error {
-	batches := make(chan []byte, httpclient.MaxConcurrency)
-	batcher := batching.NewBatcher()
+	eg, ctx := errgroup.WithContext(ctx)
 
-	producerErrCh := make(chan error, 1)
-	go func() {
+	batches := make(chan []byte)
+	eg.Go(func() error {
 		defer close(batches)
-		producerErrCh <- batcher.Batch(ctx, in, batches)
-	}()
-
-	var eg errgroup.Group
-	eg.SetLimit(httpclient.MaxConcurrency)
-
-	var errs []error
-	var mu sync.Mutex
-
-	for {
-		body, ok, _ := concurrent.SafeReader(ctx, batches)
-		if !ok {
-			break
+		if err := batching.New().Batch(ctx, in, batches); err != nil {
+			return fmt.Errorf("batch: %w", err)
 		}
+		return nil
+	})
 
+	var stopSending atomic.Bool
+	for range httpclient.MaxConcurrency {
 		eg.Go(func() error {
-			err := f.send(ctx, body, storageTag)
-			if err == nil {
-				return nil
-			}
+			var sendingErr error
+			for {
+				batch, ok, _ := concurrent.SafeReader(ctx, batches)
+				if !ok {
+					break
+				}
 
-			mu.Lock()
-			errs = append(errs, err)
-			mu.Unlock()
+				if !stopSending.Load() {
+					sendingErr = f.send(ctx, batch, storageTag)
+					if sendingErr == nil {
+						continue
+					}
 
-			if f.storage != nil {
-				if storeErr := f.storage.Put(ctx, body, storageTag); storeErr != nil {
-					slog.WarnContext(ctx, "failed to store batch, dropping", slog.Any("error", storeErr))
+					stopSending.Store(true)
+					slog.WarnContext(ctx, "failed to send batch", slog.Any("error", sendingErr))
+				}
+
+				if err := f.store(ctx, batch, storageTag); err != nil {
+					return fmt.Errorf("store: %w", err)
 				}
 			}
 
-			return nil
+			return sendingErr
 		})
 	}
-	_ = eg.Wait()
 
-	return errors.Join(append(errs, <-producerErrCh)...)
+	return eg.Wait()
+}
+
+func (f *Forwarder) store(ctx context.Context, batch []byte, storageTag string) error {
+	if f.storage == nil {
+		return nil
+	}
+
+	if err := f.storage.Put(ctx, batch, storageTag); err != nil {
+		return fmt.Errorf("put: %w", err)
+	}
+
+	return nil
 }
 
 func (f *Forwarder) Retry(ctx context.Context) error {
