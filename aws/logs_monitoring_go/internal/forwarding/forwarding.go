@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -96,31 +97,19 @@ func (f *Forwarder) Start(ctx context.Context, in <-chan model.LogEntry, storage
 					onceSent.Do(func() { sentErr = err })
 				}
 
-				if err := f.store(ctx, batch, storageTag); err != nil {
-					return fmt.Errorf("store: %w", err)
+				if f.storage == nil {
+					break
+				}
+
+				if err := f.storage.Put(ctx, batch, storageTag); err != nil {
+					return fmt.Errorf("put: %w", err)
 				}
 			}
 			return nil
 		})
 	}
 
-	if err := eg.Wait(); err != nil {
-		return err
-	}
-
-	return sentErr
-}
-
-func (f *Forwarder) store(ctx context.Context, batch []byte, storageTag string) error {
-	if f.storage == nil {
-		return nil
-	}
-
-	if err := f.storage.Put(ctx, batch, storageTag); err != nil {
-		return fmt.Errorf("put: %w", err)
-	}
-
-	return nil
+	return errors.Join(eg.Wait(), sentErr)
 }
 
 func (f *Forwarder) Retry(ctx context.Context) error {
