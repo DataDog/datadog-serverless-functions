@@ -15,11 +15,13 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/sdkclient"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/concurrent"
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/filtering"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/scrubbing"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/sdkclient"
 	"github.com/aws/aws-lambda-go/events"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
 const (
@@ -29,25 +31,26 @@ const (
 	s3KeyWAF2        = "waflogs"
 )
 
-type S3Handler struct {
-	cfg *config.Config
+type s3Handler struct {
+	cfg      *Config
+	client   sdkclient.S3
+	scrubber *scrubbing.Scrubber
+	filterer *filtering.Filterer
 }
 
-func NewS3(cfg *config.Config) *S3Handler {
-	return &S3Handler{
-		cfg: cfg,
+func newS3(cfg *Config, client sdkclient.S3, scrubber *scrubbing.Scrubber, filterer *filtering.Filterer) *s3Handler {
+	return &s3Handler{
+		cfg:      cfg,
+		client:   client,
+		scrubber: scrubber,
+		filterer: filterer,
 	}
 }
 
-func (h *S3Handler) Handle(ctx context.Context, event json.RawMessage, out chan<- model.LogEntry) error {
+func (h *s3Handler) Handle(ctx context.Context, event json.RawMessage, out chan<- model.LogEntry) error {
 	var s3Event events.S3Event
 	if err := json.Unmarshal(event, &s3Event); err != nil {
 		return fmt.Errorf("unmarshal: %w", err)
-	}
-
-	s3Client, err := sdkclient.GetS3(ctx, h.cfg.UseFIPS)
-	if err != nil {
-		return fmt.Errorf("get S3 client: %w", err)
 	}
 
 	lambdaOrigin, err := model.GetLambdaOrigin(ctx)
@@ -56,30 +59,33 @@ func (h *S3Handler) Handle(ctx context.Context, event json.RawMessage, out chan<
 	}
 
 	for _, eventRecord := range s3Event.Records {
-		if err := h.processRecord(ctx, s3Client, out, eventRecord, lambdaOrigin); err != nil {
+		if err := h.processRecord(ctx, out, eventRecord, lambdaOrigin); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (h S3Handler) processRecord(ctx context.Context, s3Client sdkclient.S3, out chan<- model.LogEntry, eventRecord events.S3EventRecord, lambdaOrigin model.LambdaOrigin) error {
-	body, err := sdkclient.GetS3Object(ctx, s3Client, eventRecord.S3.Bucket.Name, eventRecord.S3.Object.URLDecodedKey)
+func (h s3Handler) processRecord(ctx context.Context, out chan<- model.LogEntry, eventRecord events.S3EventRecord, lambdaOrigin model.LambdaOrigin) error {
+	output, err := h.client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: &eventRecord.S3.Bucket.Name,
+		Key:    &eventRecord.S3.Object.URLDecodedKey,
+	})
 	if err != nil {
 		return err
 	}
 	defer func() {
-		if err := body.Close(); err != nil {
+		if err := output.Body.Close(); err != nil {
 			slog.Warn("close response body", slog.Any("error", err))
 		}
 	}()
 
-	reader, close, err := gunzip(body)
+	reader, gzClose, err := gunzip(output.Body)
 	if err != nil {
 		return err
 	}
 	defer func() {
-		if err := close(); err != nil {
+		if err := gzClose(); err != nil {
 			slog.Warn("close gunzip", slog.Any("error", err))
 		}
 	}()
@@ -113,7 +119,7 @@ func S3Source(key string) string {
 	return sourceS3
 }
 
-func (h S3Handler) S3(ctx context.Context, out chan<- model.LogEntry, r io.Reader, eventRecord events.S3EventRecord, lambdaOrigin model.LambdaOrigin) error {
+func (h s3Handler) S3(ctx context.Context, out chan<- model.LogEntry, r io.Reader, eventRecord events.S3EventRecord, lambdaOrigin model.LambdaOrigin) error {
 	var headerSkipped bool
 	isVpcFlowLogs := strings.Contains(eventRecord.S3.Object.URLDecodedKey, s3KeyVpcFlowLogs)
 
@@ -129,12 +135,12 @@ func (h S3Handler) S3(ctx context.Context, out chan<- model.LogEntry, r io.Reade
 		}
 
 		tags, service, message := extractFromMessage(message)
-		if h.cfg.Filter.ShouldExclude(message) {
+		if h.filterer.ShouldExclude(message) {
 			continue
 		}
 
 		entry := base
-		entry.Message = h.cfg.Scrubber.Scrub(message)
+		entry.Message = h.scrubber.Apply(message)
 		entry.Service = cmp.Or(service, entry.Service)
 		entry.Tags = slices.Concat(tags, entry.Tags)
 
@@ -145,7 +151,7 @@ func (h S3Handler) S3(ctx context.Context, out chan<- model.LogEntry, r io.Reade
 	return nil
 }
 
-func (h S3Handler) WAF(ctx context.Context, out chan<- model.LogEntry, r io.Reader, eventRecord events.S3EventRecord, lambdaOrigin model.LambdaOrigin) error {
+func (h s3Handler) WAF(ctx context.Context, out chan<- model.LogEntry, r io.Reader, eventRecord events.S3EventRecord, lambdaOrigin model.LambdaOrigin) error {
 	base := h.newBaseEntry(eventRecord, lambdaOrigin)
 	for message, err := range scan(r, nil) {
 		if err != nil {
@@ -153,12 +159,12 @@ func (h S3Handler) WAF(ctx context.Context, out chan<- model.LogEntry, r io.Read
 		}
 
 		message = flattenWAFMessage(message)
-		if h.cfg.Filter.ShouldExclude(message) {
+		if h.filterer.ShouldExclude(message) {
 			continue
 		}
 
 		entry := base
-		entry.Message = h.cfg.Scrubber.Scrub(message)
+		entry.Message = h.scrubber.Apply(message)
 
 		if err := concurrent.SafeSender(ctx, out, entry); err != nil {
 			return err
@@ -167,19 +173,19 @@ func (h S3Handler) WAF(ctx context.Context, out chan<- model.LogEntry, r io.Read
 	return nil
 }
 
-func (h S3Handler) CloudTrail(ctx context.Context, out chan<- model.LogEntry, r io.Reader, eventRecord events.S3EventRecord, lambdaOrigin model.LambdaOrigin) error {
+func (h s3Handler) CloudTrail(ctx context.Context, out chan<- model.LogEntry, r io.Reader, eventRecord events.S3EventRecord, lambdaOrigin model.LambdaOrigin) error {
 	base := h.newBaseEntry(eventRecord, lambdaOrigin)
 	for message, err := range decodeCloudTrail(r) {
 		if err != nil {
 			return err
 		}
-		if h.cfg.Filter.ShouldExclude(message) {
+		if h.filterer.ShouldExclude(message) {
 			continue
 		}
 
 		entry := base
 		entry.Host = cloudtrailHost(message)
-		entry.Message = h.cfg.Scrubber.Scrub(message)
+		entry.Message = h.scrubber.Apply(message)
 
 		if err := concurrent.SafeSender(ctx, out, entry); err != nil {
 			return err
@@ -188,7 +194,7 @@ func (h S3Handler) CloudTrail(ctx context.Context, out chan<- model.LogEntry, r 
 	return nil
 }
 
-func (h S3Handler) newBaseEntry(eventRecord events.S3EventRecord, lambdaOrigin model.LambdaOrigin) model.LogEntry {
+func (h s3Handler) newBaseEntry(eventRecord events.S3EventRecord, lambdaOrigin model.LambdaOrigin) model.LogEntry {
 	source := S3Source(eventRecord.S3.Object.URLDecodedKey)
 
 	entry := model.NewLogEntry()

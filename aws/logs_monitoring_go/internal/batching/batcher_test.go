@@ -64,7 +64,7 @@ func TestBatch(t *testing.T) {
 			}
 			close(in)
 
-			batcher := NewBatcher()
+			batcher := New()
 			err := batcher.Batch(t.Context(), in, out)
 			require.NoError(t, err)
 			close(out)

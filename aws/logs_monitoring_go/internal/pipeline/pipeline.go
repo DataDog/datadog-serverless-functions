@@ -10,33 +10,56 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/filtering"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/forwarding"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/handling"
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/httpclient"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/parsing"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/scrubbing"
 	"golang.org/x/sync/errgroup"
 )
 
-func Start(
+type Pipeline struct {
+	hcfg      handling.Config
+	scrubber  *scrubbing.Scrubber
+	filterer  *filtering.Filterer
+	forwarder *forwarding.Forwarder
+}
+
+func New(
+	hcfg handling.Config,
+	scrubber *scrubbing.Scrubber,
+	filterer *filtering.Filterer,
+	forwarder *forwarding.Forwarder,
+) *Pipeline {
+	return &Pipeline{
+		hcfg:      hcfg,
+		scrubber:  scrubber,
+		filterer:  filterer,
+		forwarder: forwarder,
+	}
+}
+
+func (p *Pipeline) Start(
 	ctx context.Context,
 	parsedEvents []parsing.ParsedEvent,
-	cfg *config.Config,
 ) error {
-	if len(parsedEvents) == 0 {
-		return errors.New("no events to process")
+	contentType := parsedEvents[0].ContentType
+	if contentType == parsing.ContentTypeRetry {
+		if err := p.forwarder.Retry(ctx); err != nil {
+			return fmt.Errorf("retry: %w", err)
+		}
+		return nil
 	}
 
 	eg, ctx := errgroup.WithContext(ctx)
 
 	entries := make(chan model.LogEntry)
-	forwarder := forwarding.NewForwarder(cfg, httpclient.Client, forwarding.StorageFromContentType(parsedEvents[0].ContentType))
 
 	eg.Go(func() error {
 		defer close(entries)
 		for _, parsedEvent := range parsedEvents {
-			handler, err := handling.NewHandler(parsedEvent.ContentType, cfg)
+			handler, err := handling.NewHandler(ctx, p.hcfg, p.scrubber, p.filterer, parsedEvent.ContentType)
 			if err != nil {
 				return fmt.Errorf("new handler: %w", err)
 			}
@@ -48,7 +71,7 @@ func Start(
 		return nil
 	})
 
-	err := forwarder.Start(ctx, entries)
+	err := p.forwarder.Start(ctx, entries, forwarding.StorageTag(contentType))
 	if waitErr := eg.Wait(); waitErr != nil {
 		return errors.Join(err, waitErr)
 	}

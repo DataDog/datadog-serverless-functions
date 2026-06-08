@@ -11,28 +11,33 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/filtering"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/scrubbing"
 	"github.com/aws/aws-lambda-go/events"
 )
 
-type KinesisHandler struct {
-	cfg *config.Config
+type kinesisHandler struct {
+	cfg      *Config
+	scrubber *scrubbing.Scrubber
+	filterer *filtering.Filterer
 }
 
-func NewKinesis(cfg *config.Config) *KinesisHandler {
-	return &KinesisHandler{
-		cfg: cfg,
+func newKinesis(cfg *Config, scrubber *scrubbing.Scrubber, filterer *filtering.Filterer) *kinesisHandler {
+	return &kinesisHandler{
+		cfg:      cfg,
+		scrubber: scrubber,
+		filterer: filterer,
 	}
 }
 
-func (h *KinesisHandler) Handle(ctx context.Context, event json.RawMessage, out chan<- model.LogEntry) error {
+func (h *kinesisHandler) Handle(ctx context.Context, event json.RawMessage, out chan<- model.LogEntry) error {
 	var kinesisEvent events.KinesisEvent
 	if err := json.Unmarshal(event, &kinesisEvent); err != nil {
 		return fmt.Errorf("unmarshal: %w", err)
 	}
 
-	cw := CloudwatchHandler(*h)
+	cw := cloudwatchHandler{cfg: h.cfg, scrubber: h.scrubber, filterer: h.filterer}
 	for i, record := range kinesisEvent.Records {
 		cwData, err := decompressCloudwatchLogs(record.Kinesis.Data)
 		if err != nil {

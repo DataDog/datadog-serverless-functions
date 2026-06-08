@@ -78,7 +78,7 @@ func TestKinesisHandler_Handle(t *testing.T) {
 			t.Parallel()
 
 			out := make(chan model.LogEntry, tc.wantN)
-			handler := NewKinesis(testutil.EmptyConfig())
+			handler := newKinesis(&Config{}, nil, nil)
 
 			err := handler.Handle(ctx, tc.event, out)
 			close(out)

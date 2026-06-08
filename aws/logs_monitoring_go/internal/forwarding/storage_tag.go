@@ -8,16 +8,17 @@ package forwarding
 import "github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/parsing"
 
 const (
-	cloudwatchStorage = "cloudwatch"
-	s3Storage         = "s3"
+	storageTagHeader     = "DD-STORAGE-TAG"
+	cloudwatchStorageTag = "cloudwatch"
+	s3StorageTag         = "s3"
 )
 
-func StorageFromContentType(contentType parsing.ContentType) string {
+func StorageTag(contentType parsing.ContentType) string {
 	switch contentType {
 	case parsing.ContentTypeS3:
-		return s3Storage
+		return s3StorageTag
 	case parsing.ContentTypeCloudwatchLogs, parsing.ContentTypeKinesis:
-		return cloudwatchStorage
+		return cloudwatchStorageTag
 	default:
 		return ""
 	}

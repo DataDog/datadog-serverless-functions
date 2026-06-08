@@ -7,9 +7,10 @@ package handling
 
 import (
 	"encoding/json"
+	"regexp"
 	"testing"
 
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/filtering"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/testutil"
 	"github.com/stretchr/testify/assert"
@@ -22,14 +23,15 @@ func TestEventBridgeHandler_Handle(t *testing.T) {
 	ctx := testutil.LambdaContext(t)
 
 	tests := map[string]struct {
-		event   json.RawMessage
-		cfg     *config.Config
-		want    []model.LogEntry
-		wantErr bool
+		event    json.RawMessage
+		cfg      *Config
+		filterer *filtering.Filterer
+		want     []model.LogEntry
+		wantErr  bool
 	}{
 		"scheduled event": {
 			event: json.RawMessage(`{"version":"0","id":"abc","detail-type":"Scheduled Event","source":"aws.events","account":"123456789012","time":"1970-01-01T00:00:00Z","region":"us-east-1","resources":[],"detail":{}}`),
-			cfg:   testutil.EmptyConfig(),
+			cfg:   &Config{},
 			want: []model.LogEntry{
 				{
 					Message:        `{"version":"0","id":"abc","detail-type":"Scheduled Event","source":"aws.events","account":"123456789012","time":"1970-01-01T00:00:00Z","region":"us-east-1","resources":[],"detail":{}}`,
@@ -42,7 +44,7 @@ func TestEventBridgeHandler_Handle(t *testing.T) {
 		},
 		"ec2 event": {
 			event: json.RawMessage(`{"version":"0","id":"abc","detail-type":"EC2 Instance State-change Notification","source":"aws.ec2","account":"123456789012","time":"1970-01-01T00:00:00Z","region":"us-east-1","resources":[],"detail":{"instance-id":"i-123","state":"running"}}`),
-			cfg:   testutil.EmptyConfig(),
+			cfg:   &Config{},
 			want: []model.LogEntry{
 				{
 					Message:        `{"version":"0","id":"abc","detail-type":"EC2 Instance State-change Notification","source":"aws.ec2","account":"123456789012","time":"1970-01-01T00:00:00Z","region":"us-east-1","resources":[],"detail":{"instance-id":"i-123","state":"running"}}`,
@@ -55,7 +57,7 @@ func TestEventBridgeHandler_Handle(t *testing.T) {
 		},
 		"custom source override": {
 			event: json.RawMessage(`{"version":"0","id":"abc","detail-type":"Scheduled Event","source":"aws.events","account":"123456789012","time":"1970-01-01T00:00:00Z","region":"us-east-1","resources":[],"detail":{}}`),
-			cfg:   &config.Config{Source: "custom-source"},
+			cfg:   &Config{Source: "custom-source"},
 			want: []model.LogEntry{
 				{
 					Message:        `{"version":"0","id":"abc","detail-type":"Scheduled Event","source":"aws.events","account":"123456789012","time":"1970-01-01T00:00:00Z","region":"us-east-1","resources":[],"detail":{}}`,
@@ -68,12 +70,12 @@ func TestEventBridgeHandler_Handle(t *testing.T) {
 		},
 		"invalid JSON": {
 			event:   json.RawMessage(`not json`),
-			cfg:     testutil.EmptyConfig(),
+			cfg:     &Config{},
 			wantErr: true,
 		},
 		"securityhub no findings falls back": {
 			event: json.RawMessage(`{"source":"aws.securityhub","detail":{}}`),
-			cfg:   testutil.EmptyConfig(),
+			cfg:   &Config{},
 			want: []model.LogEntry{
 				{
 					Message:        `{"source":"aws.securityhub","detail":{}}`,
@@ -90,7 +92,7 @@ func TestEventBridgeHandler_Handle(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			handler := NewEventBridge(tc.cfg)
+			handler := newEventBridge(tc.cfg, nil, tc.filterer)
 			out := make(chan model.LogEntry, len(tc.want))
 
 			err := handler.Handle(ctx, tc.event, out)
@@ -119,27 +121,29 @@ func TestEventBridgeHandler_SecurityHub(t *testing.T) {
 	ctx := testutil.LambdaContext(t)
 
 	tests := map[string]struct {
-		event json.RawMessage
-		cfg   *config.Config
-		want  []string
+		event    json.RawMessage
+		cfg      *Config
+		filterer *filtering.Filterer
+		want     []string
 	}{
 		"one finding": {
 			event: json.RawMessage(`{"source":"aws.securityhub","detail-type":"Security Hub Findings - Imported","detail":{"findings":[{"myattribute":"somevalue","Resources":[{"Region":"us-east-1","Type":"AwsEc2SecurityGroup"}]}]}}`),
-			cfg:   testutil.EmptyConfig(),
+			cfg:   &Config{},
 			want:  []string{`{"source":"aws.securityhub","detail-type":"Security Hub Findings - Imported","detail":{"finding":{"myattribute":"somevalue","resources":{"AwsEc2SecurityGroup":{"Region":"us-east-1"}}}}}`},
 		},
 		"multiple findings": {
 			event: json.RawMessage(`{"source":"aws.securityhub","detail":{"findings":[{"id":"f1","Resources":[{"Type":"AwsEc2SecurityGroup","Region":"us-east-1"}]},{"id":"f2","Resources":[{"Type":"AwsIamRole","Region":"us-west-2"}]}]}}`),
-			cfg:   testutil.EmptyConfig(),
+			cfg:   &Config{},
 			want: []string{
 				`{"source":"aws.securityhub","detail":{"finding":{"id":"f1","resources":{"AwsEc2SecurityGroup":{"Region":"us-east-1"}}}}}`,
 				`{"source":"aws.securityhub","detail":{"finding":{"id":"f2","resources":{"AwsIamRole":{"Region":"us-west-2"}}}}}`,
 			},
 		},
 		"with filtering": {
-			event: json.RawMessage(`{"source":"aws.securityhub","detail":{"findings":[{"id":"keep","Resources":[]},{"id":"drop","Resources":[]}]}}`),
-			cfg:   testutil.Config(t, testutil.WithExcludeFilter(`"id":"drop"`)),
-			want:  []string{`{"source":"aws.securityhub","detail":{"finding":{"id":"keep","resources":{}}}}`},
+			event:    json.RawMessage(`{"source":"aws.securityhub","detail":{"findings":[{"id":"keep","Resources":[]},{"id":"drop","Resources":[]}]}}`),
+			cfg:      &Config{},
+			filterer: filtering.NewFilterer(nil, regexp.MustCompile(`"id":"drop"`)),
+			want:     []string{`{"source":"aws.securityhub","detail":{"finding":{"id":"keep","resources":{}}}}`},
 		},
 	}
 
@@ -147,7 +151,7 @@ func TestEventBridgeHandler_SecurityHub(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			handler := NewEventBridge(tc.cfg)
+			handler := newEventBridge(tc.cfg, nil, tc.filterer)
 			out := make(chan model.LogEntry, len(tc.want))
 
 			err := handler.Handle(ctx, tc.event, out)

@@ -18,6 +18,7 @@ const (
 	detailKey         = "detail"
 	eventSourceKey    = "eventSource"
 	recordsKey        = "Records"
+	retryKey          = "retry"
 
 	eventSourceS3      = "aws:s3"
 	eventSourceKinesis = "aws:kinesis"
@@ -40,6 +41,8 @@ func Parse(event json.RawMessage) ([]ParsedEvent, error) {
 		switch key {
 		case cloudwatchLogsKey:
 			return []ParsedEvent{{ContentType: ContentTypeCloudwatchLogs, Payload: event}}, nil
+		case retryKey:
+			return []ParsedEvent{{ContentType: ContentTypeRetry}}, nil
 		case recordsKey:
 			parsed, err := parseRecords(event, dec)
 			if err != nil {

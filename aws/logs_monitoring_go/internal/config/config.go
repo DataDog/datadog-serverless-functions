@@ -8,18 +8,19 @@ package config
 import (
 	"compress/gzip"
 	"errors"
-	"fmt"
 	"log/slog"
+	"os"
 	"regexp"
 
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/filtering"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/scrubbing"
 )
 
 const (
-	DefaultSite                 = "datadoghq.com"
-	DefaultLogLevel             = "INFO"
+	DefaultSite     = "datadoghq.com"
+	DefaultPort     = "443"
+	DefaultProtocol = "https"
+	DefaultLogLevel = "INFO"
+
 	EnvAPIKey                   = "DD_API_KEY"
 	EnvSite                     = "DD_SITE"
 	EnvURL                      = "DD_URL"
@@ -40,97 +41,92 @@ const (
 	EnvRedactEmail              = "REDACT_EMAIL"
 	EnvIncludeAtMatch           = "INCLUDE_AT_MATCH"
 	EnvExcludeAtMatch           = "EXCLUDE_AT_MATCH"
+	EnvS3RetryBucketName        = "DD_S3_BUCKET_NAME"
+	EnvStoreFailedEvents        = "DD_STORE_FAILED_EVENTS"
 	ForwarderVersion            = "6.0"
 )
 
 type Config struct {
 	APIKey                string
 	APIURL                string
-	CompressionLevel      int
-	Filter                *filtering.Filter
-	Host                  string
 	IntakeURL             string
-	LogLevel              string
-	Port                  string
-	S3MultilineLogRegex   *regexp.Regexp
-	Scrubber              *scrubbing.Scrubber
-	Service               string
-	Site                  string
+	CompressionLevel      int
 	SkipServerCertificate bool
-	Source                string
-	Tags                  model.Tags
 	UseFIPS               bool
-	UseHTTP               bool
+	Host                  string
+	Source                string
+	Service               string
+	Tags                  model.Tags
+	S3MultilineLogRegex   *regexp.Regexp
+	FilterInclude         *regexp.Regexp
+	FilterExclude         *regexp.Regexp
+	ScrubbingRegex        *regexp.Regexp
+	ScrubbingReplacement  string
+	ScrubIP               bool
+	ScrubEmail            bool
+	StoreOnFail           bool
+	S3RetryBucketName     string
 }
 
 func Load() (*Config, error) {
-	logLevel := envOrDefault(EnvLogLevel, DefaultLogLevel)
-	initLogger(logLevel)
+	initLogger(envOrDefault(EnvLogLevel, DefaultLogLevel))
 	logDroppedEnvVars()
 
 	var cfg Config
-	cfg.LogLevel = logLevel
 	cfg.loadEnv()
 	cfg.extractFromEnv()
 
-	err := cfg.compileS3MultilineLogRegex()
-
-	scrubber, scrubbingErr := scrubbing.NewScrubber(
-		envOrDefault(EnvScrubbingRule, ""),
-		envOrDefault(EnvScrubbingRuleReplacement, ""),
-		envOrDefaultBool(EnvRedactIP, false),
-		envOrDefaultBool(EnvRedactEmail, false),
-	)
-	err = errors.Join(err, scrubbingErr)
-
-	filter, filteringErr := filtering.NewFilter(
-		envOrDefault(EnvIncludeAtMatch, ""),
-		envOrDefault(EnvExcludeAtMatch, ""),
-	)
-	err = errors.Join(err, filteringErr)
-	if err != nil {
-		return nil, err
+	var errs []error
+	patterns := []struct {
+		env   string
+		field **regexp.Regexp
+	}{
+		{env: EnvScrubbingRule, field: &cfg.ScrubbingRegex},
+		{env: EnvIncludeAtMatch, field: &cfg.FilterInclude},
+		{env: EnvExcludeAtMatch, field: &cfg.FilterExclude},
+		{env: EnvMultilineLogRegex, field: &cfg.S3MultilineLogRegex},
+	}
+	for _, pattern := range patterns {
+		if envValue := os.Getenv(pattern.env); envValue != "" {
+			re, err := regexp.Compile(envValue)
+			*pattern.field = re
+			errs = append(errs, err)
+		}
 	}
 
-	cfg.Scrubber = scrubber
-	cfg.Filter = filter
-	return &cfg, nil
+	return &cfg, errors.Join(errs...)
 }
 
 func (c *Config) loadEnv() {
-	c.Site = envOrDefault(EnvSite, DefaultSite)
-	c.SkipServerCertificate = envOrDefaultBool(EnvSkipServerCertificate, false)
-	c.UseHTTP = envOrDefaultBool(EnvUseHTTP, false)
+	site := envOrDefault(EnvSite, DefaultSite)
+	port := envOrDefault(EnvPort, DefaultPort)
+	protocol := DefaultProtocol
 
-	protocol := "https"
-	if c.UseHTTP {
+	c.SkipServerCertificate = envOrDefaultBool(EnvSkipServerCertificate, false)
+
+	if envOrDefaultBool(EnvUseHTTP, false) {
 		protocol = "http"
 	}
 
 	compressionLevel := envOrDefaultInt(EnvCompressionLevel, gzip.DefaultCompression)
 	if compressionLevel < gzip.HuffmanOnly || compressionLevel > gzip.BestCompression {
 		slog.Warn("invalid compression level, falling back to default", slog.Int("level", compressionLevel), slog.Int("fallback", gzip.DefaultCompression))
-		compressionLevel = gzip.BestCompression
+		compressionLevel = gzip.DefaultCompression
 	}
 	c.CompressionLevel = compressionLevel
 
-	c.Port = envOrDefault(EnvPort, "443")
-	c.IntakeURL = envOrDefault(EnvURL, protocol+"://http-intake.logs."+c.Site+":"+c.Port+"/api/v2/logs")
-	c.APIURL = envOrDefault(EnvAPIURL, protocol+"://api."+c.Site)
+	c.IntakeURL = envOrDefault(EnvURL, protocol+"://http-intake.logs."+site+":"+port+"/api/v2/logs")
+	c.APIURL = envOrDefault(EnvAPIURL, protocol+"://api."+site)
+
 	c.UseFIPS = envOrDefaultBool(EnvUseFIPS, false)
+
 	c.Source = envOrDefault(EnvSource, "")
 	c.Host = envOrDefault(EnvHost, "")
-}
 
-func (c *Config) compileS3MultilineLogRegex() error {
-	pattern := envOrDefault(EnvMultilineLogRegex, "")
-	if pattern == "" {
-		return nil
-	}
-	re, err := regexp.Compile(pattern)
-	if err != nil {
-		return fmt.Errorf("compile multiline log regex: %w", err)
-	}
-	c.S3MultilineLogRegex = re
-	return nil
+	c.StoreOnFail = envOrDefaultBool(EnvStoreFailedEvents, false)
+	c.S3RetryBucketName = envOrDefault(EnvS3RetryBucketName, "")
+
+	c.ScrubbingReplacement = envOrDefault(EnvScrubbingRuleReplacement, "")
+	c.ScrubIP = envOrDefaultBool(EnvRedactIP, false)
+	c.ScrubEmail = envOrDefaultBool(EnvRedactEmail, false)
 }

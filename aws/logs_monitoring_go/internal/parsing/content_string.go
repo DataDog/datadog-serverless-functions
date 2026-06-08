@@ -14,11 +14,12 @@ func _() {
 	_ = x[ContentTypeKinesis-3]
 	_ = x[ContentTypeEventBridge-4]
 	_ = x[ContentTypeSNS-5]
+	_ = x[ContentTypeRetry-6]
 }
 
-const _ContentType_name = "UnknownCloudwatchLogsS3KinesisEventBridgeSNS"
+const _ContentType_name = "UnknownCloudwatchLogsS3KinesisEventBridgeSNSRetry"
 
-var _ContentType_index = [...]uint8{0, 7, 21, 23, 30, 41, 44}
+var _ContentType_index = [...]uint8{0, 7, 21, 23, 30, 41, 44, 49}
 
 func (i ContentType) String() string {
 	idx := int(i) - 0

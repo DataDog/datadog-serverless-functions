@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"sync"
 
@@ -20,6 +21,7 @@ import (
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/httpclient"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/storing"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -28,14 +30,28 @@ var bufPool = sync.Pool{
 }
 
 type Forwarder struct {
-	cfg      *config.Config
+	cfg      Config
 	client   *http.Client
-	storage  string
+	storage  storing.Storage
 	gzipPool *sync.Pool
+	header   http.Header
 }
 
-func NewForwarder(cfg *config.Config, client *http.Client, storage string) Forwarder {
-	return Forwarder{
+type Config struct {
+	APIKey           string
+	IntakeURL        string
+	CompressionLevel int
+}
+
+func NewForwarder(cfg Config, client *http.Client, storage storing.Storage) *Forwarder {
+	header := http.Header{
+		"DD-API-KEY":            []string{cfg.APIKey},
+		"DD-EVP-ORIGIN":         []string{"aws_forwarder"},
+		"DD-EVP-ORIGIN-VERSION": []string{config.ForwarderVersion},
+		"Content-Type":          []string{"application/json"},
+	}
+
+	return &Forwarder{
 		cfg:     cfg,
 		client:  client,
 		storage: storage,
@@ -45,51 +61,85 @@ func NewForwarder(cfg *config.Config, client *http.Client, storage string) Forwa
 				return w
 			},
 		},
+		header: header,
 	}
 }
 
-func (f Forwarder) Start(ctx context.Context, in <-chan model.LogEntry) error {
-	batches := make(chan []byte, httpclient.MaxConcurrency)
-	batcher := batching.NewBatcher()
+func (f *Forwarder) Start(ctx context.Context, in <-chan model.LogEntry, storageTag string) error {
+	eg, ctx := errgroup.WithContext(ctx)
+	eg.SetLimit(1 + httpclient.MaxConcurrency)
 
-	producerErrCh := make(chan error, 1)
-	go func() {
+	batches := make(chan []byte)
+	eg.Go(func() error {
 		defer close(batches)
-		producerErrCh <- batcher.Batch(ctx, in, batches)
-	}()
-
-	var eg errgroup.Group
-	eg.SetLimit(httpclient.MaxConcurrency)
-
-	var errs []error
-	var mu sync.Mutex
-
-	for {
-		body, ok, err := concurrent.SafeReader(ctx, batches)
-		if err != nil {
-			mu.Lock()
-			errs = append(errs, err)
-			mu.Unlock()
+		if err := batching.New().Batch(ctx, in, batches); err != nil {
+			return fmt.Errorf("batch: %w", err)
 		}
-		if !ok {
-			break
-		}
+		return nil
+	})
 
+	var sentErr error
+	var onceSent sync.Once
+	for range httpclient.MaxConcurrency {
 		eg.Go(func() error {
-			if err := f.Send(ctx, body); err != nil {
-				mu.Lock()
-				errs = append(errs, err)
-				mu.Unlock()
+			for {
+				batch, ok, _ := concurrent.SafeReader(ctx, batches)
+				if !ok {
+					break
+				}
+
+				if sentErr == nil {
+					err := f.send(ctx, batch, storageTag)
+					if err == nil {
+						continue
+					}
+
+					onceSent.Do(func() { sentErr = err })
+				}
+
+				if f.storage == nil {
+					break
+				}
+
+				if err := f.storage.Put(ctx, batch, storageTag); err != nil {
+					return fmt.Errorf("put: %w", err)
+				}
 			}
 			return nil
 		})
 	}
-	_ = eg.Wait()
 
-	return errors.Join(append(errs, <-producerErrCh)...)
+	return errors.Join(eg.Wait(), sentErr)
 }
 
-func (f Forwarder) Send(ctx context.Context, payload []byte) error {
+func (f *Forwarder) Retry(ctx context.Context) error {
+	keys, listErr := f.storage.List(ctx)
+	if listErr != nil {
+		return fmt.Errorf("list: %w", listErr)
+	}
+
+	slog.InfoContext(ctx, "retrying stored batches", slog.Int("count", len(keys)))
+	for _, key := range keys {
+		payload, storageTag, getErr := f.storage.Get(ctx, key)
+		if getErr != nil {
+			return fmt.Errorf("list: %w", getErr)
+		}
+
+		if sendErr := f.send(ctx, payload, storageTag); sendErr != nil {
+			return fmt.Errorf("send: %w", sendErr)
+		}
+
+		if deleteErr := f.storage.Delete(ctx, key); deleteErr != nil {
+			return fmt.Errorf("delete: %w", deleteErr)
+		}
+
+		slog.DebugContext(ctx, "batch sent successfully", slog.String("key", key))
+	}
+
+	return nil
+}
+
+func (f *Forwarder) send(ctx context.Context, payload []byte, storageTag string) error {
 	ctx, cancel := context.WithTimeout(ctx, httpclient.RequestTimeout)
 	defer cancel()
 
@@ -98,13 +148,12 @@ func (f Forwarder) Send(ctx context.Context, payload []byte) error {
 		return err
 	}
 
-	req.Header.Set("DD-API-KEY", f.cfg.APIKey)
-	req.Header.Set("DD-EVP-ORIGIN", "aws_forwarder")
-	req.Header.Set("DD-EVP-ORIGIN-VERSION", config.ForwarderVersion)
-	req.Header.Set("Content-Type", "application/json")
-	if f.storage != "" {
-		req.Header.Set("DD-STORAGE-TAG", f.storage)
+	header := f.header.Clone()
+	if storageTag != "" {
+		header["DD-STORAGE-TAG"] = []string{storageTag}
 	}
+	req.Header = header
+
 	if f.cfg.CompressionLevel != gzip.NoCompression {
 		compressed, err := f.compress(payload)
 		if err != nil {
@@ -135,7 +184,7 @@ func (f Forwarder) Send(ctx context.Context, payload []byte) error {
 	return nil
 }
 
-func (f Forwarder) compress(payload []byte) ([]byte, error) {
+func (f *Forwarder) compress(payload []byte) ([]byte, error) {
 	buf := bufPool.Get().(*bytes.Buffer)
 	gz := f.gzipPool.Get().(*gzip.Writer)
 	defer bufPool.Put(buf)
@@ -151,7 +200,6 @@ func (f Forwarder) compress(payload []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	out := make([]byte, buf.Len())
-	copy(out, buf.Bytes())
+	out := bytes.Clone(buf.Bytes())
 	return out, nil
 }

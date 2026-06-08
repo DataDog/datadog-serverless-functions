@@ -27,40 +27,40 @@ func TestForwarder_Start(t *testing.T) {
 
 	tests := map[string]struct {
 		statusCode int
-		storage    string
+		storageTag string
 		entries    []model.LogEntry
 		wantErr    bool
 		wantCalls  int
 	}{
 		"single message accepted": {
 			statusCode: http.StatusAccepted,
-			storage:    cloudwatchStorage,
+			storageTag: "cloudwatch",
 			entries:    []model.LogEntry{{Message: "test payload"}},
 			wantCalls:  1,
 		},
 		"empty channel": {
 			statusCode: http.StatusAccepted,
-			storage:    cloudwatchStorage,
+			storageTag: "cloudwatch",
 			entries:    []model.LogEntry{},
 			wantCalls:  0,
 		},
 		"server returns 400": {
 			statusCode: http.StatusBadRequest,
-			storage:    cloudwatchStorage,
+			storageTag: "cloudwatch",
 			entries:    []model.LogEntry{{Message: "test payload"}},
 			wantErr:    true,
 			wantCalls:  1,
 		},
 		"server returns 500": {
 			statusCode: http.StatusInternalServerError,
-			storage:    cloudwatchStorage,
+			storageTag: "cloudwatch",
 			entries:    []model.LogEntry{{Message: "test payload"}},
 			wantErr:    true,
 			wantCalls:  httpclient.DefaultMaxAttempts,
 		},
 		"s3 storage": {
 			statusCode: http.StatusAccepted,
-			storage:    s3Storage,
+			storageTag: "s3",
 			entries:    []model.LogEntry{{Message: "test payload"}},
 			wantCalls:  1,
 		},
@@ -79,15 +79,15 @@ func TestForwarder_Start(t *testing.T) {
 				assert.Equal(t, "gzip", req.Header.Get("Content-Encoding"), "Content-Encoding")
 				assert.Equal(t, "aws_forwarder", req.Header.Get("DD-EVP-ORIGIN"), "DD-EVP-ORIGIN")
 				assert.Equal(t, config.ForwarderVersion, req.Header.Get("DD-EVP-ORIGIN-VERSION"), "DD-EVP-ORIGIN-VERSION")
-				if tc.storage != "" {
-					assert.Equal(t, tc.storage, req.Header.Get("DD-STORAGE-TAG"), "DD-STORAGE-TAG")
+				if tc.storageTag != "" {
+					assert.Equal(t, tc.storageTag, req.Header.Get("DD-STORAGE-TAG"), "DD-STORAGE-TAG")
 				}
 
 				gr, err := gzip.NewReader(req.Body)
 				if !assert.NoError(t, err, "body is not valid gzip") {
 					return
 				}
-				defer gr.Close() //nolint:errcheck
+				defer func() { _ = gr.Close() }()
 
 				_, err = io.ReadAll(gr)
 				assert.NoError(t, err, "read gzip body")
@@ -97,7 +97,7 @@ func TestForwarder_Start(t *testing.T) {
 			t.Cleanup(server.Close)
 			client := server.Client()
 			client.Transport = httpclient.WithRetry(httpclient.DefaultMaxAttempts, client.Transport)
-			forwarder := NewForwarder(&config.Config{IntakeURL: server.URL, APIKey: "test-api-key", CompressionLevel: gzip.DefaultCompression}, client, tc.storage)
+			forwarder := NewForwarder(Config{IntakeURL: server.URL, APIKey: "test-api-key", CompressionLevel: gzip.DefaultCompression}, client, nil)
 			ctx, cancel := context.WithCancel(t.Context())
 			t.Cleanup(cancel)
 
@@ -107,7 +107,7 @@ func TestForwarder_Start(t *testing.T) {
 			}
 			close(in)
 
-			err := forwarder.Start(ctx, in)
+			err := forwarder.Start(ctx, in, tc.storageTag)
 
 			assert.Equal(t, tc.wantCalls, int(callCount.Load()))
 			if tc.wantErr {
@@ -160,7 +160,7 @@ func TestForwarder_Start_Context(t *testing.T) {
 			t.Cleanup(server.Close)
 			client := server.Client()
 			client.Transport = httpclient.WithRetry(httpclient.DefaultMaxAttempts, client.Transport)
-			forwarder := NewForwarder(&config.Config{IntakeURL: server.URL, APIKey: "test-api-key", CompressionLevel: gzip.DefaultCompression}, client, "")
+			forwarder := NewForwarder(Config{IntakeURL: server.URL, APIKey: "test-api-key", CompressionLevel: gzip.DefaultCompression}, client, nil)
 			ctx, cancel := tc.ctxBuilder(t)
 			t.Cleanup(cancel)
 
@@ -168,7 +168,7 @@ func TestForwarder_Start_Context(t *testing.T) {
 			in <- model.LogEntry{}
 			close(in)
 
-			err := forwarder.Start(ctx, in)
+			err := forwarder.Start(ctx, in, "")
 
 			if tc.wantErr != nil {
 				require.ErrorIs(t, err, tc.wantErr)

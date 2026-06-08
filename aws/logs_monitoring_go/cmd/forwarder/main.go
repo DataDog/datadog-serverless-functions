@@ -8,13 +8,19 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/filtering"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/forwarding"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/handling"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/httpclient"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/parsing"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/pipeline"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/scrubbing"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/storing"
 
 	"github.com/aws/aws-lambda-go/lambda"
 )
@@ -52,6 +58,42 @@ func handleRequest(cfg *config.Config) func(ctx context.Context, event json.RawM
 		if err != nil {
 			return fmt.Errorf("parse: %w", err)
 		}
-		return pipeline.Start(ctx, parsed, cfg)
+
+		if len(parsed) == 0 {
+			return errors.New("no events to process")
+		}
+
+		filterer := filtering.NewFilterer(cfg.FilterInclude, cfg.FilterExclude)
+		scrubber := scrubbing.NewScrubber(cfg.ScrubbingRegex, cfg.ScrubbingReplacement, cfg.ScrubIP, cfg.ScrubEmail)
+		handlerCfg := handling.Config{
+			Host:                cfg.Host,
+			Service:             cfg.Service,
+			Source:              cfg.Source,
+			Tags:                cfg.Tags,
+			S3MultilineLogRegex: cfg.S3MultilineLogRegex,
+			UseFIPS:             cfg.UseFIPS,
+		}
+
+		forwarderCfg := forwarding.Config{
+			APIKey:           cfg.APIKey,
+			IntakeURL:        cfg.IntakeURL,
+			CompressionLevel: cfg.CompressionLevel,
+		}
+
+		var storage storing.Storage
+		if cfg.StoreOnFail {
+			storageOpts := storing.Options{FIPS: cfg.UseFIPS, S3Bucket: cfg.S3RetryBucketName}
+			if storage, err = storing.NewStorage(ctx, storageOpts); err != nil {
+				return fmt.Errorf("new storage: %w", err)
+			}
+		}
+
+		forwarder := forwarding.NewForwarder(
+			forwarderCfg,
+			httpclient.Client,
+			storage,
+		)
+
+		return pipeline.New(handlerCfg, scrubber, filterer, forwarder).Start(ctx, parsed)
 	}
 }

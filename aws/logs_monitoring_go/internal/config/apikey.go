@@ -57,7 +57,7 @@ func (c *Config) ValidateAPIKey(ctx context.Context) error {
 	}
 
 	if len(c.APIKey) != 32 {
-		return fmt.Errorf("expected 32 characters, got %d. Verify your API key at https://app.%s/organization-settings/api-keys: %w", len(c.APIKey), c.Site, ErrInvalidAPIKey)
+		return fmt.Errorf("expected 32 characters, got %d: %w", len(c.APIKey), ErrInvalidAPIKey)
 	}
 
 	slog.Debug("validating Datadog API key")
@@ -79,9 +79,10 @@ func (c *Config) ValidateAPIKey(ctx context.Context) error {
 	defer httpclient.DrainClose(resp)
 
 	if resp.StatusCode == http.StatusForbidden {
-		slog.Warn("invalid Datadog API key", slog.String("url", "https://app."+c.Site+"/organization-settings/api-keys"))
-	} else if resp.StatusCode != http.StatusOK {
-		slog.Warn("unexpected response from validation endpoint", slog.String("status", resp.Status))
+		return errors.New("invalid Datadog API key")
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("key validation (http/%d)", resp.StatusCode)
 	}
 
 	return nil

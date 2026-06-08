@@ -9,12 +9,13 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"regexp"
 	"strings"
 	"testing"
 
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/sdkclient"
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/filtering"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/sdkclient"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/testutil"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -61,7 +62,8 @@ func TestProcessS3Record(t *testing.T) {
 
 	tests := map[string]struct {
 		mockSetup   func(m *sdkclient.MockS3)
-		cfg         *config.Config
+		cfg         *Config
+		filterer    *filtering.Filterer
 		eventRecord events.S3EventRecord
 		want        []model.LogEntry
 		wantErr     bool
@@ -73,7 +75,7 @@ func TestProcessS3Record(t *testing.T) {
 						Body: io.NopCloser(strings.NewReader("line1")),
 					}, nil)
 			},
-			cfg:         testutil.EmptyConfig(),
+			cfg:         &Config{},
 			eventRecord: testS3EventRecord,
 			want:        []model.LogEntry{wantS3Entry("line1", "s3", "s3", nil)},
 		},
@@ -84,7 +86,7 @@ func TestProcessS3Record(t *testing.T) {
 						Body: io.NopCloser(strings.NewReader("line1\nline2\nline3")),
 					}, nil)
 			},
-			cfg:         testutil.EmptyConfig(),
+			cfg:         &Config{},
 			eventRecord: testS3EventRecord,
 			want: []model.LogEntry{
 				wantS3Entry("line1", "s3", "s3", nil),
@@ -99,7 +101,7 @@ func TestProcessS3Record(t *testing.T) {
 						Body: io.NopCloser(strings.NewReader("")),
 					}, nil)
 			},
-			cfg:         testutil.EmptyConfig(),
+			cfg:         &Config{},
 			eventRecord: testS3EventRecord,
 			want:        nil,
 		},
@@ -108,7 +110,7 @@ func TestProcessS3Record(t *testing.T) {
 				m.EXPECT().GetObject(gomock.Any(), gomock.Any()).
 					Return(nil, errors.New("access denied"))
 			},
-			cfg:         testutil.EmptyConfig(),
+			cfg:         &Config{},
 			eventRecord: testS3EventRecord,
 			wantErr:     true,
 		},
@@ -119,7 +121,7 @@ func TestProcessS3Record(t *testing.T) {
 						Body: io.NopCloser(strings.NewReader(`{"ddtags":"env:prod,service:myapp","msg":"hello"}`)),
 					}, nil)
 			},
-			cfg:         testutil.EmptyConfig(),
+			cfg:         &Config{},
 			eventRecord: testS3EventRecord,
 			want:        []model.LogEntry{wantS3Entry(`{"msg":"hello"}`, "s3", "myapp", model.Tags{"env:prod"})},
 		},
@@ -130,7 +132,7 @@ func TestProcessS3Record(t *testing.T) {
 						Body: io.NopCloser(strings.NewReader("hello\x80world")),
 					}, nil)
 			},
-			cfg:         testutil.EmptyConfig(),
+			cfg:         &Config{},
 			eventRecord: testS3EventRecord,
 			want:        []model.LogEntry{wantS3Entry("helloworld", "s3", "s3", nil)},
 		},
@@ -141,7 +143,7 @@ func TestProcessS3Record(t *testing.T) {
 						Body: io.NopCloser(strings.NewReader("2024-01-15 ERROR NullPointer\n    at com.foo.Bar\n2024-01-15 INFO started")),
 					}, nil)
 			},
-			cfg:         testutil.Config(t, testutil.WithMultilineRegex(`\d{4}-\d{2}-\d{2}`)),
+			cfg:         &Config{S3MultilineLogRegex: regexp.MustCompile(`\d{4}-\d{2}-\d{2}`)},
 			eventRecord: testS3EventRecord,
 			want: []model.LogEntry{
 				wantS3Entry("2024-01-15 ERROR NullPointer\n    at com.foo.Bar\n", "s3", "s3", nil),
@@ -155,7 +157,7 @@ func TestProcessS3Record(t *testing.T) {
 						Body: io.NopCloser(strings.NewReader("2024-01-15 ERROR\n    stacktrace")),
 					}, nil)
 			},
-			cfg:         testutil.Config(t, testutil.WithMultilineRegex(`\d{4}-\d{2}-\d{2}`)),
+			cfg:         &Config{S3MultilineLogRegex: regexp.MustCompile(`\d{4}-\d{2}-\d{2}`)},
 			eventRecord: testS3EventRecord,
 			want:        []model.LogEntry{wantS3Entry("2024-01-15 ERROR\n    stacktrace", "s3", "s3", nil)},
 		},
@@ -166,7 +168,7 @@ func TestProcessS3Record(t *testing.T) {
 						Body: io.NopCloser(strings.NewReader("line1")),
 					}, nil)
 			},
-			cfg:         testutil.Config(t, testutil.WithTags("env:prod", "team:aws")),
+			cfg:         &Config{Tags: model.Tags{"env:prod", "team:aws"}},
 			eventRecord: testS3EventRecord,
 			want:        []model.LogEntry{wantS3Entry("line1", "s3", "s3", model.Tags{"env:prod", "team:aws"})},
 		},
@@ -187,7 +189,7 @@ func TestProcessS3Record(t *testing.T) {
 						Body: io.NopCloser(bytes.NewReader(data)),
 					}, nil)
 			},
-			cfg:         testutil.EmptyConfig(),
+			cfg:         &Config{},
 			eventRecord: testCloudTrailEventRecord,
 			want: []model.LogEntry{
 				wantCloudTrailEntry(
@@ -213,7 +215,7 @@ func TestProcessS3Record(t *testing.T) {
 						Body: io.NopCloser(bytes.NewReader(data)),
 					}, nil)
 			},
-			cfg:         testutil.EmptyConfig(),
+			cfg:         &Config{},
 			eventRecord: testCloudTrailEventRecord,
 			want: []model.LogEntry{
 				wantCloudTrailEntry(
@@ -229,7 +231,7 @@ func TestProcessS3Record(t *testing.T) {
 						Body: io.NopCloser(strings.NewReader("version account-id interface-id srcaddr dstaddr srcport dstport protocol\n2 123456789012 eni-abc123 10.0.0.1 10.0.0.2 443 49152 6\n2 123456789012 eni-abc123 10.0.0.2 10.0.0.1 49152 443 6")),
 					}, nil)
 			},
-			cfg:         testutil.EmptyConfig(),
+			cfg:         &Config{},
 			eventRecord: testVpcFlowLogsEventRecord,
 			want: []model.LogEntry{
 				wantVpcFlowLogsEntry("2 123456789012 eni-abc123 10.0.0.1 10.0.0.2 443 49152 6"),
@@ -244,7 +246,7 @@ func TestProcessS3Record(t *testing.T) {
 						Body: io.NopCloser(bytes.NewReader(data)),
 					}, nil)
 			},
-			cfg:         testutil.EmptyConfig(),
+			cfg:         &Config{},
 			eventRecord: testWAFEventRecord,
 			want:        []model.LogEntry{wantWAFEntry(`{"httpRequest":{"headers":{"Host":"example.com"}}}`)},
 		},
@@ -258,7 +260,7 @@ func TestProcessS3Record(t *testing.T) {
 						Body: io.NopCloser(bytes.NewReader(data)),
 					}, nil)
 			},
-			cfg:         testutil.EmptyConfig(),
+			cfg:         &Config{},
 			eventRecord: testWAFEventRecord,
 			want: []model.LogEntry{
 				wantWAFEntry(`{"httpRequest":{"headers":{"h1":"v1"}}}`),
@@ -274,7 +276,7 @@ func TestProcessS3Record(t *testing.T) {
 						Body: io.NopCloser(bytes.NewReader(data)),
 					}, nil)
 			},
-			cfg:         testutil.Config(t, testutil.WithMultilineRegex(`\{`)),
+			cfg:         &Config{S3MultilineLogRegex: regexp.MustCompile(`\{`)},
 			eventRecord: testWAFEventRecord,
 			want: []model.LogEntry{
 				wantWAFEntry(`{"action":"ALLOW"}`),
@@ -288,7 +290,7 @@ func TestProcessS3Record(t *testing.T) {
 						Body: io.NopCloser(strings.NewReader(`{"httpRequest":{"headers":[{"name":"Host","value":"example.com"}]}}`)),
 					}, nil)
 			},
-			cfg:         testutil.EmptyConfig(),
+			cfg:         &Config{},
 			eventRecord: testWAFEventRecord,
 			want:        []model.LogEntry{wantWAFEntry(`{"httpRequest":{"headers":{"Host":"example.com"}}}`)},
 		},
@@ -301,7 +303,8 @@ func TestProcessS3Record(t *testing.T) {
 						Body: io.NopCloser(bytes.NewReader(data)),
 					}, nil)
 			},
-			cfg:         testutil.Config(t, testutil.WithExcludeFilter(`"action":"BLOCK"`)),
+			cfg:         &Config{},
+			filterer:    filtering.NewFilterer(nil, regexp.MustCompile(`"action":"BLOCK"`)),
 			eventRecord: testWAFEventRecord,
 			want:        []model.LogEntry{wantWAFEntry(`{"action":"ALLOW","httpRequest":{}}`)},
 		},
@@ -314,7 +317,8 @@ func TestProcessS3Record(t *testing.T) {
 						Body: io.NopCloser(bytes.NewReader(data)),
 					}, nil)
 			},
-			cfg:         testutil.Config(t, testutil.WithIncludeFilter(`"action":"ALLOW"`)),
+			cfg:         &Config{},
+			filterer:    filtering.NewFilterer(regexp.MustCompile(`"action":"ALLOW"`), nil),
 			eventRecord: testWAFEventRecord,
 			want:        []model.LogEntry{wantWAFEntry(`{"action":"ALLOW","httpRequest":{}}`)},
 		},
@@ -329,9 +333,9 @@ func TestProcessS3Record(t *testing.T) {
 			tc.mockSetup(mock)
 
 			out := make(chan model.LogEntry, len(tc.want))
-			handler := NewS3(tc.cfg)
+			handler := newS3(tc.cfg, mock, nil, tc.filterer)
 
-			err := handler.processRecord(t.Context(), mock, out, tc.eventRecord, testutil.LambdaOrigin())
+			err := handler.processRecord(t.Context(), out, tc.eventRecord, testutil.LambdaOrigin())
 			close(out)
 
 			var got []model.LogEntry
