@@ -12,7 +12,7 @@ import (
 )
 
 func (c *Config) resolveAPIKeyFromSSM(ctx context.Context, name string) (string, error) {
-	ssmClient, err := sdkclient.NewSSM(ctx, c.UseFIPS)
+	ssmClient, err := sdkclient.NewSSM(ctx)
 	if err != nil {
 		return "", err
 	}

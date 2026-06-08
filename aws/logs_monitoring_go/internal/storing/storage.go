@@ -21,13 +21,12 @@ type Storage interface {
 }
 
 type Options struct {
-	FIPS     bool
 	S3Bucket string
 }
 
 func NewStorage(ctx context.Context, opts Options) (Storage, error) {
 	if opts.S3Bucket != "" {
-		s3Client, err := sdkclient.GetS3(ctx, opts.FIPS)
+		s3Client, err := sdkclient.GetS3(ctx)
 		if err != nil {
 			return nil, err
 		}

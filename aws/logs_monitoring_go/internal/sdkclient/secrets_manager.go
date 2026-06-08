@@ -10,7 +10,6 @@ package sdkclient
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -23,31 +22,13 @@ type SecretsManager interface {
 	GetSecretValue(ctx context.Context, params *secretsmanager.GetSecretValueInput, optFns ...func(*secretsmanager.Options)) (*secretsmanager.GetSecretValueOutput, error)
 }
 
-func NewSecretsManager(ctx context.Context, useFIPS bool) (SecretsManager, error) {
+func NewSecretsManager(ctx context.Context) (SecretsManager, error) {
 	cfg, err := awsconfig.LoadDefaultConfig(ctx, awsconfig.WithHTTPClient(awshttp.NewBuildableClient().WithTimeout(timeout)))
 	if err != nil {
 		return nil, err
 	}
 
-	resolver := secretsmanager.NewDefaultEndpointResolverV2()
-	params := secretsmanager.EndpointParameters{
-		Region:  aws.String(cfg.Region),
-		UseFIPS: aws.Bool(useFIPS),
-	}
-
-	endpoint, err := resolver.ResolveEndpoint(ctx, params)
-	if err != nil && useFIPS {
-		slog.Warn("FIPS endpoint not available, falling back to standard endpoint", slog.String("service", "secretsmanager"), slog.String("region", cfg.Region))
-		params.UseFIPS = aws.Bool(false)
-		endpoint, err = resolver.ResolveEndpoint(ctx, params)
-	}
-	if err != nil {
-		return nil, fmt.Errorf("resolve endpoint: %w", err)
-	}
-
-	return secretsmanager.NewFromConfig(cfg, func(o *secretsmanager.Options) {
-		o.BaseEndpoint = aws.String(endpoint.URI.String())
-	}), nil
+	return secretsmanager.NewFromConfig(cfg), nil
 }
 
 func FetchSecret(ctx context.Context, smClient SecretsManager, arn string) (string, error) {

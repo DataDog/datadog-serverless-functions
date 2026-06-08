@@ -12,7 +12,7 @@ import (
 )
 
 func (c *Config) resolveAPIKeyFromKMS(ctx context.Context, ciphertext string) (string, error) {
-	kmsClient, err := sdkclient.NewKMS(ctx, c.UseFIPS)
+	kmsClient, err := sdkclient.NewKMS(ctx)
 	if err != nil {
 		return "", err
 	}

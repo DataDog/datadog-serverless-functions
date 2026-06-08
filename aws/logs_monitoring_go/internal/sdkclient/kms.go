@@ -11,10 +11,8 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"log/slog"
 	"strings"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
 	awshttp "github.com/aws/aws-sdk-go-v2/aws/transport/http"
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/kms"
@@ -24,31 +22,13 @@ type KMS interface {
 	Decrypt(ctx context.Context, params *kms.DecryptInput, optFns ...func(*kms.Options)) (*kms.DecryptOutput, error)
 }
 
-func NewKMS(ctx context.Context, useFIPS bool) (KMS, error) {
+func NewKMS(ctx context.Context) (KMS, error) {
 	cfg, err := awsconfig.LoadDefaultConfig(ctx, awsconfig.WithHTTPClient(awshttp.NewBuildableClient().WithTimeout(timeout)))
 	if err != nil {
 		return nil, err
 	}
 
-	resolver := kms.NewDefaultEndpointResolverV2()
-	params := kms.EndpointParameters{
-		Region:  aws.String(cfg.Region),
-		UseFIPS: aws.Bool(useFIPS),
-	}
-
-	endpoint, err := resolver.ResolveEndpoint(ctx, params)
-	if err != nil && useFIPS {
-		slog.Warn("FIPS endpoint not available, falling back to standard endpoint", slog.String("service", "kms"), slog.String("region", cfg.Region))
-		params.UseFIPS = aws.Bool(false)
-		endpoint, err = resolver.ResolveEndpoint(ctx, params)
-	}
-	if err != nil {
-		return nil, fmt.Errorf("resolve endpoint: %w", err)
-	}
-
-	return kms.NewFromConfig(cfg, func(o *kms.Options) {
-		o.BaseEndpoint = aws.String(endpoint.URI.String())
-	}), nil
+	return kms.NewFromConfig(cfg), nil
 }
 
 func DecryptKMSCiphertext(ctx context.Context, kmsClient KMS, ciphertext string) (string, error) {

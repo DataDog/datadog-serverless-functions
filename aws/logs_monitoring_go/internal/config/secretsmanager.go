@@ -12,7 +12,7 @@ import (
 )
 
 func (c *Config) resolveAPIKeyFromSecretsManager(ctx context.Context, arn string) (string, error) {
-	smClient, err := sdkclient.NewSecretsManager(ctx, c.UseFIPS)
+	smClient, err := sdkclient.NewSecretsManager(ctx)
 	if err != nil {
 		return "", err
 	}

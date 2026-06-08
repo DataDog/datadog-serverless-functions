@@ -26,7 +26,6 @@ const (
 	EnvURL                      = "DD_URL"
 	EnvAPIURL                   = "DD_API_URL"
 	EnvLogLevel                 = "DD_LOG_LEVEL"
-	EnvUseFIPS                  = "DD_USE_FIPS"
 	EnvPort                     = "DD_PORT"
 	EnvUseHTTP                  = "DD_NO_SSL"
 	EnvSkipServerCertificate    = "DD_SKIP_SSL_VALIDATION"
@@ -52,7 +51,6 @@ type Config struct {
 	IntakeURL             string
 	CompressionLevel      int
 	SkipServerCertificate bool
-	UseFIPS               bool
 	Host                  string
 	Source                string
 	Service               string
@@ -117,8 +115,6 @@ func (c *Config) loadEnv() {
 
 	c.IntakeURL = envOrDefault(EnvURL, protocol+"://http-intake.logs."+site+":"+port+"/api/v2/logs")
 	c.APIURL = envOrDefault(EnvAPIURL, protocol+"://api."+site)
-
-	c.UseFIPS = envOrDefaultBool(EnvUseFIPS, false)
 
 	c.Source = envOrDefault(EnvSource, "")
 	c.Host = envOrDefault(EnvHost, "")
