@@ -19,7 +19,7 @@ const (
 	tlsHandshakeTimeout  = 2 * time.Second
 	RequestTimeout       = 7 * time.Second
 	DefaultMaxAttempts   = 3
-	MaxConcurrency       = 5
+	MaxConcurrency       = 20
 )
 
 var Client *http.Client

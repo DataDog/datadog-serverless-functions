@@ -44,10 +44,6 @@ type Config struct {
 }
 
 func NewForwarder(cfg Config, client *http.Client, storage storing.Storage) *Forwarder {
-	if storage == nil {
-		slog.Warn("failed event storage not configured, can lead to event loss")
-	}
-
 	header := http.Header{
 		"DD-API-KEY":            []string{cfg.APIKey},
 		"DD-EVP-ORIGIN":         []string{"aws_forwarder"},
@@ -70,49 +66,50 @@ func NewForwarder(cfg Config, client *http.Client, storage storing.Storage) *For
 }
 
 func (f *Forwarder) Start(ctx context.Context, in <-chan model.LogEntry, storageTag string) error {
-	batches := make(chan []byte, httpclient.MaxConcurrency)
-	batcher := batching.NewBatcher()
+	eg, ctx := errgroup.WithContext(ctx)
+	eg.SetLimit(1 + httpclient.MaxConcurrency)
 
-	producerErrCh := make(chan error, 1)
-	go func() {
+	batches := make(chan []byte)
+	eg.Go(func() error {
 		defer close(batches)
-		producerErrCh <- batcher.Batch(ctx, in, batches)
-	}()
-
-	var eg errgroup.Group
-	eg.SetLimit(httpclient.MaxConcurrency)
-
-	var errs []error
-	var mu sync.Mutex
-
-	for {
-		body, ok, _ := concurrent.SafeReader(ctx, batches)
-		if !ok {
-			break
+		if err := batching.New().Batch(ctx, in, batches); err != nil {
+			return fmt.Errorf("batch: %w", err)
 		}
+		return nil
+	})
 
+	var sentErr error
+	var onceSent sync.Once
+	for range httpclient.MaxConcurrency {
 		eg.Go(func() error {
-			err := f.send(ctx, body, storageTag)
-			if err == nil {
-				return nil
-			}
+			for {
+				batch, ok, _ := concurrent.SafeReader(ctx, batches)
+				if !ok {
+					break
+				}
 
-			mu.Lock()
-			errs = append(errs, err)
-			mu.Unlock()
+				if sentErr == nil {
+					err := f.send(ctx, batch, storageTag)
+					if err == nil {
+						continue
+					}
 
-			if f.storage != nil {
-				if storeErr := f.storage.Put(ctx, body, storageTag); storeErr != nil {
-					slog.WarnContext(ctx, "failed to store batch, dropping", slog.Any("error", storeErr))
+					onceSent.Do(func() { sentErr = err })
+				}
+
+				if f.storage == nil {
+					break
+				}
+
+				if err := f.storage.Put(ctx, batch, storageTag); err != nil {
+					return fmt.Errorf("put: %w", err)
 				}
 			}
-
 			return nil
 		})
 	}
-	_ = eg.Wait()
 
-	return errors.Join(append(errs, <-producerErrCh)...)
+	return errors.Join(eg.Wait(), sentErr)
 }
 
 func (f *Forwarder) Retry(ctx context.Context) error {

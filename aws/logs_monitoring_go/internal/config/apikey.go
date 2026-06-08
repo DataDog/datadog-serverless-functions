@@ -79,9 +79,10 @@ func (c *Config) ValidateAPIKey(ctx context.Context) error {
 	defer httpclient.DrainClose(resp)
 
 	if resp.StatusCode == http.StatusForbidden {
-		slog.Warn("invalid Datadog API key")
-	} else if resp.StatusCode != http.StatusOK {
-		slog.Warn("unexpected response from validation endpoint", slog.String("status", resp.Status))
+		return errors.New("invalid Datadog API key")
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("key validation (http/%d)", resp.StatusCode)
 	}
 
 	return nil
