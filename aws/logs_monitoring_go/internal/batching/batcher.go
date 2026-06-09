@@ -6,7 +6,6 @@
 package batching
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -17,79 +16,137 @@ import (
 )
 
 const (
-	maxItemSize      = 1 * 1024 * 1024
-	maxBatchSize     = 5 * 1024 * 1024
-	maxItemsPerBatch = 1000
+	defaultMaxItemSize      = 1 * 1024 * 1024
+	defaultMaxBatchSize     = 5 * 1024 * 1024
+	defaultMaxItemsPerBatch = 1000
 )
 
 type Batcher struct {
-	batch     [][]byte
-	batchSize int
+	maxItemSize      int
+	maxBatchSize     int
+	maxItemsPerBatch int
+	batch            []json.RawMessage
+	batchSize        int
 }
 
-func New() *Batcher {
-	return &Batcher{
-		batch: make([][]byte, 0, maxItemsPerBatch),
+func New(opts ...Option) *Batcher {
+	b := &Batcher{
+		maxItemSize:      defaultMaxItemSize,
+		maxBatchSize:     defaultMaxBatchSize,
+		maxItemsPerBatch: defaultMaxItemsPerBatch,
+		batchSize:        2, // '[' and ']'
 	}
+
+	for _, opt := range opts {
+		opt(b)
+	}
+
+	b.batch = make([]json.RawMessage, 0, b.maxItemsPerBatch)
+	return b
 }
 
-func (b *Batcher) Batch(ctx context.Context, in <-chan model.LogEntry, out chan<- []byte) error {
+func (b *Batcher) Start(ctx context.Context, in <-chan model.LogEntry, out chan<- json.RawMessage) error {
 	for {
-		entry, ok, err := concurrent.SafeReader(ctx, in)
-		if err != nil {
-			return err
-		}
+		v, ok, _ := concurrent.SafeReader(ctx, in)
 		if !ok {
-			return b.flush(ctx, out)
+			batch, err := b.construct()
+			if err != nil {
+				return err
+			}
+			if err = concurrent.SafeSender(ctx, out, batch); err != nil {
+				return err
+			}
+			break
 		}
 
-		data, err := json.Marshal(entry)
+		item, err := json.Marshal(v)
 		if err != nil {
 			return fmt.Errorf("marshal: %w", err)
 		}
 
-		if len(data) > maxItemSize {
-			slog.Warn("log entry exceeds max item size, dropping",
-				slog.Int("size", len(data)),
-				slog.Int("max", maxItemSize),
+		if !b.valid(item) {
+			slog.Warn("invalid item, dropping",
+				slog.Int("size", len(item)),
+				slog.Int("max", b.maxItemSize),
 			)
 			continue
 		}
 
-		if b.batchSize+len(data) > maxBatchSize || len(b.batch) >= maxItemsPerBatch {
-			if err := b.flush(ctx, out); err != nil {
+		if ok := b.add(item); !ok {
+			batch, err := b.construct()
+			if err != nil {
 				return err
 			}
+			if err = concurrent.SafeSender(ctx, out, batch); err != nil {
+				return err
+			}
+			_ = b.add(item)
 		}
-
-		b.batch = append(b.batch, data)
-		b.batchSize += len(data)
 	}
+	return nil
 }
 
-func (b *Batcher) flush(ctx context.Context, out chan<- []byte) error {
+func (b *Batcher) StartSlice(items []json.RawMessage) ([]json.RawMessage, error) {
+	var batchedItems []json.RawMessage
+	for _, item := range items {
+		if !b.valid(item) {
+			slog.Warn("invalid item, dropping",
+				slog.Int("size", len(item)),
+				slog.Int("max", b.maxItemSize),
+			)
+			continue
+		}
+
+		if ok := b.add(item); !ok {
+			batch, err := b.construct()
+			if err != nil {
+				return nil, err
+			}
+			batchedItems = append(batchedItems, batch)
+			_ = b.add(item)
+		}
+	}
+
+	batch, err := b.construct()
+	if err != nil {
+		return nil, err
+	}
+
+	if batch != nil {
+		batchedItems = append(batchedItems, batch)
+	}
+	return batchedItems, nil
+}
+
+func (b *Batcher) add(item json.RawMessage) bool {
+	if len(b.batch) >= b.maxItemsPerBatch || b.batchSize+len(item)+1 > b.maxBatchSize {
+		return false
+	}
+
+	b.batch = append(b.batch, item)
+	b.batchSize += len(item) + 1 // ','
+	return true
+}
+
+func (b *Batcher) valid(item json.RawMessage) bool {
+	return len(item) <= b.maxItemSize
+}
+
+func (b *Batcher) construct() (json.RawMessage, error) {
 	if len(b.batch) == 0 {
-		return nil
+		return nil, nil
 	}
 
-	payload := assembleBatch(b.batch)
-	b.batch = b.batch[:0]
-	b.batchSize = 0
+	batch, err := json.Marshal(&b.batch)
+	if err != nil {
+		return nil, fmt.Errorf("marshal: %w", err)
+	}
 
-	return concurrent.SafeSender(ctx, out, payload)
+	b.reset()
+	return json.RawMessage(batch), nil
 }
 
-func assembleBatch(entries [][]byte) []byte {
-	var buf bytes.Buffer
-
-	buf.WriteByte('[')
-	for i, entry := range entries {
-		if i > 0 {
-			buf.WriteByte(',')
-		}
-		buf.Write(entry)
-	}
-	buf.WriteByte(']')
-
-	return buf.Bytes()
+func (b *Batcher) reset() {
+	b.batch = b.batch[:0]
+	b.batchSize = 2
 }

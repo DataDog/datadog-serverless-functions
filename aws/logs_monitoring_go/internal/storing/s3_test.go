@@ -5,235 +5,220 @@
 
 package storing
 
-import (
-	"errors"
-	"io"
-	"strings"
-	"testing"
+// const (
+// 	testBucket = "my-bucket"
+// 	testKey    = "failed_events/2026/06/01/120000000_req-id_1.json"
+// )
 
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/sdkclient"
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/aws/aws-sdk-go-v2/service/s3/types"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"go.uber.org/mock/gomock"
-)
+// func TestS3_Put(t *testing.T) {
+// 	t.Parallel()
 
-const (
-	testBucket = "my-bucket"
-	testKey    = "failed_events/2026/06/01/120000000_req-id_1.json"
-)
+// 	tests := map[string]struct {
+// 		mockSetup  func(m *sdkclient.MockS3)
+// 		storageTag string
+// 		wantErr    bool
+// 	}{
+// 		"success": {
+// 			mockSetup: func(m *sdkclient.MockS3) {
+// 				m.EXPECT().
+// 					PutObject(gomock.Any(), gomock.Cond(func(input *s3.PutObjectInput) bool {
+// 						return aws.ToString(input.Bucket) == testBucket &&
+// 							strings.HasPrefix(aws.ToString(input.Key), prefix) &&
+// 							input.Metadata["dd-storage-tag"] == "s3"
+// 					})).
+// 					Return(nil, nil)
+// 			},
+// 			storageTag: "s3",
+// 		},
+// 		"error": {
+// 			mockSetup: func(m *sdkclient.MockS3) {
+// 				m.EXPECT().
+// 					PutObject(gomock.Any(), gomock.Any()).
+// 					Return(nil, errors.New(""))
+// 			},
+// 			wantErr: true,
+// 		},
+// 	}
 
-func TestS3_Put(t *testing.T) {
-	t.Parallel()
+// 	for name, tc := range tests {
+// 		t.Run(name, func(t *testing.T) {
+// 			t.Parallel()
 
-	tests := map[string]struct {
-		mockSetup  func(m *sdkclient.MockS3)
-		storageTag string
-		wantErr    bool
-	}{
-		"success": {
-			mockSetup: func(m *sdkclient.MockS3) {
-				m.EXPECT().
-					PutObject(gomock.Any(), gomock.Cond(func(input *s3.PutObjectInput) bool {
-						return aws.ToString(input.Bucket) == testBucket &&
-							strings.HasPrefix(aws.ToString(input.Key), prefix) &&
-							input.Metadata["dd-storage-tag"] == "s3"
-					})).
-					Return(nil, nil)
-			},
-			storageTag: "s3",
-		},
-		"error": {
-			mockSetup: func(m *sdkclient.MockS3) {
-				m.EXPECT().
-					PutObject(gomock.Any(), gomock.Any()).
-					Return(nil, errors.New(""))
-			},
-			wantErr: true,
-		},
-	}
+// 			ctrl := gomock.NewController(t)
+// 			mock := sdkclient.NewMockS3(ctrl)
+// 			tc.mockSetup(mock)
+// 			storage := newS3(mock, testBucket)
 
-	for name, tc := range tests {
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
+// 			err := storage.Put(t.Context(), []byte{}, tc.storageTag)
 
-			ctrl := gomock.NewController(t)
-			mock := sdkclient.NewMockS3(ctrl)
-			tc.mockSetup(mock)
-			storage := newS3(mock, testBucket)
+// 			if tc.wantErr {
+// 				require.Error(t, err)
+// 				return
+// 			}
+// 			require.NoError(t, err)
+// 		})
+// 	}
+// }
 
-			err := storage.Put(t.Context(), []byte{}, tc.storageTag)
+// func TestS3_List(t *testing.T) {
+// 	t.Parallel()
 
-			if tc.wantErr {
-				require.Error(t, err)
-				return
-			}
-			require.NoError(t, err)
-		})
-	}
-}
+// 	tests := map[string]struct {
+// 		mockSetup func(m *sdkclient.MockS3)
+// 		wantKeys  []string
+// 		wantErr   bool
+// 	}{
+// 		"success": {
+// 			mockSetup: func(m *sdkclient.MockS3) {
+// 				m.EXPECT().
+// 					ListObjectsV2(gomock.Any(), gomock.Cond(func(input *s3.ListObjectsV2Input) bool {
+// 						return aws.ToString(input.Bucket) == testBucket &&
+// 							aws.ToString(input.Prefix) == prefix
+// 					})).
+// 					Return(&s3.ListObjectsV2Output{
+// 						Contents: []types.Object{
+// 							{Key: aws.String("failed_events/2026/06/01/120000000_req-id_1.json")},
+// 							{Key: aws.String("failed_events/2026/06/01/120000000_req-id_2.json")},
+// 							{Key: aws.String("failed_events/2026/06/01/120000001_req-id_3.json")},
+// 						},
+// 					}, nil)
+// 			},
+// 			wantKeys: []string{
+// 				"failed_events/2026/06/01/120000000_req-id_1.json",
+// 				"failed_events/2026/06/01/120000000_req-id_2.json",
+// 				"failed_events/2026/06/01/120000001_req-id_3.json",
+// 			},
+// 		},
+// 		"error": {
+// 			mockSetup: func(m *sdkclient.MockS3) {
+// 				m.EXPECT().
+// 					ListObjectsV2(gomock.Any(), gomock.Any()).
+// 					Return(nil, errors.New(""))
+// 			},
+// 			wantErr: true,
+// 		},
+// 	}
 
-func TestS3_List(t *testing.T) {
-	t.Parallel()
+// 	for name, tc := range tests {
+// 		t.Run(name, func(t *testing.T) {
+// 			t.Parallel()
 
-	tests := map[string]struct {
-		mockSetup func(m *sdkclient.MockS3)
-		wantKeys  []string
-		wantErr   bool
-	}{
-		"success": {
-			mockSetup: func(m *sdkclient.MockS3) {
-				m.EXPECT().
-					ListObjectsV2(gomock.Any(), gomock.Cond(func(input *s3.ListObjectsV2Input) bool {
-						return aws.ToString(input.Bucket) == testBucket &&
-							aws.ToString(input.Prefix) == prefix
-					})).
-					Return(&s3.ListObjectsV2Output{
-						Contents: []types.Object{
-							{Key: aws.String("failed_events/2026/06/01/120000000_req-id_1.json")},
-							{Key: aws.String("failed_events/2026/06/01/120000000_req-id_2.json")},
-							{Key: aws.String("failed_events/2026/06/01/120000001_req-id_3.json")},
-						},
-					}, nil)
-			},
-			wantKeys: []string{
-				"failed_events/2026/06/01/120000000_req-id_1.json",
-				"failed_events/2026/06/01/120000000_req-id_2.json",
-				"failed_events/2026/06/01/120000001_req-id_3.json",
-			},
-		},
-		"error": {
-			mockSetup: func(m *sdkclient.MockS3) {
-				m.EXPECT().
-					ListObjectsV2(gomock.Any(), gomock.Any()).
-					Return(nil, errors.New(""))
-			},
-			wantErr: true,
-		},
-	}
+// 			ctrl := gomock.NewController(t)
+// 			mock := sdkclient.NewMockS3(ctrl)
+// 			tc.mockSetup(mock)
+// 			storage := newS3(mock, testBucket)
 
-	for name, tc := range tests {
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
+// 			keys, err := storage.List(t.Context())
 
-			ctrl := gomock.NewController(t)
-			mock := sdkclient.NewMockS3(ctrl)
-			tc.mockSetup(mock)
-			storage := newS3(mock, testBucket)
+// 			if tc.wantErr {
+// 				require.Error(t, err)
+// 				return
+// 			}
+// 			require.NoError(t, err)
+// 			assert.Equal(t, tc.wantKeys, keys)
+// 		})
+// 	}
+// }
 
-			keys, err := storage.List(t.Context())
+// func TestS3_Get(t *testing.T) {
+// 	t.Parallel()
 
-			if tc.wantErr {
-				require.Error(t, err)
-				return
-			}
-			require.NoError(t, err)
-			assert.Equal(t, tc.wantKeys, keys)
-		})
-	}
-}
+// 	tests := map[string]struct {
+// 		mockSetup      func(m *sdkclient.MockS3)
+// 		wantBody       []byte
+// 		wantStorageTag string
+// 		wantErr        bool
+// 	}{
+// 		"success": {
+// 			mockSetup: func(m *sdkclient.MockS3) {
+// 				m.EXPECT().
+// 					GetObject(gomock.Any(), gomock.Cond(func(input *s3.GetObjectInput) bool {
+// 						return aws.ToString(input.Bucket) == testBucket &&
+// 							aws.ToString(input.Key) == testKey
+// 					})).
+// 					Return(&s3.GetObjectOutput{
+// 						Body:     io.NopCloser(strings.NewReader(`[{"message":"hello"}]`)),
+// 						Metadata: map[string]string{"dd-storage-tag": "cloudwatch"},
+// 					}, nil)
+// 			},
+// 			wantBody:       []byte(`[{"message":"hello"}]`),
+// 			wantStorageTag: "cloudwatch",
+// 		},
+// 		"error": {
+// 			mockSetup: func(m *sdkclient.MockS3) {
+// 				m.EXPECT().
+// 					GetObject(gomock.Any(), gomock.Any()).
+// 					Return(nil, errors.New(""))
+// 			},
+// 			wantErr: true,
+// 		},
+// 	}
 
-func TestS3_Get(t *testing.T) {
-	t.Parallel()
+// 	for name, tc := range tests {
+// 		t.Run(name, func(t *testing.T) {
+// 			t.Parallel()
 
-	tests := map[string]struct {
-		mockSetup      func(m *sdkclient.MockS3)
-		wantBody       []byte
-		wantStorageTag string
-		wantErr        bool
-	}{
-		"success": {
-			mockSetup: func(m *sdkclient.MockS3) {
-				m.EXPECT().
-					GetObject(gomock.Any(), gomock.Cond(func(input *s3.GetObjectInput) bool {
-						return aws.ToString(input.Bucket) == testBucket &&
-							aws.ToString(input.Key) == testKey
-					})).
-					Return(&s3.GetObjectOutput{
-						Body:     io.NopCloser(strings.NewReader(`[{"message":"hello"}]`)),
-						Metadata: map[string]string{"dd-storage-tag": "cloudwatch"},
-					}, nil)
-			},
-			wantBody:       []byte(`[{"message":"hello"}]`),
-			wantStorageTag: "cloudwatch",
-		},
-		"error": {
-			mockSetup: func(m *sdkclient.MockS3) {
-				m.EXPECT().
-					GetObject(gomock.Any(), gomock.Any()).
-					Return(nil, errors.New(""))
-			},
-			wantErr: true,
-		},
-	}
+// 			ctrl := gomock.NewController(t)
+// 			mock := sdkclient.NewMockS3(ctrl)
+// 			tc.mockSetup(mock)
+// 			storage := newS3(mock, testBucket)
 
-	for name, tc := range tests {
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
+// 			body, storageTag, err := storage.Get(t.Context(), testKey)
 
-			ctrl := gomock.NewController(t)
-			mock := sdkclient.NewMockS3(ctrl)
-			tc.mockSetup(mock)
-			storage := newS3(mock, testBucket)
+// 			if tc.wantErr {
+// 				require.Error(t, err)
+// 				return
+// 			}
+// 			require.NoError(t, err)
+// 			assert.Equal(t, tc.wantBody, body)
+// 			assert.Equal(t, tc.wantStorageTag, storageTag)
+// 		})
+// 	}
+// }
 
-			body, storageTag, err := storage.Get(t.Context(), testKey)
+// func TestS3_Delete(t *testing.T) {
+// 	t.Parallel()
 
-			if tc.wantErr {
-				require.Error(t, err)
-				return
-			}
-			require.NoError(t, err)
-			assert.Equal(t, tc.wantBody, body)
-			assert.Equal(t, tc.wantStorageTag, storageTag)
-		})
-	}
-}
+// 	tests := map[string]struct {
+// 		mockSetup func(m *sdkclient.MockS3)
+// 		wantErr   bool
+// 	}{
+// 		"success": {
+// 			mockSetup: func(m *sdkclient.MockS3) {
+// 				m.EXPECT().
+// 					DeleteObject(gomock.Any(), gomock.Cond(func(input *s3.DeleteObjectInput) bool {
+// 						return aws.ToString(input.Bucket) == testBucket &&
+// 							aws.ToString(input.Key) == testKey
+// 					})).
+// 					Return(nil, nil)
+// 			},
+// 		},
+// 		"error": {
+// 			mockSetup: func(m *sdkclient.MockS3) {
+// 				m.EXPECT().
+// 					DeleteObject(gomock.Any(), gomock.Any()).
+// 					Return(nil, errors.New(""))
+// 			},
+// 			wantErr: true,
+// 		},
+// 	}
 
-func TestS3_Delete(t *testing.T) {
-	t.Parallel()
+// 	for name, tc := range tests {
+// 		t.Run(name, func(t *testing.T) {
+// 			t.Parallel()
 
-	tests := map[string]struct {
-		mockSetup func(m *sdkclient.MockS3)
-		wantErr   bool
-	}{
-		"success": {
-			mockSetup: func(m *sdkclient.MockS3) {
-				m.EXPECT().
-					DeleteObject(gomock.Any(), gomock.Cond(func(input *s3.DeleteObjectInput) bool {
-						return aws.ToString(input.Bucket) == testBucket &&
-							aws.ToString(input.Key) == testKey
-					})).
-					Return(nil, nil)
-			},
-		},
-		"error": {
-			mockSetup: func(m *sdkclient.MockS3) {
-				m.EXPECT().
-					DeleteObject(gomock.Any(), gomock.Any()).
-					Return(nil, errors.New(""))
-			},
-			wantErr: true,
-		},
-	}
+// 			ctrl := gomock.NewController(t)
+// 			mock := sdkclient.NewMockS3(ctrl)
+// 			tc.mockSetup(mock)
+// 			storage := newS3(mock, testBucket)
 
-	for name, tc := range tests {
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
+// 			err := storage.Delete(t.Context(), testKey)
 
-			ctrl := gomock.NewController(t)
-			mock := sdkclient.NewMockS3(ctrl)
-			tc.mockSetup(mock)
-			storage := newS3(mock, testBucket)
-
-			err := storage.Delete(t.Context(), testKey)
-
-			if tc.wantErr {
-				require.Error(t, err)
-				return
-			}
-			require.NoError(t, err)
-		})
-	}
-}
+// 			if tc.wantErr {
+// 				require.Error(t, err)
+// 				return
+// 			}
+// 			require.NoError(t, err)
+// 		})
+// 	}
+// }

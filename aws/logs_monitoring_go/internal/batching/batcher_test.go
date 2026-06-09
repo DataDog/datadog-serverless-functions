@@ -40,16 +40,16 @@ func TestBatch(t *testing.T) {
 		"drop oversized entry": {
 			entries: func() []model.LogEntry {
 				entry := model.NewLogEntry()
-				entry.Message = strings.Repeat("a", maxItemSize+1)
+				entry.Message = strings.Repeat("a", 1*1024*1024+1)
 				return []model.LogEntry{entry}
 			}(),
 			wantBatchCount:  0,
 			wantEntryCounts: nil,
 		},
 		"split": {
-			entries:         make([]model.LogEntry, maxItemsPerBatch+1),
+			entries:         make([]model.LogEntry, 1001),
 			wantBatchCount:  2,
-			wantEntryCounts: []int{maxItemsPerBatch, 1},
+			wantEntryCounts: []int{1000, 1},
 		},
 	}
 
@@ -58,14 +58,14 @@ func TestBatch(t *testing.T) {
 			t.Parallel()
 
 			in := make(chan model.LogEntry, len(tc.entries))
-			out := make(chan []byte, len(tc.wantEntryCounts))
+			out := make(chan json.RawMessage, len(tc.wantEntryCounts))
 			for _, entry := range tc.entries {
 				in <- entry
 			}
 			close(in)
 
 			batcher := New()
-			err := batcher.Batch(t.Context(), in, out)
+			err := batcher.Start(t.Context(), in, out)
 			require.NoError(t, err)
 			close(out)
 
