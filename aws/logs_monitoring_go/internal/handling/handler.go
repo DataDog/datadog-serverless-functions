@@ -28,7 +28,6 @@ type Config struct {
 	Source              string
 	Tags                model.Tags
 	S3MultilineLogRegex *regexp.Regexp
-	UseFIPS             bool
 }
 
 func NewHandler(ctx context.Context, hcfg Config, scrubber *scrubbing.Scrubber, filterer *filtering.Filterer, ct parsing.ContentType) (Handler, error) {
@@ -38,7 +37,7 @@ func NewHandler(ctx context.Context, hcfg Config, scrubber *scrubbing.Scrubber, 
 		return newCloudwatch(&hcfg, scrubber, filterer), nil
 
 	case parsing.ContentTypeS3:
-		client, err := sdkclient.GetS3(ctx, hcfg.UseFIPS)
+		client, err := sdkclient.GetS3(ctx)
 		if err != nil {
 			return nil, err
 		}

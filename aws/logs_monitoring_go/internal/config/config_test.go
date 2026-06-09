@@ -37,10 +37,6 @@ func TestLoad(t *testing.T) {
 			env:  map[string]string{EnvSource: "custom", EnvHost: "my-host"},
 			want: Config{IntakeURL: defaultURL, APIURL: defaultAPI, Source: "custom", Host: "my-host"},
 		},
-		"fips enabled": {
-			env:  map[string]string{EnvUseFIPS: "true"},
-			want: Config{IntakeURL: defaultURL, APIURL: defaultAPI, UseFIPS: true},
-		},
 		"valid multiline regex": {
 			env:       map[string]string{EnvMultilineLogRegex: `\d{4}-\d{2}-\d{2}`},
 			want:      Config{IntakeURL: defaultURL, APIURL: defaultAPI},
@@ -70,7 +66,6 @@ func TestLoad(t *testing.T) {
 			assert.Equal(t, tc.want.APIURL, got.APIURL)
 			assert.Equal(t, tc.want.Source, got.Source)
 			assert.Equal(t, tc.want.Host, got.Host)
-			assert.Equal(t, tc.want.UseFIPS, got.UseFIPS)
 			assert.Equal(t, tc.wantRegex, got.S3MultilineLogRegex != nil)
 		})
 	}

@@ -71,7 +71,6 @@ func handleRequest(cfg *config.Config) func(ctx context.Context, event json.RawM
 			Source:              cfg.Source,
 			Tags:                cfg.Tags,
 			S3MultilineLogRegex: cfg.S3MultilineLogRegex,
-			UseFIPS:             cfg.UseFIPS,
 		}
 
 		forwarderCfg := forwarding.Config{
@@ -82,7 +81,7 @@ func handleRequest(cfg *config.Config) func(ctx context.Context, event json.RawM
 
 		var storage storing.Storage
 		if cfg.StoreOnFail {
-			storageOpts := storing.Options{FIPS: cfg.UseFIPS, S3Bucket: cfg.S3RetryBucketName}
+			storageOpts := storing.Options{S3Bucket: cfg.S3RetryBucketName}
 			if storage, err = storing.NewStorage(ctx, storageOpts); err != nil {
 				return fmt.Errorf("new storage: %w", err)
 			}
