@@ -42,11 +42,11 @@ func FetchSecret(ctx context.Context, smClient SecretsManager, arn string) (stri
 		SecretId: aws.String(arn),
 	})
 	if err != nil {
-		return "", fmt.Errorf("fetching secret `%s`: %w", arn, err)
+		return "", fmt.Errorf("fetching secret %q: %w", arn, err)
 	}
 
 	if result.SecretString == nil {
-		return "", fmt.Errorf("secret `%s` has no string value", arn)
+		return "", fmt.Errorf("secret %q has no string value", arn)
 	}
 
 	return strings.TrimSpace(*result.SecretString), nil

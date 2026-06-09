@@ -10,6 +10,7 @@ package sdkclient
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -51,7 +52,7 @@ func DecryptKMSCiphertext(ctx context.Context, kmsClient KMS, ciphertext string)
 	}
 
 	if result.Plaintext == nil {
-		return "", fmt.Errorf("KMS decryption returned no plaintext")
+		return "", errors.New("KMS decryption returned no plaintext")
 	}
 
 	return strings.TrimSpace(string(result.Plaintext)), nil

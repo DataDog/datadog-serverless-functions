@@ -43,15 +43,15 @@ func FetchSSMParameter(ctx context.Context, ssmClient SSM, name string) (string,
 		WithDecryption: aws.Bool(true),
 	})
 	if err != nil {
-		return "", fmt.Errorf("fetching parameter `%s`: %w", name, err)
+		return "", fmt.Errorf("fetching parameter %q: %w", name, err)
 	}
 
 	if result.Parameter == nil {
-		return "", fmt.Errorf("parameter `%s` has no value", name)
+		return "", fmt.Errorf("parameter %q has no value", name)
 	}
 
 	if result.Parameter.Value == nil {
-		return "", fmt.Errorf("parameter `%s` has no string value", name)
+		return "", fmt.Errorf("parameter %q has no string value", name)
 	}
 
 	return strings.TrimSpace(*result.Parameter.Value), nil

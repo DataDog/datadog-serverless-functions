@@ -41,7 +41,7 @@ func main() {
 
 	if err = apikey.Validate(context.Background(), httpclient.Client, cfg.APIURL, cfg.APIKey); err != nil {
 		if !cfg.StoreOnFail {
-			log.Fatal(fmt.Errorf("No failed event storage set, validate API key: %w", err))
+			log.Fatal(fmt.Errorf("no failed event storage set, validate API key: %w", err))
 		}
 		slog.Error("API key validation", slog.Any("error", err))
 	}
