@@ -11,10 +11,9 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	awshttp "github.com/aws/aws-sdk-go-v2/aws/transport/http"
-	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 )
 
@@ -22,13 +21,20 @@ type SSM interface {
 	GetParameter(ctx context.Context, params *ssm.GetParameterInput, optFns ...func(*ssm.Options)) (*ssm.GetParameterOutput, error)
 }
 
-func NewSSM(ctx context.Context) (SSM, error) {
-	cfg, err := awsconfig.LoadDefaultConfig(ctx, awsconfig.WithHTTPClient(awshttp.NewBuildableClient().WithTimeout(timeout)))
+var getSSM = sync.OnceValues(func() (SSM, error) {
+	cfg, err := AWSConfig()
 	if err != nil {
 		return nil, err
 	}
-
 	return ssm.NewFromConfig(cfg), nil
+})
+
+func ResolveFromSSM(ctx context.Context, name string) (string, error) {
+	ssmClient, err := getSSM()
+	if err != nil {
+		return "", err
+	}
+	return FetchSSMParameter(ctx, ssmClient, name)
 }
 
 func FetchSSMParameter(ctx context.Context, ssmClient SSM, name string) (string, error) {

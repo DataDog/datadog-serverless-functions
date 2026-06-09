@@ -11,24 +11,30 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	awshttp "github.com/aws/aws-sdk-go-v2/aws/transport/http"
-	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 )
+
+var getSecretsManager = sync.OnceValues(func() (SecretsManager, error) {
+	cfg, err := AWSConfig()
+	if err != nil {
+		return nil, err
+	}
+	return secretsmanager.NewFromConfig(cfg), nil
+})
 
 type SecretsManager interface {
 	GetSecretValue(ctx context.Context, params *secretsmanager.GetSecretValueInput, optFns ...func(*secretsmanager.Options)) (*secretsmanager.GetSecretValueOutput, error)
 }
 
-func NewSecretsManager(ctx context.Context) (SecretsManager, error) {
-	cfg, err := awsconfig.LoadDefaultConfig(ctx, awsconfig.WithHTTPClient(awshttp.NewBuildableClient().WithTimeout(timeout)))
+func ResolveFromSecretsManager(ctx context.Context, arn string) (string, error) {
+	smClient, err := getSecretsManager()
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-
-	return secretsmanager.NewFromConfig(cfg), nil
+	return FetchSecret(ctx, smClient, arn)
 }
 
 func FetchSecret(ctx context.Context, smClient SecretsManager, arn string) (string, error) {

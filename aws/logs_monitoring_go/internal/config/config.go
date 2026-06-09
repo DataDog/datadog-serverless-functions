@@ -7,23 +7,23 @@ package config
 
 import (
 	"compress/gzip"
+	"context"
 	"errors"
 	"log/slog"
 	"os"
 	"regexp"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/sdkclient"
 )
 
 const (
-	DefaultSite     = "datadoghq.com"
-	DefaultPort     = "443"
-	DefaultProtocol = "https"
-	DefaultLogLevel = "INFO"
-
+	DefaultSite                 = "datadoghq.com"
+	DefaultPort                 = "443"
+	DefaultProtocol             = "https"
+	DefaultLogLevel             = "INFO"
 	EnvAPIKey                   = "DD_API_KEY"
 	EnvSite                     = "DD_SITE"
-	EnvURL                      = "DD_URL"
 	EnvAPIURL                   = "DD_API_URL"
 	EnvLogLevel                 = "DD_LOG_LEVEL"
 	EnvPort                     = "DD_PORT"
@@ -44,6 +44,17 @@ const (
 	EnvStoreFailedEvents        = "DD_STORE_FAILED_EVENTS"
 	ForwarderVersion            = "6.0"
 )
+
+type apiKeyResolver struct {
+	env     string
+	resolve func(ctx context.Context, value string) (string, error)
+}
+
+var apiKeyResolvers = []apiKeyResolver{
+	{"DD_API_KEY_SECRET_ARN", sdkclient.ResolveFromSecretsManager},
+	{"DD_API_KEY_SSM_NAME", sdkclient.ResolveFromSSM},
+	{"DD_KMS_API_KEY", sdkclient.ResolveFromKMS},
+}
 
 type Config struct {
 	APIKey                string
@@ -92,6 +103,10 @@ func Load() (*Config, error) {
 		}
 	}
 
+	var resolutionErr error
+	cfg.APIKey, resolutionErr = resolveAPIKey(context.Background(), apiKeyResolvers)
+	errs = append(errs, resolutionErr)
+
 	return &cfg, errors.Join(errs...)
 }
 
@@ -113,8 +128,7 @@ func (c *Config) loadEnv() {
 	}
 	c.CompressionLevel = compressionLevel
 
-	c.IntakeURL = envOrDefault(EnvURL, protocol+"://http-intake.logs."+site+":"+port+"/api/v2/logs")
-	c.APIURL = envOrDefault(EnvAPIURL, protocol+"://api."+site)
+	c.IntakeURL, c.APIURL = buildURLs(protocol, site, port)
 
 	c.Source = envOrDefault(EnvSource, "")
 	c.Host = envOrDefault(EnvHost, "")
@@ -125,4 +139,38 @@ func (c *Config) loadEnv() {
 	c.ScrubbingReplacement = envOrDefault(EnvScrubbingRuleReplacement, "")
 	c.ScrubIP = envOrDefaultBool(EnvRedactIP, false)
 	c.ScrubEmail = envOrDefaultBool(EnvRedactEmail, false)
+}
+
+func buildURLs(protocol, site, port string) (intakeURL string, apiURL string) {
+	intakeURL = protocol + "://http-intake.logs." + site + ":" + port + "/api/v2/logs"
+	apiURL = protocol + "://api." + site + "/api/v1/validate"
+	return
+}
+
+func resolveAPIKey(ctx context.Context, resolvers []apiKeyResolver) (string, error) {
+	var lastErr error
+	var apiKeyConfigured bool
+
+	for _, resolver := range resolvers {
+		v, ok := os.LookupEnv(resolver.env)
+		if !ok {
+			continue
+		}
+
+		apiKeyConfigured = true
+		key, err := resolver.resolve(ctx, v)
+		if err != nil {
+			slog.DebugContext(ctx, "resolution failure", slog.Any("error", err))
+			lastErr = err
+			continue
+		}
+
+		return key, nil
+	}
+
+	if !apiKeyConfigured {
+		return "", errors.New("no Datadog API key configured")
+	}
+
+	return "", lastErr
 }

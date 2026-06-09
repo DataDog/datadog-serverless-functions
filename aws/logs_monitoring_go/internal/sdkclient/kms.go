@@ -12,9 +12,8 @@ import (
 	"encoding/base64"
 	"fmt"
 	"strings"
+	"sync"
 
-	awshttp "github.com/aws/aws-sdk-go-v2/aws/transport/http"
-	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/kms"
 )
 
@@ -22,13 +21,20 @@ type KMS interface {
 	Decrypt(ctx context.Context, params *kms.DecryptInput, optFns ...func(*kms.Options)) (*kms.DecryptOutput, error)
 }
 
-func NewKMS(ctx context.Context) (KMS, error) {
-	cfg, err := awsconfig.LoadDefaultConfig(ctx, awsconfig.WithHTTPClient(awshttp.NewBuildableClient().WithTimeout(timeout)))
+var getKMS = sync.OnceValues(func() (KMS, error) {
+	cfg, err := AWSConfig()
 	if err != nil {
 		return nil, err
 	}
-
 	return kms.NewFromConfig(cfg), nil
+})
+
+func ResolveFromKMS(ctx context.Context, ciphertext string) (string, error) {
+	kmsClient, err := getKMS()
+	if err != nil {
+		return "", err
+	}
+	return DecryptKMSCiphertext(ctx, kmsClient, ciphertext)
 }
 
 func DecryptKMSCiphertext(ctx context.Context, kmsClient KMS, ciphertext string) (string, error) {

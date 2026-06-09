@@ -37,7 +37,7 @@ func NewHandler(ctx context.Context, hcfg Config, scrubber *scrubbing.Scrubber, 
 		return newCloudwatch(&hcfg, scrubber, filterer), nil
 
 	case parsing.ContentTypeS3:
-		client, err := sdkclient.GetS3(ctx)
+		client, err := sdkclient.GetS3()
 		if err != nil {
 			return nil, err
 		}

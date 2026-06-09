@@ -26,7 +26,7 @@ type Options struct {
 
 func NewStorage(ctx context.Context, opts Options) (Storage, error) {
 	if opts.S3Bucket != "" {
-		s3Client, err := sdkclient.GetS3(ctx)
+		s3Client, err := sdkclient.GetS3()
 		if err != nil {
 			return nil, err
 		}
