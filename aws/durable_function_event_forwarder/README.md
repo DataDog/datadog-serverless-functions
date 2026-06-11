@@ -44,8 +44,8 @@ EventBridge rule  ->  Firehose  ->  Datadog HTTP intake (raw EventBridge JSON)
 | `DdEnv` | no | "" | Datadog `env` tag. |
 | `DdVersion` | no | "" | Datadog `version` tag. |
 | `DdTags` | no | "" | Comma-delimited extra tags (for example `team:durable,owner:platform`). |
-| `Statuses` | no | `TIMED_OUT,STOPPED` | EventBridge `detail.status` values to forward. Must be uppercase, comma-delimited. |
-| `FunctionNameFilter1` … `FunctionNameFilter5` | no | "" | Up to 5 independent function-name filters. Each accepts a name or EventBridge wildcard (for example `prod-*-orders`). All five empty matches all functions in the region. Each populated slot adds matchers for both unqualified and version/alias-qualified ARNs — see [Filtering multiple functions](#filtering-multiple-functions). |
+| `Statuses` | no | "" | EventBridge `detail.status` values to forward (uppercase, comma-delimited). Empty (the default) forwards **all** statuses — no status filter is added to the rule. |
+| `FunctionArnFilter1` … `FunctionArnFilter5` | no | "" | Up to 5 independent function-ARN filters. Each accepts an **unqualified** function ARN or an EventBridge wildcard over one (for example `arn:aws:lambda:us-east-2:123456789012:function:my-durable-*`); do not add a version/alias suffix — `:*` is appended automatically. All five empty matches all functions in the region. See [Filtering multiple functions](#filtering-multiple-functions). |
 | `BufferIntervalSeconds` | no | `60` | Firehose buffer interval (60–900). |
 
 `Rules.ApiKeyRequired` asserts at least one of the four API key parameters
@@ -227,12 +227,20 @@ Datadog's logs processing pipeline.
 
 ## Filtering multiple functions
 
-Up to 5 independent function-name filters are exposed as separate
-parameters (`FunctionNameFilter1` … `FunctionNameFilter5`). Each
-populated slot contributes two matchers to the EventBridge rule — one
-for unqualified ARNs and one for version/alias-qualified ARNs. Empty
-slots are stripped from the rendered list at deploy time, so leaving
-gaps (e.g., populating slots 1, 3, 5) is fine.
+Up to 5 independent function-ARN filters are exposed as separate
+parameters (`FunctionArnFilter1` … `FunctionArnFilter5`). Each accepts an
+**unqualified** function ARN or an EventBridge wildcard over one (for
+example `arn:aws:lambda:us-east-2:123456789012:function:my-durable-*`);
+scope by region and account by including them in the pattern. Each
+populated slot contributes one matcher to the EventBridge rule: the
+supplied ARN with `:*` appended. The durable-execution `detail.functionArn`
+always carries a version/alias qualifier (per the AWS
+[Monitoring durable functions](https://docs.aws.amazon.com/lambda/latest/dg/durable-monitoring.html#durable-monitoring-eventbridge)
+docs), so `:*` is what matches — do not add a qualifier yourself. An
+`AllowedPattern` rejects a trailing qualifier so a pasted qualified ARN
+fails at deploy time rather than silently matching nothing. Empty slots
+are stripped from the rendered list at deploy time, so leaving gaps (e.g.,
+populating slots 1, 3, 5) is fine.
 
 Why five separate parameters instead of one comma-separated list:
 `AWS::Events::Rule.EventPattern` is typed `Json` (an arbitrary blob), so
@@ -245,8 +253,8 @@ exposed as individual parameters. We chose (c) because each slot is
 locally simple to read in the template.
 
 If you need more than 5 filters in one region, either widen one of the
-slots with a wildcard (`prod-*` covers every function starting with
-`prod-`) or deploy a second stack — they're independent.
+slots with a wildcard (`...:function:prod-*` covers every function whose
+name starts with `prod-`) or deploy a second stack — they're independent.
 
 ## API key from KMS ciphertext
 
@@ -293,9 +301,10 @@ methods.
 
 ## Notes
 
-- The function-name filter emits two `wildcard` patterns per value so it
-  matches both unqualified ARNs and version/alias-qualified ARNs. A single
-  `suffix(":function:<name>")` matcher would miss qualified ARNs.
+- The function-ARN filter emits one `wildcard` pattern per value: the
+  supplied unqualified ARN with `:*` appended. The event's
+  `detail.functionArn` always carries a version/alias qualifier, so the
+  `:*` is what matches; a bare-ARN matcher would never fire.
 - `BufferingHints` is set explicitly even at its default value: omitting
   it has historically caused CloudFormation drift on subsequent updates.
 - The backup bucket is retained on stack deletion

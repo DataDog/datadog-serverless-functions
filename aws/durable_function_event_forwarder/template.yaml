@@ -36,11 +36,11 @@ Metadata:
           default: Event filters
         Parameters:
           - Statuses
-          - FunctionNameFilter1
-          - FunctionNameFilter2
-          - FunctionNameFilter3
-          - FunctionNameFilter4
-          - FunctionNameFilter5
+          - FunctionArnFilter1
+          - FunctionArnFilter2
+          - FunctionArnFilter3
+          - FunctionArnFilter4
+          - FunctionArnFilter5
       - Label:
           default: Tuning
         Parameters:
@@ -57,11 +57,11 @@ Metadata:
       DdVersion: { default: Version tag }
       DdTags: { default: Additional tags }
       Statuses: { default: Statuses to forward }
-      FunctionNameFilter1: { default: Function name filter 1 (optional) }
-      FunctionNameFilter2: { default: Function name filter 2 (optional) }
-      FunctionNameFilter3: { default: Function name filter 3 (optional) }
-      FunctionNameFilter4: { default: Function name filter 4 (optional) }
-      FunctionNameFilter5: { default: Function name filter 5 (optional) }
+      FunctionArnFilter1: { default: Function ARN filter 1 (optional) }
+      FunctionArnFilter2: { default: Function ARN filter 2 (optional) }
+      FunctionArnFilter3: { default: Function ARN filter 3 (optional) }
+      FunctionArnFilter4: { default: Function ARN filter 4 (optional) }
+      FunctionArnFilter5: { default: Function ARN filter 5 (optional) }
       BufferIntervalSeconds: { default: Firehose buffer interval (seconds) }
 
 Mappings:
@@ -154,42 +154,54 @@ Parameters:
   # ---- Event filters ----
   Statuses:
     Type: CommaDelimitedList
-    Default: "TIMED_OUT,STOPPED"
+    Default: ""
     Description: >-
       Comma-separated list of execution status values to forward. Values must
-      match the EventBridge detail.status field exactly (uppercase). Default
-      forwards only terminal failure-like statuses.
-  # Up to 5 independent function-name filters. CloudFormation has no
+      match the EventBridge detail.status field exactly (uppercase). Leave
+      empty (the default) to forward every status — no status filter is added
+      to the EventBridge rule.
+  # Up to 5 independent function-ARN filters. CloudFormation has no
   # native iteration that fits AWS::Events::Rule.EventPattern (a Json blob,
   # not a schema-typed list), so each slot is exposed as its own optional
-  # parameter. Each populated slot emits two wildcard matchers — one for
-  # unqualified ARNs and one for version/alias-qualified ARNs. Slots left
-  # empty are removed from the EventPattern via AWS::NoValue, so they have
-  # no effect on the rendered rule.
-  FunctionNameFilter1:
+  # parameter. Each populated slot emits one wildcard matcher: the supplied
+  # UNqualified ARN with ":*" appended, since the event's functionArn always
+  # carries a version/alias qualifier. The AllowedPattern rejects a trailing
+  # qualifier so a pasted qualified ARN fails at deploy time instead of
+  # silently matching nothing. Slots left empty are removed from the
+  # EventPattern via AWS::NoValue, so they have no effect on the rendered rule.
+  FunctionArnFilter1:
     Type: String
     Default: ""
+    AllowedPattern: "^$|^arn:aws[a-z-]*:lambda:[a-z0-9-*]*:[0-9*]*:function:[a-zA-Z0-9_*-]+$"
     Description: >-
-      Optional Lambda function name or EventBridge wildcard pattern (for
-      example "my-fn" or "prod-*-orders") used to restrict which functions'
-      events are captured. If all five FunctionNameFilterN parameters are
-      empty, the rule matches every function in this region.
-  FunctionNameFilter2:
+      Optional UNqualified Lambda function ARN, or an EventBridge wildcard
+      pattern over one (for example
+      "arn:aws:lambda:us-east-2:123456789012:function:my-durable-*"), used to
+      restrict which functions' events are captured. Do not include a version
+      or alias suffix — ":*" is appended automatically to match any qualifier.
+      Scope by region and account by including them in the pattern. If all
+      five FunctionArnFilterN parameters are empty, the rule matches every
+      function in this region.
+  FunctionArnFilter2:
     Type: String
     Default: ""
-    Description: Optional additional function name or wildcard pattern.
-  FunctionNameFilter3:
+    AllowedPattern: "^$|^arn:aws[a-z-]*:lambda:[a-z0-9-*]*:[0-9*]*:function:[a-zA-Z0-9_*-]+$"
+    Description: Optional additional unqualified function ARN or wildcard pattern.
+  FunctionArnFilter3:
     Type: String
     Default: ""
-    Description: Optional additional function name or wildcard pattern.
-  FunctionNameFilter4:
+    AllowedPattern: "^$|^arn:aws[a-z-]*:lambda:[a-z0-9-*]*:[0-9*]*:function:[a-zA-Z0-9_*-]+$"
+    Description: Optional additional unqualified function ARN or wildcard pattern.
+  FunctionArnFilter4:
     Type: String
     Default: ""
-    Description: Optional additional function name or wildcard pattern.
-  FunctionNameFilter5:
+    AllowedPattern: "^$|^arn:aws[a-z-]*:lambda:[a-z0-9-*]*:[0-9*]*:function:[a-zA-Z0-9_*-]+$"
+    Description: Optional additional unqualified function ARN or wildcard pattern.
+  FunctionArnFilter5:
     Type: String
     Default: ""
-    Description: Optional additional function name or wildcard pattern.
+    AllowedPattern: "^$|^arn:aws[a-z-]*:lambda:[a-z0-9-*]*:[0-9*]*:function:[a-zA-Z0-9_*-]+$"
+    Description: Optional additional unqualified function ARN or wildcard pattern.
 
   # ---- Tuning ----
   BufferIntervalSeconds:
@@ -211,17 +223,25 @@ Conditions:
   HasEnv: !Not [!Equals [!Ref DdEnv, ""]]
   HasVersion: !Not [!Equals [!Ref DdVersion, ""]]
   HasTags: !Not [!Equals [!Ref DdTags, ""]]
-  HasFilter1: !Not [!Equals [!Ref FunctionNameFilter1, ""]]
-  HasFilter2: !Not [!Equals [!Ref FunctionNameFilter2, ""]]
-  HasFilter3: !Not [!Equals [!Ref FunctionNameFilter3, ""]]
-  HasFilter4: !Not [!Equals [!Ref FunctionNameFilter4, ""]]
-  HasFilter5: !Not [!Equals [!Ref FunctionNameFilter5, ""]]
+  # Statuses is a CommaDelimitedList; an empty default joins to "" so this is
+  # false, which drops the status key from the EventPattern (forward all).
+  HasStatusFilter: !Not [!Equals [!Join ["", !Ref Statuses], ""]]
+  HasFilter1: !Not [!Equals [!Ref FunctionArnFilter1, ""]]
+  HasFilter2: !Not [!Equals [!Ref FunctionArnFilter2, ""]]
+  HasFilter3: !Not [!Equals [!Ref FunctionArnFilter3, ""]]
+  HasFilter4: !Not [!Equals [!Ref FunctionArnFilter4, ""]]
+  HasFilter5: !Not [!Equals [!Ref FunctionArnFilter5, ""]]
   HasFunctionFilter: !Or
     - !Condition HasFilter1
     - !Condition HasFilter2
     - !Condition HasFilter3
     - !Condition HasFilter4
     - !Condition HasFilter5
+  # When neither a status nor a function filter is set, the detail block is
+  # omitted entirely — an empty "detail: {}" is rejected by EventBridge.
+  HasDetailFilter: !Or
+    - !Condition HasStatusFilter
+    - !Condition HasFunctionFilter
 
 Rules:
   ApiKeyRequired:
@@ -536,10 +556,9 @@ Resources:
 
   # ---------------------------------------------------------------------------
   # EventBridge rule. Captures aws.lambda "Durable Execution Status Change"
-  # events and routes them to Firehose. The functionArn matcher uses two
-  # wildcard entries so it covers both unqualified ARNs and ARNs with a
-  # version or alias suffix; a single suffix() match would miss qualified
-  # ARNs.
+  # events and routes them to Firehose. Each filter is an unqualified
+  # function ARN with ":*" appended, because the event's detail.functionArn
+  # always carries a version/alias qualifier.
   # ---------------------------------------------------------------------------
   EventRule:
     Type: AWS::Events::Rule
@@ -553,27 +572,32 @@ Resources:
           - aws.lambda
         detail-type:
           - Durable Execution Status Change
-        detail:
-          status: !Ref Statuses
-          # Two wildcard matchers per populated filter slot: one for
-          # unqualified ARNs and one for version/alias-qualified ARNs.
-          # Empty slots resolve to AWS::NoValue and are stripped from the
-          # rendered list by CloudFormation, so the EventPattern ends up
-          # with exactly 2N matchers where N is the count of populated
-          # FunctionNameFilterN slots.
-          functionArn: !If
-            - HasFunctionFilter
-            - - !If [HasFilter1, {wildcard: !Sub "*:function:${FunctionNameFilter1}"},   !Ref AWS::NoValue]
-              - !If [HasFilter1, {wildcard: !Sub "*:function:${FunctionNameFilter1}:*"}, !Ref AWS::NoValue]
-              - !If [HasFilter2, {wildcard: !Sub "*:function:${FunctionNameFilter2}"},   !Ref AWS::NoValue]
-              - !If [HasFilter2, {wildcard: !Sub "*:function:${FunctionNameFilter2}:*"}, !Ref AWS::NoValue]
-              - !If [HasFilter3, {wildcard: !Sub "*:function:${FunctionNameFilter3}"},   !Ref AWS::NoValue]
-              - !If [HasFilter3, {wildcard: !Sub "*:function:${FunctionNameFilter3}:*"}, !Ref AWS::NoValue]
-              - !If [HasFilter4, {wildcard: !Sub "*:function:${FunctionNameFilter4}"},   !Ref AWS::NoValue]
-              - !If [HasFilter4, {wildcard: !Sub "*:function:${FunctionNameFilter4}:*"}, !Ref AWS::NoValue]
-              - !If [HasFilter5, {wildcard: !Sub "*:function:${FunctionNameFilter5}"},   !Ref AWS::NoValue]
-              - !If [HasFilter5, {wildcard: !Sub "*:function:${FunctionNameFilter5}:*"}, !Ref AWS::NoValue]
-            - !Ref AWS::NoValue
+        # detail is omitted entirely when neither a status nor a function
+        # filter is set (an empty "detail: {}" is rejected by EventBridge),
+        # so the default rule matches on source + detail-type alone.
+        detail: !If
+          - HasDetailFilter
+          - # Status key omitted when Statuses is empty, so the rule forwards
+            # every status by default.
+            status: !If [HasStatusFilter, !Ref Statuses, !Ref AWS::NoValue]
+            # One wildcard matcher per populated filter slot. The user supplies
+            # an UNqualified function ARN (or a wildcard over one) and we append
+            # ":*" — the durable-execution detail.functionArn is always
+            # version/alias-qualified (see AWS "Monitoring durable functions"
+            # docs), so the ":*" is what actually matches and a bare-ARN matcher
+            # would never fire. Empty slots resolve to AWS::NoValue and are
+            # stripped from the rendered list by CloudFormation, so the
+            # EventPattern ends up with exactly N matchers where N is the count
+            # of populated FunctionArnFilterN slots.
+            functionArn: !If
+              - HasFunctionFilter
+              - - !If [HasFilter1, {wildcard: !Sub "${FunctionArnFilter1}:*"}, !Ref AWS::NoValue]
+                - !If [HasFilter2, {wildcard: !Sub "${FunctionArnFilter2}:*"}, !Ref AWS::NoValue]
+                - !If [HasFilter3, {wildcard: !Sub "${FunctionArnFilter3}:*"}, !Ref AWS::NoValue]
+                - !If [HasFilter4, {wildcard: !Sub "${FunctionArnFilter4}:*"}, !Ref AWS::NoValue]
+                - !If [HasFilter5, {wildcard: !Sub "${FunctionArnFilter5}:*"}, !Ref AWS::NoValue]
+              - !Ref AWS::NoValue
+          - !Ref AWS::NoValue
       Targets:
         - Id: FirehoseTarget
           Arn: !GetAtt DeliveryStream.Arn
