@@ -138,41 +138,34 @@ Once the template is hosted at a public S3 URL, customers can reference it
 directly — no zip artifact, region replication, or layer publish is needed.
 The template is the only thing to ship.
 
-The convention mirrors `aws/logs_monitoring/release.sh` in this repo:
-
-- **Public bucket**: `datadog-cloudformation-template` (same bucket the
-  Lambda Forwarder already uses).
-- **Versioned object key**:
-  `aws/durable_function_event_forwarder/<version>.yaml`
-- **Floating "latest" key**:
-  `aws/durable_function_event_forwarder/latest.yaml`
-- **Sandbox / staging**: separate path
-  `aws/durable_function_event_forwarder-staging/<version>.yaml` against the
-  per-environment sandbox bucket.
-
-Upload commands per release (run from this directory):
+Use `release.sh` (modeled on `aws/logs_monitoring/release.sh`), run from this
+directory with a required semantic version:
 
 ```bash
-VERSION=$(yq '.Mappings.Constants.DdDurableEventForwarder.Version' template.yaml | tr -d '"')
-BUCKET=datadog-cloudformation-template
-
-aws cloudformation validate-template --template-body file://template.yaml
-
-aws s3 cp template.yaml \
-  "s3://${BUCKET}/aws/durable_function_event_forwarder/${VERSION}.yaml" \
-  --content-type "application/yaml"
-
-aws s3 cp template.yaml \
-  "s3://${BUCKET}/aws/durable_function_event_forwarder/latest.yaml" \
-  --content-type "application/yaml"
+./release.sh 0.1.0
 ```
+
+The script:
+
+1. Authenticates to the Datadog Prod account (`464622532012`, which owns the
+   bucket) using the `prod-engineering` role via
+   `aws-vault exec sso-prod-engineering` (override with `AWS_VAULT_PROFILE`),
+   and aborts unless the resolved account is the prod account.
+2. Validates `template.yaml` with `aws cloudformation validate-template`.
+3. **Refuses to overwrite an already-published `<version>.yaml`** — released
+   versions are immutable, so bump the version to republish.
+4. After a confirmation prompt, uploads `template.yaml` to both keys in the
+   public bucket `datadog-cloudformation-template`:
+   - `aws/lambda-durable-function-event-forwarder/<version>.yaml` (new, immutable)
+   - `aws/lambda-durable-function-event-forwarder/latest.yaml` (floating
+     pointer, always overwritten to point at the version just published)
 
 Customer-facing URLs after publish:
 
 - Versioned (recommended for nested stacks):
-  `https://datadog-cloudformation-template.s3.amazonaws.com/aws/durable_function_event_forwarder/<version>.yaml`
+  `https://datadog-cloudformation-template.s3.amazonaws.com/aws/lambda-durable-function-event-forwarder/<version>.yaml`
 - Latest (convenient for one-off console deploys; not pinned, will change):
-  `https://datadog-cloudformation-template.s3.amazonaws.com/aws/durable_function_event_forwarder/latest.yaml`
+  `https://datadog-cloudformation-template.s3.amazonaws.com/aws/lambda-durable-function-event-forwarder/latest.yaml`
 
 ### Quick-create link (give this to customers)
 
@@ -183,7 +176,7 @@ parameter's `Default:` value.
 ```
 https://console.aws.amazon.com/cloudformation/home#/stacks/quickcreate
   ?stackName=datadog-durable-function-event-forwarder
-  &templateURL=https://datadog-cloudformation-template.s3.amazonaws.com/aws/durable_function_event_forwarder/latest.yaml
+  &templateURL=https://datadog-cloudformation-template.s3.amazonaws.com/aws/lambda-durable-function-event-forwarder/latest.yaml
   &param_DdService=<service>
   &param_DdEnv=<env>
 ```
@@ -195,15 +188,11 @@ link.
 ### Release checklist
 
 1. Bump `Mappings.Constants.DdDurableEventForwarder.Version` in
-   `template.yaml`.
-2. `aws cloudformation validate-template ...`
-3. `aws s3 cp` to both `<version>.yaml` and `latest.yaml` keys.
-4. Tag the release (`git tag durable-function-event-forwarder/<version>`).
-
-A `release.sh` modeled on `aws/logs_monitoring/release.sh` can automate
-steps 1–4. It is intentionally not committed yet — the template ships
-self-contained, so a one-line `aws s3 cp` is sufficient until cross-env
-sandbox/prod automation is needed.
+   `template.yaml` to the new version and merge to `master`.
+2. Run `./release.sh <version>` with the same version — it validates the
+   template, refuses to overwrite an existing `<version>.yaml`, then uploads
+   `<version>.yaml` and updates `latest.yaml`.
+3. Tag the release (`git tag durable-function-event-forwarder/<version>`).
 
 ## Deploying directly
 
@@ -224,7 +213,7 @@ aws cloudformation deploy \
 DurableFunctionEvents:
   Type: AWS::CloudFormation::Stack
   Properties:
-    TemplateURL: https://<datadog-published-templates-bucket>/aws/durable_function_event_forwarder/<version>/template.yaml
+    TemplateURL: https://datadog-cloudformation-template.s3.amazonaws.com/aws/lambda-durable-function-event-forwarder/<version>.yaml
     Parameters:
       DdApiKeySecretArn: !Ref DatadogApiKeySecret
       DdService: my-service
@@ -300,6 +289,7 @@ methods.
 | File | Purpose |
 | --- | --- |
 | `template.yaml` | Canonical CloudFormation template. |
+| `release.sh` | Publishes `template.yaml` to the public `datadog-cloudformation-template` bucket (`aws/lambda-durable-function-event-forwarder/<version>.yaml` + `latest.yaml`). |
 
 ## Notes
 
