@@ -22,7 +22,7 @@ Metadata:
           - DdVersion
           - DdTags
       - Label:
-          default: Event filters
+          default: Event filters (Optional)
         Parameters:
           - Statuses
           - FunctionArnFilter1
@@ -43,7 +43,7 @@ Metadata:
       DdEnv: { default: Env tag }
       DdVersion: { default: Version tag }
       DdTags: { default: Additional tags }
-      Statuses: { default: Statuses to forward }
+      Statuses: { default: Statuses to forward (optional) }
       FunctionArnFilter1: { default: Function ARN filter 1 (optional) }
       FunctionArnFilter2: { default: Function ARN filter 2 (optional) }
       FunctionArnFilter3: { default: Function ARN filter 3 (optional) }
