@@ -14,13 +14,9 @@ Metadata:
           - DdApiKeySecretArn
           - DdApiKeySsmParameterName
       - Label:
-          default: Datadog routing and tagging
+          default: Datadog routing
         Parameters:
           - DdSite
-          - DdService
-          - DdEnv
-          - DdVersion
-          - DdTags
       - Label:
           default: Event filters (Optional)
         Parameters:
@@ -39,10 +35,6 @@ Metadata:
       DdApiKeySecretArn: { default: Secrets Manager secret ARN }
       DdApiKeySsmParameterName: { default: SSM SecureString parameter name }
       DdSite: { default: Datadog site }
-      DdService: { default: Service tag }
-      DdEnv: { default: Env tag }
-      DdVersion: { default: Version tag }
-      DdTags: { default: Additional tags }
       Statuses: { default: Statuses to forward (optional) }
       FunctionArnFilter1: { default: Function ARN filter 1 (optional) }
       FunctionArnFilter2: { default: Function ARN filter 2 (optional) }
@@ -86,30 +78,6 @@ Parameters:
     Default: datadoghq.com
     AllowedPattern: .+
     Description: Datadog site to deliver events to.
-
-  # ---- Tagging ----
-  DdService:
-    Type: String
-    Default: datadog-durable-function-event-forwarder
-    AllowedPattern: .+
-    ConstraintDescription: DdService cannot be empty.
-    Description: >-
-      Datadog service tag applied to every forwarded event. Defaults to
-      "datadog-durable-function-event-forwarder".
-  DdEnv:
-    Type: String
-    Default: ""
-    Description: Datadog env tag. Optional.
-  DdVersion:
-    Type: String
-    Default: ""
-    Description: Datadog version tag. Optional.
-  DdTags:
-    Type: String
-    Default: ""
-    Description: >-
-      Extra comma-delimited tags appended to every forwarded event (for
-      example team:durable,owner:platform). Optional.
 
   # ---- Event filters ----
   Statuses:
@@ -178,9 +146,6 @@ Conditions:
   UseApiKey: !Not [!Equals [!Ref DdApiKey, ""]]
   UseApiKeySecret: !Not [!Equals [!Ref DdApiKeySecretArn, ""]]
   UseApiKeySsm: !Not [!Equals [!Ref DdApiKeySsmParameterName, ""]]
-  HasEnv: !Not [!Equals [!Ref DdEnv, ""]]
-  HasVersion: !Not [!Equals [!Ref DdVersion, ""]]
-  HasTags: !Not [!Equals [!Ref DdTags, ""]]
   # Statuses is a CommaDelimitedList; an empty default joins to "" so this is
   # false, which drops the status key from the EventPattern (forward all).
   HasStatusFilter: !Not [!Equals [!Join ["", !Ref Statuses], ""]]

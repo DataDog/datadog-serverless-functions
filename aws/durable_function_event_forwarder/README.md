@@ -38,10 +38,6 @@ EventBridge rule  ->  Firehose  ->  Datadog HTTP intake (raw EventBridge JSON)
 | `DdApiKeySecretArn` | one of three | "" | ARN of a Secrets Manager secret whose `SecretString` is the API key. Resolved via `{{resolve:secretsmanager:...}}`. |
 | `DdApiKeySsmParameterName` | one of three | "" | Name of an SSM SecureString parameter holding the API key. Resolved via `{{resolve:ssm-secure:...}}`. |
 | `DdSite` | no | `datadoghq.com` | Datadog site; used to build the Firehose destination URL. |
-| `DdService` | no | `datadog-durable-function-event-forwarder` | Datadog `service` tag applied to every forwarded event. Override to match your existing service taxonomy. |
-| `DdEnv` | no | "" | Datadog `env` tag. |
-| `DdVersion` | no | "" | Datadog `version` tag. |
-| `DdTags` | no | "" | Comma-delimited extra tags (for example `team:durable,owner:platform`). |
 | `Statuses` | no | "" | EventBridge `detail.status` values to forward (uppercase, comma-delimited). Empty (the default) forwards **all** statuses — no status filter is added to the rule. |
 | `FunctionArnFilter1` … `FunctionArnFilter5` | no | "" | Up to 5 independent function-ARN filters. Each accepts an **unqualified** function ARN or an EventBridge wildcard over one (for example `arn:aws:lambda:us-east-2:123456789012:function:my-durable-*`); do not add a version/alias suffix — `:*` is appended automatically. All five empty matches all functions in the region. See [Filtering multiple functions](#filtering-multiple-functions). |
 | `BufferIntervalSeconds` | no | `60` | Firehose buffer interval (60–900). |
@@ -97,9 +93,9 @@ Anything beyond these — a service override
 (`service:my-orders-service`), `env`/`version`, custom tags, attribute
 flattening, ARN qualifier stripping, timestamp parsing for relative-time
 tooltips — is the Datadog log processing pipeline's responsibility (see
-below). The `DdService`/`DdEnv`/`DdVersion`/`DdTags` parameters remain
-on the stack for forward compatibility but are not currently propagated;
-configure their equivalents in the pipeline instead.
+below). The stack intentionally exposes no service/env/version/tags
+parameters: the Firehose intake can't carry them as proper facets, so
+configure them in the pipeline instead.
 
 ### Datadog-side processing pipeline
 
@@ -162,8 +158,6 @@ parameter's `Default:` value.
 https://console.aws.amazon.com/cloudformation/home#/stacks/quickcreate
   ?stackName=datadog-durable-function-event-forwarder
   &templateURL=https://datadog-cloudformation-template.s3.amazonaws.com/aws/lambda-durable-function-event-forwarder/latest.yaml
-  &param_DdService=<service>
-  &param_DdEnv=<env>
 ```
 
 (Removed the line breaks — paste as a single URL.) The customer fills in
@@ -178,9 +172,7 @@ aws cloudformation deploy \
   --stack-name datadog-durable-function-event-forwarder \
   --capabilities CAPABILITY_IAM \
   --parameter-overrides \
-    DdApiKeySecretArn=arn:aws:secretsmanager:us-east-1:123456789012:secret:datadog/api-key-AbCdEf \
-    DdService=my-service \
-    DdEnv=prod
+    DdApiKeySecretArn=arn:aws:secretsmanager:us-east-1:123456789012:secret:datadog/api-key-AbCdEf
 ```
 
 ## Consuming as a nested stack
@@ -192,8 +184,6 @@ DurableFunctionEvents:
     TemplateURL: https://datadog-cloudformation-template.s3.amazonaws.com/aws/lambda-durable-function-event-forwarder/<version>.yaml
     Parameters:
       DdApiKeySecretArn: !Ref DatadogApiKeySecret
-      DdService: my-service
-      DdEnv: prod
 ```
 
 The template is fully self-contained — no Lambda zip artifact, no region
