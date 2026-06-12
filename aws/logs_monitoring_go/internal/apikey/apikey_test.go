@@ -35,7 +35,7 @@ func TestValidate(t *testing.T) {
 			key:        "myapikeyisexpiredorinvalid012345",
 			statusCode: http.StatusForbidden,
 			wantErr:    true,
-			err:        ErrInvalidAPIKey,
+			err:        invalidAPIKeyError{},
 		},
 		"unexpected error": {
 			key:        "0123456789abcdefghij0123456789ab",

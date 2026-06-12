@@ -7,7 +7,6 @@ package apikey
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -21,11 +20,9 @@ const (
 	validationTimeout = 3 * time.Second
 )
 
-var ErrInvalidAPIKey = errors.New("invalid Datadog API key")
-
 func Validate(ctx context.Context, client *http.Client, url, key string) error {
 	if !validFormat(key) {
-		return errors.New("invalid Datadog API key format")
+		return invalidAPIKeyError{"bad format"}
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, validationTimeout)
@@ -45,7 +42,7 @@ func Validate(ctx context.Context, client *http.Client, url, key string) error {
 	defer httpclient.DrainClose(resp)
 
 	if resp.StatusCode == http.StatusForbidden {
-		return ErrInvalidAPIKey
+		return invalidAPIKeyError{"denied from validation endpoint"}
 	}
 
 	if resp.StatusCode != http.StatusOK {
