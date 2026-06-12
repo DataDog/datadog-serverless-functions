@@ -30,12 +30,13 @@ func TestValidate(t *testing.T) {
 		"wrong format": {
 			key:     "not32characters",
 			wantErr: true,
+			err:     &invalidAPIKeyError{},
 		},
 		"invalid": {
 			key:        "myapikeyisexpiredorinvalid012345",
 			statusCode: http.StatusForbidden,
 			wantErr:    true,
-			err:        invalidAPIKeyError{},
+			err:        &invalidAPIKeyError{},
 		},
 		"unexpected error": {
 			key:        "0123456789abcdefghij0123456789ab",
@@ -58,7 +59,7 @@ func TestValidate(t *testing.T) {
 
 			if tc.wantErr {
 				if tc.err != nil {
-					require.ErrorIs(t, err, tc.err)
+					require.ErrorAs(t, err, tc.err)
 				}
 				require.Error(t, err)
 				return
