@@ -105,10 +105,25 @@ fi
 log_success "Authenticated to account ${CURRENT_ACCOUNT}."
 
 # --- Validate the template ------------------------------------------------- #
+# Validate locally with cfn-lint rather than cloudformation:ValidateTemplate —
+# the publishing role is scoped to S3 and is not granted CloudFormation
+# actions. cfn-lint needs no AWS permissions.
 
-log_info "Validating ${TEMPLATE_PATH}..."
-aws_login aws cloudformation validate-template --template-body "file://${TEMPLATE_PATH}" >/dev/null
-log_success "Template is valid."
+if command -v cfn-lint >/dev/null 2>&1; then
+    log_info "Validating ${TEMPLATE_PATH} with cfn-lint..."
+    set +e
+    cfn-lint "${TEMPLATE_PATH}"
+    LINT_RC=$?
+    set -e
+    # cfn-lint exit codes are a bitmask: 2 = errors, 4 = warnings, 8 = info.
+    # Only error-level findings should block a release.
+    if ((LINT_RC & 2)); then
+        log_error "cfn-lint reported errors; aborting."
+    fi
+    log_success "Template passed cfn-lint (no error-level findings)."
+else
+    log_info "cfn-lint not found; skipping local template validation."
+fi
 
 # --- Refuse to overwrite an already-published version ---------------------- #
 

@@ -34,11 +34,9 @@ EventBridge rule  ->  Firehose  ->  Datadog HTTP intake (raw EventBridge JSON)
 
 | Parameter | Required | Default | Description |
 | --- | --- | --- | --- |
-| `DdApiKey` | one of four | "" | Plaintext Datadog API key (`NoEcho`). |
-| `DdApiKeySecretArn` | one of four | "" | ARN of a Secrets Manager secret whose `SecretString` is the API key. Resolved via `{{resolve:secretsmanager:...}}`. |
-| `DdApiKeySsmParameterName` | one of four | "" | Name of an SSM SecureString parameter holding the API key. Resolved via `{{resolve:ssm-secure:...}}`. |
-| `DdApiKeyKmsCiphertext` | one of four | "" | Base64-encoded KMS ciphertext of the API key. A deploy-time Lambda decrypts it via `kms:Decrypt` and hands the plaintext to Firehose as a `NoEcho` custom-resource attribute. See [API key from KMS ciphertext](#api-key-from-kms-ciphertext). |
-| `DdApiKeyKmsKeyArn` | when ciphertext set | "" | ARN of the KMS key that encrypted `DdApiKeyKmsCiphertext`. Used to scope the decrypter Lambda's `kms:Decrypt` permission. Required when `DdApiKeyKmsCiphertext` is set (enforced by a `Rules` assertion). |
+| `DdApiKey` | one of three | "" | Plaintext Datadog API key (`NoEcho`). |
+| `DdApiKeySecretArn` | one of three | "" | ARN of a Secrets Manager secret whose `SecretString` is the API key. Resolved via `{{resolve:secretsmanager:...}}`. |
+| `DdApiKeySsmParameterName` | one of three | "" | Name of an SSM SecureString parameter holding the API key. Resolved via `{{resolve:ssm-secure:...}}`. |
 | `DdSite` | no | `datadoghq.com` | Datadog site; used to build the Firehose destination URL. |
 | `DdService` | no | `datadog-durable-function-event-forwarder` | Datadog `service` tag applied to every forwarded event. Override to match your existing service taxonomy. |
 | `DdEnv` | no | "" | Datadog `env` tag. |
@@ -48,7 +46,7 @@ EventBridge rule  ->  Firehose  ->  Datadog HTTP intake (raw EventBridge JSON)
 | `FunctionArnFilter1` … `FunctionArnFilter5` | no | "" | Up to 5 independent function-ARN filters. Each accepts an **unqualified** function ARN or an EventBridge wildcard over one (for example `arn:aws:lambda:us-east-2:123456789012:function:my-durable-*`); do not add a version/alias suffix — `:*` is appended automatically. All five empty matches all functions in the region. See [Filtering multiple functions](#filtering-multiple-functions). |
 | `BufferIntervalSeconds` | no | `60` | Firehose buffer interval (60–900). |
 
-`Rules.ApiKeyRequired` asserts at least one of the four API key parameters
+`Rules.ApiKeyRequired` asserts at least one of the three API key parameters
 is set and fails the stack action with a clear message otherwise.
 
 ## Outputs
@@ -255,42 +253,6 @@ locally simple to read in the template.
 If you need more than 5 filters in one region, either widen one of the
 slots with a wildcard (`...:function:prod-*` covers every function whose
 name starts with `prod-`) or deploy a second stack — they're independent.
-
-## API key from KMS ciphertext
-
-`DdApiKeyKmsCiphertext` accepts the base64 output of:
-
-```bash
-aws kms encrypt \
-  --key-id arn:aws:kms:us-east-1:123456789012:key/abcd... \
-  --plaintext "$DATADOG_API_KEY" \
-  --query CiphertextBlob \
-  --output text
-```
-
-At stack create/update time, a short-lived Lambda decrypts the ciphertext
-once via `kms:Decrypt` and returns the plaintext to CloudFormation as a
-`NoEcho` custom-resource attribute. The Firehose `AccessKey` then
-references the value via `!GetAtt DecryptedApiKey.ApiKey`.
-
-The decrypter Lambda's IAM role is scoped to `kms:Decrypt` on the single
-key ARN you pass as `DdApiKeyKmsKeyArn`. A `Rules` assertion fails the
-stack action if the ciphertext is set without the key ARN.
-
-**Security trade-off.** The plaintext is materialized in two places
-during deploy: the custom-resource response body (suppressed from stack
-events by `NoEcho: true`) and the rendered Firehose resource properties.
-This is weaker than `DdApiKeySecretArn` or `DdApiKeySsmParameterName`,
-which AWS treats specially and never logs. Use the KMS-ciphertext option
-when you already have an encrypted ciphertext blob in your deployment
-flow (e.g., from `serverless-plugin-kms` or an internal config store)
-and don't want to add a Secrets Manager / SSM secret.
-
-The decrypter resources (`ApiKeyKmsDecrypterFunction`,
-`ApiKeyKmsDecrypterRole`, `ApiKeyKmsDecrypterLogGroup`, `DecryptedApiKey`)
-are conditional on `UseApiKeyKms` and only exist when
-`DdApiKeyKmsCiphertext` is set — no overhead for the other three API-key
-methods.
 
 ## Files
 
