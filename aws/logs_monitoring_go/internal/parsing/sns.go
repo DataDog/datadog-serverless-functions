@@ -46,11 +46,11 @@ func parseSNS(event json.RawMessage) ([]ParsedEvent, error) {
 
 		inner := json.RawMessage(message)
 		if isS3(inner) {
-			parsed = append(parsed, ParsedEvent{ContentTypeS3, inner})
+			parsed = append(parsed, ParsedEvent{ContentType: ContentTypeS3, Payload: inner})
 			continue
 		}
 
-		parsed = append(parsed, ParsedEvent{ContentTypeSNS, record})
+		parsed = append(parsed, ParsedEvent{ContentType: ContentTypeSNS, Payload: record})
 	}
 
 	return parsed, nil

@@ -91,7 +91,7 @@ func parseSQSBody(body string) (ParsedEvent, error) {
 			}
 		case recordsKey:
 			if isS3(inner) {
-				return ParsedEvent{ContentTypeS3, inner}, nil
+				return ParsedEvent{ContentType: ContentTypeS3, Payload: inner}, nil
 			}
 			return ParsedEvent{}, errUnknownEvent
 		default:
@@ -104,9 +104,9 @@ func parseSQSBody(body string) (ParsedEvent, error) {
 	if typ == "Notification" && message != "" {
 		msg := json.RawMessage(message)
 		if isS3(msg) {
-			return ParsedEvent{ContentTypeS3, msg}, nil
+			return ParsedEvent{ContentType: ContentTypeS3, Payload: msg}, nil
 		}
-		return ParsedEvent{ContentTypeSNS, inner}, nil
+		return ParsedEvent{ContentType: ContentTypeSNS, Payload: inner}, nil
 	}
 
 	return ParsedEvent{}, errUnknownEvent

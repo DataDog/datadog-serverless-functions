@@ -21,6 +21,7 @@ const (
 )
 
 type ParsedEvent struct {
-	ContentType ContentType
-	Payload     json.RawMessage
+	ContentType      ContentType
+	Payload          json.RawMessage
+	SQSReceiptHandle string
 }
