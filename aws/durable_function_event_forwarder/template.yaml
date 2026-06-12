@@ -85,9 +85,7 @@ Parameters:
     Type: String
     Default: datadoghq.com
     AllowedPattern: .+
-    Description: >-
-      Datadog site to deliver events to. The Firehose destination URL is
-      derived as https://aws-kinesis-http-intake.logs.<DdSite>/v1/input.
+    Description: Datadog site to deliver events to.
 
   # ---- Tagging ----
   DdService:
@@ -97,9 +95,7 @@ Parameters:
     ConstraintDescription: DdService cannot be empty.
     Description: >-
       Datadog service tag applied to every forwarded event. Defaults to
-      "datadog-durable-function-event-forwarder"; override to match your
-      existing service taxonomy if you already have Datadog conventions for
-      this category of events.
+      "datadog-durable-function-event-forwarder".
   DdEnv:
     Type: String
     Default: ""
@@ -121,9 +117,8 @@ Parameters:
     Default: ""
     Description: >-
       Comma-separated list of execution status values to forward. Valid values
-      are RUNNING, SUCCEEDED, FAILED, TIMED_OUT, and STOPPED (uppercase, matched
-      against detail.status exactly). Leave empty (the default) to forward every
-      status - no status filter is added to the EventBridge rule.
+      are RUNNING, SUCCEEDED, FAILED, TIMED_OUT, and STOPPED. Leave empty (the
+      default) to forward every status.
   # Up to 5 independent function-ARN filters. CloudFormation has no
   # native iteration that fits AWS::Events::Rule.EventPattern (a Json blob,
   # not a schema-typed list), so each slot is exposed as its own optional
@@ -329,6 +324,11 @@ Resources:
           # Attributes header on each request, which Datadog's Firehose
           # intake parses into log metadata / tags).
           Url: !Sub "https://aws-kinesis-http-intake.logs.${DdSite}/v1/input"
+          # The API key becomes the X-Amz-Firehose-Access-Key header on each
+          # request and is stored opaquely by Firehose. The two dynamic-
+          # reference paths resolve the value straight into this resource at
+          # deploy time, so the plaintext never appears in the template source,
+          # the stack parameters, or stack events.
           AccessKey: !If
             - UseApiKey
             - !Ref DdApiKey
