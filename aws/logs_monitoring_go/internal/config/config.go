@@ -9,6 +9,7 @@ import (
 	"compress/gzip"
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"os"
 	"regexp"
@@ -148,29 +149,19 @@ func buildURLs(protocol, site, port string) (intakeURL string, apiURL string) {
 }
 
 func resolveAPIKey(ctx context.Context, resolvers []apiKeyResolver) (string, error) {
-	var lastErr error
-	var apiKeyConfigured bool
-
 	for _, resolver := range resolvers {
 		v, ok := os.LookupEnv(resolver.env)
 		if !ok {
 			continue
 		}
 
-		apiKeyConfigured = true
 		key, err := resolver.resolve(ctx, v)
 		if err != nil {
-			slog.DebugContext(ctx, "resolution failure", slog.Any("error", err))
-			lastErr = err
-			continue
+			return "", fmt.Errorf("resolve: %w", err)
 		}
 
 		return key, nil
 	}
 
-	if !apiKeyConfigured {
-		return "", errors.New("no Datadog API key configured")
-	}
-
-	return "", lastErr
+	return "", errors.New("no Datadog API key configured")
 }
