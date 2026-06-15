@@ -11,7 +11,9 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"log/slog"
 
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/apikey"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/filtering"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/forwarding"
@@ -37,16 +39,11 @@ func main() {
 	}
 	httpclient.Init(tlsOpts...)
 
-	// Will refactor this in the future to not stop the forwarder if the api key resolution or validation fails.
-	// We may want to store the events in the storage retry mechanism even in case of API key resolution/expiration
-	// so we let the customer some time to configure it properly and not lose any of the events from then.
-	err = cfg.ResolveAPIKey(context.Background())
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = cfg.ValidateAPIKey(context.Background())
-	if err != nil {
-		log.Fatal(err)
+	if err = apikey.Validate(context.Background(), httpclient.Client, cfg.APIURL, cfg.APIKey); err != nil {
+		if !cfg.StoreOnFail {
+			log.Fatal(fmt.Errorf("no failed event storage set, validate API key: %w", err))
+		}
+		slog.Error("API key validation", slog.Any("error", err))
 	}
 
 	lambda.Start(handleRequest(cfg))

@@ -6,45 +6,88 @@
 package config
 
 import (
+	"context"
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestLoad(t *testing.T) {
-	defaultURL := "https://http-intake.logs." + DefaultSite + ":443/api/v2/logs"
-	defaultAPI := "https://api." + DefaultSite
+func TestBuildURLs(t *testing.T) {
+	t.Parallel()
+
+	tests := map[string]struct {
+		protocol      string
+		site          string
+		port          string
+		wantIntakeURL string
+		wantAPIURL    string
+	}{
+		"defaults": {
+			protocol:      "https",
+			site:          "datadoghq.com",
+			port:          "443",
+			wantIntakeURL: "https://http-intake.logs.datadoghq.com:443/api/v2/logs",
+			wantAPIURL:    "https://api.datadoghq.com/api/v1/validate",
+		},
+		"eu site": {
+			protocol:      "https",
+			site:          "datadoghq.eu",
+			port:          "443",
+			wantIntakeURL: "https://http-intake.logs.datadoghq.eu:443/api/v2/logs",
+			wantAPIURL:    "https://api.datadoghq.eu/api/v1/validate",
+		},
+		"gov": {
+			protocol:      "https",
+			site:          "ddog-gov.com",
+			port:          "443",
+			wantIntakeURL: "https://http-intake.logs.ddog-gov.com:443/api/v2/logs",
+			wantAPIURL:    "https://api.ddog-gov.com/api/v1/validate",
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			intakeURL, apiURL := buildURLs(tc.protocol, tc.site, tc.port)
+
+			assert.Equal(t, tc.wantIntakeURL, intakeURL)
+			assert.Equal(t, tc.wantAPIURL, apiURL)
+		})
+	}
+}
+
+func TestResolveAPIKey(t *testing.T) {
+	succeed := func(_ context.Context, v string) (string, error) { return v, nil }
+	fail := func(_ context.Context, _ string) (string, error) { return "", errors.New("aws error") }
 
 	tests := map[string]struct {
 		env       map[string]string
-		want      Config
-		wantRegex bool
+		resolvers []apiKeyResolver
+		wantKey   string
 		wantErr   bool
 	}{
-		"defaults": {
-			want: Config{IntakeURL: defaultURL, APIURL: defaultAPI},
+		"succeeds": {
+			env:       map[string]string{"DD_API_KEY_SECRET_ARN": "abcdef1234567890abcdef1234567890"},
+			resolvers: []apiKeyResolver{{"DD_API_KEY_SECRET_ARN", succeed}},
+			wantKey:   "abcdef1234567890abcdef1234567890",
 		},
-		"eu site": {
-			env:  map[string]string{EnvSite: "datadoghq.eu"},
-			want: Config{IntakeURL: "https://http-intake.logs.datadoghq.eu:443/api/v2/logs", APIURL: "https://api.datadoghq.eu"},
-		},
-		"custom url": {
-			env:  map[string]string{EnvURL: "https://custom.example.com"},
-			want: Config{IntakeURL: "https://custom.example.com", APIURL: defaultAPI},
-		},
-		"source and host": {
-			env:  map[string]string{EnvSource: "custom", EnvHost: "my-host"},
-			want: Config{IntakeURL: defaultURL, APIURL: defaultAPI, Source: "custom", Host: "my-host"},
-		},
-		"valid multiline regex": {
-			env:       map[string]string{EnvMultilineLogRegex: `\d{4}-\d{2}-\d{2}`},
-			want:      Config{IntakeURL: defaultURL, APIURL: defaultAPI},
-			wantRegex: true,
-		},
-		"invalid multiline regex": {
-			env:     map[string]string{EnvMultilineLogRegex: `[invalid`},
+		"no fallback": {
+			env: map[string]string{
+				"DD_API_KEY_SECRET_ARN": "bad",
+				"DD_API_KEY_SSM_NAME":   "abcdef1234567890abcdef1234567890",
+			},
+			resolvers: []apiKeyResolver{
+				{"DD_API_KEY_SECRET_ARN", fail},
+				{"DD_API_KEY_SSM_NAME", succeed},
+			},
 			wantErr: true,
+		},
+		"none configured": {
+			resolvers: []apiKeyResolver{{"DD_API_KEY_SECRET_ARN", succeed}},
+			wantErr:   true,
 		},
 	}
 
@@ -54,19 +97,14 @@ func TestLoad(t *testing.T) {
 				t.Setenv(k, v)
 			}
 
-			got, err := Load()
+			key, err := resolveAPIKey(t.Context(), tc.resolvers)
 
 			if tc.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-
-			assert.Equal(t, tc.want.IntakeURL, got.IntakeURL)
-			assert.Equal(t, tc.want.APIURL, got.APIURL)
-			assert.Equal(t, tc.want.Source, got.Source)
-			assert.Equal(t, tc.want.Host, got.Host)
-			assert.Equal(t, tc.wantRegex, got.S3MultilineLogRegex != nil)
+			assert.Equal(t, tc.wantKey, key)
 		})
 	}
 }
