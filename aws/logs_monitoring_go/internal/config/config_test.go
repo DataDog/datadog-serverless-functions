@@ -69,23 +69,12 @@ func TestResolveAPIKey(t *testing.T) {
 		wantKey   string
 		wantErr   bool
 	}{
-		"first resolver succeeds": {
+		"succeeds": {
 			env:       map[string]string{"DD_API_KEY_SECRET_ARN": "abcdef1234567890abcdef1234567890"},
 			resolvers: []apiKeyResolver{{"DD_API_KEY_SECRET_ARN", succeed}},
 			wantKey:   "abcdef1234567890abcdef1234567890",
 		},
-		"fallback order": {
-			env: map[string]string{
-				"DD_API_KEY_SECRET_ARN": "key-from-arn",
-				"DD_API_KEY_SSM_NAME":   "key-from-ssm",
-			},
-			resolvers: []apiKeyResolver{
-				{"DD_API_KEY_SECRET_ARN", succeed},
-				{"DD_API_KEY_SSM_NAME", succeed},
-			},
-			wantKey: "key-from-arn",
-		},
-		"first fails, second succeeds": {
+		"no fallback": {
 			env: map[string]string{
 				"DD_API_KEY_SECRET_ARN": "bad",
 				"DD_API_KEY_SSM_NAME":   "abcdef1234567890abcdef1234567890",
@@ -94,12 +83,7 @@ func TestResolveAPIKey(t *testing.T) {
 				{"DD_API_KEY_SECRET_ARN", fail},
 				{"DD_API_KEY_SSM_NAME", succeed},
 			},
-			wantKey: "abcdef1234567890abcdef1234567890",
-		},
-		"all fail": {
-			env:       map[string]string{"DD_API_KEY_SECRET_ARN": "bad"},
-			resolvers: []apiKeyResolver{{"DD_API_KEY_SECRET_ARN", fail}},
-			wantErr:   true,
+			wantErr: true,
 		},
 		"none configured": {
 			resolvers: []apiKeyResolver{{"DD_API_KEY_SECRET_ARN", succeed}},
