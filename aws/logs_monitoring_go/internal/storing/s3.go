@@ -104,16 +104,16 @@ func (s *S3) getBatch(ctx context.Context, object types.Object) (Batch, error) {
 	}
 
 	return Batch{
-		Data:         batch,
-		StorageTag:   out.Metadata[metadataStorageTagKey],
-		DeleteHandle: aws.ToString(object.Key),
+		Data:       batch,
+		StorageTag: out.Metadata[metadataStorageTagKey],
+		DeleteKey:  aws.ToString(object.Key),
 	}, nil
 }
 
 func (s *S3) Delete(ctx context.Context, sentBatch Batch) error {
 	_, err := s.client.DeleteObject(ctx, &s3.DeleteObjectInput{
 		Bucket: aws.String(s.bucket),
-		Key:    aws.String(sentBatch.DeleteHandle),
+		Key:    aws.String(sentBatch.DeleteKey),
 	})
 	if err != nil {
 		return err

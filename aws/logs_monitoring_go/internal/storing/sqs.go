@@ -40,9 +40,9 @@ func newSQS(client sdkclient.SQS, queue string) *SQS {
 	return &SQS{client: client, queue: queue}
 }
 
-func (s *SQS) Store(ctx context.Context, storedBatch Batch) error {
+func (s *SQS) Store(ctx context.Context, batch Batch) error {
 	var logs []json.RawMessage
-	if err := json.Unmarshal(storedBatch.Data, &logs); err != nil {
+	if err := json.Unmarshal(batch.Data, &logs); err != nil {
 		return fmt.Errorf("unmarshal: %w", err)
 	}
 
@@ -51,20 +51,20 @@ func (s *SQS) Store(ctx context.Context, storedBatch Batch) error {
 		batching.WithMaxBatchSize(maxSizePerSQSBatch),
 		batching.WithMaxItemsPerBatch(math.MaxInt),
 	)
-	batches, err := batcher.StartSlice(logs)
+	messages, err := batcher.StartSlice(logs)
 	if err != nil {
 		return fmt.Errorf("batching: %w", err)
 	}
 
 	messageEntries := make([]types.SendMessageBatchRequestEntry, 0, maxMessagePerBatch)
-	for i, batch := range batches {
+	for i, message := range messages {
 		entry := types.SendMessageBatchRequestEntry{
 			Id:          aws.String(strconv.Itoa(i)),
-			MessageBody: aws.String(string(batch)),
+			MessageBody: aws.String(string(message)),
 			MessageAttributes: map[string]types.MessageAttributeValue{
 				metadataStorageTagKey: {
 					DataType:    aws.String("String"),
-					StringValue: aws.String(storedBatch.StorageTag),
+					StringValue: aws.String(batch.StorageTag),
 				},
 			},
 		}
@@ -129,9 +129,9 @@ func (s *SQS) Fetch(ctx context.Context) iter.Seq2[Batch, error] {
 
 			for _, message := range out.Messages {
 				storedBatch := Batch{
-					Data:         []byte(aws.ToString(message.Body)),
-					StorageTag:   aws.ToString(message.MessageAttributes[metadataStorageTagKey].StringValue),
-					DeleteHandle: aws.ToString(message.ReceiptHandle),
+					Data:       []byte(aws.ToString(message.Body)),
+					StorageTag: aws.ToString(message.MessageAttributes[metadataStorageTagKey].StringValue),
+					DeleteKey:  aws.ToString(message.ReceiptHandle),
 				}
 				if !yield(storedBatch, nil) {
 					return
@@ -144,7 +144,7 @@ func (s *SQS) Fetch(ctx context.Context) iter.Seq2[Batch, error] {
 func (s *SQS) Delete(ctx context.Context, failedBatch Batch) error {
 	_, err := s.client.DeleteMessage(ctx, &sqs.DeleteMessageInput{
 		QueueUrl:      &s.queue,
-		ReceiptHandle: &failedBatch.DeleteHandle,
+		ReceiptHandle: &failedBatch.DeleteKey,
 	})
 	if err != nil {
 		return fmt.Errorf("delete message: %w", err)

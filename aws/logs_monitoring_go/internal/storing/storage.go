@@ -16,9 +16,9 @@ import (
 const metadataStorageTagKey = "dd-storage-tag"
 
 type Batch struct {
-	Data         json.RawMessage
-	StorageTag   string
-	DeleteHandle string
+	Data       json.RawMessage
+	StorageTag string
+	DeleteKey  string
 }
 
 type Storage interface {
