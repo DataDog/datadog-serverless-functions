@@ -1,32 +1,32 @@
 {
-    "name": "activity_logs_monitoring",
-    "version": "1.0.0",
-    "description": "[Activity and Diagnostic Logs](./activity_logs_monitoring/README.md)",
-    "main": "index.js",
-    "directories": {
-        "test": "tests"
-    },
-    "scripts": {
-        "test": "mocha",
-        "lint": "prettier --write shared/*.js activity_logs_monitoring/*.js blobs_logs_monitoring/*.js test/*.js"
-    },
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/DataDog/datadog-serverless-functions.git"
-    },
-    "author": "Datadog, Inc.",
-    "license": "Apache-2.0",
-    "bugs": {
-        "url": "https://github.com/DataDog/datadog-serverless-functions/issues"
-    },
-    "homepage": "https://github.com/DataDog/datadog-serverless-functions#readme",
-    "dependencies": {
-        "@azure/functions": "^4.7.0"
-    },
-    "devDependencies": {
-        "lodash": ">=4.18.1",
-        "mocha": "11.7.5",
-        "prettier": "3.8.3",
-        "sinon": "21.1.2"
-    }
+  "name": "activity_logs_monitoring",
+  "version": "1.0.0",
+  "description": "[Activity and Diagnostic Logs](./activity_logs_monitoring/README.md)",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "mocha",
+    "lint": "prettier --write shared/*.js activity_logs_monitoring/*.js blobs_logs_monitoring/*.js test/*.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DataDog/datadog-serverless-functions.git"
+  },
+  "author": "Datadog, Inc.",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/DataDog/datadog-serverless-functions/issues"
+  },
+  "homepage": "https://github.com/DataDog/datadog-serverless-functions#readme",
+  "dependencies": {
+    "@azure/functions": "^4.7.0"
+  },
+  "devDependencies": {
+    "lodash": ">=4.18.1",
+    "mocha": "11.7.5",
+    "prettier": "3.8.3",
+    "sinon": "21.1.2"
+  }
 }
