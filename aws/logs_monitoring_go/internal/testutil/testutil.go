@@ -11,7 +11,9 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
@@ -118,4 +120,33 @@ func MustKinesisEvent(t *testing.T, records ...[]byte) json.RawMessage {
 		t.Fatalf("marshal kinesis event: %v", err)
 	}
 	return raw
+}
+
+func GenerateJSONLog(t *testing.T, size int) json.RawMessage {
+	t.Helper()
+
+	const template = `{"id":"0","timestamp":1718540400000,"message":"%s","ddsourcecategory":"aws"}`
+	overhead := len(fmt.Sprintf(template, ""))
+
+	padding := size - overhead
+	if padding < 0 {
+		t.Fatalf("GenerateJSONLog: requested size %d is smaller than the fixed overhead %d", size, overhead)
+	}
+
+	return json.RawMessage(fmt.Sprintf(template, strings.Repeat("x", padding)))
+}
+
+func GenerateJSONLogs(t *testing.T, sizes ...int) json.RawMessage {
+	t.Helper()
+
+	logs := make([]json.RawMessage, 0, len(sizes))
+	for _, size := range sizes {
+		logs = append(logs, GenerateJSONLog(t, size))
+	}
+
+	data, err := json.Marshal(logs)
+	if err != nil {
+		t.Fatalf("GenerateJSONLogs: marshal: %v", err)
+	}
+	return data
 }
