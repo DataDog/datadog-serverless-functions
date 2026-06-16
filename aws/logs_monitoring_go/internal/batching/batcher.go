@@ -95,7 +95,7 @@ func (b *Batcher) Start(ctx context.Context, in <-chan model.LogEntry, out chan<
 	return nil
 }
 
-func (b *Batcher) Batch(items []json.RawMessage) iter.Seq2[json.RawMessage, error] {
+func (b *Batcher) StartYield(items []json.RawMessage) iter.Seq2[json.RawMessage, error] {
 	return func(yield func(json.RawMessage, error) bool) {
 		for _, item := range items {
 			if !b.valid(item) {
