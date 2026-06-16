@@ -139,7 +139,7 @@ func (b *Batcher) StartYield(items []json.RawMessage) iter.Seq2[json.RawMessage,
 }
 
 func (b *Batcher) add(item json.RawMessage) bool {
-	if len(b.batch) >= b.maxItemsPerBatch || b.batchSize+len(item)+1 > b.maxBatchSize {
+	if (b.maxItemsPerBatch != 0 && len(b.batch) >= b.maxItemsPerBatch) || b.batchSize+len(item)+1 > b.maxBatchSize {
 		return false
 	}
 

@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"iter"
-	"math"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/batching"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/sdkclient"
@@ -45,7 +44,7 @@ func (s *SQS) Store(ctx context.Context, batch Batch) error {
 	batcher := batching.New(
 		batching.WithMaxItemSize(maxSizePerSQSMessage),
 		batching.WithMaxBatchSize(maxSizePerSQSMessage),
-		batching.WithMaxItemsPerBatch(math.MaxInt),
+		batching.WithMaxItemsPerBatch(0),
 	)
 	for message, err := range batcher.StartYield(logs) {
 		if err != nil {
