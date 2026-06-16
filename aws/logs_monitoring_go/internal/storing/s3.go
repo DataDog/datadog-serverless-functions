@@ -35,7 +35,7 @@ func newS3(client sdkclient.S3, bucket string) *S3 {
 	return &S3{client: client, bucket: bucket}
 }
 
-func (s *S3) Store(ctx context.Context, storedBatch Batch) error {
+func (s *S3) Store(ctx context.Context, batch Batch) error {
 	invocationID := "unknown"
 	if lc, ok := lambdacontext.FromContext(ctx); ok {
 		invocationID = lc.AwsRequestID
@@ -47,8 +47,8 @@ func (s *S3) Store(ctx context.Context, storedBatch Batch) error {
 	_, err := s.client.PutObject(ctx, &s3.PutObjectInput{
 		Bucket:   aws.String(s.bucket),
 		Key:      aws.String(key),
-		Body:     bytes.NewReader(storedBatch.Data),
-		Metadata: map[string]string{metadataStorageTagKey: storedBatch.StorageTag},
+		Body:     bytes.NewReader(batch.Data),
+		Metadata: map[string]string{metadataStorageTagKey: batch.StorageTag},
 	})
 	if err != nil {
 		return err
@@ -110,10 +110,10 @@ func (s *S3) getBatch(ctx context.Context, object types.Object) (Batch, error) {
 	}, nil
 }
 
-func (s *S3) Delete(ctx context.Context, sentBatch Batch) error {
+func (s *S3) Delete(ctx context.Context, batch Batch) error {
 	_, err := s.client.DeleteObject(ctx, &s3.DeleteObjectInput{
 		Bucket: aws.String(s.bucket),
-		Key:    aws.String(sentBatch.DeleteKey),
+		Key:    aws.String(batch.DeleteKey),
 	})
 	if err != nil {
 		return err

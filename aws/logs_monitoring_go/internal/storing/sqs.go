@@ -102,10 +102,10 @@ func (s *SQS) Fetch(ctx context.Context) iter.Seq2[Batch, error] {
 	}
 }
 
-func (s *SQS) Delete(ctx context.Context, failedBatch Batch) error {
+func (s *SQS) Delete(ctx context.Context, batch Batch) error {
 	_, err := s.client.DeleteMessage(ctx, &sqs.DeleteMessageInput{
 		QueueUrl:      &s.queue,
-		ReceiptHandle: &failedBatch.DeleteKey,
+		ReceiptHandle: &batch.DeleteKey,
 	})
 	if err != nil {
 		return fmt.Errorf("delete message: %w", err)
