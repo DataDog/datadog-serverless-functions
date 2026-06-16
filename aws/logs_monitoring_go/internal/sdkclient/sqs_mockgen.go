@@ -81,22 +81,22 @@ func (mr *MockSQSMockRecorder) ReceiveMessage(ctx, params any, optFns ...any) *g
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReceiveMessage", reflect.TypeOf((*MockSQS)(nil).ReceiveMessage), varargs...)
 }
 
-// SendMessageBatch mocks base method.
-func (m *MockSQS) SendMessageBatch(ctx context.Context, params *sqs.SendMessageBatchInput, optFns ...func(*sqs.Options)) (*sqs.SendMessageBatchOutput, error) {
+// SendMessage mocks base method.
+func (m *MockSQS) SendMessage(ctx context.Context, params *sqs.SendMessageInput, optFns ...func(*sqs.Options)) (*sqs.SendMessageOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []any{ctx, params}
 	for _, a := range optFns {
 		varargs = append(varargs, a)
 	}
-	ret := m.ctrl.Call(m, "SendMessageBatch", varargs...)
-	ret0, _ := ret[0].(*sqs.SendMessageBatchOutput)
+	ret := m.ctrl.Call(m, "SendMessage", varargs...)
+	ret0, _ := ret[0].(*sqs.SendMessageOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// SendMessageBatch indicates an expected call of SendMessageBatch.
-func (mr *MockSQSMockRecorder) SendMessageBatch(ctx, params any, optFns ...any) *gomock.Call {
+// SendMessage indicates an expected call of SendMessage.
+func (mr *MockSQSMockRecorder) SendMessage(ctx, params any, optFns ...any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]any{ctx, params}, optFns...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMessageBatch", reflect.TypeOf((*MockSQS)(nil).SendMessageBatch), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMessage", reflect.TypeOf((*MockSQS)(nil).SendMessage), varargs...)
 }

@@ -9,6 +9,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"iter"
 	"log/slog"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/concurrent"
@@ -49,12 +50,15 @@ func (b *Batcher) Start(ctx context.Context, in <-chan model.LogEntry, out chan<
 	for {
 		v, ok, _ := concurrent.SafeReader(ctx, in)
 		if !ok {
-			batch, err := b.construct()
+			batch, constructed, err := b.construct()
 			if err != nil {
 				return err
 			}
-			if err = concurrent.SafeSender(ctx, out, batch); err != nil {
-				return err
+
+			if constructed {
+				if err = concurrent.SafeSender(ctx, out, batch); err != nil {
+					return err
+				}
 			}
 			break
 		}
@@ -73,49 +77,65 @@ func (b *Batcher) Start(ctx context.Context, in <-chan model.LogEntry, out chan<
 		}
 
 		if ok := b.add(item); !ok {
-			batch, err := b.construct()
+			batch, constructed, err := b.construct()
 			if err != nil {
 				return err
 			}
+			_ = b.add(item)
+
+			if !constructed {
+				continue
+			}
+
 			if err = concurrent.SafeSender(ctx, out, batch); err != nil {
 				return err
 			}
-			_ = b.add(item)
 		}
 	}
 	return nil
 }
 
-func (b *Batcher) StartSlice(items []json.RawMessage) ([]json.RawMessage, error) {
-	var batchedItems []json.RawMessage
-	for _, item := range items {
-		if !b.valid(item) {
-			slog.Warn("invalid item, dropping",
-				slog.Int("size", len(item)),
-				slog.Int("max", b.maxItemSize),
-			)
-			continue
-		}
-
-		if ok := b.add(item); !ok {
-			batch, err := b.construct()
-			if err != nil {
-				return nil, err
+func (b *Batcher) Batch(items []json.RawMessage) iter.Seq2[json.RawMessage, error] {
+	return func(yield func(json.RawMessage, error) bool) {
+		for _, item := range items {
+			if !b.valid(item) {
+				slog.Warn("invalid item, dropping",
+					slog.Int("size", len(item)),
+					slog.Int("max", b.maxItemSize),
+				)
+				continue
 			}
-			batchedItems = append(batchedItems, batch)
-			_ = b.add(item)
+
+			if ok := b.add(item); !ok {
+				batch, constructed, err := b.construct()
+				if err != nil {
+					yield(nil, err)
+					return
+				}
+				_ = b.add(item)
+
+				if !constructed {
+					continue
+				}
+
+				if !yield(batch, nil) {
+					return
+				}
+			}
 		}
-	}
 
-	batch, err := b.construct()
-	if err != nil {
-		return nil, err
-	}
+		batch, constructed, err := b.construct()
+		if err != nil {
+			yield(nil, err)
+			return
+		}
 
-	if batch != nil {
-		batchedItems = append(batchedItems, batch)
+		if !constructed {
+			return
+		}
+
+		yield(batch, nil)
 	}
-	return batchedItems, nil
 }
 
 func (b *Batcher) add(item json.RawMessage) bool {
@@ -132,18 +152,18 @@ func (b *Batcher) valid(item json.RawMessage) bool {
 	return len(item) <= b.maxItemSize
 }
 
-func (b *Batcher) construct() (json.RawMessage, error) {
+func (b *Batcher) construct() (json.RawMessage, bool, error) {
 	if len(b.batch) == 0 {
-		return nil, nil
+		return nil, false, nil
 	}
 
 	batch, err := json.Marshal(&b.batch)
 	if err != nil {
-		return nil, fmt.Errorf("marshal: %w", err)
+		return nil, false, fmt.Errorf("marshal: %w", err)
 	}
 
 	b.reset()
-	return json.RawMessage(batch), nil
+	return json.RawMessage(batch), true, nil
 }
 
 func (b *Batcher) reset() {

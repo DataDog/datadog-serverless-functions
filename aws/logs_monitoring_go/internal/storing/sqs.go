@@ -10,10 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"iter"
-	"log/slog"
 	"math"
-	"strconv"
-
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/batching"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/sdkclient"
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -23,8 +20,6 @@ import (
 
 const (
 	maxSizePerSQSMessage = 1 * 1024 * 1024
-	maxSizePerSQSBatch   = 1 * 1024 * 1024
-	maxMessagePerBatch   = 10
 	maxNumberOfMessages  = 10
 	polling              = 10
 	visibilityTimeout    = 6 * 60
@@ -48,18 +43,16 @@ func (s *SQS) Store(ctx context.Context, batch Batch) error {
 
 	batcher := batching.New(
 		batching.WithMaxItemSize(maxSizePerSQSMessage),
-		batching.WithMaxBatchSize(maxSizePerSQSBatch),
+		batching.WithMaxBatchSize(maxSizePerSQSMessage),
 		batching.WithMaxItemsPerBatch(math.MaxInt),
 	)
-	messages, err := batcher.StartSlice(logs)
-	if err != nil {
-		return fmt.Errorf("batching: %w", err)
-	}
+	for message, err := range batcher.Batch(logs) {
+		if err != nil {
+			return fmt.Errorf("batching: %w", err)
+		}
 
-	messageEntries := make([]types.SendMessageBatchRequestEntry, 0, maxMessagePerBatch)
-	for i, message := range messages {
-		entry := types.SendMessageBatchRequestEntry{
-			Id:          aws.String(strconv.Itoa(i)),
+		_, err := s.client.SendMessage(ctx, &sqs.SendMessageInput{
+			QueueUrl:    &s.queue,
 			MessageBody: aws.String(string(message)),
 			MessageAttributes: map[string]types.MessageAttributeValue{
 				metadataStorageTagKey: {
@@ -67,42 +60,10 @@ func (s *SQS) Store(ctx context.Context, batch Batch) error {
 					StringValue: aws.String(batch.StorageTag),
 				},
 			},
+		})
+		if err != nil {
+			return fmt.Errorf("send message: %w", err)
 		}
-
-		if len(messageEntries) >= maxMessagePerBatch {
-			if err := s.send(ctx, messageEntries); err != nil {
-				return err
-			}
-			messageEntries = messageEntries[:0]
-		}
-		messageEntries = append(messageEntries, entry)
-	}
-
-	return s.send(ctx, messageEntries)
-}
-
-func (s *SQS) send(ctx context.Context, entries []types.SendMessageBatchRequestEntry) error {
-	if len(entries) == 0 {
-		return nil
-	}
-
-	out, err := s.client.SendMessageBatch(ctx, &sqs.SendMessageBatchInput{
-		Entries:  entries,
-		QueueUrl: &s.queue,
-	})
-	if err != nil {
-		return fmt.Errorf("send message batch: %w", err)
-	}
-
-	if len(out.Failed) > 0 {
-		for _, e := range out.Failed {
-			slog.DebugContext(ctx, "failed to send SQS message",
-				slog.String("code", aws.ToString(e.Code)),
-				slog.String("message", aws.ToString(e.Message)),
-				slog.Bool("sender_fault", e.SenderFault),
-			)
-		}
-		return fmt.Errorf("failed to send %d/%d messages", len(out.Failed), len(out.Failed)+len(out.Successful))
 	}
 
 	return nil
