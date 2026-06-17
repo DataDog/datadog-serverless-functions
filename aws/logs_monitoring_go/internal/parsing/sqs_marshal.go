@@ -17,13 +17,13 @@ type sqsBodyDiscriminator struct {
 	Records json.RawMessage `json:"Records"` // S3 inside SQS
 }
 
-func sqsUnmarshal(event json.RawMessage) ([]ParsedEvent, error) {
+func sqsUnmarshal(event json.RawMessage) ([]Event, error) {
 	var sqsEvent events.SQSEvent
 	if err := json.Unmarshal(event, &sqsEvent); err != nil {
 		return nil, err
 	}
 
-	var parsed []ParsedEvent
+	var parsed []Event
 	for _, msg := range sqsEvent.Records {
 		pe, err := sqsBody(msg.Body)
 		if err != nil {
@@ -37,26 +37,26 @@ func sqsUnmarshal(event json.RawMessage) ([]ParsedEvent, error) {
 	return parsed, nil
 }
 
-func sqsBody(body string) (ParsedEvent, error) {
+func sqsBody(body string) (Event, error) {
 	raw := json.RawMessage(body)
 
 	var disc sqsBodyDiscriminator
 	if err := json.Unmarshal(raw, &disc); err != nil {
-		return ParsedEvent{}, err
+		return Event{}, err
 	}
 
 	switch {
 	case disc.Records != nil:
-		return ParsedEvent{ContentType: ContentTypeS3, Payload: raw}, nil
+		return Event{ContentType: ContentTypeS3, Payload: raw}, nil
 
 	case disc.Type == "Notification" && disc.Message != "":
 		var innerDisc recordsDiscriminator
 		if err := json.Unmarshal([]byte(disc.Message), &innerDisc); err != nil {
-			return ParsedEvent{ContentType: ContentTypeS3, Payload: json.RawMessage(disc.Message)}, nil
+			return Event{ContentType: ContentTypeS3, Payload: json.RawMessage(disc.Message)}, nil
 		}
 
-		return ParsedEvent{ContentType: ContentTypeSNS, Payload: raw}, nil
+		return Event{ContentType: ContentTypeSNS, Payload: raw}, nil
 	}
 
-	return ParsedEvent{}, errUnknownEvent
+	return Event{}, errUnknownEvent
 }

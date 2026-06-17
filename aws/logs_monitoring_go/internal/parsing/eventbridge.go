@@ -19,7 +19,7 @@ const (
 	eventBridgeDetailTypeS3 = "Object Created"
 )
 
-func parseEventBridge(event json.RawMessage) ([]ParsedEvent, error) {
+func parseEventBridge(event json.RawMessage) ([]Event, error) {
 	source, detailType, detail, err := decodeEventBridgeEnvelope(event)
 	if err != nil {
 		return nil, fmt.Errorf("decode eventbridge: %w", err)
@@ -30,10 +30,10 @@ func parseEventBridge(event json.RawMessage) ([]ParsedEvent, error) {
 		if err != nil {
 			return nil, fmt.Errorf("build s3 event from eventbridge: %w", err)
 		}
-		return []ParsedEvent{{ContentType: ContentTypeS3, Payload: s3Event}}, nil
+		return []Event{{ContentType: ContentTypeS3, Payload: s3Event}}, nil
 	}
 
-	return []ParsedEvent{{ContentType: ContentTypeEventBridge, Payload: event}}, nil
+	return []Event{{ContentType: ContentTypeEventBridge, Payload: event}}, nil
 }
 
 func decodeEventBridgeEnvelope(event json.RawMessage) (source, detailType string, detail json.RawMessage, err error) {

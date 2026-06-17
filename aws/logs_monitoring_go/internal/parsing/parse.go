@@ -26,7 +26,7 @@ const (
 	eventSourceSNS     = "aws:sns"
 )
 
-func Parse(event json.RawMessage) ([]ParsedEvent, error) {
+func Parse(event json.RawMessage) ([]Event, error) {
 	dec := json.NewDecoder(bytes.NewReader(event))
 	if err := SkipBrace(dec); err != nil {
 		return nil, err
@@ -40,9 +40,9 @@ func Parse(event json.RawMessage) ([]ParsedEvent, error) {
 
 		switch key {
 		case cloudwatchLogsKey:
-			return []ParsedEvent{{ContentType: ContentTypeCloudwatchLogs, Payload: event}}, nil
+			return []Event{{ContentType: ContentTypeCloudwatchLogs, Payload: event}}, nil
 		case retryKey:
-			return []ParsedEvent{{ContentType: ContentTypeRetry}}, nil
+			return []Event{{ContentType: ContentTypeRetry}}, nil
 		case recordsKey:
 			parsed, err := parseRecords(event, dec)
 			if err != nil {
@@ -65,7 +65,7 @@ func Parse(event json.RawMessage) ([]ParsedEvent, error) {
 	return nil, errors.New("unsupported event")
 }
 
-func parseRecords(event json.RawMessage, dec *json.Decoder) ([]ParsedEvent, error) {
+func parseRecords(event json.RawMessage, dec *json.Decoder) ([]Event, error) {
 	if err := SkipBracket(dec); err != nil {
 		return nil, err
 	}
@@ -104,9 +104,9 @@ func parseRecords(event json.RawMessage, dec *json.Decoder) ([]ParsedEvent, erro
 
 		switch eventSource {
 		case eventSourceS3:
-			return []ParsedEvent{{ContentType: ContentTypeS3, Payload: event}}, nil
+			return []Event{{ContentType: ContentTypeS3, Payload: event}}, nil
 		case eventSourceKinesis:
-			return []ParsedEvent{{ContentType: ContentTypeKinesis, Payload: event}}, nil
+			return []Event{{ContentType: ContentTypeKinesis, Payload: event}}, nil
 		case eventSourceSQS:
 			parsed, err := parseSQS(event)
 			if err != nil {

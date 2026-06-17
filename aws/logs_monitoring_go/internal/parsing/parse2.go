@@ -24,7 +24,7 @@ type recordsDiscriminator struct {
 	Records json.RawMessage `json:"Records"`
 }
 
-func ParseUnmarshal(event json.RawMessage) ([]ParsedEvent, error) {
+func ParseUnmarshal(event json.RawMessage) ([]Event, error) {
 	var disc eventDiscriminator
 	if err := json.Unmarshal(event, &disc); err != nil {
 		return nil, err
@@ -32,10 +32,10 @@ func ParseUnmarshal(event json.RawMessage) ([]ParsedEvent, error) {
 
 	switch {
 	case disc.AWSLogs != nil:
-		return []ParsedEvent{{ContentType: ContentTypeCloudwatchLogs, Payload: event}}, nil
+		return []Event{{ContentType: ContentTypeCloudwatchLogs, Payload: event}}, nil
 
 	case disc.Retry != nil:
-		return []ParsedEvent{{ContentType: ContentTypeRetry}}, nil
+		return []Event{{ContentType: ContentTypeRetry}}, nil
 
 	case len(disc.Records) > 0:
 		parsed, err := recordsUnmarshal(event, disc)
@@ -55,13 +55,13 @@ func ParseUnmarshal(event json.RawMessage) ([]ParsedEvent, error) {
 	return nil, errors.New("unsupported event")
 }
 
-func recordsUnmarshal(event json.RawMessage, disc eventDiscriminator) ([]ParsedEvent, error) {
+func recordsUnmarshal(event json.RawMessage, disc eventDiscriminator) ([]Event, error) {
 	switch disc.Records[0].EventSource {
 	case eventSourceS3:
-		return []ParsedEvent{{ContentType: ContentTypeS3, Payload: event}}, nil
+		return []Event{{ContentType: ContentTypeS3, Payload: event}}, nil
 
 	case eventSourceKinesis:
-		return []ParsedEvent{{ContentType: ContentTypeKinesis, Payload: event}}, nil
+		return []Event{{ContentType: ContentTypeKinesis, Payload: event}}, nil
 
 	case eventSourceSQS:
 		parsed, err := sqsUnmarshal(event)

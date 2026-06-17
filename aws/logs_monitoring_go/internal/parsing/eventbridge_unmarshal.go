@@ -22,7 +22,7 @@ type s3EventBridgeDetail struct {
 	} `json:"object"`
 }
 
-func eventBridgeUnmarshal(event json.RawMessage) ([]ParsedEvent, error) {
+func eventBridgeUnmarshal(event json.RawMessage) ([]Event, error) {
 	var eventBridgeEvent events.EventBridgeEvent
 	if err := json.Unmarshal(event, &eventBridgeEvent); err != nil {
 		return nil, err
@@ -39,9 +39,9 @@ func eventBridgeUnmarshal(event json.RawMessage) ([]ParsedEvent, error) {
 			return nil, err
 		}
 
-		return []ParsedEvent{{ContentType: ContentTypeS3, Payload: payload}}, nil
+		return []Event{{ContentType: ContentTypeS3, Payload: payload}}, nil
 	}
-	return []ParsedEvent{{ContentType: ContentTypeEventBridge, Payload: event}}, nil
+	return []Event{{ContentType: ContentTypeEventBridge, Payload: event}}, nil
 }
 
 func mapS3EventBridge(eb s3EventBridgeDetail) (json.RawMessage, error) {

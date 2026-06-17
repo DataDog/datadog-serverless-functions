@@ -13,13 +13,13 @@ import (
 	"log/slog"
 )
 
-func parseSQS(event json.RawMessage) ([]ParsedEvent, error) {
+func parseSQS(event json.RawMessage) ([]Event, error) {
 	dec := json.NewDecoder(bytes.NewReader(event))
 	if err := SkipToRecords(dec); err != nil {
 		return nil, fmt.Errorf("skip to records: %w", err)
 	}
 
-	var parsed []ParsedEvent
+	var parsed []Event
 	for i := 0; dec.More(); i++ {
 		body, err := extractBody(dec)
 		if err != nil {
@@ -65,38 +65,38 @@ func extractBody(dec *json.Decoder) (string, error) {
 	return body, nil
 }
 
-func parseSQSBody(body string) (ParsedEvent, error) {
+func parseSQSBody(body string) (Event, error) {
 	inner := json.RawMessage(body)
 	dec := json.NewDecoder(bytes.NewReader(inner))
 
 	if err := SkipBrace(dec); err != nil {
-		return ParsedEvent{}, err
+		return Event{}, err
 	}
 
 	var typ, message string
 	for dec.More() {
 		key, err := dec.Token()
 		if err != nil {
-			return ParsedEvent{}, err
+			return Event{}, err
 		}
 
 		switch key {
 		case "Type":
 			if err := dec.Decode(&typ); err != nil {
-				return ParsedEvent{}, fmt.Errorf("decode: %w", err)
+				return Event{}, fmt.Errorf("decode: %w", err)
 			}
 		case "Message":
 			if err := dec.Decode(&message); err != nil {
-				return ParsedEvent{}, fmt.Errorf("decode: %w", err)
+				return Event{}, fmt.Errorf("decode: %w", err)
 			}
 		case recordsKey:
 			if isS3(inner) {
-				return ParsedEvent{ContentType: ContentTypeS3, Payload: inner}, nil
+				return Event{ContentType: ContentTypeS3, Payload: inner}, nil
 			}
-			return ParsedEvent{}, errUnknownEvent
+			return Event{}, errUnknownEvent
 		default:
 			if err := Skip(dec); err != nil {
-				return ParsedEvent{}, err
+				return Event{}, err
 			}
 		}
 	}
@@ -104,10 +104,10 @@ func parseSQSBody(body string) (ParsedEvent, error) {
 	if typ == "Notification" && message != "" {
 		msg := json.RawMessage(message)
 		if isS3(msg) {
-			return ParsedEvent{ContentType: ContentTypeS3, Payload: msg}, nil
+			return Event{ContentType: ContentTypeS3, Payload: msg}, nil
 		}
-		return ParsedEvent{ContentType: ContentTypeSNS, Payload: inner}, nil
+		return Event{ContentType: ContentTypeSNS, Payload: inner}, nil
 	}
 
-	return ParsedEvent{}, errUnknownEvent
+	return Event{}, errUnknownEvent
 }

@@ -20,7 +20,7 @@ const (
 	ContentTypeRetry
 )
 
-type ParsedEvent struct {
+type Event struct {
 	ContentType      ContentType
 	Payload          json.RawMessage
 	SQSReceiptHandle string

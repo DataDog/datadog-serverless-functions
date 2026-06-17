@@ -11,21 +11,21 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 )
 
-func snsUnmarshal(event json.RawMessage) ([]ParsedEvent, error) {
+func snsUnmarshal(event json.RawMessage) ([]Event, error) {
 	var snsEvent events.SNSEvent
 	if err := json.Unmarshal(event, &snsEvent); err != nil {
 		return nil, err
 	}
 
-	var parsed []ParsedEvent
+	var parsed []Event
 	for _, record := range snsEvent.Records {
 		inner := record.SNS.Message
 		if err := json.Unmarshal([]byte(inner), &recordsDiscriminator{}); err != nil {
-			parsed = append(parsed, ParsedEvent{ContentType: ContentTypeS3, Payload: json.RawMessage(inner)})
+			parsed = append(parsed, Event{ContentType: ContentTypeS3, Payload: json.RawMessage(inner)})
 			continue
 		}
 
-		parsed = append(parsed, ParsedEvent{ContentType: ContentTypeSNS, Payload: event})
+		parsed = append(parsed, Event{ContentType: ContentTypeSNS, Payload: event})
 	}
 
 	return parsed, nil

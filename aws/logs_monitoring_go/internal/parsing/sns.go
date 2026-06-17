@@ -11,14 +11,14 @@ import (
 	"fmt"
 )
 
-func parseSNS(event json.RawMessage) ([]ParsedEvent, error) {
+func parseSNS(event json.RawMessage) ([]Event, error) {
 	dec := json.NewDecoder(bytes.NewReader(event))
 
 	if err := SkipToRecords(dec); err != nil {
 		return nil, fmt.Errorf("skip to records: %w", err)
 	}
 
-	var parsed []ParsedEvent
+	var parsed []Event
 	for dec.More() {
 		var record json.RawMessage
 		if err := dec.Decode(&record); err != nil {
@@ -46,11 +46,11 @@ func parseSNS(event json.RawMessage) ([]ParsedEvent, error) {
 
 		inner := json.RawMessage(message)
 		if isS3(inner) {
-			parsed = append(parsed, ParsedEvent{ContentType: ContentTypeS3, Payload: inner})
+			parsed = append(parsed, Event{ContentType: ContentTypeS3, Payload: inner})
 			continue
 		}
 
-		parsed = append(parsed, ParsedEvent{ContentType: ContentTypeSNS, Payload: record})
+		parsed = append(parsed, Event{ContentType: ContentTypeSNS, Payload: record})
 	}
 
 	return parsed, nil
