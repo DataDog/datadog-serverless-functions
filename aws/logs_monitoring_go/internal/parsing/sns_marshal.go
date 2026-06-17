@@ -19,9 +19,11 @@ func snsUnmarshal(event json.RawMessage) ([]Event, error) {
 
 	var parsed []Event
 	for _, record := range snsEvent.Records {
-		inner := record.SNS.Message
-		if err := json.Unmarshal([]byte(inner), &recordsDiscriminator{}); err != nil {
-			parsed = append(parsed, Event{ContentType: ContentTypeS3, Payload: json.RawMessage(inner)})
+		inner := json.RawMessage(record.SNS.Message)
+
+		var disc eventDiscriminator
+		if err := json.Unmarshal(inner, &disc); err == nil && len(disc.Records) > 0 && disc.Records[0].EventSource == eventSourceS3 {
+			parsed = append(parsed, Event{ContentType: ContentTypeS3, Payload: inner})
 			continue
 		}
 

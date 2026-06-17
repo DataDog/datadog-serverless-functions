@@ -20,9 +20,6 @@ type eventDiscriminator struct {
 	Retry  json.RawMessage `json:"retry"`
 }
 
-type recordsDiscriminator struct {
-	Records json.RawMessage `json:"Records"`
-}
 
 func ParseUnmarshal(event json.RawMessage) ([]Event, error) {
 	var disc eventDiscriminator
