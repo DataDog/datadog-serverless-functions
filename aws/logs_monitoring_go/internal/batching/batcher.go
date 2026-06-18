@@ -144,7 +144,7 @@ func (b *Batcher) add(item json.RawMessage) bool {
 	}
 
 	b.batch = append(b.batch, item)
-	b.batchSize += len(item) + 1 // ','
+	b.batchSize += len(item) + 1
 	return true
 }
 

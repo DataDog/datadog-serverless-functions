@@ -113,7 +113,7 @@ func (f *Forwarder) Start(ctx context.Context, in <-chan model.LogEntry, storage
 }
 
 func (f *Forwarder) Retry(ctx context.Context) error {
-	if f.storage != nil {
+	if f.storage == nil {
 		return nil
 	}
 
