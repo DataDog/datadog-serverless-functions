@@ -6,108 +6,59 @@
 package parsing
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log/slog"
+
+	"github.com/aws/aws-lambda-go/events"
 )
 
-func parseSQS(event json.RawMessage) ([]ParsedEvent, error) {
-	dec := json.NewDecoder(bytes.NewReader(event))
-	if err := SkipToRecords(dec); err != nil {
-		return nil, fmt.Errorf("skip to records: %w", err)
-	}
-
-	var parsed []ParsedEvent
-	for i := 0; dec.More(); i++ {
-		body, err := extractBody(dec)
-		if err != nil {
-			return nil, fmt.Errorf("extract body: %w", err)
-		}
-
-		pe, err := parseSQSBody(body)
-		if errors.Is(err, errUnknownEvent) {
-			slog.Warn("unknown event from SQS record, skipping", slog.Int("index", i))
-			continue
-		}
-		if err != nil {
-			return nil, fmt.Errorf("parse body: %w", err)
-		}
-
-		parsed = append(parsed, pe)
-	}
-
-	if len(parsed) == 0 {
-		return nil, errors.New("no recognizable events in SQS batch")
-	}
-	return parsed, nil
+type sqsBodyDiscriminator struct {
+	Type    string `json:"Type"`    // SNS inside SQS when raw message delivery disabled. See https://docs.aws.amazon.com/sns/latest/dg/sns-large-payload-raw-message-delivery.html
+	Message string `json:"Message"` // SNS inside SQS when raw message delivery disabled. See https://docs.aws.amazon.com/sns/latest/dg/sns-large-payload-raw-message-delivery.html
+	eventDiscriminator
 }
 
-func extractBody(dec *json.Decoder) (string, error) {
-	if err := SkipBrace(dec); err != nil {
-		return "", err
+func sqs(event json.RawMessage) ([]Event, error) {
+	var sqsEvent events.SQSEvent
+	if err := json.Unmarshal(event, &sqsEvent); err != nil {
+		return nil, fmt.Errorf("unmarshal: %w", err)
 	}
 
-	if err := SkipToKey(dec, "body"); err != nil {
-		return "", fmt.Errorf("skip to key: %w", err)
+	var events []Event
+	for _, msg := range sqsEvent.Records {
+		e, err := sqsBody(msg.Body)
+		if err != nil {
+			return nil, err
+		}
+
+		e.SQSReceiptHandle = msg.ReceiptHandle
+		events = append(events, e)
 	}
 
-	var body string
-	if err := dec.Decode(&body); err != nil {
-		return "", fmt.Errorf("decode: %w", err)
-	}
-
-	if err := skipToEnd(dec); err != nil {
-		return "", fmt.Errorf("skip to end: %w", err)
-	}
-
-	return body, nil
+	return events, nil
 }
 
-func parseSQSBody(body string) (ParsedEvent, error) {
-	inner := json.RawMessage(body)
-	dec := json.NewDecoder(bytes.NewReader(inner))
+func sqsBody(body string) (Event, error) {
+	raw := json.RawMessage(body)
 
-	if err := SkipBrace(dec); err != nil {
-		return ParsedEvent{}, err
+	var disc sqsBodyDiscriminator
+	if err := json.Unmarshal(raw, &disc); err != nil {
+		return Event{}, fmt.Errorf("unmarshal: %w", err)
 	}
 
-	var typ, message string
-	for dec.More() {
-		key, err := dec.Token()
-		if err != nil {
-			return ParsedEvent{}, err
+	switch {
+	case len(disc.Records) > 0 && disc.Records[0].EventSource == eventSourceS3:
+		return Event{ContentType: ContentTypeS3, Payload: raw}, nil
+
+	case disc.Type == "Notification" && disc.Message != "":
+		var innerDisc eventDiscriminator
+		if err := json.Unmarshal([]byte(disc.Message), &innerDisc); err == nil && len(innerDisc.Records) > 0 && innerDisc.Records[0].EventSource == eventSourceS3 {
+			return Event{ContentType: ContentTypeS3, Payload: json.RawMessage(disc.Message)}, nil
 		}
 
-		switch key {
-		case "Type":
-			if err := dec.Decode(&typ); err != nil {
-				return ParsedEvent{}, fmt.Errorf("decode: %w", err)
-			}
-		case "Message":
-			if err := dec.Decode(&message); err != nil {
-				return ParsedEvent{}, fmt.Errorf("decode: %w", err)
-			}
-		case recordsKey:
-			if isS3(inner) {
-				return ParsedEvent{ContentTypeS3, inner}, nil
-			}
-			return ParsedEvent{}, errUnknownEvent
-		default:
-			if err := Skip(dec); err != nil {
-				return ParsedEvent{}, err
-			}
-		}
+		return Event{ContentType: ContentTypeSNS, Payload: raw}, nil
 	}
 
-	if typ == "Notification" && message != "" {
-		msg := json.RawMessage(message)
-		if isS3(msg) {
-			return ParsedEvent{ContentTypeS3, msg}, nil
-		}
-		return ParsedEvent{ContentTypeSNS, inner}, nil
-	}
-
-	return ParsedEvent{}, errUnknownEvent
+	return Event{}, errors.New("unknown event")
 }

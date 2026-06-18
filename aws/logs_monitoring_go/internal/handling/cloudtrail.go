@@ -10,11 +10,7 @@ import (
 	"fmt"
 	"io"
 	"iter"
-	"log/slog"
 	"regexp"
-	"strings"
-
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/parsing"
 )
 
 var (
@@ -25,15 +21,40 @@ var (
 func decodeCloudTrail(r io.Reader) iter.Seq2[string, error] {
 	return func(yield func(string, error) bool) {
 		dec := json.NewDecoder(r)
-		if err := parsing.SkipToRecords(dec); err != nil {
-			yield("", fmt.Errorf("cloudtrail: %w", err))
+		t, err := dec.Token()
+		if err != nil {
+			yield("", err)
+			return
+		}
+		if t != json.Delim('{') {
+			yield("", fmt.Errorf(`expected "{" token, got %q`, t))
+			return
+		}
+
+		t, err = dec.Token()
+		if err != nil {
+			yield("", err)
+			return
+		}
+		if t != "Records" {
+			yield("", fmt.Errorf(`expected "Records" token, got %q`, t))
+			return
+		}
+
+		t, err = dec.Token()
+		if err != nil {
+			yield("", err)
+			return
+		}
+		if t != json.Delim('[') {
+			yield("", fmt.Errorf(`expected "[" token, got %q`, t))
 			return
 		}
 
 		for dec.More() {
 			var raw json.RawMessage
 			if err := dec.Decode(&raw); err != nil {
-				yield("", fmt.Errorf("decode cloudtrail record: %w", err))
+				yield("", fmt.Errorf(`decode: %w`, err))
 				return
 			}
 			if !yield(string(raw), nil) {
@@ -43,33 +64,19 @@ func decodeCloudTrail(r io.Reader) iter.Seq2[string, error] {
 	}
 }
 
-func cloudtrailHost(message string) (host string) {
-	dec := json.NewDecoder(strings.NewReader(message))
-	if err := parsing.SkipBrace(dec); err != nil {
-		return
+func cloudtrailHost(message string) string {
+	var record struct {
+		UserIdentity struct {
+			ARN string `json:"arn"`
+		} `json:"userIdentity"`
+	}
+	if err := json.Unmarshal([]byte(message), &record); err != nil {
+		return ""
 	}
 
-	if err := parsing.SkipToKey(dec, "userIdentity"); err != nil {
-		return
-	}
-
-	if err := parsing.SkipBrace(dec); err != nil {
-		return
-	}
-
-	if err := parsing.SkipToKey(dec, "arn"); err != nil {
-		return
-	}
-
-	var arn string
-	if err := dec.Decode(&arn); err != nil {
-		return
-	}
-
-	matches := ec2InstanceRegexp.FindStringSubmatch(arn)
+	matches := ec2InstanceRegexp.FindStringSubmatch(record.UserIdentity.ARN)
 	if matches != nil {
-		host = matches[ec2InstanceRegexp.SubexpIndex("host")]
-		slog.Debug("ec2 host found in userIdentity.arn")
+		return matches[ec2InstanceRegexp.SubexpIndex("host")]
 	}
-	return
+	return ""
 }

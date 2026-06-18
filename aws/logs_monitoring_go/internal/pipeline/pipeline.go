@@ -42,9 +42,9 @@ func New(
 
 func (p *Pipeline) Start(
 	ctx context.Context,
-	parsedEvents []parsing.ParsedEvent,
+	events []parsing.Event,
 ) error {
-	contentType := parsedEvents[0].ContentType
+	contentType := events[0].ContentType
 	if contentType == parsing.ContentTypeRetry {
 		if err := p.forwarder.Retry(ctx); err != nil {
 			return fmt.Errorf("retry: %w", err)
@@ -58,7 +58,7 @@ func (p *Pipeline) Start(
 
 	eg.Go(func() error {
 		defer close(entries)
-		for _, parsedEvent := range parsedEvents {
+		for _, parsedEvent := range events {
 			handler, err := handling.NewHandler(ctx, p.hcfg, p.scrubber, p.filterer, parsedEvent.ContentType)
 			if err != nil {
 				return fmt.Errorf("new handler: %w", err)

@@ -6,66 +6,30 @@
 package parsing
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
+
+	"github.com/aws/aws-lambda-go/events"
 )
 
-func parseSNS(event json.RawMessage) ([]ParsedEvent, error) {
-	dec := json.NewDecoder(bytes.NewReader(event))
-
-	if err := SkipToRecords(dec); err != nil {
-		return nil, fmt.Errorf("skip to records: %w", err)
+func sns(event json.RawMessage) ([]Event, error) {
+	var snsEvent events.SNSEvent
+	if err := json.Unmarshal(event, &snsEvent); err != nil {
+		return nil, fmt.Errorf("unmarshal: %w", err)
 	}
 
-	var parsed []ParsedEvent
-	for dec.More() {
-		var record json.RawMessage
-		if err := dec.Decode(&record); err != nil {
-			return nil, fmt.Errorf("decode: %w", err)
-		}
+	var events []Event
+	for _, record := range snsEvent.Records {
+		inner := json.RawMessage(record.SNS.Message)
 
-		recDec := json.NewDecoder(bytes.NewReader(record))
-		if err := SkipBrace(recDec); err != nil {
-			return nil, err
-		}
-		if err := SkipToKey(recDec, "Sns"); err != nil {
-			return nil, fmt.Errorf("skip to key: %w", err)
-		}
-		if err := SkipBrace(recDec); err != nil {
-			return nil, err
-		}
-		if err := SkipToKey(recDec, "Message"); err != nil {
-			return nil, fmt.Errorf("skip to key: %w", err)
-		}
-
-		var message string
-		if err := recDec.Decode(&message); err != nil {
-			return nil, fmt.Errorf("decode: %w", err)
-		}
-
-		inner := json.RawMessage(message)
-		if isS3(inner) {
-			parsed = append(parsed, ParsedEvent{ContentTypeS3, inner})
+		var disc eventDiscriminator
+		if err := json.Unmarshal(inner, &disc); err == nil && len(disc.Records) > 0 && disc.Records[0].EventSource == eventSourceS3 {
+			events = append(events, Event{ContentType: ContentTypeS3, Payload: inner})
 			continue
 		}
 
-		parsed = append(parsed, ParsedEvent{ContentTypeSNS, record})
+		events = append(events, Event{ContentType: ContentTypeSNS, Payload: event})
 	}
 
-	return parsed, nil
-}
-
-func isS3(message json.RawMessage) bool {
-	dec := json.NewDecoder(bytes.NewReader(message))
-
-	if err := SkipToRecords(dec); err != nil {
-		return false
-	}
-
-	if err := SkipBrace(dec); err != nil {
-		return false
-	}
-
-	return SkipToKey(dec, "s3") == nil
+	return events, nil
 }
