@@ -64,7 +64,12 @@ func TestBatch(t *testing.T) {
 			}
 			close(in)
 
-			batcher := New()
+			cfg := Config{
+				maxItemSize:      1 * 1024 * 1024,
+				maxBatchSize:     5 * 1024 * 1024,
+				maxItemsPerBatch: 1000,
+			}
+			batcher := New[model.LogEntry](cfg)
 			err := batcher.Start(t.Context(), in, out)
 			require.NoError(t, err)
 			close(out)

@@ -12,10 +12,12 @@ import (
 	"iter"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/batching"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/concurrent"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/sdkclient"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
+	"golang.org/x/sync/errgroup"
 )
 
 const (
@@ -41,32 +43,51 @@ func (s *SQS) Store(ctx context.Context, batch Batch) error {
 		return fmt.Errorf("unmarshal: %w", err)
 	}
 
-	batcher := batching.New(
-		batching.WithMaxItemSize(maxSizePerSQSMessage),
-		batching.WithMaxBatchSize(maxSizePerSQSMessage),
-		batching.WithMaxItemsPerBatch(0),
-	)
-	for message, err := range batcher.StartYield(logs) {
-		if err != nil {
-			return fmt.Errorf("batching: %w", err)
-		}
+	eg, ctx := errgroup.WithContext(ctx)
 
-		_, err := s.client.SendMessage(ctx, &sqs.SendMessageInput{
-			QueueUrl:    &s.queue,
-			MessageBody: aws.String(string(message)),
-			MessageAttributes: map[string]types.MessageAttributeValue{
-				metadataStorageTagKey: {
-					DataType:    aws.String("String"),
-					StringValue: aws.String(batch.StorageTag),
+	in := make(chan json.RawMessage)
+	eg.Go(func() error {
+		defer close(in)
+		for _, log := range logs {
+			if err := concurrent.SafeSender(ctx, in, log); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+
+	out := make(chan json.RawMessage)
+	eg.Go(func() error {
+		defer close(out)
+		batcher := batching.New[json.RawMessage](batching.NewConfig(maxSizePerSQSMessage, maxSizePerSQSMessage, 0))
+		return batcher.Start(ctx, in, out)
+	})
+
+	eg.Go(func() error {
+		for {
+			messageBody, ok, _ := concurrent.SafeReader(ctx, out)
+			if !ok {
+				break
+			}
+
+			_, err := s.client.SendMessage(ctx, &sqs.SendMessageInput{
+				QueueUrl:    &s.queue,
+				MessageBody: aws.String(string(messageBody)),
+				MessageAttributes: map[string]types.MessageAttributeValue{
+					metadataStorageTagKey: {
+						DataType:    aws.String("String"),
+						StringValue: aws.String(batch.StorageTag),
+					},
 				},
-			},
-		})
-		if err != nil {
-			return fmt.Errorf("send message: %w", err)
+			})
+			if err != nil {
+				return fmt.Errorf("send message: %w", err)
+			}
 		}
-	}
+		return nil
+	})
 
-	return nil
+	return eg.Wait()
 }
 
 func (s *SQS) Fetch(ctx context.Context) iter.Seq2[Batch, error] {

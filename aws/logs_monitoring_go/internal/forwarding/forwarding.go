@@ -25,6 +25,12 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+const (
+	maxLogSize      = 1 * 1024 * 1024
+	maxBatchSize    = 5 * 1024 * 1024
+	maxLogsPerBatch = 1000
+)
+
 var bufPool = sync.Pool{
 	New: func() any { return new(bytes.Buffer) },
 }
@@ -72,7 +78,8 @@ func (f *Forwarder) Start(ctx context.Context, in <-chan model.LogEntry, storage
 	batches := make(chan json.RawMessage) // we should use a buffered channel here since we use a worker pool
 	eg.Go(func() error {
 		defer close(batches)
-		if err := batching.New().Start(ctx, in, batches); err != nil {
+		cfg := batching.NewConfig(maxLogSize, maxBatchSize, maxLogsPerBatch)
+		if err := batching.New[model.LogEntry](cfg).Start(ctx, in, batches); err != nil {
 			return fmt.Errorf("batch: %w", err)
 		}
 		return nil
