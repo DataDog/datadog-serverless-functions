@@ -21,15 +21,40 @@ var (
 func decodeCloudTrail(r io.Reader) iter.Seq2[string, error] {
 	return func(yield func(string, error) bool) {
 		dec := json.NewDecoder(r)
-		if err := skipToRecords(dec); err != nil {
-			yield("", fmt.Errorf("cloudtrail: %w", err))
+		t, err := dec.Token()
+		if err != nil {
+			yield("", err)
+			return
+		}
+		if t != json.Delim('{') {
+			yield("", fmt.Errorf("expected \"{\" token, got %q", t))
+			return
+		}
+
+		t, err = dec.Token()
+		if err != nil {
+			yield("", err)
+			return
+		}
+		if t != "Records" {
+			yield("", fmt.Errorf("expected \"Records\" token, got %q", t))
+			return
+		}
+
+		t, err = dec.Token()
+		if err != nil {
+			yield("", err)
+			return
+		}
+		if t != json.Delim('[') {
+			yield("", fmt.Errorf("expected \"[\" token, got %q", t))
 			return
 		}
 
 		for dec.More() {
 			var raw json.RawMessage
 			if err := dec.Decode(&raw); err != nil {
-				yield("", fmt.Errorf("decode cloudtrail record: %w", err))
+				yield("", fmt.Errorf("decode: %w", err))
 				return
 			}
 			if !yield(string(raw), nil) {
@@ -54,61 +79,4 @@ func cloudtrailHost(message string) string {
 		return matches[ec2InstanceRegexp.SubexpIndex("host")]
 	}
 	return ""
-}
-
-func skipBrace(dec *json.Decoder) error {
-	if t, err := dec.Token(); err != nil || t != json.Delim('{') {
-		return fmt.Errorf("expected '{': %w", err)
-	}
-	return nil
-}
-
-func skipBracket(dec *json.Decoder) error {
-	if t, err := dec.Token(); err != nil || t != json.Delim('[') {
-		return fmt.Errorf("expected '[': %w", err)
-	}
-	return nil
-}
-
-func skipToKey(dec *json.Decoder, key string) error {
-	for dec.More() {
-		k, err := dec.Token()
-		if err != nil {
-			return err
-		}
-
-		if k != key {
-			if err := skip(dec); err != nil {
-				return err
-			}
-			continue
-		}
-
-		return nil
-	}
-
-	return fmt.Errorf("key not found %q", key)
-}
-
-func skipToRecords(dec *json.Decoder) error {
-	if err := skipBrace(dec); err != nil {
-		return err
-	}
-
-	if err := skipToKey(dec, "Records"); err != nil {
-		return err
-	}
-
-	if err := skipBracket(dec); err != nil {
-		return err
-	}
-	return nil
-}
-
-func skip(dec *json.Decoder) error {
-	var skip json.RawMessage
-	if err := dec.Decode(&skip); err != nil {
-		return fmt.Errorf("skip: %w", err)
-	}
-	return nil
 }
