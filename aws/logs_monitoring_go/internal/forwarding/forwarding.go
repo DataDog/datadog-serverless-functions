@@ -75,7 +75,7 @@ func (f *Forwarder) Start(ctx context.Context, in <-chan model.LogEntry, storage
 	eg, ctx := errgroup.WithContext(ctx)
 	eg.SetLimit(1 + httpclient.MaxConcurrency)
 
-	batches := make(chan json.RawMessage) // we should use a buffered channel here since we use a worker pool
+	batches := make(chan json.RawMessage)
 	eg.Go(func() error {
 		defer close(batches)
 		cfg := batching.NewConfig(maxLogSize, maxBatchSize, maxLogsPerBatch)
