@@ -27,7 +27,7 @@ func decodeCloudTrail(r io.Reader) iter.Seq2[string, error] {
 			return
 		}
 		if t != json.Delim('{') {
-			yield("", fmt.Errorf("expected \"{\" token, got %q", t))
+			yield("", fmt.Errorf(`expected "{" token, got %q`, t))
 			return
 		}
 
@@ -37,7 +37,7 @@ func decodeCloudTrail(r io.Reader) iter.Seq2[string, error] {
 			return
 		}
 		if t != "Records" {
-			yield("", fmt.Errorf("expected \"Records\" token, got %q", t))
+			yield("", fmt.Errorf(`expected "Records" token, got %q`, t))
 			return
 		}
 
@@ -47,14 +47,14 @@ func decodeCloudTrail(r io.Reader) iter.Seq2[string, error] {
 			return
 		}
 		if t != json.Delim('[') {
-			yield("", fmt.Errorf("expected \"[\" token, got %q", t))
+			yield("", fmt.Errorf(`expected "[" token, got %q`, t))
 			return
 		}
 
 		for dec.More() {
 			var raw json.RawMessage
 			if err := dec.Decode(&raw); err != nil {
-				yield("", fmt.Errorf("decode: %w", err))
+				yield("", fmt.Errorf(`decode: %w`, err))
 				return
 			}
 			if !yield(string(raw), nil) {
