@@ -10,11 +10,7 @@ import (
 	"fmt"
 	"io"
 	"iter"
-	"log/slog"
 	"regexp"
-	"strings"
-
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/parsing"
 )
 
 var (
@@ -25,7 +21,7 @@ var (
 func decodeCloudTrail(r io.Reader) iter.Seq2[string, error] {
 	return func(yield func(string, error) bool) {
 		dec := json.NewDecoder(r)
-		if err := parsing.SkipToRecords(dec); err != nil {
+		if err := skipToRecords(dec); err != nil {
 			yield("", fmt.Errorf("cloudtrail: %w", err))
 			return
 		}
@@ -43,33 +39,76 @@ func decodeCloudTrail(r io.Reader) iter.Seq2[string, error] {
 	}
 }
 
-func cloudtrailHost(message string) (host string) {
-	dec := json.NewDecoder(strings.NewReader(message))
-	if err := parsing.SkipBrace(dec); err != nil {
-		return
+func cloudtrailHost(message string) string {
+	var record struct {
+		UserIdentity struct {
+			ARN string `json:"arn"`
+		} `json:"userIdentity"`
+	}
+	if err := json.Unmarshal([]byte(message), &record); err != nil {
+		return ""
 	}
 
-	if err := parsing.SkipToKey(dec, "userIdentity"); err != nil {
-		return
-	}
-
-	if err := parsing.SkipBrace(dec); err != nil {
-		return
-	}
-
-	if err := parsing.SkipToKey(dec, "arn"); err != nil {
-		return
-	}
-
-	var arn string
-	if err := dec.Decode(&arn); err != nil {
-		return
-	}
-
-	matches := ec2InstanceRegexp.FindStringSubmatch(arn)
+	matches := ec2InstanceRegexp.FindStringSubmatch(record.UserIdentity.ARN)
 	if matches != nil {
-		host = matches[ec2InstanceRegexp.SubexpIndex("host")]
-		slog.Debug("ec2 host found in userIdentity.arn")
+		return matches[ec2InstanceRegexp.SubexpIndex("host")]
 	}
-	return
+	return ""
+}
+
+func skipBrace(dec *json.Decoder) error {
+	if t, err := dec.Token(); err != nil || t != json.Delim('{') {
+		return fmt.Errorf("expected '{': %w", err)
+	}
+	return nil
+}
+
+func skipBracket(dec *json.Decoder) error {
+	if t, err := dec.Token(); err != nil || t != json.Delim('[') {
+		return fmt.Errorf("expected '[': %w", err)
+	}
+	return nil
+}
+
+func skipToKey(dec *json.Decoder, key string) error {
+	for dec.More() {
+		k, err := dec.Token()
+		if err != nil {
+			return err
+		}
+
+		if k != key {
+			if err := skip(dec); err != nil {
+				return err
+			}
+			continue
+		}
+
+		return nil
+	}
+
+	return fmt.Errorf("key not found %q", key)
+}
+
+func skipToRecords(dec *json.Decoder) error {
+	if err := skipBrace(dec); err != nil {
+		return err
+	}
+
+	if err := skipToKey(dec, "Records"); err != nil {
+		return err
+	}
+
+	if err := skipBracket(dec); err != nil {
+		return err
+	}
+	return nil
+}
+
+func skip(dec *json.Decoder) error {
+	var skip json.RawMessage
+	if err := dec.Decode(&skip); err != nil {
+		return fmt.Errorf("skip: %w", err)
+	}
+	return nil
 }

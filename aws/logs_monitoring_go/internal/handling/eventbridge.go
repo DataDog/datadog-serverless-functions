@@ -6,17 +6,16 @@
 package handling
 
 import (
-	"bytes"
 	"cmp"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/concurrent"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/filtering"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/parsing"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/scrubbing"
 )
 
@@ -42,7 +41,7 @@ func (h *eventBridgeHandler) Handle(ctx context.Context, event json.RawMessage, 
 
 	source, err := eventBridgeSource(event)
 	if err != nil {
-		return fmt.Errorf("source: %w", err)
+		return err
 	}
 
 	switch source {
@@ -97,21 +96,19 @@ func (h *eventBridgeHandler) newEntry(source string, lambdaOrigin model.LambdaOr
 }
 
 func eventBridgeSource(event json.RawMessage) (string, error) {
-	dec := json.NewDecoder(bytes.NewReader(event))
-	if err := parsing.SkipBrace(dec); err != nil {
-		return "", err
+	var s struct {
+		Source string `json:"source"`
 	}
 
-	if err := parsing.SkipToKey(dec, "source"); err != nil {
-		return "", err
+	if err := json.Unmarshal(event, &s); err != nil {
+		return "", fmt.Errorf("unmarshal: %w", err)
 	}
 
-	var rawSource string
-	if err := dec.Decode(&rawSource); err != nil {
-		return "", fmt.Errorf("decode: %w", err)
+	if s.Source == "" {
+		return "", errors.New("eventbridge source not found")
 	}
 
-	_, source, found := strings.Cut(rawSource, ".")
+	_, source, found := strings.Cut(s.Source, ".")
 	if found {
 		return source, nil
 	}
