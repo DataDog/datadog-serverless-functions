@@ -24,6 +24,7 @@ import (
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/scrubbing"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/storing"
 
+	awsevents "github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 )
 
@@ -49,15 +50,15 @@ func main() {
 	lambda.Start(handleRequest(cfg))
 }
 
-func handleRequest(cfg *config.Config) func(ctx context.Context, event json.RawMessage) error {
-	return func(ctx context.Context, event json.RawMessage) error {
-		parsed, err := parsing.Parse(event)
+func handleRequest(cfg *config.Config) func(ctx context.Context, awsevent json.RawMessage) (any, error) {
+	return func(ctx context.Context, awsevent json.RawMessage) (any, error) {
+		events, err := parsing.Parse(awsevent)
 		if err != nil {
-			return fmt.Errorf("parse: %w", err)
+			return nil, fmt.Errorf("parse: %w", err)
 		}
 
-		if len(parsed) == 0 {
-			return errors.New("no events to process")
+		if len(events) == 0 {
+			return nil, errors.New("no events to process")
 		}
 
 		filterer := filtering.NewFilterer(cfg.FilterInclude, cfg.FilterExclude)
@@ -80,7 +81,7 @@ func handleRequest(cfg *config.Config) func(ctx context.Context, event json.RawM
 		if cfg.StoreOnFail {
 			storageOpts := storing.Options{S3Bucket: cfg.S3RetryBucketName}
 			if storage, err = storing.NewStorage(ctx, storageOpts); err != nil {
-				return fmt.Errorf("new storage: %w", err)
+				return nil, fmt.Errorf("new storage: %w", err)
 			}
 		}
 
@@ -90,6 +91,40 @@ func handleRequest(cfg *config.Config) func(ctx context.Context, event json.RawM
 			storage,
 		)
 
-		return pipeline.New(handlerCfg, scrubber, filterer, forwarder).Start(ctx, parsed)
+		for i, event := range events {
+			if event.ContentType == parsing.ContentTypeRetry {
+				if err := forwarder.Retry(ctx); err != nil {
+					return nil, fmt.Errorf("retry: %w", err)
+				}
+				return nil, nil
+			}
+
+			handler, err := handling.NewHandler(handlerCfg, scrubber, filterer, event.ContentType)
+			if err != nil {
+				return nil, fmt.Errorf("new handler: %w", err)
+			}
+
+			err = pipeline.New(handler, forwarder).Start(ctx, event)
+			if err == nil {
+				continue
+			}
+
+			if event.SQSReceiptHandle != "" {
+				return nil, err
+			}
+
+			var response awsevents.SQSEventResponse
+			for _, remaining := range events[i:] {
+				response.BatchItemFailures = append(response.BatchItemFailures, awsevents.SQSBatchItemFailure{ItemIdentifier: remaining.SQSReceiptHandle})
+			}
+
+			sqsBatchResponse, marshallErr := json.Marshal(response)
+			if marshallErr != nil {
+				return nil, errors.Join(err, marshallErr)
+			}
+			return sqsBatchResponse, err
+		}
+
+		return nil, nil
 	}
 }

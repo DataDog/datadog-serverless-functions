@@ -30,7 +30,7 @@ type Config struct {
 	S3MultilineLogRegex *regexp.Regexp
 }
 
-func NewHandler(ctx context.Context, hcfg Config, scrubber *scrubbing.Scrubber, filterer *filtering.Filterer, ct parsing.ContentType) (Handler, error) {
+func NewHandler(hcfg Config, scrubber *scrubbing.Scrubber, filterer *filtering.Filterer, ct parsing.ContentType) (Handler, error) {
 	switch ct {
 
 	case parsing.ContentTypeCloudwatchLogs:
