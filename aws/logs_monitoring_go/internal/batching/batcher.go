@@ -9,7 +9,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"iter"
 	"log/slog"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/concurrent"
@@ -90,55 +89,6 @@ func (b *Batcher[T]) Start(ctx context.Context, in <-chan T, out chan<- json.Raw
 		}
 	}
 	return nil
-}
-
-func (b *Batcher[T]) StartYield(items []T) iter.Seq2[json.RawMessage, error] {
-	return func(yield func(json.RawMessage, error) bool) {
-		for _, item := range items {
-			raw, err := json.Marshal(item)
-			if err != nil {
-				yield(nil, fmt.Errorf("marshal: %w", err))
-				return
-			}
-
-			if !b.valid(raw) {
-				slog.Warn("invalid item, dropping",
-					slog.Int("size", len(raw)),
-					slog.Int("max", b.maxItemSize),
-				)
-				continue
-			}
-
-			if ok := b.add(raw); !ok {
-				batch, constructed, err := b.construct()
-				if err != nil {
-					yield(nil, err)
-					return
-				}
-				_ = b.add(raw)
-
-				if !constructed {
-					continue
-				}
-
-				if !yield(batch, nil) {
-					return
-				}
-			}
-		}
-
-		batch, constructed, err := b.construct()
-		if err != nil {
-			yield(nil, err)
-			return
-		}
-
-		if !constructed {
-			return
-		}
-
-		yield(batch, nil)
-	}
 }
 
 func (b *Batcher[T]) add(item json.RawMessage) bool {
