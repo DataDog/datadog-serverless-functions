@@ -7,7 +7,6 @@ package parsing
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 
 	awsevents "github.com/aws/aws-lambda-go/events"
@@ -71,5 +70,5 @@ func sqsBody(body string) (Event, error) {
 		return Event{ContentType: ContentTypeSNS, Payload: raw}, nil
 	}
 
-	return Event{}, errors.New("unknown event")
+	return Event{}, fmt.Errorf("unknown event: %q", disc.Records[0].EventSource)
 }

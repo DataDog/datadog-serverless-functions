@@ -7,7 +7,6 @@ package parsing
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -30,5 +29,5 @@ func sns(event json.RawMessage) (Event, error) {
 		return Event{ContentType: ContentTypeS3, Payload: inner}, nil
 	}
 
-	return Event{}, errors.New("")
+	return Event{}, fmt.Errorf("unknown event: %q", disc.Records[0].EventSource)
 }
