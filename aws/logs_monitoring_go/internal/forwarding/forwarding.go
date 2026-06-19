@@ -125,16 +125,16 @@ func (f *Forwarder) Retry(ctx context.Context) error {
 		return nil
 	}
 
-	for storedBatch, err := range f.storage.Fetch(ctx) {
+	for batch, err := range f.storage.Fetch(ctx) {
 		if err != nil {
 			return fmt.Errorf("fetch: %w", err)
 		}
 
-		if sendErr := f.send(ctx, storedBatch.Data, storedBatch.StorageTag); sendErr != nil {
+		if sendErr := f.send(ctx, batch.Data, batch.StorageTag); sendErr != nil {
 			return fmt.Errorf("send: %w", sendErr)
 		}
 
-		if deleteErr := f.storage.Delete(ctx, storedBatch); deleteErr != nil {
+		if deleteErr := f.storage.Delete(ctx, batch); deleteErr != nil {
 			return fmt.Errorf("delete: %w", deleteErr)
 		}
 	}
