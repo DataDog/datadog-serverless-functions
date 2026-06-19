@@ -150,3 +150,25 @@ func GenerateJSONLogs(t *testing.T, sizes ...int) json.RawMessage {
 	}
 	return data
 }
+
+func ToChannel[T any](t *testing.T, values []T) chan T {
+	t.Helper()
+
+	ch := make(chan T, len(values))
+	for _, v := range values {
+		ch <- v
+	}
+	close(ch)
+
+	return ch
+}
+
+func Drain[T any](t *testing.T, ch <-chan T) (values []T) {
+	t.Helper()
+
+	for v := range ch {
+		values = append(values, v)
+	}
+
+	return values
+}
