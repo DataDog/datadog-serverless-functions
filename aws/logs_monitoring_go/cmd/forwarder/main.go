@@ -18,7 +18,6 @@ import (
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/forwarding"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/handling"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/httpclient"
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/parsing"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/pipeline"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/scrubbing"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/storing"
@@ -79,22 +78,7 @@ func handleRequest(cfg *config.Config) func(ctx context.Context, awsevent json.R
 			httpclient.Client,
 			storage,
 		)
-		pipeline := pipeline.New(handlerCfg, scrubber, filterer, forwarder)
 
-		if parsing.IsSQS(awsevent) {
-			events, err := parsing.SQS(awsevent)
-			if err != nil {
-				return nil, err
-			}
-
-			return pipeline.StartSQS(ctx, events)
-		}
-
-		event, err := parsing.Parse(awsevent)
-		if err != nil {
-			return nil, fmt.Errorf("parse: %w", err)
-		}
-
-		return nil, pipeline.Start(ctx, event)
+		return pipeline.New(handlerCfg, scrubber, filterer, forwarder).Start(ctx, awsevent)
 	}
 }
