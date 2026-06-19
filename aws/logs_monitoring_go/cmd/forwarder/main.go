@@ -8,7 +8,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"log/slog"
@@ -19,7 +18,6 @@ import (
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/forwarding"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/handling"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/httpclient"
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/parsing"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/pipeline"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/scrubbing"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/storing"
@@ -49,17 +47,8 @@ func main() {
 	lambda.Start(handleRequest(cfg))
 }
 
-func handleRequest(cfg *config.Config) func(ctx context.Context, event json.RawMessage) error {
-	return func(ctx context.Context, event json.RawMessage) error {
-		parsed, err := parsing.Parse(event)
-		if err != nil {
-			return fmt.Errorf("parse: %w", err)
-		}
-
-		if len(parsed) == 0 {
-			return errors.New("no events to process")
-		}
-
+func handleRequest(cfg *config.Config) func(ctx context.Context, awsevent json.RawMessage) (any, error) {
+	return func(ctx context.Context, awsevent json.RawMessage) (any, error) {
 		filterer := filtering.NewFilterer(cfg.FilterInclude, cfg.FilterExclude)
 		scrubber := scrubbing.NewScrubber(cfg.ScrubbingRegex, cfg.ScrubbingReplacement, cfg.ScrubIP, cfg.ScrubEmail)
 		handlerCfg := handling.Config{
@@ -69,7 +58,6 @@ func handleRequest(cfg *config.Config) func(ctx context.Context, event json.RawM
 			Tags:                cfg.Tags,
 			S3MultilineLogRegex: cfg.S3MultilineLogRegex,
 		}
-
 		forwarderCfg := forwarding.Config{
 			APIKey:           cfg.APIKey,
 			IntakeURL:        cfg.IntakeURL,
@@ -77,10 +65,11 @@ func handleRequest(cfg *config.Config) func(ctx context.Context, event json.RawM
 		}
 
 		var storage storing.Storage
+		var storageErr error
 		if cfg.StoreOnFail {
 			storageOpts := storing.Options{S3Bucket: cfg.S3RetryBucketName}
-			if storage, err = storing.NewStorage(ctx, storageOpts); err != nil {
-				return fmt.Errorf("new storage: %w", err)
+			if storage, storageErr = storing.NewStorage(ctx, storageOpts); storageErr != nil {
+				return nil, fmt.Errorf("new storage: %w", storageErr)
 			}
 		}
 
@@ -90,6 +79,6 @@ func handleRequest(cfg *config.Config) func(ctx context.Context, event json.RawM
 			storage,
 		)
 
-		return pipeline.New(handlerCfg, scrubber, filterer, forwarder).Start(ctx, parsed)
+		return pipeline.New(handlerCfg, scrubber, filterer, forwarder).Start(ctx, awsevent)
 	}
 }

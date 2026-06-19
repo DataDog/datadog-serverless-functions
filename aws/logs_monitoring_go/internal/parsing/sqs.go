@@ -7,33 +7,43 @@ package parsing
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 
-	"github.com/aws/aws-lambda-go/events"
+	awsevents "github.com/aws/aws-lambda-go/events"
 )
+
+type SQSEvent struct {
+	Event
+	SQSReceiptHandle string
+}
 
 type sqsBodyDiscriminator struct {
 	Type    string `json:"Type"`    // SNS inside SQS when raw message delivery disabled. See https://docs.aws.amazon.com/sns/latest/dg/sns-large-payload-raw-message-delivery.html
 	Message string `json:"Message"` // SNS inside SQS when raw message delivery disabled. See https://docs.aws.amazon.com/sns/latest/dg/sns-large-payload-raw-message-delivery.html
-	eventDiscriminator
+	recordsDiscriminator
 }
 
-func sqs(event json.RawMessage) ([]Event, error) {
-	var sqsEvent events.SQSEvent
-	if err := json.Unmarshal(event, &sqsEvent); err != nil {
+func IsSQS(event json.RawMessage) bool {
+	var disc recordsDiscriminator
+	if err := json.Unmarshal(event, &disc); err != nil {
+		return false
+	}
+	return len(disc.Records) > 0 && disc.Records[0].EventSource == eventSourceSQS
+}
+
+func SQS(awsevent json.RawMessage) (events []SQSEvent, err error) {
+	var sqsEvent awsevents.SQSEvent
+	if err := json.Unmarshal(awsevent, &sqsEvent); err != nil {
 		return nil, fmt.Errorf("unmarshal: %w", err)
 	}
 
-	var events []Event
 	for _, msg := range sqsEvent.Records {
-		e, err := sqsBody(msg.Body)
+		event, err := sqsBody(msg.Body)
 		if err != nil {
 			return nil, err
 		}
 
-		e.SQSReceiptHandle = msg.ReceiptHandle
-		events = append(events, e)
+		events = append(events, SQSEvent{Event: event, SQSReceiptHandle: msg.ReceiptHandle})
 	}
 
 	return events, nil
@@ -52,7 +62,7 @@ func sqsBody(body string) (Event, error) {
 		return Event{ContentType: ContentTypeS3, Payload: raw}, nil
 
 	case disc.Type == "Notification" && disc.Message != "":
-		var innerDisc eventDiscriminator
+		var innerDisc recordsDiscriminator
 		if err := json.Unmarshal([]byte(disc.Message), &innerDisc); err == nil && len(innerDisc.Records) > 0 && innerDisc.Records[0].EventSource == eventSourceS3 {
 			return Event{ContentType: ContentTypeS3, Payload: json.RawMessage(disc.Message)}, nil
 		}
@@ -60,5 +70,5 @@ func sqsBody(body string) (Event, error) {
 		return Event{ContentType: ContentTypeSNS, Payload: raw}, nil
 	}
 
-	return Event{}, errors.New("unknown event")
+	return Event{}, fmt.Errorf("unknown event")
 }

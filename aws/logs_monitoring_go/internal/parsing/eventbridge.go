@@ -22,26 +22,26 @@ type s3EventBridgeDetail struct {
 	} `json:"object"`
 }
 
-func eventBridge(event json.RawMessage) ([]Event, error) {
+func eventBridge(event json.RawMessage) (Event, error) {
 	var eventBridgeEvent events.EventBridgeEvent
 	if err := json.Unmarshal(event, &eventBridgeEvent); err != nil {
-		return nil, fmt.Errorf("unmarshal: %w", err)
+		return Event{}, fmt.Errorf("unmarshal: %w", err)
 	}
 
 	if eventBridgeEvent.Source == "aws.s3" && strings.Contains(eventBridgeEvent.DetailType, "Object Created") {
 		var s3eb s3EventBridgeDetail
 		if err := json.Unmarshal(eventBridgeEvent.Detail, &s3eb); err != nil {
-			return nil, fmt.Errorf("unmarshal: %w", err)
+			return Event{}, fmt.Errorf("unmarshal: %w", err)
 		}
 
 		payload, err := mapS3EventBridge(s3eb)
 		if err != nil {
-			return nil, err
+			return Event{}, err
 		}
 
-		return []Event{{ContentType: ContentTypeS3, Payload: payload}}, nil
+		return Event{ContentType: ContentTypeS3, Payload: payload}, nil
 	}
-	return []Event{{ContentType: ContentTypeEventBridge, Payload: event}}, nil
+	return Event{ContentType: ContentTypeEventBridge, Payload: event}, nil
 }
 
 func mapS3EventBridge(eb s3EventBridgeDetail) (json.RawMessage, error) {

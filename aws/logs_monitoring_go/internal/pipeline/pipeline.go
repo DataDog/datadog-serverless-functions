@@ -7,6 +7,7 @@ package pipeline
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -17,6 +18,8 @@ import (
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/parsing"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/scrubbing"
 	"golang.org/x/sync/errgroup"
+
+	awsevents "github.com/aws/aws-lambda-go/events"
 )
 
 type Pipeline struct {
@@ -31,8 +34,8 @@ func New(
 	scrubber *scrubbing.Scrubber,
 	filterer *filtering.Filterer,
 	forwarder *forwarding.Forwarder,
-) *Pipeline {
-	return &Pipeline{
+) Pipeline {
+	return Pipeline{
 		hcfg:      hcfg,
 		scrubber:  scrubber,
 		filterer:  filterer,
@@ -40,40 +43,70 @@ func New(
 	}
 }
 
-func (p *Pipeline) Start(
-	ctx context.Context,
-	events []parsing.Event,
-) error {
-	contentType := events[0].ContentType
-	if contentType == parsing.ContentTypeRetry {
-		if err := p.forwarder.Retry(ctx); err != nil {
-			return fmt.Errorf("retry: %w", err)
+func (p Pipeline) Start(ctx context.Context, awsevent json.RawMessage) (any, error) {
+	if parsing.IsSQS(awsevent) {
+		events, err := parsing.SQS(awsevent)
+		if err != nil {
+			return nil, err
 		}
-		return nil
+
+		return p.startSQS(ctx, events)
 	}
 
+	event, err := parsing.Parse(awsevent)
+	if err != nil {
+		return nil, fmt.Errorf("parse: %w", err)
+	}
+
+	if event.ContentType == parsing.ContentTypeRetry {
+		return nil, p.forwarder.Retry(ctx)
+	}
+
+	return nil, p.run(ctx, event)
+}
+
+func (p Pipeline) startSQS(ctx context.Context, events []parsing.SQSEvent) (sqsEventResponse json.RawMessage, err error) {
+	var response awsevents.SQSEventResponse
+	for i, event := range events {
+		err = p.run(ctx, event.Event)
+		if err == nil {
+			continue
+		}
+
+		for _, remaining := range events[i:] {
+			response.BatchItemFailures = append(response.BatchItemFailures, awsevents.SQSBatchItemFailure{ItemIdentifier: remaining.SQSReceiptHandle})
+		}
+
+		break
+	}
+
+	sqsEventResponse, marshallErr := json.Marshal(response)
+	err = errors.Join(err, marshallErr)
+
+	return sqsEventResponse, err
+}
+
+func (p Pipeline) run(ctx context.Context, event parsing.Event) error {
 	eg, ctx := errgroup.WithContext(ctx)
 
 	entries := make(chan model.LogEntry)
-
 	eg.Go(func() error {
 		defer close(entries)
-		for _, parsedEvent := range events {
-			handler, err := handling.NewHandler(ctx, p.hcfg, p.scrubber, p.filterer, parsedEvent.ContentType)
-			if err != nil {
-				return fmt.Errorf("new handler: %w", err)
-			}
+		handler, err := handling.NewHandler(p.hcfg, p.scrubber, p.filterer, event.ContentType)
+		if err != nil {
+			return fmt.Errorf("new handler: %w", err)
+		}
 
-			if err := handler.Handle(ctx, parsedEvent.Payload, entries); err != nil {
-				return fmt.Errorf("handle: %w", err)
-			}
+		if err := handler.Handle(ctx, event.Payload, entries); err != nil {
+			return fmt.Errorf("handle: %w", err)
 		}
 		return nil
 	})
 
-	err := p.forwarder.Start(ctx, entries, forwarding.StorageTag(contentType))
+	err := p.forwarder.Start(ctx, entries, forwarding.StorageTag(event.ContentType))
 	if waitErr := eg.Wait(); waitErr != nil {
 		return errors.Join(err, waitErr)
 	}
+
 	return err
 }

@@ -122,7 +122,7 @@ func (f *Forwarder) Retry(ctx context.Context) error {
 	for _, key := range keys {
 		payload, storageTag, getErr := f.storage.Get(ctx, key)
 		if getErr != nil {
-			return fmt.Errorf("list: %w", getErr)
+			return fmt.Errorf("get: %w", getErr)
 		}
 
 		if sendErr := f.send(ctx, payload, storageTag); sendErr != nil {
