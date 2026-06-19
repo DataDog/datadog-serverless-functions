@@ -26,6 +26,7 @@ import (
 )
 
 const (
+	ddRetryHeader      = "DD-RETRY-TAG"
 	maxLogSize         = 1 * 1024 * 1024
 	maxBatchSize       = 5 * 1024 * 1024
 	maxLogsPerBatch    = 1000
@@ -124,6 +125,9 @@ func (f *Forwarder) Retry(ctx context.Context) error {
 	if f.storage == nil {
 		return nil
 	}
+
+	f.header.Add(ddRetryHeader, "true")
+	defer func() { f.header.Del(ddRetryHeader) }()
 
 	for batch, err := range f.storage.Fetch(ctx) {
 		if err != nil {
