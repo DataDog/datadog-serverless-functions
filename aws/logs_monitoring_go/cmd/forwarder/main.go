@@ -68,8 +68,8 @@ func handleRequest(cfg *config.Config) func(ctx context.Context, awsevent json.R
 		var storageErr error
 		if cfg.StoreOnFail {
 			storageOpts := storing.Options{S3Bucket: cfg.S3RetryBucketName, SQSQueue: cfg.SQSQueueURL}
-			if storage, err = storing.NewStorage(storageOpts); err != nil {
-				return fmt.Errorf("new storage: %w", err)
+			if storage, storageErr = storing.NewStorage(storageOpts); storageErr != nil {
+				return nil, fmt.Errorf("new storage: %w", storageErr)
 			}
 		}
 
