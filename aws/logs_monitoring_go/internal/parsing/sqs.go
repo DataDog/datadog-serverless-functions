@@ -20,7 +20,7 @@ type SQSEvent struct {
 type sqsBodyDiscriminator struct {
 	Type    string `json:"Type"`    // SNS inside SQS when raw message delivery disabled. See https://docs.aws.amazon.com/sns/latest/dg/sns-large-payload-raw-message-delivery.html
 	Message string `json:"Message"` // SNS inside SQS when raw message delivery disabled. See https://docs.aws.amazon.com/sns/latest/dg/sns-large-payload-raw-message-delivery.html
-	eventDiscriminator
+	recordsDiscriminator
 }
 
 func IsSQS(event json.RawMessage) bool {
@@ -62,7 +62,7 @@ func sqsBody(body string) (Event, error) {
 		return Event{ContentType: ContentTypeS3, Payload: raw}, nil
 
 	case disc.Type == "Notification" && disc.Message != "":
-		var innerDisc eventDiscriminator
+		var innerDisc recordsDiscriminator
 		if err := json.Unmarshal([]byte(disc.Message), &innerDisc); err == nil && len(innerDisc.Records) > 0 && innerDisc.Records[0].EventSource == eventSourceS3 {
 			return Event{ContentType: ContentTypeS3, Payload: json.RawMessage(disc.Message)}, nil
 		}
@@ -70,5 +70,5 @@ func sqsBody(body string) (Event, error) {
 		return Event{ContentType: ContentTypeSNS, Payload: raw}, nil
 	}
 
-	return Event{}, fmt.Errorf("unknown event: %q", disc.Records[0].EventSource)
+	return Event{}, fmt.Errorf("unknown event")
 }
