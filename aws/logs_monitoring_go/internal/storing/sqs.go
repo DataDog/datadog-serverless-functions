@@ -45,7 +45,7 @@ func (s *SQS) Store(ctx context.Context, batch Batch) error {
 
 	eg, ctx := errgroup.WithContext(ctx)
 
-	in := make(chan json.RawMessage)
+	in := make(chan json.RawMessage, 10)
 	eg.Go(func() error {
 		defer close(in)
 		for _, log := range logs {

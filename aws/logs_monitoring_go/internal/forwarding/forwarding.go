@@ -26,9 +26,10 @@ import (
 )
 
 const (
-	maxLogSize      = 1 * 1024 * 1024
-	maxBatchSize    = 5 * 1024 * 1024
-	maxLogsPerBatch = 1000
+	maxLogSize         = 1 * 1024 * 1024
+	maxBatchSize       = 5 * 1024 * 1024
+	maxLogsPerBatch    = 1000
+	maxBatchesInMemory = 12 // 12 * 5MiB = 60MiB maximum
 )
 
 var bufPool = sync.Pool{
@@ -75,7 +76,7 @@ func (f *Forwarder) Start(ctx context.Context, in <-chan model.LogEntry, storage
 	eg, ctx := errgroup.WithContext(ctx)
 	eg.SetLimit(1 + httpclient.MaxConcurrency)
 
-	batches := make(chan json.RawMessage)
+	batches := make(chan json.RawMessage, maxBatchesInMemory)
 	eg.Go(func() error {
 		defer close(batches)
 		cfg := batching.NewConfig(maxLogSize, maxBatchSize, maxLogsPerBatch)
