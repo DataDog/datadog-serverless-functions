@@ -7,29 +7,28 @@ package parsing
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/aws/aws-lambda-go/events"
 )
 
-func sns(event json.RawMessage) ([]Event, error) {
+func sns(event json.RawMessage) (Event, error) {
 	var snsEvent events.SNSEvent
 	if err := json.Unmarshal(event, &snsEvent); err != nil {
-		return nil, fmt.Errorf("unmarshal: %w", err)
+		return Event{}, fmt.Errorf("unmarshal: %w", err)
 	}
 
-	var events []Event
-	for _, record := range snsEvent.Records {
-		inner := json.RawMessage(record.SNS.Message)
+	inner := json.RawMessage(snsEvent.Records[0].SNS.Message)
 
-		var disc eventDiscriminator
-		if err := json.Unmarshal(inner, &disc); err == nil && len(disc.Records) > 0 && disc.Records[0].EventSource == eventSourceS3 {
-			events = append(events, Event{ContentType: ContentTypeS3, Payload: inner})
-			continue
-		}
-
-		events = append(events, Event{ContentType: ContentTypeSNS, Payload: event})
+	var disc recordsDiscriminator
+	if err := json.Unmarshal(inner, &disc); err != nil {
+		return Event{ContentType: ContentTypeSNS, Payload: inner}, nil
 	}
 
-	return events, nil
+	if len(disc.Records) > 0 && disc.Records[0].EventSource == eventSourceS3 {
+		return Event{ContentType: ContentTypeS3, Payload: inner}, nil
+	}
+
+	return Event{}, errors.New("")
 }
