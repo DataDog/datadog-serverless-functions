@@ -10,6 +10,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"iter"
 	"log/slog"
 	"sync/atomic"
 	"time"
@@ -18,6 +19,7 @@ import (
 	"github.com/aws/aws-lambda-go/lambdacontext"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
 
 const prefix = "failed_events/"
@@ -33,7 +35,7 @@ func newS3(client sdkclient.S3, bucket string) *S3 {
 	return &S3{client: client, bucket: bucket}
 }
 
-func (s *S3) Put(ctx context.Context, batch []byte, storageTag string) error {
+func (s *S3) Store(ctx context.Context, batch Batch) error {
 	invocationID := "unknown"
 	if lc, ok := lambdacontext.FromContext(ctx); ok {
 		invocationID = lc.AwsRequestID
@@ -45,8 +47,8 @@ func (s *S3) Put(ctx context.Context, batch []byte, storageTag string) error {
 	_, err := s.client.PutObject(ctx, &s3.PutObjectInput{
 		Bucket:   aws.String(s.bucket),
 		Key:      aws.String(key),
-		Body:     bytes.NewReader(batch),
-		Metadata: map[string]string{metadataStorageTagKey: storageTag},
+		Body:     bytes.NewReader(batch.Data),
+		Metadata: map[string]string{metadataStorageTagKey: batch.StorageTag},
 	})
 	if err != nil {
 		return err
@@ -55,51 +57,63 @@ func (s *S3) Put(ctx context.Context, batch []byte, storageTag string) error {
 	return nil
 }
 
-func (s *S3) List(ctx context.Context) ([]string, error) {
-	out, err := s.client.ListObjectsV2(ctx,
-		&s3.ListObjectsV2Input{
-			Bucket: aws.String(s.bucket),
-			Prefix: aws.String(prefix),
-		},
-	)
-	if err != nil {
-		return nil, err
-	}
+func (s *S3) Fetch(ctx context.Context) iter.Seq2[Batch, error] {
+	return func(yield func(Batch, error) bool) {
+		listOut, err := s.client.ListObjectsV2(ctx,
+			&s3.ListObjectsV2Input{
+				Bucket: aws.String(s.bucket),
+				Prefix: aws.String(prefix),
+			},
+		)
+		if err != nil {
+			yield(Batch{}, fmt.Errorf("list objects: %w", err))
+			return
+		}
 
-	keys := make([]string, 0, len(out.Contents))
-	for _, obj := range out.Contents {
-		keys = append(keys, aws.ToString(obj.Key))
-	}
+		for _, object := range listOut.Contents {
+			storedBatch, err := s.getBatch(ctx, object)
+			if err != nil {
+				yield(storedBatch, err)
+				return
+			}
 
-	return keys, nil
+			if !yield(storedBatch, err) {
+				return
+			}
+		}
+	}
 }
 
-func (s *S3) Get(ctx context.Context, key string) ([]byte, string, error) {
+func (s *S3) getBatch(ctx context.Context, object types.Object) (Batch, error) {
 	out, err := s.client.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(s.bucket),
-		Key:    aws.String(key),
+		Key:    aws.String(aws.ToString(object.Key)),
 	})
 	if err != nil {
-		return nil, "", err
+		return Batch{}, fmt.Errorf("get object: %w", err)
 	}
 	defer func() {
 		if err := out.Body.Close(); err != nil {
-			slog.WarnContext(ctx, "closing body", slog.Any("error", err))
+			slog.WarnContext(ctx, "close body", slog.Any("error", err))
 		}
 	}()
 
 	batch, err := io.ReadAll(out.Body)
 	if err != nil {
-		return nil, "", err
+		return Batch{}, fmt.Errorf("read body: %w", err)
 	}
 
-	return batch, out.Metadata[metadataStorageTagKey], nil
+	return Batch{
+		Data:       batch,
+		StorageTag: out.Metadata[metadataStorageTagKey],
+		DeleteKey:  aws.ToString(object.Key),
+	}, nil
 }
 
-func (s *S3) Delete(ctx context.Context, key string) error {
+func (s *S3) Delete(ctx context.Context, batch Batch) error {
 	_, err := s.client.DeleteObject(ctx, &s3.DeleteObjectInput{
 		Bucket: aws.String(s.bucket),
-		Key:    aws.String(key),
+		Key:    aws.String(batch.DeleteKey),
 	})
 	if err != nil {
 		return err

@@ -9,10 +9,10 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
-	"log/slog"
 	"net/http"
 	"sync"
 
@@ -23,6 +23,14 @@ import (
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/storing"
 	"golang.org/x/sync/errgroup"
+)
+
+const (
+	ddRetryHeader      = "DD-RETRY-TAG"
+	maxLogSize         = 1 * 1024 * 1024
+	maxBatchSize       = 5 * 1024 * 1024
+	maxLogsPerBatch    = 1000
+	maxBatchesInMemory = 12 // 12 * 5MiB = 60MiB maximum
 )
 
 var bufPool = sync.Pool{
@@ -69,10 +77,11 @@ func (f *Forwarder) Start(ctx context.Context, in <-chan model.LogEntry, storage
 	eg, ctx := errgroup.WithContext(ctx)
 	eg.SetLimit(1 + httpclient.MaxConcurrency)
 
-	batches := make(chan []byte)
+	batches := make(chan json.RawMessage, maxBatchesInMemory)
 	eg.Go(func() error {
 		defer close(batches)
-		if err := batching.New().Batch(ctx, in, batches); err != nil {
+		cfg := batching.NewConfig(maxLogSize, maxBatchSize, maxLogsPerBatch)
+		if err := batching.New[model.LogEntry](cfg).Start(ctx, in, batches); err != nil {
 			return fmt.Errorf("batch: %w", err)
 		}
 		return nil
@@ -101,8 +110,8 @@ func (f *Forwarder) Start(ctx context.Context, in <-chan model.LogEntry, storage
 					break
 				}
 
-				if err := f.storage.Put(ctx, batch, storageTag); err != nil {
-					return fmt.Errorf("put: %w", err)
+				if err := f.storage.Store(ctx, storing.Batch{Data: batch, StorageTag: storageTag}); err != nil {
+					return fmt.Errorf("store: %w", err)
 				}
 			}
 			return nil
@@ -113,33 +122,31 @@ func (f *Forwarder) Start(ctx context.Context, in <-chan model.LogEntry, storage
 }
 
 func (f *Forwarder) Retry(ctx context.Context) error {
-	keys, listErr := f.storage.List(ctx)
-	if listErr != nil {
-		return fmt.Errorf("list: %w", listErr)
+	if f.storage == nil {
+		return nil
 	}
 
-	slog.InfoContext(ctx, "retrying stored batches", slog.Int("count", len(keys)))
-	for _, key := range keys {
-		payload, storageTag, getErr := f.storage.Get(ctx, key)
-		if getErr != nil {
-			return fmt.Errorf("get: %w", getErr)
+	f.header.Add(ddRetryHeader, "true")
+	defer func() { f.header.Del(ddRetryHeader) }()
+
+	for batch, err := range f.storage.Fetch(ctx) {
+		if err != nil {
+			return fmt.Errorf("fetch: %w", err)
 		}
 
-		if sendErr := f.send(ctx, payload, storageTag); sendErr != nil {
+		if sendErr := f.send(ctx, batch.Data, batch.StorageTag); sendErr != nil {
 			return fmt.Errorf("send: %w", sendErr)
 		}
 
-		if deleteErr := f.storage.Delete(ctx, key); deleteErr != nil {
+		if deleteErr := f.storage.Delete(ctx, batch); deleteErr != nil {
 			return fmt.Errorf("delete: %w", deleteErr)
 		}
-
-		slog.DebugContext(ctx, "batch sent successfully", slog.String("key", key))
 	}
 
 	return nil
 }
 
-func (f *Forwarder) send(ctx context.Context, payload []byte, storageTag string) error {
+func (f *Forwarder) send(ctx context.Context, payload json.RawMessage, storageTag string) error {
 	ctx, cancel := context.WithTimeout(ctx, httpclient.RequestTimeout)
 	defer cancel()
 
@@ -184,7 +191,7 @@ func (f *Forwarder) send(ctx context.Context, payload []byte, storageTag string)
 	return nil
 }
 
-func (f *Forwarder) compress(payload []byte) ([]byte, error) {
+func (f *Forwarder) compress(payload json.RawMessage) (json.RawMessage, error) {
 	buf := bufPool.Get().(*bytes.Buffer)
 	gz := f.gzipPool.Get().(*gzip.Writer)
 	defer bufPool.Put(buf)

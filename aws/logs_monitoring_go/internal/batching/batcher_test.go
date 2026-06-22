@@ -7,10 +7,9 @@ package batching
 
 import (
 	"encoding/json"
-	"strings"
 	"testing"
 
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -19,37 +18,33 @@ func TestBatch(t *testing.T) {
 	t.Parallel()
 
 	tests := map[string]struct {
-		entries         []model.LogEntry
-		wantBatchCount  int
-		wantEntryCounts []int
+		items          []any
+		wantBatchItems []int
 	}{
 		"empty": {
-			entries:        nil,
-			wantBatchCount: 0,
+			items:          nil,
+			wantBatchItems: nil,
 		},
 		"single entry": {
-			entries:         []model.LogEntry{model.NewLogEntry()},
-			wantBatchCount:  1,
-			wantEntryCounts: []int{1},
+			items:          []any{testutil.GenerateJSONLogs(t, 1024)},
+			wantBatchItems: []int{1},
 		},
 		"multiple entries, one batch": {
-			entries:         []model.LogEntry{model.NewLogEntry(), model.NewLogEntry(), model.NewLogEntry()},
-			wantBatchCount:  1,
-			wantEntryCounts: []int{3},
+			items:          []any{testutil.GenerateJSONLogs(t, 1024), testutil.GenerateJSONLogs(t, 1024), testutil.GenerateJSONLogs(t, 1024)},
+			wantBatchItems: []int{3},
 		},
 		"drop oversized entry": {
-			entries: func() []model.LogEntry {
-				entry := model.NewLogEntry()
-				entry.Message = strings.Repeat("a", maxItemSize+1)
-				return []model.LogEntry{entry}
-			}(),
-			wantBatchCount:  0,
-			wantEntryCounts: nil,
+			items:          []any{testutil.GenerateJSONLogs(t, 1*1024*1024+1)},
+			wantBatchItems: nil,
 		},
 		"split": {
-			entries:         make([]model.LogEntry, maxItemsPerBatch+1),
-			wantBatchCount:  2,
-			wantEntryCounts: []int{maxItemsPerBatch, 1},
+			items: func() (items []any) {
+				for range 1001 {
+					items = append(items, testutil.GenerateJSONLog(t, 100))
+				}
+				return
+			}(),
+			wantBatchItems: []int{1000, 1},
 		},
 	}
 
@@ -57,29 +52,20 @@ func TestBatch(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			in := make(chan model.LogEntry, len(tc.entries))
-			out := make(chan []byte, len(tc.wantEntryCounts))
-			for _, entry := range tc.entries {
-				in <- entry
-			}
-			close(in)
+			cfg := Config{maxItemSize: 1 * 1024 * 1024, maxBatchSize: 5 * 1024 * 1024, maxItemsPerBatch: 1000}
+			batcher := New[any](cfg)
+			in := testutil.ToChannel(t, tc.items)
+			out := make(chan json.RawMessage, len(tc.wantBatchItems))
 
-			batcher := New()
-			err := batcher.Batch(t.Context(), in, out)
-			require.NoError(t, err)
+			err := batcher.Start(t.Context(), in, out)
 			close(out)
 
-			var batches [][]byte
-			for b := range out {
-				batches = append(batches, b)
-			}
-
-			require.Len(t, batches, tc.wantBatchCount)
-
-			for i, wantCount := range tc.wantEntryCounts {
-				var entries []model.LogEntry
-				require.NoError(t, json.Unmarshal(batches[i], &entries))
-				assert.Len(t, entries, wantCount)
+			got := testutil.Drain(t, out)
+			require.NoError(t, err)
+			for i := range len(tc.wantBatchItems) {
+				var gotItems []json.RawMessage
+				_ = json.Unmarshal(got[i], &gotItems)
+				assert.Equal(t, tc.wantBatchItems[i], len(gotItems))
 			}
 		})
 	}

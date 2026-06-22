@@ -42,6 +42,7 @@ const (
 	EnvIncludeAtMatch           = "INCLUDE_AT_MATCH"
 	EnvExcludeAtMatch           = "EXCLUDE_AT_MATCH"
 	EnvS3RetryBucketName        = "DD_S3_BUCKET_NAME"
+	EnvSQSQueueURL              = "DD_SQS_QUEUE_URL"
 	EnvStoreFailedEvents        = "DD_STORE_FAILED_EVENTS"
 	ForwarderVersion            = "6.0"
 )
@@ -76,6 +77,7 @@ type Config struct {
 	ScrubEmail            bool
 	StoreOnFail           bool
 	S3RetryBucketName     string
+	SQSQueueURL           string
 }
 
 func Load() (*Config, error) {
@@ -136,6 +138,7 @@ func (c *Config) loadEnv() {
 
 	c.StoreOnFail = envOrDefaultBool(EnvStoreFailedEvents, false)
 	c.S3RetryBucketName = envOrDefault(EnvS3RetryBucketName, "")
+	c.SQSQueueURL = envOrDefault(EnvSQSQueueURL, "")
 
 	c.ScrubbingReplacement = envOrDefault(EnvScrubbingRuleReplacement, "")
 	c.ScrubIP = envOrDefaultBool(EnvRedactIP, false)
