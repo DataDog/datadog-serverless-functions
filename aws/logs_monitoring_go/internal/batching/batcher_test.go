@@ -65,7 +65,7 @@ func TestBatch(t *testing.T) {
 			for i := range len(tc.wantBatchItems) {
 				var gotItems []json.RawMessage
 				_ = json.Unmarshal(got[i], &gotItems)
-				assert.Equal(t, len(gotItems), tc.wantBatchItems[i])
+				assert.Equal(t, tc.wantBatchItems[i], len(gotItems))
 			}
 		})
 	}
