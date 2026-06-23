@@ -146,10 +146,14 @@ class BaseTagsCache(object):
                 if success:
                     self.tags_by_id = new_tags_fetched
                     self.write_cache_to_s3(self.tags_by_id)
-                elif tags_fetched != {}:
+                elif tags_fetched:
                     self.tags_by_id = tags_fetched
 
                 self.release_s3_cache_lock()
+            elif tags_fetched:
+                # Another invocation holds the rebuild lock; use the stale S3
+                # cache rather than forwarding with empty tags.
+                self.tags_by_id = tags_fetched
         # s3 cache fetch succeeded and isn't expired
         elif last_modified > -1:
             self.tags_by_id = tags_fetched
