@@ -13,7 +13,7 @@ package: build
 
 .PHONY: test
 test:
-	go test -race ./...
+	go test -shuffle=on -race ./...
 
 .PHONY: lint
 lint:

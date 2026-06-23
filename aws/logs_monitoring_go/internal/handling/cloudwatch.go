@@ -14,6 +14,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -31,6 +32,11 @@ const (
 	logGroupSNS           = "sns/"
 	logStreamStepFunction = "states/"
 	logStreamCloudtrail   = "_CloudTrail_"
+)
+
+// Custom log groups use the log stream format: YYYY/MM/DD/<function_name>[<function_version>][<execution_environment_GUID>]
+var lambdaLogStreamRegex = regexp.MustCompile(
+	`^\d{4}/[01]\d/[0-3]\d/[\w.-]{1,75}\[(\$LATEST|[\w-]{1,129})\][0-9a-f]{32}$`,
 )
 
 type cloudwatchHandler struct {
@@ -160,7 +166,7 @@ func CloudwatchSource(logGroup, logStream string) string {
 	if strings.HasPrefix(logGroup, logGroupKinesis) {
 		return sourceKinesis
 	}
-	if strings.HasPrefix(logGroup, logGroupLambda) {
+	if strings.HasPrefix(logGroup, logGroupLambda) || lambdaLogStreamRegex.MatchString(logStream) {
 		return sourceLambda
 	}
 	if strings.HasPrefix(logGroup, logGroupSNS) {
