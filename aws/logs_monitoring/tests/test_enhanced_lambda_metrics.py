@@ -384,6 +384,36 @@ class TestEnhancedLambdaMetrics(unittest.TestCase):
         tags_cache.build_tags_cache.assert_called_once()
         tags_cache.write_cache_to_s3.assert_called_once()
 
+    @patch("caching.base_tags_cache.send_forwarder_internal_metrics")
+    @patch("caching.lambda_cache.send_forwarder_internal_metrics")
+    @patch.dict(os.environ, {"DD_FETCH_LAMBDA_TAGS": "true"})
+    def test_refresh_uses_stale_s3_cache_when_lock_not_acquired(self, mock1, mock2):
+        """When S3 cache is expired and the rebuild lock is held by another
+        invocation, _refresh must fall back to the non-empty stale cache
+        rather than leaving tags_by_id empty."""
+        reload(sys.modules["settings"])
+
+        stale_cache = {
+            "arn:aws:lambda:us-east-1:172597598159:function:post-coupon-prod-us": [
+                "stage:usw2-prd",
+                "environment:usw2-prd",
+            ]
+        }
+        tags_cache = LambdaTagsCache("")
+        tags_cache.get_cache_from_s3 = MagicMock(return_value=(stale_cache, 1000))
+        tags_cache.acquire_s3_cache_lock = MagicMock(return_value=False)
+        tags_cache.build_tags_cache = MagicMock()
+        tags_cache.write_cache_to_s3 = MagicMock()
+
+        tags_cache._refresh()
+
+        tags_cache.build_tags_cache.assert_not_called()
+        tags_cache.write_cache_to_s3.assert_not_called()
+        assert tags_cache.tags_by_id == stale_cache
+        assert tags_cache.get(
+            "arn:aws:lambda:us-east-1:172597598159:function:post-coupon-prod-us"
+        ) == ["stage:usw2-prd", "environment:usw2-prd"]
+
     @patch.dict(os.environ, {"DD_FETCH_LAMBDA_TAGS": "true"})
     @patch("caching.lambda_cache.LambdaTagsCache.release_s3_cache_lock")
     @patch("caching.lambda_cache.LambdaTagsCache.acquire_s3_cache_lock")
