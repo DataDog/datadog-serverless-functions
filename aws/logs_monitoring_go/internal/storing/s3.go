@@ -24,11 +24,10 @@ import (
 
 const prefix = "failed_events/"
 
-var seq atomic.Int64
-
 type S3 struct {
-	client sdkclient.S3
-	bucket string
+	client   sdkclient.S3
+	bucket   string
+	sequence atomic.Int64
 }
 
 func newS3(client sdkclient.S3, bucket string) *S3 {
@@ -42,7 +41,7 @@ func (s *S3) Store(ctx context.Context, batch Batch) error {
 	}
 
 	datetime := time.Now().UTC().Format("2006/01/02/150405000")
-	key := fmt.Sprintf("%s%s_%s_%d.json", prefix, datetime, invocationID, seq.Add(1))
+	key := fmt.Sprintf("%s%s_%s_%d.json", prefix, datetime, invocationID, s.sequence.Add(1))
 
 	_, err := s.client.PutObject(ctx, &s3.PutObjectInput{
 		Bucket:   aws.String(s.bucket),
