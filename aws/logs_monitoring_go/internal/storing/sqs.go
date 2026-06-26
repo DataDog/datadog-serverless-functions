@@ -23,7 +23,7 @@ import (
 const (
 	maxSizePerSQSMessage = 1000 * 1024 // Overhead for other attributes than message body
 	maxNumberOfMessages  = 10
-	polling              = 10
+	polling              = 100
 	visibilityTimeout    = 6 * 60
 	waitTimeSeconds      = 0
 )
