@@ -255,14 +255,17 @@ func TestCloudwatchSource(t *testing.T) {
 		logStream string
 		want      string
 	}{
-		"step function":             {logGroup: "/aws/vendedlogs", logStream: "states/my-machine/abc", want: "stepfunction"},
-		"cloudtrail via log stream": {logGroup: "/aws/something", logStream: "123_CloudTrail_us-east-1", want: "cloudtrail"},
-		"cloudtrail via log group":  {logGroup: "_cloudtrail_logs", logStream: "stream", want: "cloudtrail"},
-		"cloudtrail via contains":   {logGroup: "my-cloudtrail-group", logStream: "stream", want: "cloudtrail"},
-		"kinesis":                   {logGroup: "/aws/kinesis/my-stream", logStream: "stream", want: "kinesis"},
-		"lambda":                    {logGroup: "/aws/lambda/my-function", logStream: "stream", want: "lambda"},
-		"sns":                       {logGroup: "sns/us-east-1/123/topic", logStream: "stream", want: "sns"},
-		"fallback cloudwatch":       {logGroup: "/aws/rds/cluster", logStream: "stream", want: "cloudwatch"},
+		"step function":                           {logGroup: "/aws/vendedlogs", logStream: "states/my-machine/abc", want: "stepfunction"},
+		"cloudtrail via log stream":               {logGroup: "/aws/something", logStream: "123_CloudTrail_us-east-1", want: "cloudtrail"},
+		"cloudtrail via log group":                {logGroup: "_cloudtrail_logs", logStream: "stream", want: "cloudtrail"},
+		"cloudtrail via contains":                 {logGroup: "my-cloudtrail-group", logStream: "stream", want: "cloudtrail"},
+		"kinesis":                                 {logGroup: "/aws/kinesis/my-stream", logStream: "stream", want: "kinesis"},
+		"lambda":                                  {logGroup: "/aws/lambda/my-function", logStream: "stream", want: "lambda"},
+		"sns":                                     {logGroup: "sns/us-east-1/123/topic", logStream: "stream", want: "sns"},
+		"lambda log stream with $LATEST":          {logGroup: "my-custom-group", logStream: "2023/11/06/my-lambda-function-name[$LATEST]13e304cba4b9446eb7ef082a00038990", want: "lambda"},
+		"lambda log stream with version":          {logGroup: "my-custom-group", logStream: "2023/11/06/my-lambda-function-name[version2023_11]13e304cba4b9446eb7ef082a00038990", want: "lambda"},
+		"lambda log stream without function name": {logGroup: "my-custom-group", logStream: "2023/11/04/[$LATEST]4426346c2cdf4c54a74d3bd2b929fc44", want: "cloudwatch"},
+		"fallback cloudwatch":                     {logGroup: "/aws/rds/cluster", logStream: "stream", want: "cloudwatch"},
 	}
 
 	for name, tc := range tests {
