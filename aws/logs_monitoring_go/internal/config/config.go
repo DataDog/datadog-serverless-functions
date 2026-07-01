@@ -13,6 +13,7 @@ import (
 	"log/slog"
 	"os"
 	"regexp"
+	"strings"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/sdkclient"
@@ -44,6 +45,7 @@ const (
 	EnvS3RetryBucketName        = "DD_S3_BUCKET_NAME"
 	EnvSQSQueueURL              = "DD_SQS_QUEUE_URL"
 	EnvStoreFailedEvents        = "DD_STORE_FAILED_EVENTS"
+	EnvAdditionalTargets        = "DD_ADDITIONAL_TARGET_LAMBDAS"
 	ForwarderVersion            = "6.0"
 )
 
@@ -78,6 +80,7 @@ type Config struct {
 	StoreOnFail           bool
 	S3RetryBucketName     string
 	SQSQueueURL           string
+	AdditionalTargets     []string
 }
 
 func Load() (*Config, error) {
@@ -143,6 +146,12 @@ func (c *Config) loadEnv() {
 	c.ScrubbingReplacement = envOrDefault(EnvScrubbingRuleReplacement, "")
 	c.ScrubIP = envOrDefaultBool(EnvRedactIP, false)
 	c.ScrubEmail = envOrDefaultBool(EnvRedactEmail, false)
+
+	if v := os.Getenv(EnvAdditionalTargets); v != "" {
+		for target := range strings.SplitSeq(v, ",") {
+			c.AdditionalTargets = append(c.AdditionalTargets, target)
+		}
+	}
 }
 
 func buildURLs(protocol, site, port string) (intakeURL string, apiURL string) {

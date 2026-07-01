@@ -20,6 +20,7 @@ import (
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/httpclient"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/pipeline"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/scrubbing"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/sdkclient"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/storing"
 
 	"github.com/aws/aws-lambda-go/lambda"
@@ -49,6 +50,12 @@ func main() {
 
 func handleRequest(cfg *config.Config) func(ctx context.Context, awsevent json.RawMessage) (any, error) {
 	return func(ctx context.Context, awsevent json.RawMessage) (any, error) {
+		if cfg.AdditionalLambdaTargets != nil {
+			if err := sdkclient.InvokeTargets(ctx, cfg.AdditionalLambdaTargets, awsevent); err != nil {
+				return nil, err
+			}
+		}
+
 		filterer := filtering.NewFilterer(cfg.FilterInclude, cfg.FilterExclude)
 		scrubber := scrubbing.NewScrubber(cfg.ScrubbingRegex, cfg.ScrubbingReplacement, cfg.ScrubIP, cfg.ScrubEmail)
 		handlerCfg := handling.Config{
