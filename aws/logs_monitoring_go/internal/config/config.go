@@ -149,7 +149,9 @@ func (c *Config) loadEnv() {
 
 	if v := os.Getenv(EnvAdditionalTargets); v != "" {
 		for target := range strings.SplitSeq(v, ",") {
-			c.AdditionalTargets = append(c.AdditionalTargets, target)
+			if target == "" {
+				c.AdditionalTargets = append(c.AdditionalTargets, target)
+			}
 		}
 	}
 }

@@ -10,6 +10,7 @@ package sdkclient
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"sync"
 
@@ -39,15 +40,16 @@ func InvokeTargets(ctx context.Context, targets []string, event json.RawMessage)
 }
 
 func invokeTargets(ctx context.Context, lambdaClient Lambda, targets []string, event json.RawMessage) error {
+	var err error
 	for _, target := range targets {
-		_, err := lambdaClient.Invoke(ctx, &lambda.InvokeInput{
+		_, invokeErr := lambdaClient.Invoke(ctx, &lambda.InvokeInput{
 			FunctionName:   aws.String(target),
 			InvocationType: types.InvocationTypeEvent,
 			Payload:        event,
 		})
-		if err != nil {
-			return fmt.Errorf("invoke %q: %w", target, err)
+		if invokeErr != nil {
+			err = errors.Join(err, fmt.Errorf("invoke %q: %w", target, invokeErr))
 		}
 	}
-	return nil
+	return err
 }
