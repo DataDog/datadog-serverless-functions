@@ -50,8 +50,8 @@ func main() {
 
 func handleRequest(cfg *config.Config) func(ctx context.Context, awsevent json.RawMessage) (any, error) {
 	return func(ctx context.Context, awsevent json.RawMessage) (any, error) {
-		if cfg.AdditionalLambdaTargets != nil {
-			if err := sdkclient.InvokeTargets(ctx, cfg.AdditionalLambdaTargets, awsevent); err != nil {
+		if cfg.AdditionalTargets != nil {
+			if err := sdkclient.InvokeTargets(ctx, cfg.AdditionalTargets, awsevent); err != nil {
 				return nil, err
 			}
 		}
