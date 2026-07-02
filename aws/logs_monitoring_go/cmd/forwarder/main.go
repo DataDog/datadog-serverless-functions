@@ -52,17 +52,12 @@ func main() {
 
 func handleRequest(cfg *config.Config) func(ctx context.Context, awsevent json.RawMessage) (any, error) {
 	return func(ctx context.Context, awsevent json.RawMessage) (any, error) {
-		var err error
-		var mu sync.Mutex
 		var wg sync.WaitGroup
 
+		var invokeErr error
 		if cfg.AdditionalTargets != nil {
 			wg.Go(func() {
-				if invokeErr := sdkclient.InvokeTargets(ctx, cfg.AdditionalTargets, awsevent); invokeErr != nil {
-					mu.Lock()
-					err = errors.Join(err, invokeErr)
-					mu.Unlock()
-				}
+				invokeErr = sdkclient.InvokeTargets(ctx, cfg.AdditionalTargets, awsevent)
 			})
 		}
 
@@ -97,13 +92,8 @@ func handleRequest(cfg *config.Config) func(ctx context.Context, awsevent json.R
 		)
 
 		out, pipelineErr := pipeline.New(handlerCfg, scrubber, filterer, forwarder).Start(ctx, awsevent)
-		if pipelineErr != nil {
-			mu.Lock()
-			err = errors.Join(err, pipelineErr)
-			mu.Unlock()
-		}
 
 		wg.Wait()
-		return out, err
+		return out, errors.Join(invokeErr, pipelineErr)
 	}
 }
