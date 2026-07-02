@@ -10,7 +10,7 @@ Parameters:
     Type: String
     NoEcho: true
     Default: ""
-    Description: The Datadog API key, which can be found from the APIs page (/account/settings#api). It will be stored in AWS Secrets Manager securely. If DdApiKeySecretArn is also set, this value is ignored.
+    Description: The Datadog API key, which can be found on the API Keys page (/organization-settings/api-keys). It will be stored in AWS Secrets Manager securely. If DdApiKeySecretArn is also set, this value is ignored.
   DdApiKeySecretArn:
     Type: String
     AllowedPattern: "arn:.*:secretsmanager:.*"
