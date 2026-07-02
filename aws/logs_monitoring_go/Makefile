@@ -5,7 +5,7 @@ ZIP_NAME := forwarder.zip
 
 .PHONY: build
 build:
-	GOOS=linux GOARCH=arm64 go build -ldflags="-s" -installsuffix nocgo -o $(BINARY_NAME) ./cmd/forwarder/
+	GOOS=linux GOARCH=arm64 go build -tags lambda.norpc -ldflags="-s" -installsuffix nocgo -o $(BINARY_NAME) ./cmd/forwarder/
 
 .PHONY: package
 package: build
@@ -37,7 +37,7 @@ clean:
 # Used only by SAM
 .PHONY: build-ForwarderFunction
 build-ForwarderFunction:
-	GOOS=linux GOARCH=arm64 go build -ldflags="-s" -installsuffix nocgo -o $(ARTIFACTS_DIR)/bootstrap ./cmd/forwarder/
+	GOOS=linux GOARCH=arm64 go build -tags lambda.norpc -ldflags="-s" -installsuffix nocgo -o $(ARTIFACTS_DIR)/bootstrap ./cmd/forwarder/
 
 .PHONY: sam-build
 sam-build:
