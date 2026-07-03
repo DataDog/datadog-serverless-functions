@@ -109,6 +109,7 @@ func MustKinesisEvent(t *testing.T, records ...[]byte) json.RawMessage {
 	var evt events.KinesisEvent
 	for _, data := range records {
 		evt.Records = append(evt.Records, events.KinesisEventRecord{
+			EventSource: "aws:kinesis",
 			Kinesis: events.KinesisRecord{
 				Data: data,
 			},

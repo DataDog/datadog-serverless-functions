@@ -22,9 +22,7 @@ const (
 	MaxConcurrency       = 20
 )
 
-var Client *http.Client
-
-func Init(opts ...TLSOption) {
+func New(opts ...TLSOption) *http.Client {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	transport.TLSHandshakeTimeout = tlsHandshakeTimeout
 	transport.MaxIdleConnsPerHost = MaxConcurrency
@@ -37,7 +35,7 @@ func Init(opts ...TLSOption) {
 		opt(transport.TLSClientConfig)
 	}
 
-	Client = &http.Client{Transport: WithRetry(DefaultMaxAttempts, transport)}
+	return &http.Client{Transport: WithRetry(DefaultMaxAttempts, transport)}
 }
 
 func DrainClose(resp *http.Response) {

@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
+	"net/http"
 	"sync"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/apikey"
@@ -38,19 +39,19 @@ func main() {
 	if cfg.SkipServerCertificate {
 		tlsOpts = append(tlsOpts, httpclient.WithCertificateSkip())
 	}
-	httpclient.Init(tlsOpts...)
+	client := httpclient.New(tlsOpts...)
 
-	if err = apikey.Validate(context.Background(), httpclient.Client, cfg.APIURL, cfg.APIKey); err != nil {
+	if err = apikey.Validate(context.Background(), client, cfg.APIURL, cfg.APIKey); err != nil {
 		if !cfg.StoreOnFail {
 			log.Fatal(fmt.Errorf("no failed event storage set, validate API key: %w", err))
 		}
 		slog.Error("API key validation", slog.Any("error", err))
 	}
 
-	lambda.Start(handleRequest(cfg))
+	lambda.Start(handleRequest(cfg, client))
 }
 
-func handleRequest(cfg *config.Config) func(ctx context.Context, awsevent json.RawMessage) (any, error) {
+func handleRequest(cfg *config.Config, client *http.Client) func(ctx context.Context, awsevent json.RawMessage) (any, error) {
 	return func(ctx context.Context, awsevent json.RawMessage) (any, error) {
 		var wg sync.WaitGroup
 
@@ -87,7 +88,7 @@ func handleRequest(cfg *config.Config) func(ctx context.Context, awsevent json.R
 
 		forwarder := forwarding.NewForwarder(
 			forwarderCfg,
-			httpclient.Client,
+			client,
 			storage,
 		)
 

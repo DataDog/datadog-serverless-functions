@@ -1,0 +1,13 @@
+{
+  "messageType": "DATA_MESSAGE",
+  "owner": "123456789012",
+  "logGroup": "/aws/kinesis/my-stream",
+  "logStream": "shardId-000000000000",
+  "logEvents": [
+    {
+      "id": "eventId1",
+      "timestamp": 1428537600000,
+      "message": "Kinesis log message"
+    }
+  ]
+}

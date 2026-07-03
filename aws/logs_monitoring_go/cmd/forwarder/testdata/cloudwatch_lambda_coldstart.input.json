@@ -1,0 +1,25 @@
+{
+  "messageType": "DATA_MESSAGE",
+  "owner": "601427279990",
+  "logGroup": "/aws/lambda/storms-cloudwatch-event",
+  "logStream": "2020/06/04/[$LATEST]af2b1e1843b84a2d80c67840ae3ffa72",
+  "subscriptionFilters": [
+    "myevent"
+  ],
+  "logEvents": [{
+      "id": "35486831490800643125153606102923171443962457178576257024",
+      "timestamp": 1591284559098,
+      "message": "START RequestId: db275f87-a934-471a-8980-b63bf4dc1beb Version: $LATEST\\n"
+    },
+    {
+      "id": "35486831490867545360749197972347778598780402263094198273",
+      "timestamp": 1591284559101,
+      "message": "END RequestId: db275f87-a934-471a-8980-b63bf4dc1beb\\n"
+    },
+    {
+      "id": "35486831490867545360749197972347778598780402263094198274",
+      "timestamp": 1591284559101,
+      "message": "REPORT RequestId: db275f87-a934-471a-8980-b63bf4dc1beb\\tDuration: 1.76 ms\\tBilled Duration: 100 ms\\tMemory Size: 128 MB\\tMax Memory Used: 48 MB\\tInit Duration: 120.96 ms\\t\\n"
+    }
+  ]
+}
