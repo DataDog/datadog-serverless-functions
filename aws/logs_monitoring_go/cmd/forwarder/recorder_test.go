@@ -42,7 +42,7 @@ func newRecorder(t *testing.T) *recorder {
 			body, err = io.ReadAll(gr)
 			require.NoError(t, err)
 
-			gr.Close()
+			require.NoError(t, gr.Close())
 		}
 
 		headers := make(map[string]string)
@@ -60,11 +60,4 @@ func newRecorder(t *testing.T) *recorder {
 	t.Cleanup(rec.Close)
 
 	return rec
-}
-
-func (r *recorder) snapshot(t *testing.T) any {
-	t.Helper()
-
-	require.NotEmpty(t, r.request, "recorder received no requests")
-	return r.request
 }

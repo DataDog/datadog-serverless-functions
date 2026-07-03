@@ -59,10 +59,11 @@ func TestHandleRequest(t *testing.T) {
 			ctx := testutil.LambdaContext(t)
 			event := load(t, input)
 
-			_, err := handleRequest(cfg, rec.Server.Client())(ctx, event)
+			_, err := handleRequest(cfg, rec.Client())(ctx, event)
 
 			require.NoError(t, err)
-			assertGolden(t, golden, rec.snapshot(t))
+			require.NotEmpty(t, rec.request, "recorder received no requests")
+			assertGolden(t, golden, rec.request)
 		})
 	}
 }
