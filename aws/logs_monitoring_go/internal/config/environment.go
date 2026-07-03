@@ -12,7 +12,6 @@ import (
 )
 
 var deprecatedEnvironmentVariables = []string{
-	"DD_ADDITIONAL_TARGET_LAMBDAS",
 	"DD_API_KEY",
 	"DD_ENRICH_CLOUDWATCH_TAGS",
 	"DD_ENRICH_S3_TAGS",

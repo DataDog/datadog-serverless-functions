@@ -8,9 +8,11 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"log/slog"
+	"sync"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/apikey"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
@@ -20,6 +22,7 @@ import (
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/httpclient"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/pipeline"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/scrubbing"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/sdkclient"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/storing"
 
 	"github.com/aws/aws-lambda-go/lambda"
@@ -49,6 +52,15 @@ func main() {
 
 func handleRequest(cfg *config.Config) func(ctx context.Context, awsevent json.RawMessage) (any, error) {
 	return func(ctx context.Context, awsevent json.RawMessage) (any, error) {
+		var wg sync.WaitGroup
+
+		var invokeErr error
+		if cfg.AdditionalTargets != nil {
+			wg.Go(func() {
+				invokeErr = sdkclient.InvokeTargets(ctx, cfg.AdditionalTargets, awsevent)
+			})
+		}
+
 		filterer := filtering.NewFilterer(cfg.FilterInclude, cfg.FilterExclude)
 		scrubber := scrubbing.NewScrubber(cfg.ScrubbingRegex, cfg.ScrubbingReplacement, cfg.ScrubIP, cfg.ScrubEmail)
 		handlerCfg := handling.Config{
@@ -79,6 +91,9 @@ func handleRequest(cfg *config.Config) func(ctx context.Context, awsevent json.R
 			storage,
 		)
 
-		return pipeline.New(handlerCfg, scrubber, filterer, forwarder).Start(ctx, awsevent)
+		out, pipelineErr := pipeline.New(handlerCfg, scrubber, filterer, forwarder).Start(ctx, awsevent)
+
+		wg.Wait()
+		return out, errors.Join(invokeErr, pipelineErr)
 	}
 }
