@@ -1,0 +1,31 @@
+{
+  "headers": {
+    "Content-Encoding": "gzip",
+    "Content-Type": "application/json",
+    "Dd-Api-Key": "abcdefghijklmnopqrstuvwxyz012345",
+    "Dd-Evp-Origin": "aws_forwarder",
+    "Dd-Evp-Origin-Version": "6.0",
+    "Dd-Storage-Tag": "cloudwatch",
+    "User-Agent": "Go-http-client/1.1"
+  },
+  "body": [
+    {
+      "host": "i-08014e4f62ccf762d",
+      "id": "37199773595581154154810589279545129148442535997644275712",
+      "timestamp": 1620000808000,
+      "message": "{\"eventVersion\":\"1.08\",\"userIdentity\":{\"type\":\"AssumedRole\",\"arn\":\"arn:aws:sts::601427279990:assumed-role/MyRole/i-08014e4f62ccf762d\"},\"eventTime\":\"2021-05-02T23:53:28Z\",\"eventSource\":\"dynamodb.amazonaws.com\",\"eventName\":\"DescribeTable\",\"awsRegion\":\"us-east-1\"}",
+      "service": "cloudtrail",
+      "ddsource": "cloudtrail",
+      "ddsourcecategory": "aws",
+      "ddtags": "",
+      "aws": {
+        "invoked_function_arn": "arn:aws:lambda:us-east-1:123456789012:function:forwarder",
+        "awslogs": {
+          "logGroup": "/aws/cloudtrail",
+          "logStream": "601427279990_CloudTrail_us-east-1",
+          "owner": "601427279990"
+        }
+      }
+    }
+  ]
+}

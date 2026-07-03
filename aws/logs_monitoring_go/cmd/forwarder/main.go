@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
+	"net/http"
 	"sync"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/apikey"
@@ -47,10 +48,10 @@ func main() {
 		slog.Error("API key validation", slog.Any("error", err))
 	}
 
-	lambda.Start(handleRequest(cfg))
+	lambda.Start(handleRequest(cfg, httpclient.Client))
 }
 
-func handleRequest(cfg *config.Config) func(ctx context.Context, awsevent json.RawMessage) (any, error) {
+func handleRequest(cfg *config.Config, client *http.Client) func(ctx context.Context, awsevent json.RawMessage) (any, error) {
 	return func(ctx context.Context, awsevent json.RawMessage) (any, error) {
 		var wg sync.WaitGroup
 
@@ -87,7 +88,7 @@ func handleRequest(cfg *config.Config) func(ctx context.Context, awsevent json.R
 
 		forwarder := forwarding.NewForwarder(
 			forwarderCfg,
-			httpclient.Client,
+			client,
 			storage,
 		)
 

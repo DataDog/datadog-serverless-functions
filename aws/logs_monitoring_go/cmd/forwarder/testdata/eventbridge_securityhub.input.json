@@ -1,0 +1,22 @@
+{
+  "source": "aws.securityhub",
+  "detail-type": "Security Hub Findings - Imported",
+  "detail": {
+    "findings": [
+      {
+        "Title": "S3 bucket without encryption",
+        "Severity": {"Label": "HIGH"},
+        "Resources": [
+          {"Type": "AwsEc2SecurityGroup", "Region": "us-east-1"},
+          {"Type": "AwsIamRole", "Region": "us-east-1"}
+        ]
+      },
+      {
+        "Title": "Open security group",
+        "Resources": [
+          {"Type": "AwsEc2SecurityGroup", "Region": "us-west-2"}
+        ]
+      }
+    ]
+  }
+}

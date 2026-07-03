@@ -1,0 +1,31 @@
+{
+  "headers": {
+    "Content-Encoding": "gzip",
+    "Content-Type": "application/json",
+    "Dd-Api-Key": "abcdefghijklmnopqrstuvwxyz012345",
+    "Dd-Evp-Origin": "aws_forwarder",
+    "Dd-Evp-Origin-Version": "6.0",
+    "Dd-Storage-Tag": "cloudwatch",
+    "User-Agent": "Go-http-client/1.1"
+  },
+  "body": [
+    {
+      "host": "testLogGroup",
+      "id": "eventId1",
+      "timestamp": 1440442987000,
+      "message": "{\"message\":\"hello world\"}",
+      "service": "custom_service",
+      "ddsource": "cloudwatch",
+      "ddsourcecategory": "aws",
+      "ddtags": "custom_tag1:value1,custom_tag2:value2",
+      "aws": {
+        "invoked_function_arn": "arn:aws:lambda:us-east-1:123456789012:function:forwarder",
+        "awslogs": {
+          "logGroup": "testLogGroup",
+          "logStream": "testLogStream",
+          "owner": "123456789123"
+        }
+      }
+    }
+  ]
+}

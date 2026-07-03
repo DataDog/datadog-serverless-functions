@@ -1,0 +1,32 @@
+{
+  "headers": {
+    "Content-Encoding": "gzip",
+    "Content-Type": "application/json",
+    "Dd-Api-Key": "abcdefghijklmnopqrstuvwxyz012345",
+    "Dd-Evp-Origin": "aws_forwarder",
+    "Dd-Evp-Origin-Version": "6.0",
+    "User-Agent": "Go-http-client/1.1"
+  },
+  "body": [
+    {
+      "message": "{\"detail\":{\"finding\":{\"Severity\":{\"Label\":\"HIGH\"},\"Title\":\"S3 bucket without encryption\",\"resources\":{\"AwsEc2SecurityGroup\":{\"Region\":\"us-east-1\"},\"AwsIamRole\":{\"Region\":\"us-east-1\"}}}},\"detail-type\":\"Security Hub Findings - Imported\",\"source\":\"aws.securityhub\"}",
+      "service": "securityhub",
+      "ddsource": "securityhub",
+      "ddsourcecategory": "aws",
+      "ddtags": "",
+      "aws": {
+        "invoked_function_arn": "arn:aws:lambda:us-east-1:123456789012:function:forwarder"
+      }
+    },
+    {
+      "message": "{\"detail\":{\"finding\":{\"Title\":\"Open security group\",\"resources\":{\"AwsEc2SecurityGroup\":{\"Region\":\"us-west-2\"}}}},\"detail-type\":\"Security Hub Findings - Imported\",\"source\":\"aws.securityhub\"}",
+      "service": "securityhub",
+      "ddsource": "securityhub",
+      "ddsourcecategory": "aws",
+      "ddtags": "",
+      "aws": {
+        "invoked_function_arn": "arn:aws:lambda:us-east-1:123456789012:function:forwarder"
+      }
+    }
+  ]
+}

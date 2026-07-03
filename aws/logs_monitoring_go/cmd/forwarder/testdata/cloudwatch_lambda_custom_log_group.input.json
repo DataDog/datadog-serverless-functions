@@ -1,0 +1,24 @@
+{
+	"messageType": "DATA_MESSAGE",
+	"owner": "601427279990",
+	"logGroup": "/aws/vendedlogs/states/anyLogGroupName",
+	"logStream": "2020/03/05/test-customized-loggroup[$LATEST]20bddfd5a2dc4c6b97ac02800eae90d0",
+	"subscriptionFilters": ["some-filter-name"],
+	"logEvents": [
+		{
+			"id": "35311576111948622874033876462979853992919938886093242368",
+			"timestamp": 1583425836114,
+			"message": "2020-03-05T16:30:36.113Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tDEBUG\t[dd.trace_id=3172564172058669914 dd.span_id=14292093692483532556] {\"status\":\"debug\",\"message\":\"datadog:Patched console output with trace context\"}\n"
+		},
+		{
+			"id": "35311576111948622874033876462979853992919938886093242369",
+			"timestamp": 1583425836114,
+			"message":"2020-03-05T16:30:36.114Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tDEBUG\t[dd.trace_id=3172564172058669914 dd.span_id=14292093692483532556] {\"autoPatchHTTP\":true,\"tracerInitialized\":true,\"status\":\"debug\",\"message\":\"datadog:Not patching HTTP libraries\"}\n"
+		},
+		{
+			"id": "35311576111948622874033876462979853992919938886093242370",
+			"timestamp": 1583425836114,
+			"message": "2020-03-05T16:30:36.114Z\tf08bb4c8-d6b2-4f05-ac17-af7e2ba005fb\tDEBUG\t[dd.trace_id=3172564172058669914 dd.span_id=14292093692483532556] {\"status\":\"debug\",\"message\":\"datadog:Reading trace context from env var Root=1-5e61292c-cc1229a4dfbeae1043928548;Parent=c657b77d9514f70c;Sampled=1\"}\n"
+		}
+	]
+}
