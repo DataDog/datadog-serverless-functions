@@ -33,7 +33,7 @@ def get_env_var(envvar, default, boolean=False):
 ## It can be found here:
 ##
 ##   * Datadog US Site: https://app.datadoghq.com/organization-settings/api-keys
-##   * Datadog EU Site: https://app.datadoghq.eu/account/settings#api
+##   * Datadog EU Site: https://app.datadoghq.eu/organization-settings/api-keys
 ##
 ## Must be set if one of the following is not set: DD_API_KEY_SECRET_ARN, DD_API_KEY_SSM_NAME, DD_KMS_API_KEY
 #
