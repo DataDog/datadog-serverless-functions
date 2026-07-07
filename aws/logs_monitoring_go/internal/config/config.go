@@ -44,7 +44,6 @@ const (
 	EnvExcludeAtMatch           = "EXCLUDE_AT_MATCH"
 	EnvS3RetryBucketName        = "DD_S3_BUCKET_NAME"
 	EnvSQSQueueURL              = "DD_SQS_QUEUE_URL"
-	EnvStoreFailedEvents        = "DD_STORE_FAILED_EVENTS"
 	EnvAdditionalTargets        = "DD_ADDITIONAL_TARGET_LAMBDAS"
 	ForwarderVersion            = "6.0"
 )
@@ -139,9 +138,9 @@ func (c *Config) loadEnv() {
 	c.Source = envOrDefault(EnvSource, "")
 	c.Host = envOrDefault(EnvHost, "")
 
-	c.StoreOnFail = envOrDefaultBool(EnvStoreFailedEvents, false)
 	c.S3RetryBucketName = envOrDefault(EnvS3RetryBucketName, "")
 	c.SQSQueueURL = envOrDefault(EnvSQSQueueURL, "")
+	c.StoreOnFail = c.S3RetryBucketName != "" || c.SQSQueueURL != ""
 
 	c.ScrubbingReplacement = envOrDefault(EnvScrubbingRuleReplacement, "")
 	c.ScrubIP = envOrDefaultBool(EnvRedactIP, false)
