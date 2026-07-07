@@ -23,4 +23,4 @@ urllib3==2.7.0
 wrapt==1.14.0
 xmltodict
 zipp
-ujson==5.12.1
+ujson==5.13.0
