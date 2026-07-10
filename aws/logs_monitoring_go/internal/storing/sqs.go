@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"iter"
+	"log/slog"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/batching"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/concurrent"
@@ -38,6 +39,11 @@ func newSQS(client sdkclient.SQS, queue string) *SQS {
 }
 
 func (s *SQS) Store(ctx context.Context, batch Batch) error {
+	slog.DebugContext(ctx, "storing batch to SQS",
+		slog.String("queue", s.queue),
+		slog.Int("batch_bytes", len(batch.Data)),
+	)
+
 	var logs []json.RawMessage
 	if err := json.Unmarshal(batch.Data, &logs); err != nil {
 		return fmt.Errorf("unmarshal: %w", err)
@@ -108,6 +114,8 @@ func (s *SQS) Fetch(ctx context.Context) iter.Seq2[Batch, error] {
 			if len(out.Messages) == 0 {
 				return
 			}
+
+			slog.DebugContext(ctx, "received retry messages from SQS", slog.Int("messages", len(out.Messages)))
 
 			for _, message := range out.Messages {
 				storedBatch := Batch{

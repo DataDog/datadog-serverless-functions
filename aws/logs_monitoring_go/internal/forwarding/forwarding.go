@@ -13,6 +13,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"sync"
 
@@ -110,6 +111,7 @@ func (f *Forwarder) Start(ctx context.Context, in <-chan model.LogEntry, storage
 					break
 				}
 
+				slog.DebugContext(ctx, "send failed, storing batch for retry", slog.Int("batch_bytes", len(batch)))
 				if err := f.storage.Store(ctx, storing.Batch{Data: batch, StorageTag: storageTag}); err != nil {
 					return fmt.Errorf("store: %w", err)
 				}
@@ -134,6 +136,7 @@ func (f *Forwarder) Retry(ctx context.Context) error {
 			return fmt.Errorf("fetch: %w", err)
 		}
 
+		slog.DebugContext(ctx, "retrying stored batch", slog.Int("batch_bytes", len(batch.Data)))
 		if sendErr := f.send(ctx, batch.Data, batch.StorageTag); sendErr != nil {
 			return fmt.Errorf("send: %w", sendErr)
 		}
@@ -166,6 +169,11 @@ func (f *Forwarder) send(ctx context.Context, payload json.RawMessage, storageTa
 		if err != nil {
 			return fmt.Errorf("compress: %w", err)
 		}
+
+		slog.DebugContext(ctx, "sending batch to intake",
+			slog.Int("original_bytes", len(payload)),
+			slog.Int("compressed_bytes", len(compressed)),
+		)
 		req.Body = io.NopCloser(bytes.NewReader(compressed))
 		req.ContentLength = int64(len(compressed))
 		req.GetBody = func() (io.ReadCloser, error) {

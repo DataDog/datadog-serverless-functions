@@ -8,6 +8,7 @@ package parsing
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -39,6 +40,7 @@ func eventBridge(event json.RawMessage) (Event, error) {
 			return Event{}, err
 		}
 
+		slog.Debug("S3 notification found in EventBridge")
 		return Event{ContentType: ContentTypeS3, Payload: payload}, nil
 	}
 	return Event{ContentType: ContentTypeEventBridge, Payload: event}, nil

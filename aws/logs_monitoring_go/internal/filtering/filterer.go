@@ -6,6 +6,7 @@
 package filtering
 
 import (
+	"log/slog"
 	"regexp"
 )
 
@@ -24,9 +25,11 @@ func (f *Filterer) ShouldExclude(content string) bool {
 		return false
 	}
 	if f.excludeRegex != nil && f.excludeRegex.MatchString(content) {
+		slog.Debug("exclude rule matched", slog.String("content", content))
 		return true
 	}
 	if f.includeRegex != nil && !f.includeRegex.MatchString(content) {
+		slog.Debug("include rule did not match, excluding", slog.String("content", content))
 		return true
 	}
 	return false

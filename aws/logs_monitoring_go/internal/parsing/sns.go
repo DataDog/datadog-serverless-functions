@@ -8,6 +8,7 @@ package parsing
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 
 	"github.com/aws/aws-lambda-go/events"
 )
@@ -26,6 +27,7 @@ func sns(event json.RawMessage) (Event, error) {
 	}
 
 	if len(disc.Records) > 0 && disc.Records[0].EventSource == eventSourceS3 {
+		slog.Debug("S3 notification found in SNS")
 		return Event{ContentType: ContentTypeS3, Payload: inner}, nil
 	}
 
