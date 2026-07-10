@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/filtering"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/forwarding"
@@ -50,6 +51,7 @@ func (p Pipeline) Start(ctx context.Context, awsevent json.RawMessage) (any, err
 			return nil, err
 		}
 
+		slog.DebugContext(ctx, "SQS event dispatched", slog.Int("records", len(events)))
 		return p.startSQS(ctx, events)
 	}
 
@@ -59,6 +61,7 @@ func (p Pipeline) Start(ctx context.Context, awsevent json.RawMessage) (any, err
 	}
 
 	if event.ContentType == parsing.ContentTypeRetry {
+		slog.DebugContext(ctx, "retry event received, processing stored batches")
 		return nil, p.forwarder.Retry(ctx)
 	}
 
@@ -73,6 +76,10 @@ func (p Pipeline) startSQS(ctx context.Context, events []parsing.SQSEvent) (sqsE
 			continue
 		}
 
+		slog.DebugContext(ctx, "SQS batch item failures",
+			slog.String("message_id", event.SQSReceiptHandle),
+			slog.Int("messages sent back", len(events)-i),
+		)
 		for _, remaining := range events[i:] {
 			response.BatchItemFailures = append(response.BatchItemFailures, awsevents.SQSBatchItemFailure{ItemIdentifier: remaining.SQSReceiptHandle})
 		}
@@ -87,6 +94,8 @@ func (p Pipeline) startSQS(ctx context.Context, events []parsing.SQSEvent) (sqsE
 }
 
 func (p Pipeline) run(ctx context.Context, event parsing.Event) error {
+	slog.DebugContext(ctx, "processing event", slog.String("content_type", event.ContentType.String()))
+
 	eg, ctx := errgroup.WithContext(ctx)
 
 	entries := make(chan model.LogEntry)

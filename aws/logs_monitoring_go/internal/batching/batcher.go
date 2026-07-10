@@ -115,6 +115,8 @@ func (b *Batcher[T]) construct() (json.RawMessage, bool, error) {
 		return nil, false, fmt.Errorf("marshal: %w", err)
 	}
 
+	slog.Debug("batch constructed", slog.Int("items", len(b.batch)), slog.Int("size_bytes", len(batch)))
+
 	b.reset()
 	return json.RawMessage(batch), true, nil
 }

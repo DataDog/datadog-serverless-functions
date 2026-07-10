@@ -112,6 +112,7 @@ func Load() (*Config, error) {
 	cfg.APIKey, resolutionErr = resolveAPIKey(context.Background(), apiKeyResolvers)
 	errs = append(errs, resolutionErr)
 
+	slog.Debug("configuration loaded", slog.Any("config", &cfg))
 	return &cfg, errors.Join(errs...)
 }
 
@@ -168,13 +169,35 @@ func resolveAPIKey(ctx context.Context, resolvers []apiKeyResolver) (string, err
 			continue
 		}
 
+		slog.Debug("trying API key resolver", slog.String("env", resolver.env), slog.String("value", v))
+
 		key, err := resolver.resolve(ctx, v)
 		if err != nil {
 			return "", fmt.Errorf("resolve: %w", err)
 		}
 
+		slog.Debug("API key resolved", slog.String("env", resolver.env))
 		return key, nil
 	}
 
 	return "", errors.New("no Datadog API key configured")
+}
+
+func (c *Config) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.String("intake_url", c.IntakeURL),
+		slog.Int("compression_level", c.CompressionLevel),
+		slog.Bool("skip_tls", c.SkipServerCertificate),
+		slog.Bool("store_on_fail", c.StoreOnFail),
+		slog.String("s3_retry_bucket", c.S3RetryBucketName),
+		slog.String("sqs_queue_url", c.SQSQueueURL),
+		slog.String("source_override", c.Source),
+		slog.String("host_override", c.Host),
+		slog.Bool("filter_include", c.FilterInclude != nil),
+		slog.Bool("filter_exclude", c.FilterExclude != nil),
+		slog.Bool("scrub_ip", c.ScrubIP),
+		slog.Bool("scrub_email", c.ScrubEmail),
+		slog.Bool("scrub_custom", c.ScrubbingRegex != nil),
+		slog.Any("additional_targets", c.AdditionalTargets),
+	)
 }

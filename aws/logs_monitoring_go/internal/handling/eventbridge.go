@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/concurrent"
@@ -43,6 +44,7 @@ func (h *eventBridgeHandler) Handle(ctx context.Context, event json.RawMessage, 
 	if err != nil {
 		return err
 	}
+	slog.DebugContext(ctx, "processing eventbridge event", slog.String("source", source))
 
 	switch source {
 	case sourceSecurityHub:

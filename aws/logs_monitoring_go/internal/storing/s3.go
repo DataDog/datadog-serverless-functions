@@ -43,6 +43,12 @@ func (s *S3) Store(ctx context.Context, batch Batch) error {
 	datetime := time.Now().UTC().Format("2006/01/02/150405000")
 	key := fmt.Sprintf("%s%s_%s_%d.json", prefix, datetime, invocationID, s.sequence.Add(1))
 
+	slog.DebugContext(ctx, "storing batch to S3",
+		slog.String("bucket", s.bucket),
+		slog.String("key", key),
+		slog.Int("batch_bytes", len(batch.Data)),
+	)
+
 	_, err := s.client.PutObject(ctx, &s3.PutObjectInput{
 		Bucket:   aws.String(s.bucket),
 		Key:      aws.String(key),
@@ -68,6 +74,8 @@ func (s *S3) Fetch(ctx context.Context) iter.Seq2[Batch, error] {
 			yield(Batch{}, fmt.Errorf("list objects: %w", err))
 			return
 		}
+
+		slog.DebugContext(ctx, "fetched retry batches from S3", slog.Int("objects", len(listOut.Contents)))
 
 		for _, object := range listOut.Contents {
 			storedBatch, err := s.getBatch(ctx, object)

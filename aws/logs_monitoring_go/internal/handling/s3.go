@@ -91,6 +91,11 @@ func (h s3Handler) processRecord(ctx context.Context, out chan<- model.LogEntry,
 	}()
 
 	source := S3Source(eventRecord.S3.Object.URLDecodedKey)
+	slog.DebugContext(ctx, "processing S3 object",
+		slog.String("bucket", eventRecord.S3.Bucket.Name),
+		slog.String("key", eventRecord.S3.Object.URLDecodedKey),
+		slog.String("source", source),
+	)
 	switch source {
 	case sourceCloudtrail:
 		err = h.CloudTrail(ctx, out, reader, eventRecord, lambdaOrigin)

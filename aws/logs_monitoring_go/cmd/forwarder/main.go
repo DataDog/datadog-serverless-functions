@@ -53,6 +53,8 @@ func main() {
 
 func handleRequest(cfg *config.Config, client *http.Client) func(ctx context.Context, awsevent json.RawMessage) (any, error) {
 	return func(ctx context.Context, awsevent json.RawMessage) (any, error) {
+		slog.DebugContext(ctx, "invocation start", slog.String("event", string(awsevent)))
+
 		var wg sync.WaitGroup
 
 		var invokeErr error
