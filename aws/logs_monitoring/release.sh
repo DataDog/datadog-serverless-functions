@@ -377,11 +377,21 @@ prod_asset_push() {
 aws_login aws sts get-caller-identity
 
 CURRENT_ACCOUNT="$(aws_login aws sts get-caller-identity --query Account --output text)"
-CURRENT_LAYER_VERSION=$(get_max_layer_version)
-LAYER_VERSION=$((CURRENT_LAYER_VERSION + 1))
 
-if [[ ${ACCOUNT} != "datadog" ]]; then
-    log_info "Current layer version is ${CURRENT_LAYER_VERSION}, next layer version will be ${LAYER_VERSION}"
+if [[ ${ACCOUNT} == "prod" && ${PROD_GITHUB_RESTART:-} == "true" ]]; then
+    # On a restart the version-bump PR is already merged, so template.yaml holds the
+    # authoritative layer version. Re-deriving it from AWS (get_max_layer_version + 1)
+    # would return the already-published version + 1, publishing a spurious layer and
+    # mislabeling the GitHub release. Read it from template.yaml instead.
+    LAYER_VERSION=$(yq '.Mappings.Constants.DdForwarder.LayerVersion' "template.yaml")
+    log_info "Restart: using layer version ${LAYER_VERSION} from template.yaml"
+else
+    CURRENT_LAYER_VERSION=$(get_max_layer_version)
+    LAYER_VERSION=$((CURRENT_LAYER_VERSION + 1))
+
+    if [[ ${ACCOUNT} != "datadog" ]]; then
+        log_info "Current layer version is ${CURRENT_LAYER_VERSION}, next layer version will be ${LAYER_VERSION}"
+    fi
 fi
 
 log_info "Validating template.yaml..."
