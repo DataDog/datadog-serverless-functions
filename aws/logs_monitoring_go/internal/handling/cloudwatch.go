@@ -34,9 +34,12 @@ const (
 	logStreamCloudtrail   = "_CloudTrail_"
 )
 
+const envTag = "env"
+
 // Custom log groups use the log stream format: YYYY/MM/DD/<function_name>[<function_version>][<execution_environment_GUID>]
+// The first capture group extracts the function name.
 var lambdaLogStreamRegex = regexp.MustCompile(
-	`^\d{4}/[01]\d/[0-3]\d/[\w.-]{1,75}\[(\$LATEST|[\w-]{1,129})\][0-9a-f]{32}$`,
+	`^\d{4}/[01]\d/[0-3]\d/([\w.-]{1,75})\[(?:\$LATEST|[\w-]{1,129})\][0-9a-f]{32}$`,
 )
 
 type cloudwatchHandler struct {
@@ -130,18 +133,24 @@ func (h cloudwatchHandler) newCloudwatchBaseEntry(data events.CloudwatchLogsData
 			Owner:     data.Owner,
 		},
 	}
+	source := cloudwatchSource(strings.ToLower(logGroup), logStream)
 
 	entry := model.NewLogEntry()
-	entry.Source = cmp.Or(h.cfg.Source, CloudwatchSource(strings.ToLower(logGroup), logStream))
+	entry.Source = cmp.Or(h.cfg.Source, source)
 	entry.Host = cmp.Or(h.cfg.Host, logGroup)
 	entry.Metadata = metadata
+
+	if entry.Source == sourceLambda {
+		enrichLambdaLog(&entry, lambdaOrigin.ARN, logGroup, logStream, h.cfg)
+	}
+
 	return entry
 }
 
 func (h cloudwatchHandler) newCloudwatchLogEntry(event events.CloudwatchLogsLogEvent, entry model.LogEntry) model.LogEntry {
 	tags, service, message := extractFromMessage(event.Message)
 	entry.Service = cmp.Or(h.cfg.Service, service, entry.Source)
-	entry.Tags = slices.Concat(tags, h.cfg.Tags)
+	entry.Tags = slices.Concat(tags, entry.Tags, h.cfg.Tags)
 	entry.Message = message
 	entry.ID = event.ID
 	entry.Timestamp = event.Timestamp
@@ -153,7 +162,7 @@ func (h cloudwatchHandler) newCloudwatchLogEntry(event events.CloudwatchLogsLogE
 	return entry
 }
 
-func CloudwatchSource(logGroup, logStream string) string {
+func cloudwatchSource(logGroup, logStream string) string {
 	if strings.HasPrefix(logStream, logStreamStepFunction) {
 		return sourceStepFunction
 	}
@@ -176,4 +185,45 @@ func CloudwatchSource(logGroup, logStream string) string {
 		return sourceCloudtrail
 	}
 	return sourceCloudwatch
+}
+
+func enrichLambdaLog(entry *model.LogEntry, forwarderARN, logGroup, logStream string, cfg *Config) {
+	name := lambdaName(strings.ToLower(logGroup), logStream)
+	if name != "" {
+		return
+	}
+
+	prefix, _, found := strings.Cut(forwarderARN, "function:")
+	if !found {
+		return
+	}
+
+	arn := prefix + "function:" + name
+	entry.Tags = append(entry.Tags, "functionname:"+name)
+	entry.Lambda = &model.LambdaLog{ARN: arn}
+	entry.Host = cmp.Or(cfg.Host, arn)
+
+	if !hasTag(cfg.Tags, envTag) {
+		entry.Tags = append(entry.Tags, envTag+":none")
+	}
+}
+
+func lambdaName(logGroup, logStream string) string {
+	if name := lambdaLogStreamRegex.FindString(logStream); name != "" {
+		return strings.ToLower(name)
+	}
+
+	if _, name, found := strings.Cut(logGroup, logGroupLambda+"/"); found && name != "" {
+		return strings.ToLower(name)
+	}
+	return ""
+}
+
+func hasTag(tags model.Tags, prefix string) bool {
+	for _, tag := range tags {
+		if strings.HasPrefix(tag, prefix) {
+			return true
+		}
+	}
+	return false
 }

@@ -10,14 +10,14 @@
   },
   "body": [
     {
-      "host": "/aws/lambda/storms-cloudwatch-event",
+      "host": "arn:aws:lambda:us-east-1:123456789012:function:storms-cloudwatch-event",
       "id": "35486831490800643125153606102923171443962457178576257024",
       "timestamp": 1591284559098,
       "message": "START RequestId: db275f87-a934-471a-8980-b63bf4dc1beb Version: $LATEST\\n",
       "service": "lambda",
       "ddsource": "lambda",
       "ddsourcecategory": "aws",
-      "ddtags": "",
+      "ddtags": "functionname:storms-cloudwatch-event,env:none",
       "aws": {
         "invoked_function_arn": "arn:aws:lambda:us-east-1:123456789012:function:forwarder",
         "awslogs": {
@@ -25,17 +25,20 @@
           "logStream": "2020/06/04/[$LATEST]af2b1e1843b84a2d80c67840ae3ffa72",
           "owner": "601427279990"
         }
+      },
+      "lambda": {
+        "arn": "arn:aws:lambda:us-east-1:123456789012:function:storms-cloudwatch-event"
       }
     },
     {
-      "host": "/aws/lambda/storms-cloudwatch-event",
+      "host": "arn:aws:lambda:us-east-1:123456789012:function:storms-cloudwatch-event",
       "id": "35486831490867545360749197972347778598780402263094198273",
       "timestamp": 1591284559101,
       "message": "END RequestId: db275f87-a934-471a-8980-b63bf4dc1beb\\n",
       "service": "lambda",
       "ddsource": "lambda",
       "ddsourcecategory": "aws",
-      "ddtags": "",
+      "ddtags": "functionname:storms-cloudwatch-event,env:none",
       "aws": {
         "invoked_function_arn": "arn:aws:lambda:us-east-1:123456789012:function:forwarder",
         "awslogs": {
@@ -43,17 +46,20 @@
           "logStream": "2020/06/04/[$LATEST]af2b1e1843b84a2d80c67840ae3ffa72",
           "owner": "601427279990"
         }
+      },
+      "lambda": {
+        "arn": "arn:aws:lambda:us-east-1:123456789012:function:storms-cloudwatch-event"
       }
     },
     {
-      "host": "/aws/lambda/storms-cloudwatch-event",
+      "host": "arn:aws:lambda:us-east-1:123456789012:function:storms-cloudwatch-event",
       "id": "35486831490867545360749197972347778598780402263094198274",
       "timestamp": 1591284559101,
       "message": "REPORT RequestId: db275f87-a934-471a-8980-b63bf4dc1beb\\tDuration: 1.76 ms\\tBilled Duration: 100 ms\\tMemory Size: 128 MB\\tMax Memory Used: 48 MB\\tInit Duration: 120.96 ms\\t\\n",
       "service": "lambda",
       "ddsource": "lambda",
       "ddsourcecategory": "aws",
-      "ddtags": "",
+      "ddtags": "functionname:storms-cloudwatch-event,env:none",
       "aws": {
         "invoked_function_arn": "arn:aws:lambda:us-east-1:123456789012:function:forwarder",
         "awslogs": {
@@ -61,6 +67,9 @@
           "logStream": "2020/06/04/[$LATEST]af2b1e1843b84a2d80c67840ae3ffa72",
           "owner": "601427279990"
         }
+      },
+      "lambda": {
+        "arn": "arn:aws:lambda:us-east-1:123456789012:function:storms-cloudwatch-event"
       }
     }
   ]
