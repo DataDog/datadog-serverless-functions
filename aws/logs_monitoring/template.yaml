@@ -3,8 +3,8 @@ Description: Pushes logs, metrics and traces from AWS to Datadog.
 Mappings:
   Constants:
     DdForwarder:
-      Version: 5.4.7
-      LayerVersion: "106"
+      Version: 5.4.8
+      LayerVersion: "107"
 Parameters:
   DdApiKey:
     Type: String
