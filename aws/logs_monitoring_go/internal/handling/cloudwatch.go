@@ -189,7 +189,7 @@ func cloudwatchSource(logGroup, logStream string) string {
 
 func enrichLambdaLog(entry *model.LogEntry, forwarderARN, logGroup, logStream string, cfg *Config) {
 	name := lambdaName(strings.ToLower(logGroup), logStream)
-	if name != "" {
+	if name == "" {
 		return
 	}
 
@@ -203,14 +203,14 @@ func enrichLambdaLog(entry *model.LogEntry, forwarderARN, logGroup, logStream st
 	entry.Lambda = &model.LambdaLog{ARN: arn}
 	entry.Host = cmp.Or(cfg.Host, arn)
 
-	if !hasTag(cfg.Tags, envTag) {
+	if !hasTag(cfg.Tags, envTag+":") {
 		entry.Tags = append(entry.Tags, envTag+":none")
 	}
 }
 
 func lambdaName(logGroup, logStream string) string {
-	if name := lambdaLogStreamRegex.FindString(logStream); name != "" {
-		return strings.ToLower(name)
+	if m := lambdaLogStreamRegex.FindStringSubmatch(logStream); m != nil {
+		return strings.ToLower(m[1])
 	}
 
 	if _, name, found := strings.Cut(logGroup, logGroupLambda+"/"); found && name != "" {
