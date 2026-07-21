@@ -22,6 +22,7 @@ logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").uppe
 logger.info("Loading function")
 
 DD_SITE = os.getenv("DD_SITE", default="datadoghq.com")
+DD_TAGS = os.getenv("DD_TAGS", default="")
 
 
 def _datadog_keys():
@@ -465,7 +466,7 @@ def lambda_handler(event, context):
     # 'arn:aws:lambda:us-east-1:1234123412:function:VPCFlowLogs'
     region, account = function_arn.split(":", 5)[3:5]
 
-    tags = ["region:%s" % region, "aws_account:%s" % account]
+    tags = ["region:%s" % region, "aws_account:%s" % account, DD_TAGS]
     unsupported_messages = 0
 
     node_ip = compute_node_ip(event["logEvents"])
