@@ -5,11 +5,6 @@
 
 package model
 
-import (
-	"encoding/json"
-	"strings"
-)
-
 const sourceCategory = "aws"
 
 type LogEntry struct {
@@ -29,25 +24,4 @@ func NewLogEntry() LogEntry {
 	return LogEntry{
 		SourceCategory: sourceCategory,
 	}
-}
-
-type Tags []string
-
-func (t Tags) MarshalJSON() ([]byte, error) {
-	return json.Marshal(strings.Join(t, ","))
-}
-
-func (t *Tags) UnmarshalJSON(data []byte) error {
-	var s string
-
-	if err := json.Unmarshal(data, &s); err != nil {
-		return err
-	}
-	if s == "" {
-		*t = nil
-		return nil
-	}
-
-	*t = strings.Split(s, ",")
-	return nil
 }
