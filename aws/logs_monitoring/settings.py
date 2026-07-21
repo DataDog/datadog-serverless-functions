@@ -122,6 +122,13 @@ DD_USE_VPC = get_env_var("DD_USE_VPC", "false", boolean=True)
 ## @param DD_CUSTOM_SOURCE
 DD_CUSTOM_SOURCE = get_env_var("DD_SOURCE", "")
 
+## @param DD_SUBMIT_ENHANCED_METRICS - boolean - optional - default: true
+## Set this variable to `False` to disable enhanced metrics for other lambda functions.
+#
+DD_SUBMIT_ENHANCED_METRICS_ENV = get_env_var(
+    "DD_SUBMIT_ENHANCED_METRICS", "true", boolean=True
+)
+
 
 class ScrubbingRuleConfig(object):
     def __init__(self, name, pattern, placeholder, enabled=True):
