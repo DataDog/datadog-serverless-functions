@@ -69,9 +69,9 @@ func TestCloudwatchHandler_Handle(t *testing.T) {
 					Message:        "hello",
 					Source:         "lambda",
 					SourceCategory: "aws",
-					Service:        "lambda",
+					Service:        "testing-datadog",
 					Host:           "arn:aws:lambda:us-east-1:123456789012:function:testing-datadog",
-					Tags:           model.Tags{"functionname:testing-datadog", "env:none"},
+					Tags:           model.Tags{"functionname:testing-datadog", "env:none", "service:testing-datadog"},
 					ID:             "ev1",
 					Timestamp:      1583425836114,
 					Lambda:         &model.LambdaLog{ARN: "arn:aws:lambda:us-east-1:123456789012:function:testing-datadog"},
@@ -102,9 +102,9 @@ func TestCloudwatchHandler_Handle(t *testing.T) {
 			want: []model.LogEntry{
 				{
 					Message: "first", Source: "lambda", SourceCategory: "aws",
-					Service: "lambda",
+					Service: "fn",
 					Host:    "arn:aws:lambda:us-east-1:123456789012:function:fn",
-					Tags:    model.Tags{"functionname:fn", "env:none"},
+					Tags:    model.Tags{"functionname:fn", "env:none", "service:fn"},
 					ID:      "a1", Timestamp: 1000,
 					Lambda: &model.LambdaLog{ARN: "arn:aws:lambda:us-east-1:123456789012:function:fn"},
 					Metadata: model.CloudwatchMetadata{
@@ -114,9 +114,9 @@ func TestCloudwatchHandler_Handle(t *testing.T) {
 				},
 				{
 					Message: "second", Source: "lambda", SourceCategory: "aws",
-					Service: "lambda",
+					Service: "fn",
 					Host:    "arn:aws:lambda:us-east-1:123456789012:function:fn",
-					Tags:    model.Tags{"functionname:fn", "env:none"},
+					Tags:    model.Tags{"functionname:fn", "env:none", "service:fn"},
 					ID:      "a2", Timestamp: 2000,
 					Lambda: &model.LambdaLog{ARN: "arn:aws:lambda:us-east-1:123456789012:function:fn"},
 					Metadata: model.CloudwatchMetadata{
@@ -228,6 +228,33 @@ func TestCloudwatchHandler_Handle(t *testing.T) {
 				},
 			},
 		},
+		"lambda keeps configured env and skips env:none": {
+			event: testutil.MustCloudwatchEvent(t, testutil.MustGzipJSON(t, map[string]any{
+				"messageType": "DATA_MESSAGE",
+				"owner":       "111111111111",
+				"logGroup":    "/aws/lambda/fn",
+				"logStream":   "stream",
+				"logEvents": []map[string]any{
+					{"id": "ev1", "timestamp": 1000, "message": "hello"},
+				},
+			})),
+			config:   &Config{Tags: model.Tags{"env:prod"}},
+			chanSize: 1,
+			want: []model.LogEntry{
+				{
+					Message: "hello", Source: "lambda", SourceCategory: "aws",
+					Service: "fn",
+					Host:    "arn:aws:lambda:us-east-1:123456789012:function:fn",
+					Tags:    model.Tags{"functionname:fn", "env:prod", "service:fn"},
+					ID:      "ev1", Timestamp: 1000,
+					Lambda: &model.LambdaLog{ARN: "arn:aws:lambda:us-east-1:123456789012:function:fn"},
+					Metadata: model.CloudwatchMetadata{
+						LambdaOrigin: model.LambdaOrigin{ARN: "arn:aws:lambda:us-east-1:123456789012:function:forwarder"},
+						Origin:       model.CloudwatchOrigin{LogGroup: "/aws/lambda/fn", LogStream: "stream", Owner: "111111111111"},
+					},
+				},
+			},
+		},
 	}
 
 	for name, tc := range tests {
@@ -280,56 +307,6 @@ func TestCloudwatchSource(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			assert.Equal(t, tc.want, cloudwatchSource(tc.logGroup, tc.logStream))
-		})
-	}
-}
-
-func TestLambdaName(t *testing.T) {
-	t.Parallel()
-
-	tests := map[string]struct {
-		logGroup  string
-		logStream string
-		want      string
-	}{
-		"default log group":                    {logGroup: "/aws/lambda/my-function", logStream: "stream", want: "my-function"},
-		"default log group lowercased":         {logGroup: "/aws/lambda/My-Function", logStream: "stream", want: "my-function"},
-		"custom log group name from stream":    {logGroup: "/aws/vendedlogs/states/anyLogGroupName", logStream: "2020/03/05/Test-Customized-LogGroup[$LATEST]20bddfd5a2dc4c6b97ac02800eae90d0", want: "test-customized-loggroup"},
-		"stream takes priority over log group": {logGroup: "/aws/lambda/from-group", logStream: "2020/03/05/from-stream[$LATEST]20bddfd5a2dc4c6b97ac02800eae90d0", want: "from-stream"},
-		"stream without function name":         {logGroup: "my-custom-group", logStream: "2023/11/04/[$LATEST]4426346c2cdf4c54a74d3bd2b929fc44", want: ""},
-		"non-lambda log group":                 {logGroup: "/aws/rds/cluster", logStream: "stream", want: ""},
-		"empty":                                {logGroup: "", logStream: "", want: ""},
-	}
-
-	for name, tc := range tests {
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-			assert.Equal(t, tc.want, lambdaName(tc.logGroup, tc.logStream))
-		})
-	}
-}
-
-func TestHasTag(t *testing.T) {
-	t.Parallel()
-
-	tests := map[string]struct {
-		tags   model.Tags
-		prefix string
-		want   bool
-	}{
-		"nil":                 {tags: nil, prefix: "env:", want: false},
-		"no env":              {tags: model.Tags{"team:infra", "service:api"}, prefix: "env:", want: false},
-		"env present":         {tags: model.Tags{"team:infra", "env:prod"}, prefix: "env:", want: true},
-		"env none present":    {tags: model.Tags{"env:none"}, prefix: "env:", want: true},
-		"env prefix only":     {tags: model.Tags{"environment:prod"}, prefix: "env:", want: false},
-		"other prefix":        {tags: model.Tags{"team:infra", "service:api"}, prefix: "service:", want: true},
-		"empty prefix always": {tags: model.Tags{"team:infra"}, prefix: "", want: true},
-	}
-
-	for name, tc := range tests {
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-			assert.Equal(t, tc.want, hasTag(tc.tags, tc.prefix))
 		})
 	}
 }
