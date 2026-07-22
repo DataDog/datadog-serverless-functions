@@ -180,15 +180,20 @@ if "DD_API_KEY_SECRET_ARN" in os.environ:
         # Try to parse the secret as JSON
         secret_json = json.loads(secret_string)
 
-        # If it's a JSON object, look for the 'DD_API_KEY' field
+        # If it's a JSON object, look for the 'DD_API_KEY' field (our own
+        # convention), then 'apiKey' (the field name used by AWS Secrets
+        # Manager's managed rotation for the Datadog API key secret type)
         if "DD_API_KEY" in secret_json:
             DD_API_KEY = secret_json["DD_API_KEY"]
             logger.debug(
                 "Successfully retrieved the Datadog API key from 'DD_API_KEY'."
             )
+        elif "apiKey" in secret_json:
+            DD_API_KEY = secret_json["apiKey"]
+            logger.debug("Successfully retrieved the Datadog API key from 'apiKey'.")
         else:
             logger.error(
-                "The secret does not contain the 'DD_API_KEY' field. "
+                "The secret does not contain the 'DD_API_KEY' or 'apiKey' field. "
                 "Please ensure the secret is in the correct format. "
                 "Not setting the Datadog API key."
             )

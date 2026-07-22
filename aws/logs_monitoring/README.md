@@ -492,7 +492,7 @@ The Datadog Forwarder is signed by Datadog. To verify the integrity of the Forwa
 : Your [Datadog API key][20], which can be found under **Organization Settings** > **API Keys**. The API Key is stored in AWS Secrets Manager. If you already have a Datadog API Key stored in Secrets Manager, use `DdApiKeySecretArn` instead.
 
 `DdApiKeySecretArn`
-: The ARN of the secret storing the Datadog API key, if you already have it stored in Secrets Manager. You must store the secret as a plaintext, rather than a key-value pair.
+: The ARN of the secret storing the Datadog API key, if you already have it stored in Secrets Manager. The secret can be a plaintext string, a JSON object with a `DD_API_KEY` field, or an AWS Secrets Manager managed rotation secret of type `DatadogApiKey` (JSON object with an `apiKey` field).
 
 `DdApiKeySsmParameterName`
 : The name of the SSM parameter containing the Datadog API key. If set, both `DdApiKey` and `DdApiKeySecretArn` are ignored.
@@ -676,7 +676,7 @@ If you are installing the Forwarder manually, convert the parameter names from P
 : Your [Datadog API key][20], which can be found under **Organization Settings** > **API Keys**. The API Key is stored in AWS Secrets Manager. If you already have a Datadog API Key stored in Secrets Manager, use `DD_API_KEY_SECRET_ARN` instead.
 
 `DD_API_KEY_SECRET_ARN`
-: The ARN of the secret storing the Datadog API key, if you already have it stored in Secrets Manager. You must store the secret as a plaintext, rather than a key-value pair.
+: The ARN of the secret storing the Datadog API key, if you already have it stored in Secrets Manager. The secret can be a plaintext string, a JSON object with a `DD_API_KEY` field, or an AWS Secrets Manager managed rotation secret of type `DatadogApiKey` (JSON object with an `apiKey` field).
 
 `DD_API_KEY_SSM_NAME`
 : The name of the parameter in AWS Systems Manager (SSM) Parameter Store containing the Datadog API key. Takes precedence over `DD_KMS_API_KEY` and `DD_API_KEY`.
