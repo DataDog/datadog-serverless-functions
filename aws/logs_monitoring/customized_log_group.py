@@ -26,11 +26,6 @@ def is_lambda_customized_log_group(logstream_name):
     )
 
 
-# For both default and customzied Step Functions log groups, the log_stream starts with "states/"
-def is_step_functions_log_group(logstream_name):
-    return logstream_name.startswith("states/")
-
-
 def get_lambda_function_name_from_logstream_name(logstream_name):
     try:
         # Not match the pattern for customized Lambda log group
