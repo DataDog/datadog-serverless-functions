@@ -1,0 +1,34 @@
+{
+  "headers": {
+    "Content-Encoding": "gzip",
+    "Content-Type": "application/json",
+    "Dd-Api-Key": "abcdefghijklmnopqrstuvwxyz012345",
+    "Dd-Evp-Origin": "aws_forwarder",
+    "Dd-Evp-Origin-Version": "6.0",
+    "Dd-Storage-Tag": "cloudwatch",
+    "User-Agent": "Go-http-client/1.1"
+  },
+  "body": [
+    {
+      "host": "arn:aws:lambda:us-east-1:123456789012:function:storms-cloudwatch-event",
+      "id": "35496429442806342619978265557671090556291002193281548291",
+      "timestamp": 1591714946151,
+      "message": "{\"message\":\"hello world\"}",
+      "service": "custom_service",
+      "ddsource": "lambda",
+      "ddsourcecategory": "aws",
+      "ddtags": "custom_tag1:value1,custom_tag2:value2,functionname:storms-cloudwatch-event,env:none,service:custom_service",
+      "aws": {
+        "invoked_function_arn": "arn:aws:lambda:us-east-1:123456789012:function:forwarder",
+        "awslogs": {
+          "logGroup": "/aws/lambda/storms-cloudwatch-event",
+          "logStream": "2020/06/09/[$LATEST]b249865adaaf4fad80f95f8ad09725b8",
+          "owner": "601427279990"
+        }
+      },
+      "lambda": {
+        "arn": "arn:aws:lambda:us-east-1:123456789012:function:storms-cloudwatch-event"
+      }
+    }
+  ]
+}

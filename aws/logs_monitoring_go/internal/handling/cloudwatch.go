@@ -34,9 +34,11 @@ const (
 	logStreamCloudtrail   = "_CloudTrail_"
 )
 
+const envTag = "env"
+
 // Custom log groups use the log stream format: YYYY/MM/DD/<function_name>[<function_version>][<execution_environment_GUID>]
 var lambdaLogStreamRegex = regexp.MustCompile(
-	`^\d{4}/[01]\d/[0-3]\d/[\w.-]{1,75}\[(\$LATEST|[\w-]{1,129})\][0-9a-f]{32}$`,
+	`^\d{4}/[01]\d/[0-3]\d/([\w.-]{1,75})\[(?:\$LATEST|[\w-]{1,129})\][0-9a-f]{32}$`,
 )
 
 type cloudwatchHandler struct {
@@ -130,18 +132,28 @@ func (h cloudwatchHandler) newCloudwatchBaseEntry(data events.CloudwatchLogsData
 			Owner:     data.Owner,
 		},
 	}
+	source := cloudwatchSource(strings.ToLower(logGroup), logStream)
 
 	entry := model.NewLogEntry()
-	entry.Source = cmp.Or(h.cfg.Source, CloudwatchSource(strings.ToLower(logGroup), logStream))
+	entry.Source = cmp.Or(h.cfg.Source, source)
 	entry.Host = cmp.Or(h.cfg.Host, logGroup)
 	entry.Metadata = metadata
+
+	if entry.Source == sourceLambda {
+		enrichLambdaLog(&entry, lambdaOrigin.ARN, logGroup, logStream)
+		if !h.cfg.Tags.Has(envTag) {
+			entry.Tags.Add(envTag, "none")
+		}
+	}
+
 	return entry
 }
 
 func (h cloudwatchHandler) newCloudwatchLogEntry(event events.CloudwatchLogsLogEvent, entry model.LogEntry) model.LogEntry {
 	tags, service, message := extractFromMessage(event.Message)
-	entry.Service = cmp.Or(h.cfg.Service, service, entry.Source)
-	entry.Tags = slices.Concat(tags, h.cfg.Tags)
+
+	entry.Service = cmp.Or(service, entry.Service, h.cfg.Service, entry.Source)
+	entry.Tags = slices.Concat(tags, entry.Tags, h.cfg.Tags)
 	entry.Message = message
 	entry.ID = event.ID
 	entry.Timestamp = event.Timestamp
@@ -150,10 +162,14 @@ func (h cloudwatchHandler) newCloudwatchLogEntry(event events.CloudwatchLogsLogE
 		entry.Host = cloudtrailHost(event.Message)
 	}
 
+	if entry.Lambda != nil && !entry.Tags.Has("service") {
+		entry.Tags.Add("service", entry.Service)
+	}
+
 	return entry
 }
 
-func CloudwatchSource(logGroup, logStream string) string {
+func cloudwatchSource(logGroup, logStream string) string {
 	if strings.HasPrefix(logStream, logStreamStepFunction) {
 		return sourceStepFunction
 	}

@@ -69,10 +69,12 @@ func TestCloudwatchHandler_Handle(t *testing.T) {
 					Message:        "hello",
 					Source:         "lambda",
 					SourceCategory: "aws",
-					Service:        "lambda",
-					Host:           "/aws/lambda/testing-datadog",
+					Service:        "testing-datadog",
+					Host:           "arn:aws:lambda:us-east-1:123456789012:function:testing-datadog",
+					Tags:           model.Tags{"functionname:testing-datadog", "env:none", "service:testing-datadog"},
 					ID:             "ev1",
 					Timestamp:      1583425836114,
+					Lambda:         &model.LambdaLog{ARN: "arn:aws:lambda:us-east-1:123456789012:function:testing-datadog"},
 					Metadata: model.CloudwatchMetadata{
 						LambdaOrigin: model.LambdaOrigin{ARN: "arn:aws:lambda:us-east-1:123456789012:function:forwarder"},
 						Origin: model.CloudwatchOrigin{
@@ -100,8 +102,11 @@ func TestCloudwatchHandler_Handle(t *testing.T) {
 			want: []model.LogEntry{
 				{
 					Message: "first", Source: "lambda", SourceCategory: "aws",
-					Service: "lambda",
-					Host:    "/aws/lambda/fn", ID: "a1", Timestamp: 1000,
+					Service: "fn",
+					Host:    "arn:aws:lambda:us-east-1:123456789012:function:fn",
+					Tags:    model.Tags{"functionname:fn", "env:none", "service:fn"},
+					ID:      "a1", Timestamp: 1000,
+					Lambda: &model.LambdaLog{ARN: "arn:aws:lambda:us-east-1:123456789012:function:fn"},
 					Metadata: model.CloudwatchMetadata{
 						LambdaOrigin: model.LambdaOrigin{ARN: "arn:aws:lambda:us-east-1:123456789012:function:forwarder"},
 						Origin:       model.CloudwatchOrigin{LogGroup: "/aws/lambda/fn", LogStream: "stream", Owner: "111111111111"},
@@ -109,8 +114,11 @@ func TestCloudwatchHandler_Handle(t *testing.T) {
 				},
 				{
 					Message: "second", Source: "lambda", SourceCategory: "aws",
-					Service: "lambda",
-					Host:    "/aws/lambda/fn", ID: "a2", Timestamp: 2000,
+					Service: "fn",
+					Host:    "arn:aws:lambda:us-east-1:123456789012:function:fn",
+					Tags:    model.Tags{"functionname:fn", "env:none", "service:fn"},
+					ID:      "a2", Timestamp: 2000,
+					Lambda: &model.LambdaLog{ARN: "arn:aws:lambda:us-east-1:123456789012:function:fn"},
 					Metadata: model.CloudwatchMetadata{
 						LambdaOrigin: model.LambdaOrigin{ARN: "arn:aws:lambda:us-east-1:123456789012:function:forwarder"},
 						Origin:       model.CloudwatchOrigin{LogGroup: "/aws/lambda/fn", LogStream: "stream", Owner: "111111111111"},
@@ -220,6 +228,33 @@ func TestCloudwatchHandler_Handle(t *testing.T) {
 				},
 			},
 		},
+		"lambda keeps configured env and skips env:none": {
+			event: testutil.MustCloudwatchEvent(t, testutil.MustGzipJSON(t, map[string]any{
+				"messageType": "DATA_MESSAGE",
+				"owner":       "111111111111",
+				"logGroup":    "/aws/lambda/fn",
+				"logStream":   "stream",
+				"logEvents": []map[string]any{
+					{"id": "ev1", "timestamp": 1000, "message": "hello"},
+				},
+			})),
+			config:   &Config{Tags: model.Tags{"env:prod"}},
+			chanSize: 1,
+			want: []model.LogEntry{
+				{
+					Message: "hello", Source: "lambda", SourceCategory: "aws",
+					Service: "fn",
+					Host:    "arn:aws:lambda:us-east-1:123456789012:function:fn",
+					Tags:    model.Tags{"functionname:fn", "env:prod", "service:fn"},
+					ID:      "ev1", Timestamp: 1000,
+					Lambda: &model.LambdaLog{ARN: "arn:aws:lambda:us-east-1:123456789012:function:fn"},
+					Metadata: model.CloudwatchMetadata{
+						LambdaOrigin: model.LambdaOrigin{ARN: "arn:aws:lambda:us-east-1:123456789012:function:forwarder"},
+						Origin:       model.CloudwatchOrigin{LogGroup: "/aws/lambda/fn", LogStream: "stream", Owner: "111111111111"},
+					},
+				},
+			},
+		},
 	}
 
 	for name, tc := range tests {
@@ -271,7 +306,7 @@ func TestCloudwatchSource(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			assert.Equal(t, tc.want, CloudwatchSource(tc.logGroup, tc.logStream))
+			assert.Equal(t, tc.want, cloudwatchSource(tc.logGroup, tc.logStream))
 		})
 	}
 }
