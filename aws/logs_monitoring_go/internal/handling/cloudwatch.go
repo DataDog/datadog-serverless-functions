@@ -152,7 +152,7 @@ func (h cloudwatchHandler) newCloudwatchBaseEntry(data events.CloudwatchLogsData
 func (h cloudwatchHandler) newCloudwatchLogEntry(event events.CloudwatchLogsLogEvent, entry model.LogEntry) model.LogEntry {
 	tags, service, message := extractFromMessage(event.Message)
 
-	entry.Service = cmp.Or(h.cfg.Service, service, entry.Service, entry.Source)
+	entry.Service = cmp.Or(service, entry.Service, h.cfg.Service, entry.Source)
 	entry.Tags = slices.Concat(tags, entry.Tags, h.cfg.Tags)
 	entry.Message = message
 	entry.ID = event.ID
@@ -162,7 +162,7 @@ func (h cloudwatchHandler) newCloudwatchLogEntry(event events.CloudwatchLogsLogE
 		entry.Host = cloudtrailHost(event.Message)
 	}
 
-	if entry.Lambda != nil {
+	if entry.Lambda != nil && !entry.Tags.Has("service") {
 		entry.Tags.Add("service", entry.Service)
 	}
 
