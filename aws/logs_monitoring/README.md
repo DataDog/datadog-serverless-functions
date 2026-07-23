@@ -446,7 +446,7 @@ You can run the Forwarder in a VPC private subnet and send data to Datadog over 
 3. When installing the Forwarder with the CloudFormation template:
     1. Set `DdUseVPC` to `true`.
     2. Set `VPCSecurityGroupIds` and `VPCSubnetIds` based on your VPC settings.
-    3. If you set any of `DdFetchLambdaTags`, `DdFetchStepFunctionsTags`, or `DdFetchS3Tags` to `true`, add the [AWS Resource Groups Tagging API endpoint][26] to your VPC. If you set `DdFetchLogGroupTags` to `true`, add the [Amazon CloudWatch Logs endpoint][26] to your VPC. Check [this link][27] for further information on how to create required Datadog endpoints, and [this link][28] for creating AWS services endpoints.
+    3. If you set any of `DdFetchLambdaTags` or `DdFetchS3Tags` to `true`, add the [AWS Resource Groups Tagging API endpoint][26] to your VPC. If you set `DdFetchLogGroupTags` to `true`, add the [Amazon CloudWatch Logs endpoint][26] to your VPC. Check [this link][27] for further information on how to create required Datadog endpoints, and [this link][28] for creating AWS services endpoints.
 
 ### AWS VPC and proxy support
 
@@ -455,7 +455,7 @@ If you must deploy the Forwarder to a VPC without direct public internet access,
 1. Unless the Forwarder is deployed to a public subnet, follow the [instructions][15] to add endpoints for Secrets Manager and S3 to the VPC, so that the Forwarder can access those services.
 2. Update your proxy with following configurations ([HAProxy][17] or [NGINX][18]). If you are using another proxy, or Web Proxy, allowlist the Datadog domain, for example: `.{{< region-param key="dd_site" code="true" >}}`.
 3. When installing the Forwarder with the CloudFormation template, set `DdUseVPC`, `VPCSecurityGroupIds`, and `VPCSubnetIds`.
-4. Ensure the `DdFetchLambdaTags`, `DdFetchStepFunctionsTags`, and `DdFetchS3Tags` options are disabled, because AWS VPC does not yet offer an endpoint for the Resource Groups Tagging API.
+4. Ensure the `DdFetchLambdaTags` and `DdFetchS3Tags` options are disabled, because AWS VPC does not yet offer an endpoint for the Resource Groups Tagging API.
 5. If you are using HAProxy or NGINX:
 
 -   Set `DdApiUrl` to `http://<proxy_host>:3834` or `https://<proxy_host>:3834`.
@@ -596,9 +596,6 @@ To test different patterns against your logs, turn on [debug logs](#troubleshoot
 
 `DdFetchLogGroupTags`
 : **[DEPRECATED, use DdEnrichCloudwatchTags]** Let the forwarder fetch Log Group tags using ListTagsLogGroup and apply them to logs, metrics, and traces. If set to true, permission `logs:ListTagsForResource` will be automatically added to the Lambda execution IAM role.
-
-`DdFetchStepFunctionsTags`
-: Let the Forwarder fetch Step Functions tags using GetResources API calls and apply them to logs and traces (if Step Functions tracing is enabled). If set to true, permission `tag:GetResources` will be automatically added to the Lambda execution IAM role.
 
 `DdFetchS3Tags`
 : **[DEPRECATED, use DdEnrichS3Tags]** Let the Forwarder fetch S3 tags using GetResources API calls and apply them to logs and traces. If set to true, permission `tag:GetResources` will be automatically added to the Lambda execution IAM role.
@@ -928,9 +925,8 @@ The value of the `service` tag is determined based on multiple inputs. These inp
 1. Log message custom tags: If the log message has a `ddtags` key which contains a `service` tag value, it will be used to override the `service` tag in the log event.
 2. Lambda tags cache (applicable for Lambda logs only): Activating `DdFetchLambdaTags` will fetch and store all Lambda functions tags and will override the `service` tag if it wasn't set previously or was set to a default value i.e. `source` value.
 3. Directly setting a `service` tag value in the forwarder's `ddtags` ENV var.
-4. Step Function tags cache (applicable for step Functions logs only): Activating `DdFetchStepFunctionsTags` will fetch and store all Step Functions tags and override `service` tag if wasn't set previously.
-5. Cloudwatch log group tags cache (applicable for Cloudwatch logs only): Activating `DdFetchLogGroupTags` will fetch and store all Cloudwatch log groups tags which are added to the `ddtags` entry in the log event. If `service` tag value was set in the tags cache it will be used to set the `service` tag for the log event.
-6. Default value equal to the `source` tag.
+4. Cloudwatch log group tags cache (applicable for Cloudwatch logs only): Activating `DdFetchLogGroupTags` will fetch and store all Cloudwatch log groups tags which are added to the `ddtags` entry in the log event. If `service` tag value was set in the tags cache it will be used to set the `service` tag for the log event.
+5. Default value equal to the `source` tag.
 
 ## Further Reading
 
