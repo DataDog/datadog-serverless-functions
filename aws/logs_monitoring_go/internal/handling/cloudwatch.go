@@ -136,7 +136,7 @@ func (h cloudwatchHandler) newCloudwatchBaseEntry(data events.CloudwatchLogsData
 
 	entry := model.NewLogEntry()
 	entry.Source = cmp.Or(h.cfg.Source, source)
-	entry.Host = cmp.Or(h.cfg.Host, logGroup)
+	entry.Host = logGroup
 	entry.Metadata = metadata
 
 	if entry.Source == sourceLambda {

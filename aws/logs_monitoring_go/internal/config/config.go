@@ -26,14 +26,12 @@ const (
 	DefaultLogLevel             = "INFO"
 	EnvAPIKey                   = "DD_API_KEY"
 	EnvSite                     = "DD_SITE"
-	EnvAPIURL                   = "DD_API_URL"
 	EnvLogLevel                 = "DD_LOG_LEVEL"
 	EnvPort                     = "DD_PORT"
 	EnvUseHTTP                  = "DD_NO_SSL"
 	EnvSkipServerCertificate    = "DD_SKIP_SSL_VALIDATION"
 	EnvCompressionLevel         = "DD_COMPRESSION_LEVEL"
 	EnvSource                   = "DD_SOURCE"
-	EnvHost                     = "DD_HOST"
 	EnvTags                     = "DD_TAGS"
 	EnvMultilineLogRegex        = "DD_MULTILINE_LOG_REGEX_PATTERN"
 	EnvScrubbingRule            = "DD_SCRUBBING_RULE"
@@ -65,7 +63,6 @@ type Config struct {
 	IntakeURL             string
 	CompressionLevel      int
 	SkipServerCertificate bool
-	Host                  string
 	Source                string
 	Service               string
 	Tags                  model.Tags
@@ -137,7 +134,6 @@ func (c *Config) loadEnv() {
 	c.IntakeURL, c.APIURL = buildURLs(protocol, site, port)
 
 	c.Source = envOrDefault(EnvSource, "")
-	c.Host = envOrDefault(EnvHost, "")
 
 	c.S3RetryBucketName = envOrDefault(EnvS3RetryBucketName, "")
 	c.SQSQueueURL = envOrDefault(EnvSQSQueueURL, "")
@@ -192,7 +188,6 @@ func (c *Config) LogValue() slog.Value {
 		slog.String("s3_retry_bucket", c.S3RetryBucketName),
 		slog.String("sqs_queue_url", c.SQSQueueURL),
 		slog.String("source_override", c.Source),
-		slog.String("host_override", c.Host),
 		slog.Bool("filter_include", c.FilterInclude != nil),
 		slog.Bool("filter_exclude", c.FilterExclude != nil),
 		slog.Bool("scrub_ip", c.ScrubIP),

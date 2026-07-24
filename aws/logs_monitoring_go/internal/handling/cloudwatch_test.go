@@ -198,7 +198,7 @@ func TestCloudwatchHandler_Handle(t *testing.T) {
 				},
 			},
 		},
-		"config overrides source, host, service and tags": {
+		"config overrides source, service and tags": {
 			event: testutil.MustCloudwatchEvent(t, testutil.MustGzipJSON(t, map[string]any{
 				"messageType": "DATA_MESSAGE",
 				"owner":       "111111111111",
@@ -210,7 +210,6 @@ func TestCloudwatchHandler_Handle(t *testing.T) {
 			})),
 			config: &Config{
 				Source:  "custom-source",
-				Host:    "custom-host",
 				Service: "custom-service",
 				Tags:    model.Tags{"env:prod", "team:infra"},
 			},
@@ -220,7 +219,7 @@ func TestCloudwatchHandler_Handle(t *testing.T) {
 					Message: "hello", Source: "custom-source", SourceCategory: "aws",
 					Service: "custom-service",
 					Tags:    model.Tags{"env:prod", "team:infra"},
-					Host:    "custom-host", ID: "ev1", Timestamp: 1000,
+					Host:    "/aws/lambda/fn", ID: "ev1", Timestamp: 1000,
 					Metadata: model.CloudwatchMetadata{
 						LambdaOrigin: model.LambdaOrigin{ARN: "arn:aws:lambda:us-east-1:123456789012:function:forwarder"},
 						Origin:       model.CloudwatchOrigin{LogGroup: "/aws/lambda/fn", LogStream: "stream", Owner: "111111111111"},

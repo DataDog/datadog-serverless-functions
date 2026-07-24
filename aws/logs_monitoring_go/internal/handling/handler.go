@@ -23,7 +23,6 @@ type Handler interface {
 }
 
 type Config struct {
-	Host                string
 	Service             string
 	Source              string
 	Tags                model.Tags

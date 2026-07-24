@@ -67,7 +67,6 @@ func handleRequest(cfg *config.Config, client *http.Client) func(ctx context.Con
 		filterer := filtering.NewFilterer(cfg.FilterInclude, cfg.FilterExclude)
 		scrubber := scrubbing.NewScrubber(cfg.ScrubbingRegex, cfg.ScrubbingReplacement, cfg.ScrubIP, cfg.ScrubEmail)
 		handlerCfg := handling.Config{
-			Host:                cfg.Host,
 			Service:             cfg.Service,
 			Source:              cfg.Source,
 			Tags:                cfg.Tags,
