@@ -10,7 +10,7 @@ try:
 except ImportError:
     DD_SUBMIT_ENHANCED_METRICS = False
 
-from settings import DD_FORWARDER_VERSION
+from settings import DD_FORWARDER_VERSION, DD_TAGS
 
 DD_FORWARDER_TELEMETRY_NAMESPACE_PREFIX = "aws.dd_forwarder"
 DD_FORWARDER_TELEMETRY_TAGS = []
@@ -27,6 +27,10 @@ def set_forwarder_telemetry_tags(context, event_type):
         f"forwarder_version:{DD_FORWARDER_VERSION}",
         f"event_type:{event_type}",
     ]
+    if DD_TAGS:
+        DD_FORWARDER_TELEMETRY_TAGS += [
+            tag.strip() for tag in DD_TAGS.split(",") if tag.strip()
+        ]
 
 
 def send_forwarder_internal_metrics(name, additional_tags=[]):
