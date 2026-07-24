@@ -26,7 +26,6 @@ const (
 	DefaultLogLevel             = "INFO"
 	EnvAPIKey                   = "DD_API_KEY"
 	EnvSite                     = "DD_SITE"
-	EnvAPIURL                   = "DD_API_URL"
 	EnvLogLevel                 = "DD_LOG_LEVEL"
 	EnvPort                     = "DD_PORT"
 	EnvUseHTTP                  = "DD_NO_SSL"

@@ -16,6 +16,7 @@ var deprecatedEnvironmentVariables = []struct {
 	reason string
 }{
 	{"DD_API_KEY", "Plain text API keys are not supported for security reasons. Please use DD_API_KEY_SECRET_ARN, DD_API_KEY_SSM_NAME, or DD_KMS_API_KEY."},
+	{"DD_API_URL", "This version only supports logs forwarding. For metrics and traces, please use the Datadog Lambda Extension (https://docs.datadoghq.com/serverless/libraries_integrations/extension/)."},
 	{"DD_ENRICH_CLOUDWATCH_TAGS", "Tag enrichment has moved to the Datadog backend. No configuration required."},
 	{"DD_ENRICH_S3_TAGS", "Tag enrichment has moved to the Datadog backend. No configuration required."},
 	{"DD_FETCH_LAMBDA_TAGS", "Tag enrichment has moved to the Datadog backend. No configuration required."},
@@ -26,7 +27,7 @@ var deprecatedEnvironmentVariables = []struct {
 	{"DD_HOST", "The host is derived from the log source and can no longer be overridden globally."},
 	{"DD_STORE_FAILED_EVENTS", "Replaced by DD_S3_BUCKET_NAME or DD_SQS_QUEUE_URL."},
 	{"DD_TAGS_CACHE_TTL_SECONDS", "Tag caching is no longer required. Tag enrichment has moved to the Datadog backend. No configuration required."},
-	{"DD_TRACE_INTAKE_URL", "This version only supports log forwarding. For metrics and traces, please use the Datadog Lambda Extension (https://docs.datadoghq.com/serverless/libraries_integrations/extension/)."},
+	{"DD_TRACE_INTAKE_URL", "This version only supports logs forwarding. For metrics and traces, please use the Datadog Lambda Extension (https://docs.datadoghq.com/serverless/libraries_integrations/extension/)."},
 	{"DD_USE_COMPRESSION", "Set DD_COMPRESSION_LEVEL to 0 to disable compression."},
 	{"DD_USE_VPC", "No longer required. S3 access through VPC endpoints works without additional configuration."},
 }
