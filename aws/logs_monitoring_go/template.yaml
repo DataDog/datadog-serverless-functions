@@ -47,7 +47,7 @@ Parameters:
     ConstraintDescription: ReservedConcurrency must be an integer number
     Default: ""
     Description: >-
-      Reserved concurrency for the Datadog Forwarder Lambda function. If empty, use unreserved account concurrency. We recommend using at least 10 reserved concurrency, but default to 0 as you may need to increase your limits for this. If using unreserved account concurrency you may limit other lambda functions in your environment.
+      Reserved concurrency for the Datadog Forwarder Lambda function. If empty, use unreserved account concurrency. We recommend using at least 10 reserved concurrency, but you may need to increase your account limits for this. If using unreserved account concurrency you may limit other lambda functions in your environment.
   LogRetentionInDays:
     Type: Number
     Default: 90
@@ -59,7 +59,7 @@ Parameters:
   InstallAsLayer:
     Type: String
     Default: true
-    Description: Whether to use the layer-based installation flow. Set to false to use our legacy installation flow, which installs a second function that copies the forwarder code from Github to an S3 bucket. Defaults to true.
+    Description: Whether to use the layer-based installation flow. Set to false to use our legacy installation flow, which installs a second function that copies the forwarder code from Github to an S3 bucket.
     AllowedValues:
       - true
       - false
@@ -74,7 +74,7 @@ Parameters:
   DdSource:
     Type: String
     Default: ""
-    Description: Override the source attribute for all logs forwarded by Lambda Forwarder. By default, the Forwarder automatically detects the source based on the log origin (e.g., lambda, s3, cloudwatch, rds). When set, all logs will use the specified source value instead, and a source_overridden:true tag will be added to the logs.
+    Description: Override the source attribute for all logs forwarded by Lambda Forwarder. By default, the Forwarder automatically detects the source based on the log origin (e.g., lambda, s3, cloudwatch). When set, all logs will use the specified source value instead, and a source_overridden:true tag will be added to the logs.
   DdNoSsl:
     Type: String
     Default: false
@@ -114,7 +114,7 @@ Parameters:
   DdScrubbingRule:
     Type: String
     Default: ""
-    Description: Replace text matching the supplied regular expression with xxxxx (default) or DdScrubbingRuleReplacement (if supplied). Log scrubbing rule is applied to the full JSON-formatted log, including any metadata that is automatically added by the Lambda function. Each instance of a pattern match is replaced until no more matches are found in each log. Note, using inefficient regular expression, such as `.*`, may slow down the Lambda function.
+    Description: Replace text matching the supplied regular expression with an empty string (default) or DdScrubbingRuleReplacement (if supplied). Log scrubbing rule is only applied to the log message and tags. Each instance of a pattern match is replaced until no more matches are found in each log. Note, using inefficient regular expression, such as `.*`, may slow down the Lambda function.
   DdScrubbingRuleReplacement:
     Type: String
     Default: ""
@@ -122,7 +122,7 @@ Parameters:
   ExcludeAtMatch:
     Type: String
     Default: ""
-    Description: DO NOT send logs matching the supplied regular expression. If a log matches both the ExcludeAtMatch and IncludeAtMatch, it is excluded. Filtering rules are applied to the full JSON-formatted log, including any metadata that is automatically added by the function. Note, using inefficient regular expression, such as `.*`, may slow down the Lambda function.
+    Description: DO NOT send logs matching the supplied regular expression. If a log matches both the ExcludeAtMatch and IncludeAtMatch, it is excluded. Filtering rules are applied to the log message. Note, using inefficient regular expression, such as `.*`, may slow down the Lambda function.
   IncludeAtMatch:
     Type: String
     Default: ""
@@ -150,7 +150,7 @@ Parameters:
     Type: Number
     Default: 6
     AllowedValues: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-    Description: Set the compression level from 0 (no compression) to 9 (best compression) when sending logs.
+    Description: Set the compression level from 0 (disabled) to 9 (best compression) when sending logs.
   IamRolePath:
     Type: String
     Default: "/"
@@ -163,10 +163,6 @@ Parameters:
     Type: CommaDelimitedList
     Default: ""
     Description: Comma separated list of lambda ARNs that get invoked asynchronously with the same input event
-  DdApiUrl:
-    Type: String
-    Default: ""
-    Description: The endpoint URL to forward the metrics to, useful for forwarding metrics through a proxy
   DdForwarderBucketName:
     Type: String
     Default: ""
@@ -184,8 +180,9 @@ Parameters:
     Description: Set to true to enable a scheduled forwarder invocation (via AWS EventBridge) to process stored failed events.
   DdScheduleRetryInterval:
     Type: Number
-    Default: 6
-    Description: Interval in hours for scheduled forwarder invocation (via AWS EventBridge).
+    Default: 360
+    MinValue: 2
+    Description: Interval in minutes for scheduled forwarder invocation (via AWS EventBridge).
   DdSqsQueueUrl:
     Type: String
     Default: ""
@@ -197,7 +194,7 @@ Parameters:
   DdLogLevel:
     Type: String
     Default: "WARN"
-    Description: Set the log level for the forwarder. Valid values are DEBUG, INFO, WARN, ERROR. If not set, default is WARN.
+    Description: Set the log level for the forwarder. Valid values are DEBUG, INFO, WARN, ERROR.
     AllowedValues:
       - DEBUG
       - INFO
@@ -272,8 +269,6 @@ Conditions:
     - !Equals [!Ref PermissionsBoundaryArn, ""]
   SetAdditionalTargetLambdas: !Not
     - !Equals [!Join ["", !Ref AdditionalTargetLambdaArns], ""]
-  SetDdApiUrl: !Not
-    - !Equals [!Ref DdApiUrl, ""]
   SetDdForwarderBucketName: !Not
     - !Equals [!Ref DdForwarderBucketName, ""]
   SetReservedConcurrentExecutions: !Not
@@ -456,10 +451,6 @@ Resources:
             - !Join
               - ","
               - !Ref AdditionalTargetLambdaArns
-            - !Ref AWS::NoValue
-          DD_API_URL: !If
-            - SetDdApiUrl
-            - !Ref DdApiUrl
             - !Ref AWS::NoValue
           DD_LOG_LEVEL: !If
             - SetDdLogLevel
@@ -878,7 +869,7 @@ Resources:
     Properties:
       Name: !Sub "${AWS::StackName}-retry"
       Description: Retry the failed events from the Datadog Lambda Forwarder
-      ScheduleExpression: !Sub "rate(${DdScheduleRetryInterval} hours)"
+      ScheduleExpression: !Sub "rate(${DdScheduleRetryInterval} minutes)"
       FlexibleTimeWindow:
         Mode: "OFF"
       Target:
@@ -958,7 +949,6 @@ Metadata:
           - PermissionsBoundaryArn
           - DdHttpProxyURL
           - DdNoProxy
-          - DdApiUrl
           - AdditionalTargetLambdaArns
           - DdForwarderExistingBucketName
           - DdForwarderBucketName
