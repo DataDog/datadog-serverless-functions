@@ -47,9 +47,10 @@ type Forwarder struct {
 }
 
 type Config struct {
-	APIKey           string
-	IntakeURL        string
-	CompressionLevel int
+	APIKey                    string
+	IntakeURL                 string
+	CompressionLevel          int
+	StepFunctionsTraceEnabled bool
 }
 
 func NewForwarder(cfg Config, client *http.Client, storage storing.Storage) *Forwarder {
@@ -58,6 +59,10 @@ func NewForwarder(cfg Config, client *http.Client, storage storing.Storage) *For
 		"DD-EVP-ORIGIN":         []string{"aws_forwarder"},
 		"DD-EVP-ORIGIN-VERSION": []string{config.ForwarderVersion},
 		"Content-Type":          []string{"application/json"},
+	}
+
+	if cfg.StepFunctionsTraceEnabled {
+		header.Add("DD-STEP-FUNCTIONS-TRACE-ENABLED", "true")
 	}
 
 	return &Forwarder{

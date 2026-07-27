@@ -118,6 +118,55 @@ func TestForwarder_Start(t *testing.T) {
 	}
 }
 
+func TestForwarder_StepFunctionsTraceHeader(t *testing.T) {
+	t.Parallel()
+
+	tests := map[string]struct {
+		enabled bool
+	}{
+		"enabled": {
+			enabled: true,
+		},
+		"disabled": {
+			enabled: false,
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			var got string
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+				got = req.Header.Get("DD-STEP-FUNCTIONS-TRACE-ENABLED")
+				w.WriteHeader(http.StatusAccepted)
+			}))
+			t.Cleanup(server.Close)
+			client := server.Client()
+
+			forwarder := NewForwarder(Config{
+				IntakeURL:                 server.URL,
+				StepFunctionsTraceEnabled: tc.enabled,
+			}, client, nil)
+
+			ctx, cancel := context.WithCancel(t.Context())
+			t.Cleanup(cancel)
+
+			in := make(chan model.LogEntry, 1)
+			in <- model.LogEntry{}
+			close(in)
+
+			require.NoError(t, forwarder.Start(ctx, in, ""))
+
+			want := ""
+			if tc.enabled {
+				want = "true"
+			}
+			assert.Equal(t, want, got)
+		})
+	}
+}
+
 // func TestForwarder_Start_Context(t *testing.T) {
 // 	t.Parallel()
 

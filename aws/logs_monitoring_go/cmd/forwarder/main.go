@@ -73,9 +73,10 @@ func handleRequest(cfg *config.Config, client *http.Client) func(ctx context.Con
 			S3MultilineLogRegex: cfg.S3MultilineLogRegex,
 		}
 		forwarderCfg := forwarding.Config{
-			APIKey:           cfg.APIKey,
-			IntakeURL:        cfg.IntakeURL,
-			CompressionLevel: cfg.CompressionLevel,
+			APIKey:                    cfg.APIKey,
+			IntakeURL:                 cfg.IntakeURL,
+			CompressionLevel:          cfg.CompressionLevel,
+			StepFunctionsTraceEnabled: cfg.StepFunctionsTraceEnabled,
 		}
 
 		var storage storing.Storage
