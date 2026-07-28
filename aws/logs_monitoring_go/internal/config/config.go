@@ -43,6 +43,7 @@ const (
 	EnvS3RetryBucketName        = "DD_S3_BUCKET_NAME"
 	EnvSQSQueueURL              = "DD_SQS_QUEUE_URL"
 	EnvAdditionalTargets        = "DD_ADDITIONAL_TARGET_LAMBDAS"
+	EnvEnableStepFunctionsTrace = "DD_STEP_FUNCTIONS_TRACE_ENABLED"
 	ForwarderVersion            = "6.0"
 )
 
@@ -58,25 +59,26 @@ var apiKeyResolvers = []apiKeyResolver{
 }
 
 type Config struct {
-	APIKey                string
-	APIURL                string
-	IntakeURL             string
-	CompressionLevel      int
-	SkipServerCertificate bool
-	Source                string
-	Service               string
-	Tags                  model.Tags
-	S3MultilineLogRegex   *regexp.Regexp
-	FilterInclude         *regexp.Regexp
-	FilterExclude         *regexp.Regexp
-	ScrubbingRegex        *regexp.Regexp
-	ScrubbingReplacement  string
-	ScrubIP               bool
-	ScrubEmail            bool
-	StoreOnFail           bool
-	S3RetryBucketName     string
-	SQSQueueURL           string
-	AdditionalTargets     []string
+	APIKey                    string
+	APIURL                    string
+	IntakeURL                 string
+	CompressionLevel          int
+	SkipServerCertificate     bool
+	Source                    string
+	Service                   string
+	Tags                      model.Tags
+	S3MultilineLogRegex       *regexp.Regexp
+	FilterInclude             *regexp.Regexp
+	FilterExclude             *regexp.Regexp
+	ScrubbingRegex            *regexp.Regexp
+	ScrubbingReplacement      string
+	ScrubIP                   bool
+	ScrubEmail                bool
+	StoreOnFail               bool
+	S3RetryBucketName         string
+	SQSQueueURL               string
+	AdditionalTargets         []string
+	StepFunctionsTraceEnabled bool
 }
 
 func Load() (*Config, error) {
@@ -150,6 +152,8 @@ func (c *Config) loadEnv() {
 			}
 		}
 	}
+
+	c.StepFunctionsTraceEnabled = envOrDefaultBool(EnvEnableStepFunctionsTrace, false)
 }
 
 func buildURLs(protocol, site, port string) (intakeURL string, apiURL string) {
@@ -194,5 +198,6 @@ func (c *Config) LogValue() slog.Value {
 		slog.Bool("scrub_email", c.ScrubEmail),
 		slog.Bool("scrub_custom", c.ScrubbingRegex != nil),
 		slog.Any("additional_targets", c.AdditionalTargets),
+		slog.Bool("step_functions_trace_enabled", c.StepFunctionsTraceEnabled),
 	)
 }
