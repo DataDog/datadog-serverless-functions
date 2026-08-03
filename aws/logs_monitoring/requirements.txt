@@ -3,7 +3,7 @@ bytecode
 cattrs
 certifi
 charset-normalizer
-datadog-lambda==8.121.0
+datadog-lambda==8.122.0
 datadog==0.52.0
 ddsketch==3.0.1
 ddtrace==4.11.1
@@ -20,7 +20,7 @@ setuptools==80.10.2
 six
 typing-extensions
 urllib3==2.7.0
-wrapt==2.2.2
+wrapt==1.14.0
 xmltodict
 zipp
 ujson==5.13.0
