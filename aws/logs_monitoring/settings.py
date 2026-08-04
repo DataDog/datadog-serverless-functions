@@ -162,15 +162,37 @@ EXCLUDE_AT_MATCH = get_env_var("EXCLUDE_AT_MATCH", default=None)
 boto3_config = botocore.config.Config(
     connect_timeout=5, read_timeout=5, retries={"max_attempts": 2}
 )
+
+
+def get_region_from_arn(arn):
+    """
+    Return the region encoded in an ARN, or None when the value is not an ARN.
+
+    boto3 resolves the client region from the environment, which on Lambda is
+    always the region the function runs in. Secrets Manager and SSM do not
+    redirect a request based on the ARN it carries, so a secret or parameter
+    that lives in another region is only reachable when its region is passed
+    to the client explicitly. Returning None keeps the default resolution for
+    values that are not ARNs, such as a plain SSM parameter name.
+    """
+    # arn:<partition>:<service>:<region>:<account-id>:<resource>
+    parts = arn.split(":")
+    if len(parts) < 6 or parts[0] != "arn" or not parts[3]:
+        return None
+    return parts[3]
+
+
 # DD API Key
 # Check if the DD_API_KEY_SECRET_ARN environment variable is set
 if "DD_API_KEY_SECRET_ARN" in os.environ:
     SECRET_ARN = os.environ["DD_API_KEY_SECRET_ARN"]
     logger.debug(f"Fetching the Datadog API key from SecretsManager: {SECRET_ARN}")
 
-    # Fetch the secret from Secrets Manager
+    # Fetch the secret from Secrets Manager, from the region the ARN points to
     secret_response = boto3.client(
-        "secretsmanager", config=boto3_config
+        "secretsmanager",
+        region_name=get_region_from_arn(SECRET_ARN),
+        config=boto3_config,
     ).get_secret_value(SecretId=SECRET_ARN)
 
     # The secret could be either a plain string or a JSON object
@@ -200,9 +222,11 @@ if "DD_API_KEY_SECRET_ARN" in os.environ:
 elif "DD_API_KEY_SSM_NAME" in os.environ:
     SECRET_NAME = os.environ["DD_API_KEY_SSM_NAME"]
     logger.debug(f"Fetching the Datadog API key from SSM: {SECRET_NAME}")
-    DD_API_KEY = boto3.client("ssm", config=boto3_config).get_parameter(
-        Name=SECRET_NAME, WithDecryption=True
-    )["Parameter"]["Value"]
+    DD_API_KEY = boto3.client(
+        "ssm",
+        region_name=get_region_from_arn(SECRET_NAME),
+        config=boto3_config,
+    ).get_parameter(Name=SECRET_NAME, WithDecryption=True)["Parameter"]["Value"]
 elif "DD_KMS_API_KEY" in os.environ:
     ENCRYPTED = os.environ["DD_KMS_API_KEY"]
     logger.debug(f"Fetching the Datadog API key from KMS: {ENCRYPTED}")

@@ -492,10 +492,10 @@ The Datadog Forwarder is signed by Datadog. To verify the integrity of the Forwa
 : Your [Datadog API key][20], which can be found under **Organization Settings** > **API Keys**. The API Key is stored in AWS Secrets Manager. If you already have a Datadog API Key stored in Secrets Manager, use `DdApiKeySecretArn` instead.
 
 `DdApiKeySecretArn`
-: The ARN of the secret storing the Datadog API key, if you already have it stored in Secrets Manager. You must store the secret as a plaintext, rather than a key-value pair.
+: The ARN of the secret storing the Datadog API key, if you already have it stored in Secrets Manager. You must store the secret as a plaintext, rather than a key-value pair. The secret may live in a different region than the Forwarder, as the region is read from the ARN.
 
 `DdApiKeySsmParameterName`
-: The name of the SSM parameter containing the Datadog API key. If set, both `DdApiKey` and `DdApiKeySecretArn` are ignored.
+: The name of the SSM parameter containing the Datadog API key, or its full ARN when the parameter lives in a different region than the Forwarder. If set, both `DdApiKey` and `DdApiKeySecretArn` are ignored.
 
 `DdSite`
 : The [Datadog site][13] that your metrics and logs will be sent to. Your Datadog site is {{< region-param key="dd_site" code="true" >}}.
@@ -673,13 +673,13 @@ If you are installing the Forwarder manually, convert the parameter names from P
 : Your [Datadog API key][20], which can be found under **Organization Settings** > **API Keys**. The API Key is stored in AWS Secrets Manager. If you already have a Datadog API Key stored in Secrets Manager, use `DD_API_KEY_SECRET_ARN` instead.
 
 `DD_API_KEY_SECRET_ARN`
-: The ARN of the secret storing the Datadog API key, if you already have it stored in Secrets Manager. You must store the secret as a plaintext, rather than a key-value pair.
+: The ARN of the secret storing the Datadog API key, if you already have it stored in Secrets Manager. You must store the secret as a plaintext, rather than a key-value pair. The secret may live in a different region than the Forwarder, as the region is read from the ARN.
 
 `DD_API_KEY_SSM_NAME`
-: The name of the parameter in AWS Systems Manager (SSM) Parameter Store containing the Datadog API key. Takes precedence over `DD_KMS_API_KEY` and `DD_API_KEY`.
+: The name of the parameter in AWS Systems Manager (SSM) Parameter Store containing the Datadog API key. Takes precedence over `DD_KMS_API_KEY` and `DD_API_KEY`. Pass the full parameter ARN instead of the name to read a parameter from a different region than the Forwarder.
 
 `DD_KMS_API_KEY`
-: The Datadog API key encrypted with AWS KMS. Takes precedence over `DD_API_KEY`.
+: The Datadog API key encrypted with AWS KMS. Takes precedence over `DD_API_KEY`. The KMS key must be in the same region as the Forwarder.
 
 `DD_SITE`
 : The [Datadog site][13] that your metrics and logs will be sent to. Your Datadog site is {{< region-param key="dd_site" code="true" >}}.

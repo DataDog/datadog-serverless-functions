@@ -19,8 +19,8 @@ Parameters:
   DdApiKeySsmParameterName:
     Type: String
     Default: "/my/parameter/path"
-    AllowedPattern: "^/[a-zA-Z0-9/_.-]*$"
-    Description: The name of the SSM parameter containing Datadog's API key. If set, both DdApiKey and DdApiKeySecretArn will be ignored, the forwarder will use the SSM parameter name to fetch the API key.
+    AllowedPattern: "^(/[a-zA-Z0-9/_.-]*|arn:[a-z0-9-]*:ssm:[a-z0-9-]+:[0-9]{12}:parameter/[a-zA-Z0-9/_.-]+)$"
+    Description: The name of the SSM parameter containing Datadog's API key, or its full ARN when the parameter lives in another region. If set, both DdApiKey and DdApiKeySecretArn will be ignored, the forwarder will use the SSM parameter name to fetch the API key.
   DdSite:
     Type: String
     Default: datadoghq.com
