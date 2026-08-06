@@ -14,28 +14,34 @@ import (
 )
 
 func extractFromMessage(message string) (model.Tags, string, string) {
-	var tags model.Tags
-	var service string
-	var jsonMessage map[string]any
-	if err := json.Unmarshal([]byte(message), &jsonMessage); err != nil {
-		return nil, service, message
+	if !strings.Contains(message, "ddtags") {
+		return nil, "", message
 	}
 
-	ddtagsRaw, ok := jsonMessage[config.DdtagsJSONKey]
-	if !ok {
-		return nil, service, message
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(message), &fields); err != nil {
+		return nil, "", message
 	}
 
-	ddtagsStr, ok := ddtagsRaw.(string)
+	ddtagsRaw, ok := fields[config.DdtagsJSONKey]
 	if !ok {
-		return nil, service, message
+		return nil, "", message
+	}
+
+	var ddtagsStr string
+	if err := json.Unmarshal(ddtagsRaw, &ddtagsStr); err != nil {
+		return nil, "", message
 	}
 
 	ddtagsStr = strings.ReplaceAll(ddtagsStr, " ", "")
+
+	var tags model.Tags
+	var service string
 	for tag := range strings.SplitSeq(ddtagsStr, config.TagSeparator) {
 		if tag == "" {
 			continue
 		}
+
 		v, found := strings.CutPrefix(tag, config.ServiceKey)
 		if found {
 			if service == "" {
@@ -43,14 +49,15 @@ func extractFromMessage(message string) (model.Tags, string, string) {
 			}
 			continue
 		}
+
 		tags = append(tags, tag)
 	}
 
-	delete(jsonMessage, config.DdtagsJSONKey)
+	delete(fields, config.DdtagsJSONKey)
 
-	newMessage, err := json.Marshal(jsonMessage)
+	newMessage, err := json.Marshal(fields)
 	if err != nil {
-		return nil, service, message
+		return nil, "", message
 	}
 
 	return tags, service, string(newMessage)
