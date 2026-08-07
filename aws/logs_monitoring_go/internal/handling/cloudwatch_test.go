@@ -289,7 +289,6 @@ func TestCloudwatchSource(t *testing.T) {
 		logStream string
 		want      string
 	}{
-		"step function":                           {logGroup: "/aws/vendedlogs", logStream: "states/my-machine/abc", want: "stepfunction"},
 		"cloudtrail via log stream":               {logGroup: "/aws/something", logStream: "123_CloudTrail_us-east-1", want: "cloudtrail"},
 		"cloudtrail via log group":                {logGroup: "_cloudtrail_logs", logStream: "stream", want: "cloudtrail"},
 		"cloudtrail via contains":                 {logGroup: "my-cloudtrail-group", logStream: "stream", want: "cloudtrail"},

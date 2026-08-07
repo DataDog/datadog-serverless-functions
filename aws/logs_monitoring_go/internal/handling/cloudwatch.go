@@ -170,9 +170,6 @@ func (h cloudwatchHandler) newCloudwatchLogEntry(event events.CloudwatchLogsLogE
 }
 
 func cloudwatchSource(logGroup, logStream string) string {
-	if strings.HasPrefix(logStream, logStreamStepFunction) {
-		return sourceStepFunction
-	}
 	if strings.Contains(logStream, logStreamCloudtrail) {
 		return sourceCloudtrail
 	}
