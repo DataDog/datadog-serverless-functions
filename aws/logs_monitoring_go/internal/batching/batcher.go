@@ -110,10 +110,15 @@ func (b *Batcher[T]) construct() (json.RawMessage, bool, error) {
 		return nil, false, nil
 	}
 
-	batch, err := json.Marshal(&b.batch)
-	if err != nil {
-		return nil, false, fmt.Errorf("marshal: %w", err)
+	batch := make([]byte, 0, b.batchSize)
+	batch = append(batch, '[')
+	for i, item := range b.batch {
+		if i > 0 {
+			batch = append(batch, ',')
+		}
+		batch = append(batch, item...)
 	}
+	batch = append(batch, ']')
 
 	slog.Debug("batch constructed", slog.Int("items", len(b.batch)), slog.Int("size_bytes", len(batch)))
 
