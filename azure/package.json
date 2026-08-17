@@ -28,5 +28,17 @@
     "mocha": "11.7.5",
     "prettier": "3.8.3",
     "sinon": "21.1.2"
+  },
+  "overrides": {
+    "mocha": {
+      "glob": {
+        "minimatch": {
+          "brace-expansion": "^2.1.4"
+        }
+      },
+      "minimatch": {
+        "brace-expansion": "^2.1.4"
+      }
+    }
   }
 }
