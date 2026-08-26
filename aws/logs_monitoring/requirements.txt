@@ -6,7 +6,7 @@ charset-normalizer
 datadog-lambda==8.122.0
 datadog==0.52.0
 ddsketch==3.0.1
-ddtrace==4.11.1
+ddtrace==4.14.0
 deprecated
 envier
 exceptiongroup
