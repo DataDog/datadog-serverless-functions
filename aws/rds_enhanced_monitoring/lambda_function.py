@@ -20,6 +20,24 @@ import boto3
 DD_SITE = os.getenv("DD_SITE", default="datadoghq.com")
 
 
+def get_region_from_arn(arn):
+    """
+    Return the region encoded in an ARN, or None when the value is not an ARN.
+
+    boto3 resolves the client region from the environment, which on Lambda is
+    always the region the function runs in. Secrets Manager and SSM do not
+    redirect a request based on the ARN it carries, so a secret or parameter
+    that lives in another region is only reachable when its region is passed
+    to the client explicitly. Returning None keeps the default resolution for
+    values that are not ARNs, such as a plain SSM parameter name.
+    """
+    # arn:<partition>:<service>:<region>:<account-id>:<resource>
+    parts = arn.split(":")
+    if len(parts) < 6 or parts[0] != "arn" or not parts[3]:
+        return None
+    return parts[3]
+
+
 def _datadog_keys():
     if "kmsEncryptedKeys" in os.environ:
         KMS_ENCRYPTED_KEYS = os.environ["kmsEncryptedKeys"]
@@ -37,16 +55,17 @@ def _datadog_keys():
 
     if "DD_API_KEY_SECRET_ARN" in os.environ:
         SECRET_ARN = os.environ["DD_API_KEY_SECRET_ARN"]
-        DD_API_KEY = boto3.client("secretsmanager").get_secret_value(
-            SecretId=SECRET_ARN
-        )["SecretString"]
+        # Fetch the secret from the region the ARN points to
+        DD_API_KEY = boto3.client(
+            "secretsmanager", region_name=get_region_from_arn(SECRET_ARN)
+        ).get_secret_value(SecretId=SECRET_ARN)["SecretString"]
         return {"api_key": DD_API_KEY}
 
     if "DD_API_KEY_SSM_NAME" in os.environ:
         SECRET_NAME = os.environ["DD_API_KEY_SSM_NAME"]
-        DD_API_KEY = boto3.client("ssm").get_parameter(
-            Name=SECRET_NAME, WithDecryption=True
-        )["Parameter"]["Value"]
+        DD_API_KEY = boto3.client(
+            "ssm", region_name=get_region_from_arn(SECRET_NAME)
+        ).get_parameter(Name=SECRET_NAME, WithDecryption=True)["Parameter"]["Value"]
         return {"api_key": DD_API_KEY}
 
     if "DD_KMS_API_KEY" in os.environ:

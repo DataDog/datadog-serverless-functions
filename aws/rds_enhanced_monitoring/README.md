@@ -228,11 +228,15 @@ a. **Recommended**: AWS KMS
 
 b. AWS Secrets Manager
    1. Create a plaintext secret in AWS Secrets Manager using your API key as the value
-   2. Store the ARN of the secret as the `DD_API_KEY_SECRET_ARN` environment variable
+   2. Store the ARN of the secret as the `DD_API_KEY_SECRET_ARN` environment variable.
+      The secret may live in a different region than the function, as the region is
+      read from the ARN.
 
 c. AWS SSM
    1.  Create a parameter in AWS SSM using your API key as the value
-   2.  Store the Name of the parameter as the `DD_API_KEY_SSM_NAME` environment variable
+   2.  Store the Name of the parameter as the `DD_API_KEY_SSM_NAME` environment
+       variable, or its full ARN when the parameter lives in a different region
+       than the function
 
 d. **Not Recommended**: Plaintext
    1. Set your API key in plaintext as the `DD_API_KEY` environment variable.
