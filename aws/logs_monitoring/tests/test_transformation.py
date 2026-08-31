@@ -225,6 +225,35 @@ class TestParseSecurityHubEvents(unittest.TestCase):
         }
         verify_as_json(separate_security_hub_findings(event))
 
+    def test_security_hub_v2_preserves_ocsf_resources(self):
+        resources = [
+            {
+                "cloud_partition": "aws",
+                "owner": {},
+                "provider": "AWS",
+                "region": "us-east-1",
+                "type": "AWS::EC2::SecurityGroup",
+                "uid": "sg-clouds-8699",
+                "uid_alt": (
+                    "arn:aws:ec2:us-east-1:990703812051:"
+                    "security-group/sg-clouds-8699"
+                ),
+                "vpc_uid": "vpc-clouds-8699",
+            }
+        ]
+        event = {
+            "ddsource": "securityhub",
+            "detail-type": "Findings Imported V2",
+            "detail": {"findings": [{"resources": resources}]},
+        }
+
+        transformed = separate_security_hub_findings(event)
+
+        self.assertEqual(
+            resources,
+            transformed[0]["detail"]["finding"]["resources"],
+        )
+
 
 class TestTransform(unittest.TestCase):
     def setUp(self) -> None:
