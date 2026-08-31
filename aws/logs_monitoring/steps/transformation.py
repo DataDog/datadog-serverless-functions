@@ -55,9 +55,12 @@ def separate_security_hub_findings(event):
             # Copy the original event with source and other metadata
             new_event = copy.deepcopy(event_copy)
             current_finding = findings[index]
+            new_event["detail"]["finding"] = current_finding
+            if "resources" in current_finding:
+                events.append(new_event)
+                continue
             # Get the resources array from the current finding
             resources = current_finding.get("Resources", {})
-            new_event["detail"]["finding"] = current_finding
             new_event["detail"]["finding"]["resources"] = {}
             # Separate objects in resources array into distinct attributes
             if resources:
