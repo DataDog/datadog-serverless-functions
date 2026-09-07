@@ -26,12 +26,11 @@ import (
 )
 
 const (
-	logGroupCloudtrail    = "_cloudtrail_"
-	logGroupKinesis       = "/aws/kinesis"
-	logGroupLambda        = "/aws/lambda"
-	logGroupSNS           = "sns/"
-	logStreamStepFunction = "states/"
-	logStreamCloudtrail   = "_CloudTrail_"
+	logGroupCloudtrail  = "_cloudtrail_"
+	logGroupKinesis     = "/aws/kinesis"
+	logGroupLambda      = "/aws/lambda"
+	logGroupSNS         = "sns/"
+	logStreamCloudtrail = "_CloudTrail_"
 )
 
 const envTag = "env"
@@ -170,9 +169,6 @@ func (h cloudwatchHandler) newCloudwatchLogEntry(event events.CloudwatchLogsLogE
 }
 
 func cloudwatchSource(logGroup, logStream string) string {
-	if strings.HasPrefix(logStream, logStreamStepFunction) {
-		return sourceStepFunction
-	}
 	if strings.Contains(logStream, logStreamCloudtrail) {
 		return sourceCloudtrail
 	}

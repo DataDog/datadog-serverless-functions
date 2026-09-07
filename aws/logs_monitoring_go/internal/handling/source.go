@@ -6,13 +6,12 @@
 package handling
 
 const (
-	sourceCloudtrail   = "cloudtrail"
-	sourceCloudwatch   = "cloudwatch"
-	sourceKinesis      = "kinesis"
-	sourceLambda       = "lambda"
-	sourceS3           = "s3"
-	sourceSecurityHub  = "securityhub"
-	sourceSNS          = "sns"
-	sourceStepFunction = "stepfunction"
-	sourceWAF          = "waf"
+	sourceCloudtrail  = "cloudtrail"
+	sourceCloudwatch  = "cloudwatch"
+	sourceKinesis     = "kinesis"
+	sourceLambda      = "lambda"
+	sourceS3          = "s3"
+	sourceSecurityHub = "securityhub"
+	sourceSNS         = "sns"
+	sourceWAF         = "waf"
 )
