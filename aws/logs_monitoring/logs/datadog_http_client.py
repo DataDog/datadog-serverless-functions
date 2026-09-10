@@ -7,9 +7,10 @@
 import logging
 import os
 
+import requests
 from requests_futures.sessions import FuturesSession
 
-from logs.exceptions import ScrubbingException
+from logs.exceptions import RetriableException, ScrubbingException
 from logs.helpers import compress_logs
 from settings import (
     DD_COMPRESSION_LEVEL,
@@ -95,11 +96,26 @@ class DatadogHTTPClient(object):
         if DD_USE_COMPRESSION:
             data = compress_logs(data, DD_COMPRESSION_LEVEL)
 
-        # Resolve the future here so callers can attribute failures to this batch.
-        response = self._session.post(
-            self._url, data, timeout=self._timeout, verify=self._ssl_validation
-        ).result()
-        response.raise_for_status()
+        response = None
+        try:
+            # Resolve the future here so callers can attribute failures to this batch.
+            response = self._session.post(
+                self._url, data, timeout=self._timeout, verify=self._ssl_validation
+            ).result()
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            status_code = getattr(e.response, "status_code", None)
+            if status_code is None:
+                status_code = getattr(response, "status_code", None)
+            if status_code is not None and 500 <= status_code < 600:
+                raise RetriableException(
+                    f"Datadog logs intake returned HTTP {status_code}"
+                ) from e
+            raise
+        except requests.exceptions.RequestException as e:
+            raise RetriableException(
+                f"Datadog logs intake request failed: {e}"
+            ) from e
 
     def __enter__(self):
         self._connect()
