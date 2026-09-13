@@ -11,27 +11,14 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/concurrent"
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/filtering"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/scrubbing"
 )
 
 type snsHandler struct {
-	cfg      *Config
-	scrubber *scrubbing.Scrubber
-	filterer *filtering.Filterer
+	baseHandler
 }
 
-func newSNS(cfg *Config, scrubber *scrubbing.Scrubber, filterer *filtering.Filterer) *snsHandler {
-	return &snsHandler{
-		cfg:      cfg,
-		scrubber: scrubber,
-		filterer: filterer,
-	}
-}
-
-func (h *snsHandler) Handle(ctx context.Context, event json.RawMessage, out chan<- model.LogEntry) error {
+func (h *snsHandler) Handle(ctx context.Context, event json.RawMessage, out chan<- json.RawMessage) error {
 	lambdaOrigin, err := model.GetLambdaOrigin(ctx)
 	if err != nil {
 		return fmt.Errorf("get lambda origin: %w", err)
@@ -51,6 +38,5 @@ func (h *snsHandler) Handle(ctx context.Context, event json.RawMessage, out chan
 	entry.Tags = h.cfg.Tags
 	entry.Metadata = lambdaOrigin
 
-	entry.Message = h.scrubber.Apply(entry.Message)
-	return concurrent.SafeSender(ctx, out, entry)
+	return h.emit(ctx, out, entry)
 }

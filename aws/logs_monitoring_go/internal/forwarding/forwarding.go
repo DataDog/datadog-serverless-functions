@@ -21,7 +21,6 @@ import (
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/concurrent"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/httpclient"
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/storing"
 	"golang.org/x/sync/errgroup"
 )
@@ -79,15 +78,14 @@ func NewForwarder(cfg Config, client *http.Client, storage storing.Storage) *For
 	}
 }
 
-func (f *Forwarder) Start(ctx context.Context, in <-chan model.LogEntry, storageTag string) error {
+func (f *Forwarder) Start(ctx context.Context, in <-chan json.RawMessage, storageTag string) error {
 	eg, ctx := errgroup.WithContext(ctx)
 	eg.SetLimit(1 + httpclient.MaxConcurrency)
 
 	batches := make(chan json.RawMessage, maxBatchesInMemory)
 	eg.Go(func() error {
 		defer close(batches)
-		cfg := batching.NewConfig(maxLogSize, maxBatchSize, maxLogsPerBatch)
-		if err := batching.New[model.LogEntry](cfg).Start(ctx, in, batches); err != nil {
+		if err := batching.New(maxLogSize, maxBatchSize, maxLogsPerBatch).Start(ctx, in, batches); err != nil {
 			return fmt.Errorf("batch: %w", err)
 		}
 		return nil

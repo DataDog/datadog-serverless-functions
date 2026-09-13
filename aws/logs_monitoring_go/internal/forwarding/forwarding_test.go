@@ -8,6 +8,7 @@ package forwarding
 import (
 	"compress/gzip"
 	"context"
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -100,9 +101,11 @@ func TestForwarder_Start(t *testing.T) {
 			ctx, cancel := context.WithCancel(t.Context())
 			t.Cleanup(cancel)
 
-			in := make(chan model.LogEntry, len(tc.entries))
+			in := make(chan json.RawMessage, len(tc.entries))
 			for _, e := range tc.entries {
-				in <- e
+				raw, err := json.Marshal(e)
+				require.NoError(t, err)
+				in <- raw
 			}
 			close(in)
 
@@ -152,8 +155,10 @@ func TestForwarder_StepFunctionsTraceHeader(t *testing.T) {
 			ctx, cancel := context.WithCancel(t.Context())
 			t.Cleanup(cancel)
 
-			in := make(chan model.LogEntry, 1)
-			in <- model.LogEntry{}
+			in := make(chan json.RawMessage, 1)
+			raw, err := json.Marshal(model.LogEntry{})
+			require.NoError(t, err)
+			in <- raw
 			close(in)
 
 			require.NoError(t, forwarder.Start(ctx, in, ""))

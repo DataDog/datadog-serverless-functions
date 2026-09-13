@@ -65,7 +65,7 @@ func (s *SQS) Store(ctx context.Context, batch Batch) error {
 	out := make(chan json.RawMessage)
 	eg.Go(func() error {
 		defer close(out)
-		batcher := batching.New[json.RawMessage](batching.NewConfig(maxSizePerSQSMessage, maxSizePerSQSMessage, 0))
+		batcher := batching.New(maxSizePerSQSMessage, maxSizePerSQSMessage, 0)
 		return batcher.Start(ctx, in, out)
 	})
 
