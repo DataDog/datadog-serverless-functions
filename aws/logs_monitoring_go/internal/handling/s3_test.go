@@ -7,6 +7,7 @@ package handling
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"io"
 	"regexp"
@@ -19,7 +20,6 @@ import (
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/testutil"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
@@ -332,23 +332,20 @@ func TestProcessS3Record(t *testing.T) {
 			mock := sdkclient.NewMockS3(ctrl)
 			tc.mockSetup(mock)
 
-			out := make(chan model.LogEntry, len(tc.want))
-			handler := newS3(tc.cfg, mock, nil, tc.filterer)
+			out := make(chan json.RawMessage, len(tc.want))
+			handler := newS3(newBase(tc.cfg, nil, tc.filterer), mock)
 
 			err := handler.processRecord(t.Context(), out, tc.eventRecord, testutil.LambdaOrigin())
 			close(out)
 
-			var got []model.LogEntry
-			for entry := range out {
-				got = append(got, entry)
-			}
+			got := testutil.Drain(t, out)
 
 			if tc.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			assert.Equal(t, tc.want, got)
+			testutil.AssertJSONEntries(t, tc.want, got)
 		})
 	}
 }

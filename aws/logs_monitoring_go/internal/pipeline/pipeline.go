@@ -15,7 +15,6 @@ import (
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/filtering"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/forwarding"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/handling"
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/parsing"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/scrubbing"
 	"golang.org/x/sync/errgroup"
@@ -98,7 +97,7 @@ func (p Pipeline) run(ctx context.Context, event parsing.Event) error {
 
 	eg, ctx := errgroup.WithContext(ctx)
 
-	entries := make(chan model.LogEntry)
+	entries := make(chan json.RawMessage)
 	eg.Go(func() error {
 		defer close(entries)
 		handler, err := handling.NewHandler(p.hcfg, p.scrubber, p.filterer, event.ContentType)

@@ -92,8 +92,8 @@ func TestEventBridgeHandler_Handle(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			handler := newEventBridge(tc.cfg, nil, tc.filterer)
-			out := make(chan model.LogEntry, len(tc.want))
+			handler := &eventBridgeHandler{baseHandler: newBase(tc.cfg, nil, tc.filterer)}
+			out := make(chan json.RawMessage, len(tc.want))
 
 			err := handler.Handle(ctx, tc.event, out)
 			close(out)
@@ -105,12 +105,9 @@ func TestEventBridgeHandler_Handle(t *testing.T) {
 
 			require.NoError(t, err)
 
-			var got []model.LogEntry
-			for entry := range out {
-				got = append(got, entry)
-			}
+			got := testutil.Drain(t, out)
 
-			assert.Equal(t, tc.want, got)
+			testutil.AssertJSONEntries(t, tc.want, got)
 		})
 	}
 }
@@ -151,22 +148,21 @@ func TestEventBridgeHandler_SecurityHub(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			handler := newEventBridge(tc.cfg, nil, tc.filterer)
-			out := make(chan model.LogEntry, len(tc.want))
+			handler := &eventBridgeHandler{baseHandler: newBase(tc.cfg, nil, tc.filterer)}
+			out := make(chan json.RawMessage, len(tc.want))
 
 			err := handler.Handle(ctx, tc.event, out)
 			close(out)
 
 			require.NoError(t, err)
 
-			var got []model.LogEntry
-			for entry := range out {
-				got = append(got, entry)
-			}
+			got := testutil.Drain(t, out)
 
 			require.Len(t, got, len(tc.want))
 			for i := range tc.want {
-				assert.JSONEq(t, tc.want[i], got[i].Message)
+				var entry model.LogEntry
+				require.NoError(t, json.Unmarshal(got[i], &entry))
+				assert.JSONEq(t, tc.want[i], entry.Message)
 			}
 		})
 	}

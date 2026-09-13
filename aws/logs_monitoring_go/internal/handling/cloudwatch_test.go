@@ -260,23 +260,20 @@ func TestCloudwatchHandler_Handle(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			out := make(chan model.LogEntry, tc.chanSize)
-			handler := newCloudwatch(tc.config, nil, nil)
+			out := make(chan json.RawMessage, tc.chanSize)
+			handler := &cloudwatchHandler{baseHandler: newBase(tc.config, nil, nil)}
 
 			err := handler.Handle(ctx, tc.event, out)
 			close(out)
 
-			var got []model.LogEntry
-			for entry := range out {
-				got = append(got, entry)
-			}
+			got := testutil.Drain(t, out)
 
 			if tc.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			assert.Equal(t, tc.want, got)
+			testutil.AssertJSONEntries(t, tc.want, got)
 		})
 	}
 }

@@ -18,10 +18,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/concurrent"
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/filtering"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/scrubbing"
 	"github.com/aws/aws-lambda-go/events"
 )
 
@@ -41,20 +38,10 @@ var lambdaLogStreamRegex = regexp.MustCompile(
 )
 
 type cloudwatchHandler struct {
-	cfg      *Config
-	scrubber *scrubbing.Scrubber
-	filterer *filtering.Filterer
+	baseHandler
 }
 
-func newCloudwatch(hcfg *Config, scrubber *scrubbing.Scrubber, filterer *filtering.Filterer) *cloudwatchHandler {
-	return &cloudwatchHandler{
-		cfg:      hcfg,
-		scrubber: scrubber,
-		filterer: filterer,
-	}
-}
-
-func (h *cloudwatchHandler) Handle(ctx context.Context, event json.RawMessage, out chan<- model.LogEntry) error {
+func (h *cloudwatchHandler) Handle(ctx context.Context, event json.RawMessage, out chan<- json.RawMessage) error {
 	var cwEvent events.CloudwatchLogsEvent
 	if err := json.Unmarshal(event, &cwEvent); err != nil {
 		return fmt.Errorf("unmarshal: %w", err)
@@ -94,7 +81,7 @@ func decompressCloudwatchLogs(data []byte) (events.CloudwatchLogsData, error) {
 	return cwData, nil
 }
 
-func (h cloudwatchHandler) handleCloudwatchData(ctx context.Context, cwData events.CloudwatchLogsData, out chan<- model.LogEntry) error {
+func (h *cloudwatchHandler) handleCloudwatchData(ctx context.Context, cwData events.CloudwatchLogsData, out chan<- json.RawMessage) error {
 	if cwData.MessageType == "CONTROL_MESSAGE" {
 		return nil
 	}
@@ -111,8 +98,7 @@ func (h cloudwatchHandler) handleCloudwatchData(ctx context.Context, cwData even
 			continue
 		}
 
-		entry.Message = h.scrubber.Apply(entry.Message)
-		if err := concurrent.SafeSender(ctx, out, entry); err != nil {
+		if err := h.emit(ctx, out, entry); err != nil {
 			return err
 		}
 	}
@@ -120,7 +106,7 @@ func (h cloudwatchHandler) handleCloudwatchData(ctx context.Context, cwData even
 	return nil
 }
 
-func (h cloudwatchHandler) newCloudwatchBaseEntry(data events.CloudwatchLogsData, lambdaOrigin model.LambdaOrigin) model.LogEntry {
+func (h *cloudwatchHandler) newCloudwatchBaseEntry(data events.CloudwatchLogsData, lambdaOrigin model.LambdaOrigin) model.LogEntry {
 	logGroup := data.LogGroup
 	logStream := data.LogStream
 	metadata := model.CloudwatchMetadata{
@@ -148,7 +134,7 @@ func (h cloudwatchHandler) newCloudwatchBaseEntry(data events.CloudwatchLogsData
 	return entry
 }
 
-func (h cloudwatchHandler) newCloudwatchLogEntry(event events.CloudwatchLogsLogEvent, entry model.LogEntry) model.LogEntry {
+func (h *cloudwatchHandler) newCloudwatchLogEntry(event events.CloudwatchLogsLogEvent, entry model.LogEntry) model.LogEntry {
 	tags, service, message := extractFromMessage(event.Message)
 
 	entry.Service = cmp.Or(service, entry.Service, h.cfg.Service, entry.Source)
