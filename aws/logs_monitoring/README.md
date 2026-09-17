@@ -32,7 +32,12 @@ Datadog recommends using [CloudFormation](?tab=cloudformation#cloudformation) to
 
 ### CloudFormation
 
+{{< site-region region="us,us3,us5,eu,ap1,ap2,uk1" >}}
 [![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home#/stacks/create/review?stackName=datadog-forwarder&templateURL=https://datadog-cloudformation-template.s3.amazonaws.com/aws/forwarder/latest.yaml)
+{{< /site-region >}}
+{{< site-region region="gov,gov2" >}}
+[![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.amazonaws-us-gov.com/cloudformation/home?region=us-gov-west-1#/stacks/create/review?stackName=datadog-forwarder&templateURL=https://datadog-cloudformation-template-us-gov.s3.us-gov-west-1.amazonaws.com/aws/forwarder/latest.yaml)
+{{< /site-region >}}
 
 1. Log into your admin AWS account or role and deploy the CloudFormation Stack with the button above.
 2. Fill in `DdApiKey` and select the appropriate `DdSite`. All other parameters are optional.
