@@ -204,9 +204,9 @@ class TestApiKeySecretArnFormats(unittest.TestCase):
         boto3_client.return_value.get_secret_value.return_value = {
             "SecretString": secret_string
         }
-        with patch.dict(
-            os.environ, {"DD_API_KEY_SECRET_ARN": self.SECRET_ARN}
-        ), patch("boto3.client", boto3_client):
+        with patch.dict(os.environ, {"DD_API_KEY_SECRET_ARN": self.SECRET_ARN}), patch(
+            "boto3.client", boto3_client
+        ):
             reload(sys.modules["settings"])
         return sys.modules["settings"].DD_API_KEY
 
