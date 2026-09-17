@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 import unittest
@@ -184,6 +185,50 @@ class TestApiKeyClientRegion(unittest.TestCase):
 
         self.assertEqual(boto3_client.call_args.args[0], "ssm")
         self.assertIsNone(boto3_client.call_args.kwargs["region_name"])
+
+
+class TestApiKeySecretArnFormats(unittest.TestCase):
+    """
+    DdApiKeySecretArn can point at a plain string, a JSON object using our own
+    'DD_API_KEY' field, or an AWS Secrets Manager managed rotation secret of
+    type DatadogApiKey, which stores the key under 'apiKey' instead.
+    """
+
+    SECRET_ARN = "arn:aws:secretsmanager:us-east-1:123456789012:secret:dd-api-key"
+
+    def tearDown(self):
+        reload(sys.modules["settings"])
+
+    def _reload_with_secret_string(self, secret_string):
+        boto3_client = MagicMock()
+        boto3_client.return_value.get_secret_value.return_value = {
+            "SecretString": secret_string
+        }
+        with patch.dict(
+            os.environ, {"DD_API_KEY_SECRET_ARN": self.SECRET_ARN}
+        ), patch("boto3.client", boto3_client):
+            reload(sys.modules["settings"])
+        return sys.modules["settings"].DD_API_KEY
+
+    def test_plaintext_secret(self):
+        self.assertEqual(
+            self._reload_with_secret_string(STORED_API_KEY), STORED_API_KEY
+        )
+
+    def test_dd_api_key_json_field(self):
+        secret_string = json.dumps({"DD_API_KEY": VALID_API_KEY})
+        self.assertEqual(self._reload_with_secret_string(secret_string), VALID_API_KEY)
+
+    def test_aws_managed_secret_api_key_field(self):
+        # AWS Secrets Manager's managed rotation for the Datadog API key
+        # secret type stores the key under 'apiKey', alongside 'apiKeyId'.
+        secret_string = json.dumps({"apiKey": VALID_API_KEY, "apiKeyId": "some-uuid"})
+        self.assertEqual(self._reload_with_secret_string(secret_string), VALID_API_KEY)
+
+    def test_dd_api_key_field_takes_precedence_over_api_key(self):
+        other_key = "2" * 32
+        secret_string = json.dumps({"DD_API_KEY": VALID_API_KEY, "apiKey": other_key})
+        self.assertEqual(self._reload_with_secret_string(secret_string), VALID_API_KEY)
 
 
 if __name__ == "__main__":
