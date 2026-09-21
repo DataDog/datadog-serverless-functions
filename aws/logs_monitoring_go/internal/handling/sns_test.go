@@ -11,7 +11,6 @@ import (
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/testutil"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -70,20 +69,17 @@ func TestSNSHandler_Handle(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			handler := newSNS(tc.cfg, nil, nil)
-			out := make(chan model.LogEntry, len(tc.want))
+			handler := &snsHandler{baseHandler: newBase(tc.cfg, nil, nil)}
+			out := make(chan json.RawMessage, len(tc.want))
 
 			err := handler.Handle(ctx, tc.event, out)
 			close(out)
 
 			require.NoError(t, err)
 
-			var got []model.LogEntry
-			for entry := range out {
-				got = append(got, entry)
-			}
+			got := testutil.Drain(t, out)
 
-			assert.Equal(t, tc.want, got)
+			testutil.AssertJSONEntries(t, tc.want, got)
 		})
 	}
 }

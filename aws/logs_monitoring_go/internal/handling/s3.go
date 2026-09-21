@@ -15,10 +15,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/concurrent"
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/filtering"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/scrubbing"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/sdkclient"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -32,22 +29,15 @@ const (
 )
 
 type s3Handler struct {
-	cfg      *Config
-	client   sdkclient.S3
-	scrubber *scrubbing.Scrubber
-	filterer *filtering.Filterer
+	baseHandler
+	client sdkclient.S3
 }
 
-func newS3(cfg *Config, client sdkclient.S3, scrubber *scrubbing.Scrubber, filterer *filtering.Filterer) *s3Handler {
-	return &s3Handler{
-		cfg:      cfg,
-		client:   client,
-		scrubber: scrubber,
-		filterer: filterer,
-	}
+func newS3(base baseHandler, client sdkclient.S3) *s3Handler {
+	return &s3Handler{baseHandler: base, client: client}
 }
 
-func (h *s3Handler) Handle(ctx context.Context, event json.RawMessage, out chan<- model.LogEntry) error {
+func (h *s3Handler) Handle(ctx context.Context, event json.RawMessage, out chan<- json.RawMessage) error {
 	var s3Event events.S3Event
 	if err := json.Unmarshal(event, &s3Event); err != nil {
 		return fmt.Errorf("unmarshal: %w", err)
@@ -66,7 +56,7 @@ func (h *s3Handler) Handle(ctx context.Context, event json.RawMessage, out chan<
 	return nil
 }
 
-func (h s3Handler) processRecord(ctx context.Context, out chan<- model.LogEntry, eventRecord events.S3EventRecord, lambdaOrigin model.LambdaOrigin) error {
+func (h *s3Handler) processRecord(ctx context.Context, out chan<- json.RawMessage, eventRecord events.S3EventRecord, lambdaOrigin model.LambdaOrigin) error {
 	output, err := h.client.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: &eventRecord.S3.Bucket.Name,
 		Key:    &eventRecord.S3.Object.URLDecodedKey,
@@ -91,7 +81,8 @@ func (h s3Handler) processRecord(ctx context.Context, out chan<- model.LogEntry,
 	}()
 
 	source := S3Source(eventRecord.S3.Object.URLDecodedKey)
-	slog.DebugContext(ctx, "processing S3 object",
+	slog.DebugContext(
+		ctx, "processing S3 object",
 		slog.String("bucket", eventRecord.S3.Bucket.Name),
 		slog.String("key", eventRecord.S3.Object.URLDecodedKey),
 		slog.String("source", source),
@@ -124,7 +115,7 @@ func S3Source(key string) string {
 	return sourceS3
 }
 
-func (h s3Handler) S3(ctx context.Context, out chan<- model.LogEntry, r io.Reader, eventRecord events.S3EventRecord, lambdaOrigin model.LambdaOrigin) error {
+func (h *s3Handler) S3(ctx context.Context, out chan<- json.RawMessage, r io.Reader, eventRecord events.S3EventRecord, lambdaOrigin model.LambdaOrigin) error {
 	var headerSkipped bool
 	isVpcFlowLogs := strings.Contains(eventRecord.S3.Object.URLDecodedKey, s3KeyVpcFlowLogs)
 
@@ -145,18 +136,18 @@ func (h s3Handler) S3(ctx context.Context, out chan<- model.LogEntry, r io.Reade
 		}
 
 		entry := base
-		entry.Message = h.scrubber.Apply(message)
+		entry.Message = message
 		entry.Service = cmp.Or(service, entry.Service)
 		entry.Tags = slices.Concat(tags, entry.Tags)
 
-		if err := concurrent.SafeSender(ctx, out, entry); err != nil {
+		if err := h.emit(ctx, out, entry); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (h s3Handler) WAF(ctx context.Context, out chan<- model.LogEntry, r io.Reader, eventRecord events.S3EventRecord, lambdaOrigin model.LambdaOrigin) error {
+func (h *s3Handler) WAF(ctx context.Context, out chan<- json.RawMessage, r io.Reader, eventRecord events.S3EventRecord, lambdaOrigin model.LambdaOrigin) error {
 	base := h.newBaseEntry(eventRecord, lambdaOrigin)
 	for message, err := range scan(r, nil) {
 		if err != nil {
@@ -169,16 +160,16 @@ func (h s3Handler) WAF(ctx context.Context, out chan<- model.LogEntry, r io.Read
 		}
 
 		entry := base
-		entry.Message = h.scrubber.Apply(message)
+		entry.Message = message
 
-		if err := concurrent.SafeSender(ctx, out, entry); err != nil {
+		if err := h.emit(ctx, out, entry); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (h s3Handler) CloudTrail(ctx context.Context, out chan<- model.LogEntry, r io.Reader, eventRecord events.S3EventRecord, lambdaOrigin model.LambdaOrigin) error {
+func (h *s3Handler) CloudTrail(ctx context.Context, out chan<- json.RawMessage, r io.Reader, eventRecord events.S3EventRecord, lambdaOrigin model.LambdaOrigin) error {
 	base := h.newBaseEntry(eventRecord, lambdaOrigin)
 	for message, err := range decodeCloudTrail(r) {
 		if err != nil {
@@ -190,16 +181,16 @@ func (h s3Handler) CloudTrail(ctx context.Context, out chan<- model.LogEntry, r 
 
 		entry := base
 		entry.Host = cloudtrailHost(message)
-		entry.Message = h.scrubber.Apply(message)
+		entry.Message = message
 
-		if err := concurrent.SafeSender(ctx, out, entry); err != nil {
+		if err := h.emit(ctx, out, entry); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (h s3Handler) newBaseEntry(eventRecord events.S3EventRecord, lambdaOrigin model.LambdaOrigin) model.LogEntry {
+func (h *s3Handler) newBaseEntry(eventRecord events.S3EventRecord, lambdaOrigin model.LambdaOrigin) model.LogEntry {
 	source := S3Source(eventRecord.S3.Object.URLDecodedKey)
 
 	entry := model.NewLogEntry()

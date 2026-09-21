@@ -20,6 +20,8 @@ import (
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambdacontext"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const ARN = "arn:aws:lambda:us-east-1:123456789012:function:forwarder"
@@ -172,4 +174,15 @@ func Drain[T any](t *testing.T, ch <-chan T) (values []T) {
 	}
 
 	return values
+}
+
+func AssertJSONEntries(t *testing.T, want []model.LogEntry, got []json.RawMessage) {
+	t.Helper()
+
+	require.Len(t, got, len(want))
+	for i := range want {
+		raw, err := json.Marshal(want[i])
+		require.NoError(t, err)
+		assert.JSONEq(t, string(raw), string(got[i]))
+	}
 }

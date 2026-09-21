@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"regexp"
 
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/concurrent"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/filtering"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/parsing"
@@ -19,7 +20,7 @@ import (
 )
 
 type Handler interface {
-	Handle(ctx context.Context, event json.RawMessage, out chan<- model.LogEntry) error
+	Handle(ctx context.Context, event json.RawMessage, out chan<- json.RawMessage) error
 }
 
 type Config struct {
@@ -30,28 +31,50 @@ type Config struct {
 }
 
 func NewHandler(hcfg Config, scrubber *scrubbing.Scrubber, filterer *filtering.Filterer, ct parsing.ContentType) (Handler, error) {
+	base := newBase(&hcfg, scrubber, filterer)
+
 	switch ct {
 
 	case parsing.ContentTypeCloudwatchLogs:
-		return newCloudwatch(&hcfg, scrubber, filterer), nil
+		return &cloudwatchHandler{baseHandler: base}, nil
 
 	case parsing.ContentTypeS3:
 		client, err := sdkclient.GetS3()
 		if err != nil {
 			return nil, err
 		}
-		return newS3(&hcfg, client, scrubber, filterer), nil
+		return newS3(base, client), nil
 
 	case parsing.ContentTypeKinesis:
-		return newKinesis(&hcfg, scrubber, filterer), nil
+		return &kinesisHandler{baseHandler: base}, nil
 
 	case parsing.ContentTypeEventBridge:
-		return newEventBridge(&hcfg, scrubber, filterer), nil
+		return &eventBridgeHandler{baseHandler: base}, nil
 
 	case parsing.ContentTypeSNS:
-		return newSNS(&hcfg, scrubber, filterer), nil
+		return &snsHandler{baseHandler: base}, nil
 
 	default:
 		return nil, fmt.Errorf("unsupported content type: %v", ct)
 	}
+}
+
+type baseHandler struct {
+	cfg      *Config
+	scrubber *scrubbing.Scrubber
+	filterer *filtering.Filterer
+}
+
+func newBase(cfg *Config, scrubber *scrubbing.Scrubber, filterer *filtering.Filterer) baseHandler {
+	return baseHandler{cfg: cfg, scrubber: scrubber, filterer: filterer}
+}
+
+func (h *baseHandler) emit(ctx context.Context, out chan<- json.RawMessage, entry model.LogEntry) error {
+	entry.Message = h.scrubber.Apply(entry.Message)
+
+	item, err := json.Marshal(entry)
+	if err != nil {
+		return fmt.Errorf("marshal log entry: %w", err)
+	}
+	return concurrent.SafeSender(ctx, out, item)
 }

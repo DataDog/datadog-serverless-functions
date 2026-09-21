@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -77,8 +76,8 @@ func TestKinesisHandler_Handle(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			out := make(chan model.LogEntry, tc.wantN)
-			handler := newKinesis(&Config{}, nil, nil)
+			out := make(chan json.RawMessage, tc.wantN)
+			handler := &kinesisHandler{baseHandler: newBase(&Config{}, nil, nil)}
 
 			err := handler.Handle(ctx, tc.event, out)
 			close(out)

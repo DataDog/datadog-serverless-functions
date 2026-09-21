@@ -18,7 +18,7 @@ func TestBatch(t *testing.T) {
 	t.Parallel()
 
 	tests := map[string]struct {
-		items          []any
+		items          []json.RawMessage
 		wantBatchItems []int
 	}{
 		"empty": {
@@ -26,19 +26,19 @@ func TestBatch(t *testing.T) {
 			wantBatchItems: nil,
 		},
 		"single entry": {
-			items:          []any{testutil.GenerateJSONLogs(t, 1024)},
+			items:          []json.RawMessage{testutil.GenerateJSONLogs(t, 1024)},
 			wantBatchItems: []int{1},
 		},
 		"multiple entries, one batch": {
-			items:          []any{testutil.GenerateJSONLogs(t, 1024), testutil.GenerateJSONLogs(t, 1024), testutil.GenerateJSONLogs(t, 1024)},
+			items:          []json.RawMessage{testutil.GenerateJSONLogs(t, 1024), testutil.GenerateJSONLogs(t, 1024), testutil.GenerateJSONLogs(t, 1024)},
 			wantBatchItems: []int{3},
 		},
 		"drop oversized entry": {
-			items:          []any{testutil.GenerateJSONLogs(t, 1*1024*1024+1)},
+			items:          []json.RawMessage{testutil.GenerateJSONLogs(t, 1*1024*1024+1)},
 			wantBatchItems: nil,
 		},
 		"split": {
-			items: func() (items []any) {
+			items: func() (items []json.RawMessage) {
 				for range 1001 {
 					items = append(items, testutil.GenerateJSONLog(t, 100))
 				}
@@ -52,8 +52,7 @@ func TestBatch(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			cfg := Config{maxItemSize: 1 * 1024 * 1024, maxBatchSize: 5 * 1024 * 1024, maxItemsPerBatch: 1000}
-			batcher := New[any](cfg)
+			batcher := New(1*1024*1024, 5*1024*1024, 1000)
 			in := testutil.ToChannel(t, tc.items)
 			out := make(chan json.RawMessage, len(tc.wantBatchItems))
 

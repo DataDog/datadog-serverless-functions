@@ -14,27 +14,14 @@ import (
 	"log/slog"
 	"strings"
 
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/concurrent"
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/filtering"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/scrubbing"
 )
 
 type eventBridgeHandler struct {
-	cfg      *Config
-	scrubber *scrubbing.Scrubber
-	filterer *filtering.Filterer
+	baseHandler
 }
 
-func newEventBridge(cfg *Config, scrubber *scrubbing.Scrubber, filterer *filtering.Filterer) *eventBridgeHandler {
-	return &eventBridgeHandler{
-		cfg:      cfg,
-		scrubber: scrubber,
-		filterer: filterer,
-	}
-}
-
-func (h *eventBridgeHandler) Handle(ctx context.Context, event json.RawMessage, out chan<- model.LogEntry) error {
+func (h *eventBridgeHandler) Handle(ctx context.Context, event json.RawMessage, out chan<- json.RawMessage) error {
 	lambdaOrigin, err := model.GetLambdaOrigin(ctx)
 	if err != nil {
 		return fmt.Errorf("get lambda origin: %w", err)
@@ -54,19 +41,19 @@ func (h *eventBridgeHandler) Handle(ctx context.Context, event json.RawMessage, 
 	}
 }
 
-func (h *eventBridgeHandler) eventBridge(ctx context.Context, event json.RawMessage, source string, out chan<- model.LogEntry, lambdaOrigin model.LambdaOrigin) error {
+func (h *eventBridgeHandler) eventBridge(ctx context.Context, event json.RawMessage, source string, out chan<- json.RawMessage, lambdaOrigin model.LambdaOrigin) error {
 	message := string(event)
 	if h.filterer.ShouldExclude(message) {
 		return nil
 	}
 
 	entry := h.newEntry(source, lambdaOrigin)
-	entry.Message = h.scrubber.Apply(message)
+	entry.Message = message
 
-	return concurrent.SafeSender(ctx, out, entry)
+	return h.emit(ctx, out, entry)
 }
 
-func (h *eventBridgeHandler) securityHub(ctx context.Context, event json.RawMessage, source string, out chan<- model.LogEntry, lambdaOrigin model.LambdaOrigin) error {
+func (h *eventBridgeHandler) securityHub(ctx context.Context, event json.RawMessage, source string, out chan<- json.RawMessage, lambdaOrigin model.LambdaOrigin) error {
 	messages := separateFindings(event)
 	if len(messages) == 0 {
 		return h.eventBridge(ctx, event, source, out, lambdaOrigin)
@@ -79,9 +66,9 @@ func (h *eventBridgeHandler) securityHub(ctx context.Context, event json.RawMess
 		}
 
 		entry := base
-		entry.Message = h.scrubber.Apply(message)
+		entry.Message = message
 
-		if err := concurrent.SafeSender(ctx, out, entry); err != nil {
+		if err := h.emit(ctx, out, entry); err != nil {
 			return err
 		}
 	}
