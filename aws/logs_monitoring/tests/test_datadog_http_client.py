@@ -101,16 +101,20 @@ class TestDatadogHTTPClient(unittest.TestCase):
 
 
 class TestForwarderFailedLogs(unittest.TestCase):
+    @patch("logs.datadog_client.time.sleep")
     @patch("forwarder.send_event_metric")
     @patch("forwarder.DatadogHTTPClient")
     @patch("forwarder.DD_STORE_FAILED_EVENTS", True)
-    def test_forward_logs_stores_failed_batch(self, mock_http_client, mock_send_metric):
+    def test_forward_logs_stores_failed_batch(
+        self, mock_http_client, mock_send_metric, mock_sleep
+    ):
         from forwarder import Forwarder
+        from logs.exceptions import RetriableException
         from retry.enums import RetryPrefix
 
         client = MagicMock()
         client.__enter__.return_value = client
-        client.send.side_effect = Exception("send failed")
+        client.send.side_effect = RetriableException("send failed")
         mock_http_client.return_value = client
 
         forwarder = Forwarder.__new__(Forwarder)
@@ -123,6 +127,11 @@ class TestForwarderFailedLogs(unittest.TestCase):
 
         forwarder._forward_logs(["hello"])
 
+        self.assertEqual(client.send.call_count, 6)
+        self.assertEqual(
+            mock_sleep.call_args_list,
+            [call(1), call(2), call(4), call(8), call(16)],
+        )
         forwarder.storage.store_data.assert_called_once_with(
             RetryPrefix.LOGS, ['"hello"']
         )
