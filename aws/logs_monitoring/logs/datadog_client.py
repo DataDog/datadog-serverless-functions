@@ -8,15 +8,26 @@ import time
 from logs.exceptions import RetriableException
 
 
+# Reserve time for another intake request and failed-event storage before retrying.
+MIN_REMAINING_TIME_MS = 15_000
+
+
 class DatadogClient(object):
     """
     Client that implements a exponential retrying logic to send a batch of logs.
     """
 
-    def __init__(self, client, max_backoff=30, max_retries=5):
+    def __init__(
+        self,
+        client,
+        max_backoff=30,
+        max_retries=5,
+        remaining_time_provider=None,
+    ):
         self._client = client
         self._max_backoff = max_backoff
         self._max_retries = max_retries
+        self._remaining_time_provider = remaining_time_provider
 
     def send(self, logs):
         backoff = 1
@@ -26,13 +37,24 @@ class DatadogClient(object):
                 self._client.send(logs)
                 return
             except RetriableException:
-                if retries >= self._max_retries:
+                if retries >= self._max_retries or not self._can_retry(backoff):
                     raise
                 time.sleep(backoff)
                 retries += 1
                 if backoff < self._max_backoff:
                     backoff *= 2
                 continue
+
+    def _can_retry(self, backoff):
+        if self._remaining_time_provider is None:
+            return True
+
+        try:
+            remaining_time_ms = self._remaining_time_provider()
+        except Exception:
+            return False
+
+        return remaining_time_ms > MIN_REMAINING_TIME_MS + (backoff * 1000)
 
     def __enter__(self):
         self._client.__enter__()

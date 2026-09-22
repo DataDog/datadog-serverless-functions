@@ -61,12 +61,13 @@ def datadog_forwarder(event, context):
     function_prefix = get_function_arn_digest(context)
     init_cache_layer(function_prefix)
     init_forwarder(function_prefix)
+    remaining_time_provider = getattr(context, "get_remaining_time_in_millis", None)
 
     if len(event) == 1 and str(event.get(DD_RETRY_KEYWORD, "false")).lower() == "true":
         logger.info("Retry-only invocation")
 
         try:
-            forwarder.retry()
+            forwarder.retry(remaining_time_provider=remaining_time_provider)
         except Exception as e:
             if logger.isEnabledFor(logging.DEBUG):
                 logger.debug(f"Failed to retry forwarding {e}")
@@ -78,12 +79,17 @@ def datadog_forwarder(event, context):
     transformed = transform(enriched)
     metrics, logs, trace_payloads = split(transformed)
 
-    forwarder.forward(logs, metrics, trace_payloads)
+    forwarder.forward(
+        logs,
+        metrics,
+        trace_payloads,
+        remaining_time_provider=remaining_time_provider,
+    )
     parse_and_submit_enhanced_metrics(logs, cache_layer)
 
     try:
         if str(event.get(DD_RETRY_KEYWORD, "false")).lower() == "true":
-            forwarder.retry()
+            forwarder.retry(remaining_time_provider=remaining_time_provider)
     except Exception as e:
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug(f"Failed to retry forwarding {e}")

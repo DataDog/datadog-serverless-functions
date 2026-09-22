@@ -52,23 +52,23 @@ class Forwarder:
             max_items_count=400,
         )
 
-    def forward(self, logs, metrics, traces):
+    def forward(self, logs, metrics, traces, remaining_time_provider=None):
         """
         Forward logs, metrics, and traces to Datadog in a background thread.
         """
         if DD_FORWARD_LOG:
-            self._forward_logs(logs)
+            self._forward_logs(logs, remaining_time_provider=remaining_time_provider)
         self._forward_metrics(metrics)
         self._forward_traces(traces)
 
-    def retry(self):
+    def retry(self, remaining_time_provider=None):
         """
         Retry forwarding logs, metrics, and traces to Datadog.
         """
         for prefix in RetryPrefix:
-            self._retry_prefix(prefix)
+            self._retry_prefix(prefix, remaining_time_provider)
 
-    def _retry_prefix(self, prefix):
+    def _retry_prefix(self, prefix, remaining_time_provider=None):
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug(f"Retrying {prefix} data")
 
@@ -79,13 +79,15 @@ class Forwarder:
                 continue
             match prefix:
                 case RetryPrefix.LOGS:
-                    self._forward_logs(d, key=k)
+                    self._forward_logs(
+                        d, key=k, remaining_time_provider=remaining_time_provider
+                    )
                 case RetryPrefix.METRICS:
                     self._forward_metrics(d, key=k)
                 case RetryPrefix.TRACES:
                     self._forward_traces(d, key=k)
 
-    def _forward_logs(self, logs, key=None):
+    def _forward_logs(self, logs, key=None, remaining_time_provider=None):
         """Forward logs to Datadog"""
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug(f"Forwarding {len(logs)} logs")
@@ -121,7 +123,9 @@ class Forwarder:
         )
 
         failed_logs = []
-        with DatadogClient(cli) as client:
+        with DatadogClient(
+            cli, remaining_time_provider=remaining_time_provider
+        ) as client:
             for batch in self._batcher.batch(logs_to_forward):
                 try:
                     client.send(batch)

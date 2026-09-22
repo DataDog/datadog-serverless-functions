@@ -167,6 +167,23 @@ class TestDatadogClient(unittest.TestCase):
         self.assertEqual(client.send.call_count, 3)
         self.assertEqual(mock_sleep.call_args_list, [call(1), call(2)])
 
+    @patch("logs.datadog_client.time.sleep")
+    def test_stops_retries_when_lambda_is_near_timeout(self, mock_sleep):
+        from logs.datadog_client import DatadogClient
+        from logs.exceptions import RetriableException
+
+        client = MagicMock()
+        client.send.side_effect = RetriableException("HTTP 503")
+
+        with self.assertRaises(RetriableException):
+            DatadogClient(
+                client,
+                remaining_time_provider=lambda: 17_000,
+            ).send(["log"])
+
+        self.assertEqual(client.send.call_count, 2)
+        mock_sleep.assert_called_once_with(1)
+
 
 if __name__ == "__main__":
     unittest.main()
