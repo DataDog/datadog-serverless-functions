@@ -1,7 +1,7 @@
 import unittest
 import sys
 import types
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 
 class FakeRequestException(Exception):
@@ -18,12 +18,6 @@ class FakeConnectionError(FakeRequestException):
     pass
 
 
-sys.modules["requests"] = MagicMock()
-sys.modules["requests"].exceptions = types.SimpleNamespace(
-    HTTPError=FakeHTTPError,
-    RequestException=FakeRequestException,
-    ConnectionError=FakeConnectionError,
-)
 sys.modules["requests_futures.sessions"] = MagicMock()
 
 
@@ -31,10 +25,12 @@ class TestDatadogHTTPClient(unittest.TestCase):
     def _client(self, session):
         import logs.datadog_http_client as datadog_http_client
 
-        datadog_http_client.requests.exceptions = types.SimpleNamespace(
-            HTTPError=FakeHTTPError,
-            RequestException=FakeRequestException,
-            ConnectionError=FakeConnectionError,
+        datadog_http_client.requests = types.SimpleNamespace(
+            exceptions=types.SimpleNamespace(
+                HTTPError=FakeHTTPError,
+                RequestException=FakeRequestException,
+                ConnectionError=FakeConnectionError,
+            )
         )
 
         scrubber = MagicMock()
@@ -147,6 +143,20 @@ class TestDatadogClient(unittest.TestCase):
 
         self.assertEqual(client.send.call_count, 2)
         mock_sleep.assert_called_once_with(1)
+
+    @patch("logs.datadog_client.time.sleep")
+    def test_stops_after_max_retries(self, mock_sleep):
+        from logs.datadog_client import DatadogClient
+        from logs.exceptions import RetriableException
+
+        client = MagicMock()
+        client.send.side_effect = RetriableException("HTTP 503")
+
+        with self.assertRaises(RetriableException):
+            DatadogClient(client, max_retries=2).send(["log"])
+
+        self.assertEqual(client.send.call_count, 3)
+        self.assertEqual(mock_sleep.call_args_list, [call(1), call(2)])
 
 
 if __name__ == "__main__":
