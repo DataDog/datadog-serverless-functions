@@ -29,12 +29,20 @@ sys.modules["requests_futures.sessions"] = MagicMock()
 
 class TestDatadogHTTPClient(unittest.TestCase):
     def _client(self, session):
-        from logs.datadog_http_client import DatadogHTTPClient
+        import logs.datadog_http_client as datadog_http_client
+
+        datadog_http_client.requests.exceptions = types.SimpleNamespace(
+            HTTPError=FakeHTTPError,
+            RequestException=FakeRequestException,
+            ConnectionError=FakeConnectionError,
+        )
 
         scrubber = MagicMock()
         scrubber.scrub.side_effect = lambda payload: payload
 
-        client = DatadogHTTPClient("example.com", 443, False, False, "apikey", scrubber)
+        client = datadog_http_client.DatadogHTTPClient(
+            "example.com", 443, False, False, "apikey", scrubber
+        )
         client._session = session
         return client
 

@@ -113,9 +113,7 @@ class DatadogHTTPClient(object):
                 ) from e
             raise
         except requests.exceptions.RequestException as e:
-            raise RetriableException(
-                f"Datadog logs intake request failed: {e}"
-            ) from e
+            raise RetriableException(f"Datadog logs intake request failed: {e}") from e
 
     def __enter__(self):
         self._connect()
