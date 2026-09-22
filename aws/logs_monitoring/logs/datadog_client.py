@@ -7,7 +7,6 @@
 import time
 from logs.exceptions import RetriableException
 
-
 # Reserve time for another intake request and failed-event storage before retrying.
 MIN_REMAINING_TIME_MS = 15_000
 

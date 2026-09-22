@@ -174,15 +174,17 @@ class TestDatadogClient(unittest.TestCase):
 
         client = MagicMock()
         client.send.side_effect = RetriableException("HTTP 503")
+        remaining_time_provider = MagicMock(side_effect=[17_000, 15_000])
 
         with self.assertRaises(RetriableException):
             DatadogClient(
                 client,
-                remaining_time_provider=lambda: 17_000,
+                remaining_time_provider=remaining_time_provider,
             ).send(["log"])
 
         self.assertEqual(client.send.call_count, 2)
         mock_sleep.assert_called_once_with(1)
+        self.assertEqual(remaining_time_provider.call_count, 2)
 
 
 if __name__ == "__main__":

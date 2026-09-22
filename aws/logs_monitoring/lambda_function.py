@@ -61,6 +61,7 @@ def datadog_forwarder(event, context):
     function_prefix = get_function_arn_digest(context)
     init_cache_layer(function_prefix)
     init_forwarder(function_prefix)
+    # Keep the bound method so the retry client reads the current value on each check.
     remaining_time_provider = getattr(context, "get_remaining_time_in_millis", None)
 
     if len(event) == 1 and str(event.get(DD_RETRY_KEYWORD, "false")).lower() == "true":
