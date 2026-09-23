@@ -73,6 +73,46 @@ class TestInvokeAdditionalTargetLambdas(unittest.TestCase):
 
 
 class TestLambdaFunctionEndToEnd(unittest.TestCase):
+    def test_passes_live_remaining_time_to_forwarding_and_retry(self):
+        import lambda_function
+
+        forwarder = self.enterContext(patch("lambda_function.forwarder"))
+        for name in (
+            "init_cache_layer",
+            "init_forwarder",
+            "parse",
+            "enrich",
+            "transform",
+            "parse_and_submit_enhanced_metrics",
+            "invoke_additional_target_lambdas",
+        ):
+            self.enterContext(patch(f"lambda_function.{name}"))
+        self.enterContext(patch("lambda_function.split", return_value=([], [], [])))
+
+        for event, forwards, retries in (
+            ({}, True, False),
+            ({"retry": True}, False, True),
+            ({"Records": [], "retry": True}, True, True),
+        ):
+            with self.subTest(event=event):
+                forwarder.reset_mock()
+                context = Context()
+                context.get_remaining_time_in_millis = MagicMock(return_value=60_000)
+
+                lambda_function.datadog_forwarder(event, context)
+
+                context.get_remaining_time_in_millis.assert_not_called()
+                self.assertEqual(forwarder.forward.called, forwards)
+                self.assertEqual(forwarder.retry.called, retries)
+                for method in (forwarder.forward, forwarder.retry):
+                    if method.called:
+                        provider = method.call_args.kwargs["remaining_time_provider"]
+                        self.assertIs(provider, context.get_remaining_time_in_millis)
+                        self.assertEqual(provider(), 60_000)
+                        context.get_remaining_time_in_millis.return_value = 5_000
+                        self.assertEqual(provider(), 5_000)
+                        context.get_remaining_time_in_millis.return_value = 60_000
+
     @patch("caching.cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.__init__")
     def test_datadog_forwarder(self, mock_cache_init):
         mock_cache_init.return_value = None
