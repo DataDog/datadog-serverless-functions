@@ -127,6 +127,9 @@ class Forwarder:
             cli, remaining_time_provider=remaining_time_provider
         ) as client:
             for batch in self._batcher.batch(logs_to_forward):
+                if not client.can_send():
+                    failed_logs.extend(batch)
+                    continue
                 try:
                     client.send(batch)
                 except Exception as e:

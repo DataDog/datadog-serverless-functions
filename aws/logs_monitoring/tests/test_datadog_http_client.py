@@ -18,6 +18,13 @@ class FakeConnectionError(FakeRequestException):
     pass
 
 
+sys.modules["requests"] = types.SimpleNamespace(
+    exceptions=types.SimpleNamespace(
+        HTTPError=FakeHTTPError,
+        RequestException=FakeRequestException,
+        ConnectionError=FakeConnectionError,
+    )
+)
 sys.modules["requests_futures.sessions"] = MagicMock()
 
 
@@ -137,6 +144,39 @@ class TestForwarderFailedLogs(unittest.TestCase):
         )
         mock_send_metric.assert_any_call("logs_failed", ['"hello"'])
         mock_send_metric.assert_any_call("logs_forwarded", 0)
+
+    @patch("forwarder.send_event_metric")
+    @patch("forwarder.DatadogHTTPClient")
+    @patch("forwarder.DD_STORE_FAILED_EVENTS", True)
+    def test_forward_logs_stores_batch_skipped_near_timeout(
+        self, mock_http_client, mock_send_metric
+    ):
+        from forwarder import Forwarder
+        from retry.enums import RetryPrefix
+
+        client = MagicMock()
+        client.__enter__.return_value = client
+        mock_http_client.return_value = client
+
+        forwarder = Forwarder.__new__(Forwarder)
+        forwarder.storage = MagicMock()
+        forwarder._scrubber = MagicMock()
+        forwarder._matcher = MagicMock()
+        forwarder._matcher.match.return_value = True
+        forwarder._batcher = MagicMock()
+        forwarder._batcher.batch.return_value = [['"one"'], ['"two"']]
+
+        remaining_time_provider = MagicMock(side_effect=[16_000, 14_000])
+        forwarder._forward_logs(
+            ["one", "two"], remaining_time_provider=remaining_time_provider
+        )
+
+        client.send.assert_called_once_with(['"one"'])
+        forwarder.storage.store_data.assert_called_once_with(
+            RetryPrefix.LOGS, ['"two"']
+        )
+        mock_send_metric.assert_any_call("logs_failed", ['"two"'])
+        mock_send_metric.assert_any_call("logs_forwarded", 1)
 
 
 class TestDatadogClient(unittest.TestCase):

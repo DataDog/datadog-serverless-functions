@@ -44,7 +44,13 @@ class DatadogClient(object):
                     backoff *= 2
                 continue
 
+    def can_send(self):
+        return self._has_remaining_time()
+
     def _can_retry(self, backoff):
+        return self._has_remaining_time(backoff * 1000)
+
+    def _has_remaining_time(self, additional_time_ms=0):
         if self._remaining_time_provider is None:
             return True
 
@@ -53,7 +59,7 @@ class DatadogClient(object):
         except Exception:
             return False
 
-        return remaining_time_ms > MIN_REMAINING_TIME_MS + (backoff * 1000)
+        return remaining_time_ms > MIN_REMAINING_TIME_MS + additional_time_ms
 
     def __enter__(self):
         self._client.__enter__()
