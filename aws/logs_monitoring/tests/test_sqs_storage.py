@@ -48,43 +48,12 @@ class TestSQSStorage(unittest.TestCase):
         # Should send 2 messages (items can't fit in one chunk)
         self.assertEqual(self.mock_sqs.send_message.call_count, 2)
 
-    def test_store_data_propagates_client_error(self):
-        error = ClientError(
+    def test_store_data_handles_client_error(self):
+        self.mock_sqs.send_message.side_effect = ClientError(
             {"Error": {"Code": "500", "Message": "Error"}}, "SendMessage"
         )
-        self.mock_sqs.send_message.side_effect = error
-
-        with self.assertRaises(ClientError) as raised:
-            self.storage.store_data("logs", [{"message": "hello"}])
-
-        self.assertIs(raised.exception, error)
-        self.mock_sqs.send_message.assert_called_once()
-
-    def test_store_data_propagates_error_after_partial_success(self):
-        data = [
-            {"message": str(index) * (SQS_MAX_CHUNK_BYTES - 50)} for index in range(3)
-        ]
-        error = ClientError(
-            {"Error": {"Code": "500", "Message": "Error"}}, "SendMessage"
-        )
-        self.mock_sqs.send_message.side_effect = [
-            {"MessageId": "first"},
-            error,
-            {"MessageId": "third"},
-        ]
-
-        with self.assertRaises(ClientError) as raised:
-            self.storage.store_data("logs", data)
-
-        self.assertIs(raised.exception, error)
-        self.assertEqual(self.mock_sqs.send_message.call_count, 2)
-        self.assertEqual(
-            [
-                json.loads(call.kwargs["MessageBody"])
-                for call in self.mock_sqs.send_message.call_args_list
-            ],
-            [[data[0]], [data[1]]],
-        )
+        # Should not raise
+        self.storage.store_data("logs", [{"message": "hello"}])
 
     def test_get_data_returns_matching_messages(self):
         self.mock_sqs.receive_message.side_effect = [

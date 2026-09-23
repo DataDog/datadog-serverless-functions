@@ -13,7 +13,6 @@ from logs.datadog_client import DatadogClient
 from logs.datadog_http_client import DatadogHTTPClient
 from logs.datadog_matcher import DatadogMatcher
 from logs.datadog_scrubber import DatadogScrubber
-from logs.exceptions import LogForwardingDeadlineExceeded
 from logs.helpers import add_retry_tag
 from retry import create_storage
 from retry.enums import RetryPrefix
@@ -95,7 +94,7 @@ class Forwarder:
 
         logs_to_forward = []
         for log in logs:
-            if key is not None:
+            if key:
                 log = add_retry_tag(log)
 
             evaluated_log = log
@@ -121,43 +120,26 @@ class Forwarder:
             DD_SKIP_SSL_VALIDATION,
             DD_API_KEY,
             self._scrubber,
-            remaining_time_provider=remaining_time_provider,
         )
 
         failed_logs = []
-        last_error = None
         with DatadogClient(
             cli, remaining_time_provider=remaining_time_provider
         ) as client:
-            batches = iter(self._batcher.batch(logs_to_forward))
-            for batch in batches:
+            for batch in self._batcher.batch(logs_to_forward):
                 try:
                     client.send(batch)
-                except LogForwardingDeadlineExceeded as e:
-                    last_error = e
-                    failed_logs.extend(batch)
-                    failed_logs.extend(
-                        log for remaining in batches for log in remaining
-                    )
-                    break
                 except Exception as e:
                     logger.error(f"Exception while forwarding log batch {batch}: {e}")
                     failed_logs.extend(batch)
-                    last_error = e
                 else:
                     if logger.isEnabledFor(logging.DEBUG):
                         logger.debug(f"Forwarded log batch: {batch}")
+                    if key:
+                        self.storage.delete_data(key)
 
-        if failed_logs and key is None:
-            if not DD_STORE_FAILED_EVENTS:
-                raise RuntimeError(
-                    f"Failed to forward {len(failed_logs)} logs and failed-event storage is disabled"
-                ) from last_error
+        if DD_STORE_FAILED_EVENTS and failed_logs and not key:
             self.storage.store_data(RetryPrefix.LOGS, failed_logs)
-        elif not failed_logs and key is not None:
-            # A retry key owns the entire payload, not an individual batch.
-            # Retain it on partial failure so the unsent logs remain recoverable.
-            self.storage.delete_data(key)
 
         if failed_logs:
             send_event_metric("logs_failed", failed_logs)

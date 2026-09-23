@@ -4,16 +4,11 @@
 # Copyright 2021 Datadog, Inc.
 
 
-import math
 import time
+from logs.exceptions import RetriableException
 
-from logs.constants import DEFAULT_INTAKE_TIMEOUT_SECONDS, FAILED_EVENT_RESERVE_SECONDS
-from logs.exceptions import LogForwardingDeadlineExceeded, RetriableException
-
-# Reserve time for an intake request and failed-event storage before each attempt.
-MIN_REMAINING_TIME_MS = (
-    DEFAULT_INTAKE_TIMEOUT_SECONDS + FAILED_EVENT_RESERVE_SECONDS
-) * 1000
+# Allow the default 10-second intake timeout plus five seconds for failure storage.
+MIN_RETRY_TIME_MS = 15_000
 
 
 class DatadogClient(object):
@@ -22,11 +17,7 @@ class DatadogClient(object):
     """
 
     def __init__(
-        self,
-        client,
-        max_backoff=30,
-        max_retries=5,
-        remaining_time_provider=None,
+        self, client, max_backoff=30, max_retries=2, remaining_time_provider=None
     ):
         self._client = client
         self._max_backoff = max_backoff
@@ -34,14 +25,9 @@ class DatadogClient(object):
         self._remaining_time_provider = remaining_time_provider
 
     def send(self, logs):
-        backoff = min(1, self._max_backoff)
+        backoff = 1
         retries = 0
         while True:
-            # Recheck after sleeping as well as before the first attempt.
-            if not self.can_send():
-                raise LogForwardingDeadlineExceeded(
-                    "Insufficient Lambda time to forward logs"
-                )
             try:
                 self._client.send(logs)
                 return
@@ -49,28 +35,18 @@ class DatadogClient(object):
                 if retries >= self._max_retries or not self._can_retry(backoff):
                     raise
                 time.sleep(backoff)
+                # Read the live budget again: the sleep may have taken longer.
+                if not self._can_retry(0):
+                    raise
                 retries += 1
                 backoff = min(backoff * 2, self._max_backoff)
                 continue
 
-    def can_send(self):
-        return self._has_remaining_time()
-
     def _can_retry(self, backoff):
-        return self._has_remaining_time(backoff * 1000)
-
-    def _has_remaining_time(self, additional_time_ms=0):
-        if self._remaining_time_provider is None:
-            return True
-
-        try:
-            remaining_time_ms = self._remaining_time_provider()
-            return (
-                math.isfinite(remaining_time_ms)
-                and remaining_time_ms > MIN_REMAINING_TIME_MS + additional_time_ms
-            )
-        except Exception:
-            return False
+        return (
+            self._remaining_time_provider is None
+            or self._remaining_time_provider() > MIN_RETRY_TIME_MS + backoff * 1000
+        )
 
     def __enter__(self):
         self._client.__enter__()

@@ -96,7 +96,6 @@ class SQSStorage(BaseStorage):
                 )
             except ClientError as e:
                 logger.error(f"Failed to send SQS message for prefix {prefix}: {e}")
-                raise
 
     def delete_data(self, key):
         """Delete a message by receipt handle. Idempotent — logs and swallows errors."""

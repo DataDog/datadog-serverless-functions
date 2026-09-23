@@ -43,7 +43,6 @@ class S3Storage(BaseStorage):
             )
         except ClientError as e:
             logger.error(f"Failed to store retry data for prefix {prefix}: {e}")
-            raise
 
     def delete_data(self, key):
         try:

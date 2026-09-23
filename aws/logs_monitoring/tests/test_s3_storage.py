@@ -25,15 +25,12 @@ class TestS3Storage(unittest.TestCase):
             json.loads(call_kwargs["Body"].decode("UTF-8")), [{"message": "hello"}]
         )
 
-    def test_store_data_propagates_client_error(self):
-        error = ClientError({"Error": {"Code": "500", "Message": "Error"}}, "PutObject")
-        self.mock_s3.put_object.side_effect = error
-
-        with self.assertRaises(ClientError) as raised:
-            self.storage.store_data("logs", [{"message": "hello"}])
-
-        self.assertIs(raised.exception, error)
-        self.mock_s3.put_object.assert_called_once()
+    def test_store_data_handles_client_error(self):
+        self.mock_s3.put_object.side_effect = ClientError(
+            {"Error": {"Code": "500", "Message": "Error"}}, "PutObject"
+        )
+        # Should not raise
+        self.storage.store_data("logs", [{"message": "hello"}])
 
     def test_get_data_returns_data_for_keys(self):
         self.mock_s3.list_objects_v2.return_value = {

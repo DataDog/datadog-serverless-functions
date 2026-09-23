@@ -807,13 +807,6 @@ To test different patterns against your logs, turn on [debug logs](#troubleshoot
 
 `DD_STORE_FAILED_EVENTS`
 : Set to true to enable the forwarder to store events that failed to send to Datadog.
-  Log forwarding retries transient intake failures up to five times and stops starting
-  requests when the Lambda time budget is insufficient. Failed and unsent logs are
-  stored for retry when this option is enabled. If storage is disabled or writing
-  the failed events fails, the invocation raises an error so the event source can
-  apply its retry policy.
-  A stored log payload is deleted only after all of its batches succeed. Replaying
-  a partially delivered payload can therefore produce duplicate logs.
 
 `INSTALL_AS_LAYER`
 : Whether to use the layer-based installation flow. Set to false to use the legacy installation flow, which installs a second function that copies the forwarder code from GitHub to an S3 bucket. Defaults to true.
