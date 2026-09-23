@@ -9,7 +9,11 @@ class BaseStorage(ABC):
 
     @abstractmethod
     def store_data(self, prefix, data) -> None:
-        """Store data under the given prefix."""
+        """Store all data under the given prefix.
+
+        Return only when all writes succeed. Propagate write failures, even
+        when some data has already been stored.
+        """
         ...
 
     @abstractmethod

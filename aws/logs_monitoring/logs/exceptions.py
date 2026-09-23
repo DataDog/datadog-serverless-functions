@@ -8,5 +8,9 @@ class RetriableException(Exception):
     pass
 
 
+class LogForwardingDeadlineExceeded(TimeoutError):
+    """Stop intake attempts so the invocation can preserve unsent logs."""
+
+
 class ScrubbingException(Exception):
     pass

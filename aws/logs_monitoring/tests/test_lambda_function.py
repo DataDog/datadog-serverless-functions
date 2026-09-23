@@ -72,6 +72,87 @@ class TestInvokeAdditionalTargetLambdas(unittest.TestCase):
         )
 
 
+class TestLambdaForwardingFailures(unittest.TestCase):
+    def setUp(self):
+        import lambda_function
+
+        self.handler = lambda_function.datadog_forwarder
+        self.forwarder = self.enterContext(patch("lambda_function.forwarder"))
+        self.enterContext(patch("lambda_function.DD_ADDITIONAL_TARGET_LAMBDAS", ""))
+        self.enhanced_metrics = self.enterContext(
+            patch("lambda_function.parse_and_submit_enhanced_metrics")
+        )
+        for name in (
+            "init_cache_layer",
+            "init_forwarder",
+            "parse",
+            "enrich",
+            "transform",
+        ):
+            self.enterContext(patch(f"lambda_function.{name}"))
+        self.enterContext(
+            patch(
+                "lambda_function.split", return_value=(["metric"], ["log"], ["trace"])
+            )
+        )
+
+    def test_each_invocation_passes_its_live_remaining_time_callback(self):
+        for remaining in (60_000, 30_000):
+            with self.subTest(remaining=remaining):
+                context = Context()
+                context.get_remaining_time_in_millis = MagicMock(return_value=remaining)
+
+                self.handler({"Records": []}, context)
+
+                provider = self.forwarder.forward.call_args.kwargs[
+                    "remaining_time_provider"
+                ]
+                self.assertIs(provider, context.get_remaining_time_in_millis)
+                provider.assert_not_called()
+                self.assertEqual(provider(), remaining)
+                context.get_remaining_time_in_millis.return_value = 5_000
+                self.assertEqual(provider(), 5_000)
+
+    def test_retry_only_uses_the_live_callback(self):
+        context = Context()
+        context.get_remaining_time_in_millis = MagicMock(return_value=60_000)
+
+        self.handler({"retry": True}, context)
+
+        self.forwarder.forward.assert_not_called()
+        self.forwarder.retry.assert_called_once_with(
+            remaining_time_provider=context.get_remaining_time_in_millis
+        )
+        context.get_remaining_time_in_millis.assert_not_called()
+
+    def test_normal_forwarding_and_retry_share_the_current_callback(self):
+        context = Context()
+        context.get_remaining_time_in_millis = MagicMock(return_value=60_000)
+
+        self.handler({"Records": [], "retry": True}, context)
+
+        self.forwarder.forward.assert_called_once_with(
+            ["log"],
+            ["metric"],
+            ["trace"],
+            remaining_time_provider=context.get_remaining_time_in_millis,
+        )
+        self.forwarder.retry.assert_called_once_with(
+            remaining_time_provider=context.get_remaining_time_in_millis
+        )
+
+    def test_unpreserved_logs_fail_the_invocation(self):
+        error = RuntimeError("failed-event storage is disabled or unavailable")
+        self.forwarder.forward.side_effect = error
+
+        with self.assertRaises(RuntimeError) as raised:
+            self.handler({"Records": [], "retry": True}, Context())
+
+        self.assertIs(raised.exception, error)
+        self.forwarder.retry.assert_not_called()
+        self.enhanced_metrics.assert_not_called()
+
+
 class TestLambdaFunctionEndToEnd(unittest.TestCase):
     @patch("caching.cloudwatch_log_group_cache.CloudwatchLogGroupTagsCache.__init__")
     def test_datadog_forwarder(self, mock_cache_init):

@@ -4,11 +4,16 @@
 # Copyright 2021 Datadog, Inc.
 
 
+import math
 import time
-from logs.exceptions import RetriableException
 
-# Reserve time for another intake request and failed-event storage before retrying.
-MIN_REMAINING_TIME_MS = 15_000
+from logs.constants import DEFAULT_INTAKE_TIMEOUT_SECONDS, FAILED_EVENT_RESERVE_SECONDS
+from logs.exceptions import LogForwardingDeadlineExceeded, RetriableException
+
+# Reserve time for an intake request and failed-event storage before each attempt.
+MIN_REMAINING_TIME_MS = (
+    DEFAULT_INTAKE_TIMEOUT_SECONDS + FAILED_EVENT_RESERVE_SECONDS
+) * 1000
 
 
 class DatadogClient(object):
@@ -29,9 +34,14 @@ class DatadogClient(object):
         self._remaining_time_provider = remaining_time_provider
 
     def send(self, logs):
-        backoff = 1
+        backoff = min(1, self._max_backoff)
         retries = 0
         while True:
+            # Recheck after sleeping as well as before the first attempt.
+            if not self.can_send():
+                raise LogForwardingDeadlineExceeded(
+                    "Insufficient Lambda time to forward logs"
+                )
             try:
                 self._client.send(logs)
                 return
@@ -40,8 +50,7 @@ class DatadogClient(object):
                     raise
                 time.sleep(backoff)
                 retries += 1
-                if backoff < self._max_backoff:
-                    backoff *= 2
+                backoff = min(backoff * 2, self._max_backoff)
                 continue
 
     def can_send(self):
@@ -56,10 +65,12 @@ class DatadogClient(object):
 
         try:
             remaining_time_ms = self._remaining_time_provider()
+            return (
+                math.isfinite(remaining_time_ms)
+                and remaining_time_ms > MIN_REMAINING_TIME_MS + additional_time_ms
+            )
         except Exception:
             return False
-
-        return remaining_time_ms > MIN_REMAINING_TIME_MS + additional_time_ms
 
     def __enter__(self):
         self._client.__enter__()
