@@ -86,7 +86,7 @@ class DatadogHTTPClient(object):
 
     def send(self, logs):
         """
-        Sends a batch of logs, treating HTTP 503 as retryable.
+        Sends a batch of logs, treating HTTP 5xx as retryable.
         """
         try:
             data = self._scrubber.scrub("[{}]".format(",".join(logs)))
@@ -99,8 +99,10 @@ class DatadogHTTPClient(object):
         response = self._session.post(
             self._url, data, timeout=self._timeout, verify=self._ssl_validation
         ).result()
-        if response.status_code == 503:
-            raise RetriableException("Datadog logs intake returned HTTP 503")
+        if response.status_code // 100 == 5:
+            raise RetriableException(
+                f"Datadog logs intake returned HTTP {response.status_code}"
+            )
         response.raise_for_status()
 
     def __enter__(self):

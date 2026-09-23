@@ -33,26 +33,31 @@ class TestDatadogHTTPClient(unittest.TestCase):
         mock_sleep.assert_not_called()
 
     @patch("logs.datadog_client.time.sleep")
-    def test_send_retries_503_then_succeeds(self, mock_sleep):
+    def test_send_retries_5xx_then_succeeds(self, mock_sleep):
         from logs.datadog_client import DatadogClient
 
-        unavailable = MagicMock(status_code=503)
-        success = MagicMock(status_code=202)
-        session = MagicMock()
-        session.post.return_value.result.side_effect = [unavailable, success]
+        for status in range(500, 600):
+            with self.subTest(status=status):
+                mock_sleep.reset_mock()
+                unavailable = MagicMock(status_code=status)
+                success = MagicMock(status_code=202)
+                session = MagicMock()
+                session.post.return_value.result.side_effect = [unavailable, success]
 
-        DatadogClient(self._client(session)).send(['{"message":"hello"}'])
+                DatadogClient(self._client(session)).send(['{"message":"hello"}'])
 
-        self.assertEqual(session.post.call_count, 2)
-        self.assertEqual(session.post.call_args_list[0], session.post.call_args_list[1])
-        mock_sleep.assert_called_once_with(1)
-        success.raise_for_status.assert_called_once_with()
+                self.assertEqual(session.post.call_count, 2)
+                self.assertEqual(
+                    session.post.call_args_list[0], session.post.call_args_list[1]
+                )
+                mock_sleep.assert_called_once_with(1)
+                success.raise_for_status.assert_called_once_with()
 
     @patch("logs.datadog_client.time.sleep")
     def test_other_http_errors_are_not_retried(self, mock_sleep):
         from logs.datadog_client import DatadogClient
 
-        for status in (400, 403, 429, 500, 502, 504):
+        for status in (400, 403, 429, 499, 600):
             with self.subTest(status=status):
                 error = Exception(f"HTTP {status}")
                 response = MagicMock(status_code=status)
