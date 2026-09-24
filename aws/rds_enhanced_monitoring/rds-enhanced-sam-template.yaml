@@ -5,12 +5,12 @@ Parameters:
   KMSKeyId:
     Type: String
     Default: ''
-    Description: 'Only required if using KmsEncryptedKeys or DdKmsApiKey below: the id (final part of the key''s ARN) of a KMS key used to encrypt and decrypt your Datadog API and App keys.'
+    Description: 'The Key ID of a KMS key used to encrypt and decrypt your Datadog API and App keys. Only required if using KmsEncryptedKeys or DdKmsApiKey.'
   KmsEncryptedKeys:
     Type: String
     Default: ''
     NoEcho: true
-    Description: 'Datadog API (and optionally APP) key(s), KMS-encrypted with EncryptionContext, as a JSON blob. Leave blank if using one of the other options below.'
+    Description: 'Your Datadog API and optionally APP key, KMS-encrypted with EncryptionContext, as a JSON blob. Leave blank if using one of the other options below.'
   DdApiKeySecretArn:
     Type: String
     Default: ''
@@ -18,17 +18,17 @@ Parameters:
   DdApiKeySsmName:
     Type: String
     Default: ''
-    Description: 'Name (or ARN, if in another region) of an AWS SSM parameter containing your Datadog API key. Leave blank if using one of the other options.'
+    Description: 'Name of an AWS SSM parameter containing your Datadog API key. Use an ARN if the SSM Parameter is stored in another region. Leave blank if using one of the other options.'
   DdKmsApiKey:
     Type: String
     Default: ''
     NoEcho: true
-    Description: 'Datadog API key, KMS-encrypted (CiphertextBlob). Leave blank if using one of the other options.'
+    Description: 'Your Datadog API key, KMS-encrypted CiphertextBlob. Leave blank if using one of the other options.'
   DdApiKey:
     Type: String
     Default: ''
     NoEcho: true
-    Description: 'Not recommended: your Datadog API key in plaintext. Leave blank if using one of the other options.'
+    Description: '(Not Recommended) Your Datadog API key in plaintext. Leave blank if using one of the other options.'
 Conditions:
   HasKMSKeyId: !Not [!Equals [!Ref KMSKeyId, '']]
   HasKmsEncryptedKeys: !Not [!Equals [!Ref KmsEncryptedKeys, '']]
