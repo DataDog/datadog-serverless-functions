@@ -242,6 +242,11 @@ d. **Not Recommended**: Plaintext
    1. Set your API key in plaintext as the `DD_API_KEY` environment variable.
    2. This flow is insecure and not recommended for production use cases.
 
+If you're deploying via the SAR application (`rds-enhanced-sam-template.yaml`), each of
+these environment variables is exposed as a stack parameter of the same name
+(`KmsEncryptedKeys`, `DdApiKeySecretArn`, `DdApiKeySsmName`, `DdKmsApiKey`, `DdApiKey`) —
+set the one matching the option you chose above and leave the rest blank.
+
 #### Create the Lambda Function
 
 1. Create and configure a lambda function
