@@ -4,7 +4,8 @@ Description: Pushes RDS Enhanced metrics to Datadog.
 Parameters:
   KMSKeyId:
     Type: String
-    Description: The id (final part of the key's ARN) of a KMS key used to encrypt and decrypt your Datadog API and App keys.
+    Default: ''
+    Description: 'Only required if using KmsEncryptedKeys or DdKmsApiKey below: the id (final part of the key''s ARN) of a KMS key used to encrypt and decrypt your Datadog API and App keys.'
   KmsEncryptedKeys:
     Type: String
     Default: ''
@@ -29,6 +30,7 @@ Parameters:
     NoEcho: true
     Description: 'Not recommended: your Datadog API key in plaintext. Leave blank if using one of the other options.'
 Conditions:
+  HasKMSKeyId: !Not [!Equals [!Ref KMSKeyId, '']]
   HasKmsEncryptedKeys: !Not [!Equals [!Ref KmsEncryptedKeys, '']]
   HasDdApiKeySecretArn: !Not [!Equals [!Ref DdApiKeySecretArn, '']]
   HasDdApiKeySsmName: !Not [!Equals [!Ref DdApiKeySsmName, '']]
@@ -49,13 +51,19 @@ Resources:
       Handler: lambda_function.lambda_handler
       MemorySize: 128
       Policies:
-        KMSDecryptPolicy:
-          KeyId: !Ref KMSKeyId
+        !If
+          - HasKMSKeyId
+          - KMSDecryptPolicy:
+              KeyId: !Ref KMSKeyId
+          - !Ref 'AWS::NoValue'
       Architectures:
         - arm64
       Runtime: python3.14
       Timeout: 10
       KmsKeyArn:
-        !Sub
-          - 'arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key/${keyId}'
-          - {keyId: !Ref KMSKeyId}
+        !If
+          - HasKMSKeyId
+          - !Sub
+              - 'arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key/${keyId}'
+              - {keyId: !Ref KMSKeyId}
+          - !Ref 'AWS::NoValue'

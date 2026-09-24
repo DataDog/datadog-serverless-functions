@@ -246,6 +246,8 @@ If you're deploying via the SAR application (`rds-enhanced-sam-template.yaml`), 
 these environment variables is exposed as a stack parameter of the same name
 (`KmsEncryptedKeys`, `DdApiKeySecretArn`, `DdApiKeySsmName`, `DdKmsApiKey`, `DdApiKey`) —
 set the one matching the option you chose above and leave the rest blank.
+`KMSKeyId` is only required if you chose option (a) AWS KMS above; leave it blank
+for the other options.
 
 #### Create the Lambda Function
 
