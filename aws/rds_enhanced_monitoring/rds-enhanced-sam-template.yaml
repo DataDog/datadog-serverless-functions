@@ -4,7 +4,39 @@ Description: Pushes RDS Enhanced metrics to Datadog.
 Parameters:
   KMSKeyId:
     Type: String
-    Description: The id (final part of the key's ARN) of a KMS key used to encrypt and decrypt your Datadog API and App keys. 
+    Default: ''
+    Description: 'The Key ID of a KMS key used to encrypt and decrypt your Datadog API and App keys. Only required if using KmsEncryptedKeys or DdKmsApiKey, or if the AWS SSM parameter referenced by DdApiKeySsmName is encrypted with a customer-managed KMS key.'
+  KmsEncryptedKeys:
+    Type: String
+    Default: ''
+    NoEcho: true
+    Description: 'Your Datadog API and optionally APP key, KMS-encrypted with EncryptionContext, as a JSON blob. Leave blank if using one of the other options below.'
+  DdApiKeySecretArn:
+    Type: String
+    Default: ''
+    Description: 'ARN of an AWS Secrets Manager secret containing your Datadog API key. Leave blank if using one of the other options.'
+  DdApiKeySsmName:
+    Type: String
+    Default: ''
+    Description: 'Name of an AWS SSM parameter containing your Datadog API key. Use an ARN if the SSM Parameter is stored in another region. Leave blank if using one of the other options.'
+  DdKmsApiKey:
+    Type: String
+    Default: ''
+    NoEcho: true
+    Description: 'Your Datadog API key, KMS-encrypted CiphertextBlob. Leave blank if using one of the other options.'
+  DdApiKey:
+    Type: String
+    Default: ''
+    NoEcho: true
+    Description: '(Not Recommended) Your Datadog API key in plaintext. Leave blank if using one of the other options.'
+Conditions:
+  HasKMSKeyId: !Not [!Equals [!Ref KMSKeyId, '']]
+  HasKmsEncryptedKeys: !Not [!Equals [!Ref KmsEncryptedKeys, '']]
+  HasDdApiKeySecretArn: !Not [!Equals [!Ref DdApiKeySecretArn, '']]
+  HasDdApiKeySsmName: !Not [!Equals [!Ref DdApiKeySsmName, '']]
+  HasDdKmsApiKey: !Not [!Equals [!Ref DdKmsApiKey, '']]
+  HasDdApiKey: !Not [!Equals [!Ref DdApiKey, '']]
+  DdApiKeySsmNameIsArn: !Equals [!Select [0, !Split [':', !Ref DdApiKeySsmName]], 'arn']
 Resources:
   rdslambdaddfunction:
     Type: 'AWS::Serverless::Function'
@@ -12,17 +44,44 @@ Resources:
       Description: Pushes RDS Enhanced metrics to Datadog.
       Environment:
         Variables:
-          kmsEncryptedKeys: 'YOUR_KEY'
+          kmsEncryptedKeys: !If [HasKmsEncryptedKeys, !Ref KmsEncryptedKeys, !Ref 'AWS::NoValue']
+          DD_API_KEY_SECRET_ARN: !If [HasDdApiKeySecretArn, !Ref DdApiKeySecretArn, !Ref 'AWS::NoValue']
+          DD_API_KEY_SSM_NAME: !If [HasDdApiKeySsmName, !Ref DdApiKeySsmName, !Ref 'AWS::NoValue']
+          DD_KMS_API_KEY: !If [HasDdKmsApiKey, !Ref DdKmsApiKey, !Ref 'AWS::NoValue']
+          DD_API_KEY: !If [HasDdApiKey, !Ref DdApiKey, !Ref 'AWS::NoValue']
       Handler: lambda_function.lambda_handler
       MemorySize: 128
       Policies:
-        KMSDecryptPolicy:
-          KeyId: !Ref KMSKeyId
+        - !If
+            - HasKMSKeyId
+            - KMSDecryptPolicy:
+                KeyId: !Ref KMSKeyId
+            - !Ref 'AWS::NoValue'
+        - !If
+            - HasDdApiKeySecretArn
+            - AWSSecretsManagerGetSecretValuePolicy:
+                SecretArn: !Ref DdApiKeySecretArn
+            - !Ref 'AWS::NoValue'
+        - !If
+            - HasDdApiKeySsmName
+            - Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action: ssm:GetParameter
+                  Resource:
+                    !If
+                      - DdApiKeySsmNameIsArn
+                      - !Ref DdApiKeySsmName
+                      - !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${DdApiKeySsmName}'
+            - !Ref 'AWS::NoValue'
       Architectures:
         - arm64
       Runtime: python3.14
       Timeout: 10
       KmsKeyArn:
-        !Sub
-          - 'arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key/${keyId}'
-          - {keyId: !Ref KMSKeyId}
+        !If
+          - HasKMSKeyId
+          - !Sub
+              - 'arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key/${keyId}'
+              - {keyId: !Ref KMSKeyId}
+          - !Ref 'AWS::NoValue'
