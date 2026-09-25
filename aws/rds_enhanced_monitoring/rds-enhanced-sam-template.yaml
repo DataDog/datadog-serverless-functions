@@ -5,7 +5,7 @@ Parameters:
   KMSKeyId:
     Type: String
     Default: ''
-    Description: 'The Key ID of a KMS key used to encrypt and decrypt your Datadog API and App keys. Only required if using KmsEncryptedKeys or DdKmsApiKey.'
+    Description: 'The Key ID of a KMS key used to encrypt and decrypt your Datadog API and App keys. Only required if using KmsEncryptedKeys or DdKmsApiKey, or if the AWS SSM parameter referenced by DdApiKeySsmName is encrypted with a customer-managed KMS key.'
   KmsEncryptedKeys:
     Type: String
     Default: ''
@@ -36,6 +36,7 @@ Conditions:
   HasDdApiKeySsmName: !Not [!Equals [!Ref DdApiKeySsmName, '']]
   HasDdKmsApiKey: !Not [!Equals [!Ref DdKmsApiKey, '']]
   HasDdApiKey: !Not [!Equals [!Ref DdApiKey, '']]
+  DdApiKeySsmNameIsArn: !Equals [!Select [0, !Split [':', !Ref DdApiKeySsmName]], 'arn']
 Resources:
   rdslambdaddfunction:
     Type: 'AWS::Serverless::Function'
@@ -51,11 +52,28 @@ Resources:
       Handler: lambda_function.lambda_handler
       MemorySize: 128
       Policies:
-        !If
-          - HasKMSKeyId
-          - KMSDecryptPolicy:
-              KeyId: !Ref KMSKeyId
-          - !Ref 'AWS::NoValue'
+        - !If
+            - HasKMSKeyId
+            - KMSDecryptPolicy:
+                KeyId: !Ref KMSKeyId
+            - !Ref 'AWS::NoValue'
+        - !If
+            - HasDdApiKeySecretArn
+            - AWSSecretsManagerGetSecretValuePolicy:
+                SecretArn: !Ref DdApiKeySecretArn
+            - !Ref 'AWS::NoValue'
+        - !If
+            - HasDdApiKeySsmName
+            - Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action: ssm:GetParameter
+                  Resource:
+                    !If
+                      - DdApiKeySsmNameIsArn
+                      - !Ref DdApiKeySsmName
+                      - !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${DdApiKeySsmName}'
+            - !Ref 'AWS::NoValue'
       Architectures:
         - arm64
       Runtime: python3.14

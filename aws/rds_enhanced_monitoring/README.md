@@ -237,6 +237,11 @@ c. AWS SSM
    2.  Store the Name of the parameter as the `DD_API_KEY_SSM_NAME` environment
        variable, or its full ARN when the parameter lives in a different region
        than the function
+   3.  If the parameter is a `SecureString` encrypted with a customer-managed KMS
+       key (rather than the default `alias/aws/ssm` key), you'll also need to grant
+       `kms:Decrypt` on that key. If deploying via the SAR application, set the
+       `KMSKeyId` parameter to that key's id, and the generated policy will cover
+       it — see the note below.
 
 d. **Not Recommended**: Plaintext
    1. Set your API key in plaintext as the `DD_API_KEY` environment variable.
@@ -245,16 +250,23 @@ d. **Not Recommended**: Plaintext
 If you're deploying via the SAR application (`rds-enhanced-sam-template.yaml`), each of
 these environment variables is exposed as a stack parameter of the same name
 (`KmsEncryptedKeys`, `DdApiKeySecretArn`, `DdApiKeySsmName`, `DdKmsApiKey`, `DdApiKey`) —
-set the one matching the option you chose above and leave the rest blank.
-`KMSKeyId` is only required if you chose option (a) AWS KMS above; leave it blank
-for the other options.
+set the one matching the option you chose above and leave the rest blank. The SAR
+application automatically attaches the IAM permission needed for whichever option
+you used (`kms:Decrypt`, `secretsmanager:GetSecretValue`, or `ssm:GetParameter`), so
+no manual IAM policy editing is required. `KMSKeyId` is only required if you chose
+option (a) AWS KMS above, or if you chose option (c) AWS SSM with a parameter
+encrypted using a customer-managed KMS key; leave it blank otherwise.
 
 #### Create the Lambda Function
 
 1. Create and configure a lambda function
-   - In the AWS Console, create a `lambda_execution` policy, with the following policy. If
-     you chose an option other than KMS above, substitute the KMS statement with the
-     appropriate permission for the service you used.
+   - **If deploying via the SAR application**, the `lambda_execution` policy is generated
+     for you automatically based on the stack parameters you set above — skip to the next
+     step.
+
+   - **If creating the Lambda manually** (not via SAR), create a `lambda_execution` policy
+     in the AWS Console. Start from the base policy below, then add the statement for the
+     credential option you chose above:
 
      ```
      {
@@ -268,19 +280,48 @@ for the other options.
                     "logs:PutLogEvents"
                 ],
                 "Resource": "arn:aws:logs:*:*:*"
-            },
-            {
-                 "Effect": "Allow",
-                 "Action": [
-                   "kms:Decrypt"
-                 ],
-                 "Resource": [
-                   "<KMS ARN>"
-                 ]
-               }
+            }
         ]
      }
      ```
+
+     - Option (a) AWS KMS, or option (c) AWS SSM with a customer-managed KMS key:
+       ```
+       {
+            "Effect": "Allow",
+            "Action": [
+              "kms:Decrypt"
+            ],
+            "Resource": [
+              "<KMS ARN>"
+            ]
+          }
+       ```
+     - Option (b) AWS Secrets Manager:
+       ```
+       {
+            "Effect": "Allow",
+            "Action": [
+              "secretsmanager:GetSecretValue"
+            ],
+            "Resource": [
+              "<Secret ARN>"
+            ]
+          }
+       ```
+     - Option (c) AWS SSM:
+       ```
+       {
+            "Effect": "Allow",
+            "Action": [
+              "ssm:GetParameter"
+            ],
+            "Resource": [
+              "<SSM Parameter ARN>"
+            ]
+          }
+       ```
+     - Option (d) Plaintext: no additional statement needed.
 
    - Create a `lambda_execution` role and attach this policy.
 
