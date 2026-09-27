@@ -47,14 +47,16 @@ func eventBridge(event json.RawMessage) (Event, error) {
 }
 
 func mapS3EventBridge(eb s3EventBridgeDetail) (json.RawMessage, error) {
-	s3EventRecord := events.S3EventRecord{
-		EventSource: eventSourceS3,
-		S3: events.S3Entity{
-			Bucket: events.S3Bucket{Name: eb.Bucket.Name},
-			Object: events.S3Object{Key: eb.Object.Key, URLDecodedKey: eb.Object.Key},
-		},
+	s3Event := events.S3Event{
+		Records: []events.S3EventRecord{{
+			EventSource: eventSourceS3,
+			S3: events.S3Entity{
+				Bucket: events.S3Bucket{Name: eb.Bucket.Name},
+				Object: events.S3Object{Key: eb.Object.Key, URLDecodedKey: eb.Object.Key},
+			},
+		}},
 	}
-	payload, err := json.Marshal(s3EventRecord)
+	payload, err := json.Marshal(s3Event)
 	if err != nil {
 		return nil, fmt.Errorf("marshal: %w", err)
 	}

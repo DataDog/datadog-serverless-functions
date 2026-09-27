@@ -59,6 +59,55 @@ func TestBuildURLs(t *testing.T) {
 	}
 }
 
+func TestLoadEnvAdditionalTargets(t *testing.T) {
+	const (
+		first  = "arn:aws:lambda:us-east-1:123456789012:function:first"
+		second = "arn:aws:lambda:us-east-1:123456789012:function:second"
+	)
+
+	tests := map[string]struct {
+		env  string
+		want []string
+	}{
+		"empty": {
+			env: "",
+		},
+		"single target": {
+			env:  first,
+			want: []string{first},
+		},
+		"multiple targets": {
+			env:  first + "," + second,
+			want: []string{first, second},
+		},
+		"trailing comma": {
+			env:  first + "," + second + ",",
+			want: []string{first, second},
+		},
+		"only commas": {
+			env: ",,",
+		},
+		"surrounding whitespace": {
+			env:  first + " , " + second,
+			want: []string{first, second},
+		},
+		"whitespace only entries": {
+			env: " , \t",
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Setenv(EnvAdditionalTargets, tc.env)
+
+			var cfg Config
+			cfg.loadEnv()
+
+			assert.Equal(t, tc.want, cfg.AdditionalTargets)
+		})
+	}
+}
+
 func TestResolveAPIKey(t *testing.T) {
 	succeed := func(_ context.Context, v string) (string, error) { return v, nil }
 	fail := func(_ context.Context, _ string) (string, error) { return "", errors.New("aws error") }
