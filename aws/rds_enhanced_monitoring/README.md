@@ -1,7 +1,172 @@
-# rds_enhanced_monitoring
-Process a RDS enhanced monitoring DATA_MESSAGE, coming from CLOUDWATCH LOGS
+# RDS Enhanced Monitoring
+Parses RDS Enhanced Monitoring logs to deliver OS-level metrics including CPU, memory, swap, disk I/O, network throughput, and per-process resource usage at up to 1-second granularity, providing visibility into database host performance that standard CloudWatch RDS metrics don't provide.  Metrics are sent to Datadog and queryable under the `aws.rds.*` metric namespace.
+
+# Setup
+
+## Prerequisites
+
+Refer to [Enable RDS Enhanced Monitoring][1] to set up enhanced monitoring for your RDS hosts.
+
+## 1. Encrypt Your Datadog API Key
+
+It is strongly recommended to encrypt your Datadog API key. Choose one of the following options to do so. A plaintext key should only be used for non-production or testing environments.  See [Add an API key or client token][6] for help creating your Datadog API key.
+
+### (a) AWS KMS
+
+There are two supported KMS flows. They use different environment
+variables and are not interchangeable.
+
+   - API key only (recommended for new deployments)
+      1. Refer to the [AWS KMS Creating Keys][2] documentation for step by step instructions on creating a key.
+      2. Encrypt your API key using the AWS CLI.<br>
+      `aws kms encrypt --key-id alias/<KMS_KEY_NAME> --plaintext '<DD_API_KEY>'`
+      3. Keep the `CiphertextBlob` on hand for the next section.
+
+   - API and APP key together (legacy)
+      1. Encrypt a JSON blob containing both keys, with an `EncryptionContext` set to
+         the exact name of the Lambda function you're deploying to. The context is
+         required.  Decryption will fail if it doesn't match the function's name.
+         ```
+         aws kms encrypt \
+           --key-id alias/<KMS_KEY_NAME> \
+           --plaintext '{"api_key":"<DD_API_KEY>","app_key":"<DD_APP_KEY>"}' \
+           --encryption-context LambdaFunctionName=<FUNCTION_NAME>
+         ```
+      2. Keep the `CiphertextBlob` on hand for the next section.  Use this option if you need to 
+         supply both keys, or you're carrying over a value encrypted this way from an existing deployment.
+
+### (b) AWS Secrets Manager
+   1. Refer to the [AWS Secrets Manager Create a secret][4] documentation for step by step instructions on creating a secret.
+   2. Create the secret using the AWS CLI.<br>
+   `aws secretsmanager create-secret --name <SECRET_NAME> --secret-string '<DD_API_KEY>'`
+   3. Keep the secret's `ARN` on hand for the next section.
+
+### (c) AWS SSM
+   1.  Refer to the [AWS Systems Manager Create a parameter][5] documentation for step by step instructions on creating a parameter.
+   2.  Create the parameter using the AWS CLI.<br>
+   `aws ssm put-parameter --name <PARAMETER_NAME> --value '<DD_API_KEY>' --type SecureString`
+   3.  Keep the parameter's Name (or its full ARN, if it lives in a different region
+       than the function) on hand for the next section.
+
+**Note:** If the parameter is a `SecureString` encrypted with a customer-managed KMS key (rather than the default `alias/aws/ssm` key), you'll also need to grant `kms:Decrypt` on that key. If deploying via the SAR application, set the `KMSKeyId` parameter to that key's id, and the generated policy will cover it — see the note below.
+
+### (d) Plaintext
+**Note**: Plaintext is not recommended and should only be used for non-production or testing environments.
+   1. In Datadog, go to **Organization Settings** --> **API Keys** and keep the value on hand for the next section.
+
+## 2. Deploy the RDS Enhanced SAR Application
+   1.  Sign into the AWS management console
+   2.  Visit the [application overview page][3] and click Deploy.
+   3.  Based on the encryption method you chose, fill out the matching stack parameter(s) and leave the rest blank.
+   4.  After filling out the stack parameter(s) click Deploy to launch the CloudFormation stack.
+
+**(a) AWS KMS**<br>
+Enter the KMS Key ID for `KMSKeyId` and either the encrypted `CiphertextBlob` containing your API key for `DdKmsApiKey` or the encrypted `CiphertextBlob` containing your API and APP key for `KmsEncryptedKeys`.
+
+**(b) AWS Secrets Manager**<br>
+Enter the Secret ARN for `DdApiKeySecretArn`.
+
+**(c) AWS SSM**<br>
+Enter the name of the SSM parameter or the ARN of the SSM parameter if it lives in a different region than the Lambda function for `DdApiKeySsmName`.  If you encrypted the SSM parameter with a customer-managed KMS key, you must also specify the KMS Key ID for  `KMSKeyId`.
+
+**(d) Plaintext**<br>
+Enter the plain API key for `DdApiKey`.
+
+## 3. Subscribe the RDS Enhanced Lambda to the RDSOSMetrics log group
+
+1. Sign into the AWS management console and open the **CloudWatch** service.
+2. In the left navigation pane, click **Logs** --> **Logs Management**.
+3. Select the **RDSOSMetrics** log group. RDS creates this log group automatically
+   once Enhanced Monitoring is enabled on a database instance (see [Prerequisites](#prerequisites)).
+4. Click **Actions** --> **Subscription filters** --> **Create Lambda subscription filter**.
+5. Under **Choose destination**, select the
+   RDS Enhanced Lambda function you deployed above.
+6. Under **Configure log format and filters**, enter a name for the **Subscription filter** like
+   `RDSEnhancedLogsFilter` but leave the **Subscription pattern**  blank so every log event is forwarded, then click **Start streaming**.
+
+Once the subscription filter is created, the Lambda begins processing enhanced
+monitoring events the next time RDS emits them and sends the metrics to Datadog.
+
+## Manually Create the RDS Enhanced Lambda
+If you want to create the Lambda without using the SAR application, follow these steps.
+
+   1. Create a lambda function using **Author from scratch**, and give it a name like `DatadogRDSEnhanced`.  
+       - Set the Runtime to `Python 3.12`
+       - Set the Architecture to `arm64` 
+       - Click **Create function**
+   2. Copy the content from `lambda_function.py` in this repo to the code source for the Lambda.
+   3. Add an environment variable for your API key based on the encryption method you chose.  If you use a Datadog site other than US1, create an environment variable `DD_SITE` and enter a [site parameter][7].
+   4. Create a permissions policy granting the IAM permission required for your chosen credential option (see **Permission Policies** below), and attach it to the Lambda's execution role. Skip this step if a plaintext API key was used.
+   5. [Subscribe the Lambda function to the RDSOSMetrics log group](#3-subscribe-the-rds-enhanced-lambda-to-the-rdsosmetrics-log-group).
+
+**Environment Variables**
+
+**(a) AWS KMS**<br>
+Create an environment variable `DD_KMS_API_KEY` and enter the encrypted CiphertextBlob containing your API key.
+If you encrypted both your API and APP key create an environment variable `KmsEncryptedKeys` and enter the encrypted CiphertextBlob.
+
+**(b) AWS Secrets Manager**<br>
+Create an environment variable `DD_API_KEY_SECRET_ARN` and enter the Secret ARN.
+
+**(c) AWS SSM**<br>
+Create an environment variable `DD_API_KEY_SSM_NAME` and enter the name of the SSM parameter or the ARN of the SSM parameter if it lives in a different region than the Lambda function.
+
+**(d) Plaintext**<br>
+Create an environment variable `DD_API_KEY` and enter the API key.
+
+**Permission Policies**
+
+**(a) AWS KMS or (c) AWS SSM with a customer-managed KMS key**
+```json
+{
+    "Effect": "Allow",
+    "Action": [
+        "kms:Decrypt"
+    ],
+    "Resource": [
+        "<KMS ARN>"
+    ]
+}
+```
+
+**(b) AWS Secrets Manager**
+```json
+{
+    "Effect": "Allow",
+    "Action": [
+        "secretsmanager:GetSecretValue"
+    ],
+    "Resource": [
+        "<Secret ARN>"
+    ]
+}
+```
+
+**(c) AWS SSM**
+```json
+{
+    "Effect": "Allow",
+    "Action": [
+        "ssm:GetParameter"
+    ],
+    "Resource": [
+        "<SSM Parameter ARN>"
+    ]
+}
+```
+
+# How to update the zip file for the AWS Serverless Apps
+
+1. After modifying the files that you want inside the respective lambda app directory, run:
+
+```
+aws cloudformation package --template-file rds-enhanced-sam-template.yaml --output-template-file rds-enhanced-serverless-output.yaml --s3-bucket BUCKET_NAME
+```
 
 # RDS message example
+<details>
+    <summary>Click to expand</summary>
+
 ```json
     {
         "engine": "Aurora",
@@ -213,134 +378,12 @@ Process a RDS enhanced monitoring DATA_MESSAGE, coming from CLOUDWATCH LOGS
         }]
     }
 ```
+</details>
 
-# Setup
-
-#### Encrypt Your Datadog API Key
-
-Before configuring your Lambda, first choose one of the following options to encrypt your Datadog API key.
-
-a. **Recommended**: AWS KMS
-   1. Refer to the [AWS KMS Creating Keys][1] documentation for step by step instructions on creating a key.
-   2. Encrypt your API key using the AWS CLI.
-   `aws kms encrypt --key-id alias/<KMS key name> --plaintext '<dd_api_key>'`
-   3. Store the `CiphertextBlob` as the `DD_KMS_API_KEY` environment variable in the next section.
-
-b. AWS Secrets Manager
-   1. Create a plaintext secret in AWS Secrets Manager using your API key as the value
-   2. Store the ARN of the secret as the `DD_API_KEY_SECRET_ARN` environment variable.
-      The secret may live in a different region than the function, as the region is
-      read from the ARN.
-
-c. AWS SSM
-   1.  Create a parameter in AWS SSM using your API key as the value
-   2.  Store the Name of the parameter as the `DD_API_KEY_SSM_NAME` environment
-       variable, or its full ARN when the parameter lives in a different region
-       than the function
-   3.  If the parameter is a `SecureString` encrypted with a customer-managed KMS
-       key (rather than the default `alias/aws/ssm` key), you'll also need to grant
-       `kms:Decrypt` on that key. If deploying via the SAR application, set the
-       `KMSKeyId` parameter to that key's id, and the generated policy will cover
-       it — see the note below.
-
-d. **Not Recommended**: Plaintext
-   1. Set your API key in plaintext as the `DD_API_KEY` environment variable.
-   2. This flow is insecure and not recommended for production use cases.
-
-If you're deploying via the SAR application (`rds-enhanced-sam-template.yaml`), each of
-these environment variables is exposed as a stack parameter of the same name
-(`KmsEncryptedKeys`, `DdApiKeySecretArn`, `DdApiKeySsmName`, `DdKmsApiKey`, `DdApiKey`) —
-set the one matching the option you chose above and leave the rest blank. The SAR
-application automatically attaches the IAM permission needed for whichever option
-you used (`kms:Decrypt`, `secretsmanager:GetSecretValue`, or `ssm:GetParameter`), so
-no manual IAM policy editing is required. `KMSKeyId` is only required if you chose
-option (a) AWS KMS above, or if you chose option (c) AWS SSM with a parameter
-encrypted using a customer-managed KMS key; leave it blank otherwise.
-
-#### Create the Lambda Function
-
-1. Create and configure a lambda function
-   - **If deploying via the SAR application**, the `lambda_execution` policy is generated
-     for you automatically based on the stack parameters you set above — skip to the next
-     step.
-
-   - **If creating the Lambda manually** (not via SAR), create a `lambda_execution` policy
-     in the AWS Console. Start from the base policy below, then add the statement for the
-     credential option you chose above:
-
-     ```
-     {
-        "Version": "2012-10-17",
-        "Statement": [
-            {
-                "Effect": "Allow",
-                "Action": [
-                    "logs:CreateLogGroup",
-                    "logs:CreateLogStream",
-                    "logs:PutLogEvents"
-                ],
-                "Resource": "arn:aws:logs:*:*:*"
-            }
-        ]
-     }
-     ```
-
-     - Option (a) AWS KMS, or option (c) AWS SSM with a customer-managed KMS key:
-       ```
-       {
-            "Effect": "Allow",
-            "Action": [
-              "kms:Decrypt"
-            ],
-            "Resource": [
-              "<KMS ARN>"
-            ]
-          }
-       ```
-     - Option (b) AWS Secrets Manager:
-       ```
-       {
-            "Effect": "Allow",
-            "Action": [
-              "secretsmanager:GetSecretValue"
-            ],
-            "Resource": [
-              "<Secret ARN>"
-            ]
-          }
-       ```
-     - Option (c) AWS SSM:
-       ```
-       {
-            "Effect": "Allow",
-            "Action": [
-              "ssm:GetParameter"
-            ],
-            "Resource": [
-              "<SSM Parameter ARN>"
-            ]
-          }
-       ```
-     - Option (d) Plaintext: no additional statement needed.
-
-   - Create a `lambda_execution` role and attach this policy.
-
-   - Create a lambda function: skip the blueprint, name it `functionname`, set the Runtime to `Python 3.12`, the Architecture to `arm64`, the handle to `lambda_function.lambda_handler`, and the role to `lambda_execution`.
-
-   - Copy the content of `functionname/lambda_function.py` in the code section
-
-   - Set the relevant environment variable with the API key payload you generated in step 1.
-
-   - If you use Datadog's EU platform, set the environment variable `DD_SITE` to `datadoghq.eu`
-
-2. Subscribe to the appropriate log stream.
-
-# How to update the zip file for the AWS Serverless Apps
-
-1. After modifying the files that you want inside the respective lambda app directory, run:
-
-```
-aws cloudformation package --template-file rds-enhanced-sam-template.yaml --output-template-file rds-enhanced-serverless-output.yaml --s3-bucket BUCKET_NAME
-```
-
-[1]: http://docs.aws.amazon.com/kms/latest/developerguide/create-keys.html
+[1]: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_Monitoring.OS.Enabling.html
+[2]: http://docs.aws.amazon.com/kms/latest/developerguide/create-keys.html
+[3]: https://serverlessrepo.aws.amazon.com/applications/arn:aws:serverlessrepo:us-east-1:464622532012:applications~Datadog-RDS-Enhanced
+[4]: https://docs.aws.amazon.com/secretsmanager/latest/userguide/create_secret.html
+[5]: https://docs.aws.amazon.com/systems-manager/latest/userguide/param-create-cli.html
+[6]: https://docs.datadoghq.com/account_management/api-app-keys/#add-an-api-key-or-client-token
+[7]: https://docs.datadoghq.com/getting_started/site/#access-the-datadog-site
