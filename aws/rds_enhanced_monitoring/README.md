@@ -57,7 +57,7 @@ variables and are not interchangeable.
 ## 2. Deploy the RDS Enhanced SAR Application
    1.  Sign into the AWS management console
    2.  Visit the [application overview page][3] and click Deploy.
-   3.  Based on the encryption method you chose, fill out the matching stack parameter(s) and leave the rest blank.
+   3.  Based on the encryption method you chose, fill out the matching stack parameter(s) and leave the rest blank. If your Datadog account uses a site other than US1, also set `DdSite` to match.
    4.  After filling out the stack parameter(s) click Deploy to launch the CloudFormation stack.
 
 **(a) AWS KMS**<br>

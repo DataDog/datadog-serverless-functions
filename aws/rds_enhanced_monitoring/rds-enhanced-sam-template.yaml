@@ -29,6 +29,20 @@ Parameters:
     Default: ''
     NoEcho: true
     Description: '(Not Recommended) Your Datadog API key in plaintext. Leave blank if using one of the other options.'
+  DdSite:
+    Type: String
+    Default: datadoghq.com
+    AllowedValues:
+      - datadoghq.com
+      - us3.datadoghq.com
+      - us5.datadoghq.com
+      - datadoghq.eu
+      - ddog-gov.com
+      - us2.ddog-gov.com
+      - ap1.datadoghq.com
+      - ap2.datadoghq.com
+      - uk1.datadoghq.com
+    Description: 'The Datadog site your account uses. Leave as the default (datadoghq.com / US1) unless your account uses a different site.'
 Conditions:
   HasKMSKeyId: !Not [!Equals [!Ref KMSKeyId, '']]
   HasKmsEncryptedKeys: !Not [!Equals [!Ref KmsEncryptedKeys, '']]
@@ -49,6 +63,7 @@ Resources:
           DD_API_KEY_SSM_NAME: !If [HasDdApiKeySsmName, !Ref DdApiKeySsmName, !Ref 'AWS::NoValue']
           DD_KMS_API_KEY: !If [HasDdKmsApiKey, !Ref DdKmsApiKey, !Ref 'AWS::NoValue']
           DD_API_KEY: !If [HasDdApiKey, !Ref DdApiKey, !Ref 'AWS::NoValue']
+          DD_SITE: !Ref DdSite
       Handler: lambda_function.lambda_handler
       MemorySize: 128
       Policies:
