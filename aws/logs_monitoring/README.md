@@ -61,7 +61,7 @@ If you're using AWS Organizations, you can use CloudFormation StackSets to deplo
 2. In the **Permissions** section, optionally provide an IAM admin role ARN, or leave the default IAM execution role name (`AWSCloudFormationStackSetExecutionRole`).
 3. In the **Specify template** section:
     1. Select **Amazon S3 URL**.
-    1. Enter the Forwarder template URL: `https://datadog-cloudformation-template.s3.amazonaws.com/aws/forwarder/latest.yaml`.
+    1. Enter the Forwarder template URL: `https://datadog-cloudformation-template.s3.amazonaws.com/aws/forwarder/latest.yaml`. For deployments in AWS GovCloud regions, use `https://datadog-cloudformation-template-us-gov.s3.us-gov-west-1.amazonaws.com/aws/forwarder/latest.yaml`.
     1. Click **Next**.
 4. In the **Specify stack set details** section:
     1. Provide a stack set name.
@@ -88,7 +88,7 @@ If you're using AWS Organizations, you can use CloudFormation StackSets to deplo
 3. In the **Permissions** section, choose **Service-managed permissions**. This option allows CloudFormation StackSets to create the necessary IAM roles in target accounts automatically.
 4. In the **Specify template** section:
     1. Select **Amazon S3 URL**.
-    1. Enter the Forwarder template URL: `https://datadog-cloudformation-template.s3.amazonaws.com/aws/forwarder/latest.yaml`.
+    1. Enter the Forwarder template URL: `https://datadog-cloudformation-template.s3.amazonaws.com/aws/forwarder/latest.yaml`. For deployments in AWS GovCloud regions, use `https://datadog-cloudformation-template-us-gov.s3.us-gov-west-1.amazonaws.com/aws/forwarder/latest.yaml`.
     1. Click **Next**.
 5. In the **Specify stack set details** section:
     1. Provide a stack set name.
@@ -174,7 +174,7 @@ The <a href="#cloudformation-parameters">environment variables provided on this 
 
 1. Find the [datadog-forwarder (if you didn't rename it)][5] CloudFormation stack. If you installed the Forwarder as part of the [Datadog AWS integration stack][6], make sure to update the nested Forwarder stack instead of the root stack.
 2. Find the actual Forwarder Lambda function from the CloudFormation stack's "Resources" tab, navigate to its configuration page. Note down the value of the tag `dd_forwarder_version`, such as `3.73.0`, in case you run into issues with the new version and need to rollback.
-3. Update the stack using template `https://datadog-cloudformation-template.s3.amazonaws.com/aws/forwarder/latest.yaml`. You can also replace `latest` with a specific version, such as `3.73.0.yaml`, if needed. Make sure to review the changesets before applying the update.
+3. Update the stack using template `https://datadog-cloudformation-template.s3.amazonaws.com/aws/forwarder/latest.yaml`. For stacks in AWS GovCloud regions, use `https://datadog-cloudformation-template-us-gov.s3.us-gov-west-1.amazonaws.com/aws/forwarder/latest.yaml`. You can also replace `latest` with a specific version, such as `3.73.0.yaml`, if needed. Make sure to review the changesets before applying the update.
 
 If you encounter issues upgrading to the latest version, check the Troubleshooting section.
 
