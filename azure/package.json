@@ -33,11 +33,11 @@
     "mocha": {
       "glob": {
         "minimatch": {
-          "brace-expansion": "^2.1.4"
+          "brace-expansion": "^2.1.7"
         }
       },
       "minimatch": {
-        "brace-expansion": "^2.1.4"
+        "brace-expansion": "^2.1.7"
       }
     }
   }
