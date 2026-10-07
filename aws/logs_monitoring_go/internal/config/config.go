@@ -44,7 +44,7 @@ const (
 	EnvSQSQueueURL              = "DD_SQS_QUEUE_URL"
 	EnvAdditionalTargets        = "DD_ADDITIONAL_TARGET_LAMBDAS"
 	EnvEnableStepFunctionsTrace = "DD_STEP_FUNCTIONS_TRACE_ENABLED"
-	ForwarderVersion            = "6.0"
+	ForwarderVersion            = "6.0.0-rc.1"
 )
 
 type apiKeyResolver struct {
