@@ -1,10 +1,12 @@
 {
   "headers": {
+    "Accept-Encoding": "",
     "Content-Encoding": "gzip",
+    "Content-Length": "",
     "Content-Type": "application/json",
     "Dd-Api-Key": "abcdefghijklmnopqrstuvwxyz012345",
     "Dd-Evp-Origin": "aws_forwarder",
-    "Dd-Evp-Origin-Version": "6.0",
+    "Dd-Evp-Origin-Version": "",
     "User-Agent": "Go-http-client/1.1"
   },
   "body": [

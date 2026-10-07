@@ -12,10 +12,17 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
+
+var nonDeterministicHeaders = []string{
+	"Content-Length",
+	"Accept-Encoding",
+	"Dd-Evp-Origin-Version",
+}
 
 type recordedRequest struct {
 	Headers map[string]string `json:"headers"`
@@ -47,10 +54,11 @@ func newRecorder(t *testing.T) *recorder {
 
 		headers := make(map[string]string)
 		for key, vals := range r.Header {
-			switch key {
-			case "Content-Length", "Accept-Encoding": // non-deterministic
+			if slices.Contains(nonDeterministicHeaders, key) {
+				headers[key] = ""
 				continue
 			}
+
 			headers[key] = vals[0]
 		}
 
