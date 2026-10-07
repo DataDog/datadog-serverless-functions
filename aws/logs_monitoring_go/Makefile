@@ -1,5 +1,6 @@
 BINARY_NAME := bootstrap
-ZIP_NAME := forwarder.zip
+FORWARDER_VERSION := $(shell perl -ne 'print $$1 if /ForwarderVersion\s*=\s*"([^"]+)"/' internal/config/config.go)
+ZIP_NAME := aws-dd-forwarder-$(FORWARDER_VERSION).zip
 
 # Go
 
@@ -9,6 +10,7 @@ build:
 
 .PHONY: package
 package: build
+	rm -f $(ZIP_NAME)
 	zip $(ZIP_NAME) $(BINARY_NAME)
 
 .PHONY: test
@@ -30,7 +32,7 @@ generate:
 
 .PHONY: clean
 clean:
-	rm -f $(BINARY_NAME) $(ZIP_NAME)
+	rm -f $(BINARY_NAME) $(ZIP_NAME) aws-dd-forwarder-*.zip
 
 # SAM
 
