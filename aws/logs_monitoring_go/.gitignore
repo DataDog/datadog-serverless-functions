@@ -1,5 +1,4 @@
 .aws-sam
 samconfig.toml
-template.yaml
 aws-dd-forwarder-*
 bootstrap
