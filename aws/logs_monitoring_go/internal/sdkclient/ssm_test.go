@@ -6,6 +6,7 @@
 package sdkclient
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -27,7 +28,7 @@ func TestFetchSSMParameter(t *testing.T) {
 		"success": {
 			mockSetup: func(m *MockSSM) {
 				m.EXPECT().
-					GetParameter(gomock.Any(), gomock.Any()).
+					GetParameter(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(&ssm.GetParameterOutput{
 						Parameter: &types.Parameter{
 							Value: aws.String("abcdef1234567890abcdef1234567890"),
@@ -40,7 +41,7 @@ func TestFetchSSMParameter(t *testing.T) {
 		"whitespace_trimmed": {
 			mockSetup: func(m *MockSSM) {
 				m.EXPECT().
-					GetParameter(gomock.Any(), gomock.Any()).
+					GetParameter(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(&ssm.GetParameterOutput{
 						Parameter: &types.Parameter{
 							Value: aws.String("  abcdef1234567890abcdef1234567890  "),
@@ -53,7 +54,7 @@ func TestFetchSSMParameter(t *testing.T) {
 		"aws_error": {
 			mockSetup: func(m *MockSSM) {
 				m.EXPECT().
-					GetParameter(gomock.Any(), gomock.Any()).
+					GetParameter(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil, errors.New("ParameterNotFound: parameter not found"))
 			},
 			name:    "/my/parameter/path",
@@ -62,7 +63,7 @@ func TestFetchSSMParameter(t *testing.T) {
 		"nil_parameter": {
 			mockSetup: func(m *MockSSM) {
 				m.EXPECT().
-					GetParameter(gomock.Any(), gomock.Any()).
+					GetParameter(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(&ssm.GetParameterOutput{
 						Parameter: nil,
 					}, nil)
@@ -73,7 +74,7 @@ func TestFetchSSMParameter(t *testing.T) {
 		"nil_value": {
 			mockSetup: func(m *MockSSM) {
 				m.EXPECT().
-					GetParameter(gomock.Any(), gomock.Any()).
+					GetParameter(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(&ssm.GetParameterOutput{
 						Parameter: &types.Parameter{
 							Value: nil,
@@ -98,6 +99,44 @@ func TestFetchSSMParameter(t *testing.T) {
 			}
 			require.NoError(t, err)
 			assert.Equal(t, tc.wantKey, got)
+		})
+	}
+}
+
+func TestFetchSSMParameterUsesRegionFromARN(t *testing.T) {
+	tests := map[string]struct {
+		name string
+		want string
+	}{
+		"parameter arn": {name: "arn:aws:ssm:eu-west-3:012345678901:parameter/datadog/api-key", want: "eu-west-3"},
+		"bare name":     {name: "/datadog/api-key"},
+		"relative name": {name: "datadog-api-key"},
+	}
+
+	for label, tc := range tests {
+		t.Run(label, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			mock := NewMockSSM(ctrl)
+
+			var gotRegion string
+			mock.EXPECT().
+				GetParameter(gomock.Any(), gomock.Any(), gomock.Any()).
+				DoAndReturn(func(_ context.Context, _ *ssm.GetParameterInput, optFns ...func(*ssm.Options)) (*ssm.GetParameterOutput, error) {
+					var opts ssm.Options
+					for _, fn := range optFns {
+						fn(&opts)
+					}
+					gotRegion = opts.Region
+
+					return &ssm.GetParameterOutput{
+						Parameter: &types.Parameter{Value: aws.String("abcdef1234567890abcdef1234567890")},
+					}, nil
+				})
+
+			_, err := FetchSSMParameter(t.Context(), mock, tc.name)
+
+			require.NoError(t, err)
+			assert.Equal(t, tc.want, gotRegion)
 		})
 	}
 }

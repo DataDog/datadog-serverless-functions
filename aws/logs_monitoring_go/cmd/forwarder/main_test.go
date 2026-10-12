@@ -21,6 +21,8 @@ import (
 
 var update = flag.Bool("update", false, "update .golden files")
 
+const testAPIKey = "abcdefghijklmnopqrstuvwxyz012345"
+
 func load(t *testing.T, path string) json.RawMessage {
 	t.Helper()
 
@@ -52,14 +54,13 @@ func TestHandleRequest(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			rec := newRecorder(t)
 			cfg := &config.Config{
-				APIKey:           "abcdefghijklmnopqrstuvwxyz012345",
 				IntakeURL:        rec.URL,
 				CompressionLevel: gzip.DefaultCompression,
 			}
 			ctx := testutil.LambdaContext(t)
 			event := load(t, input)
 
-			_, err := handleRequest(cfg, rec.Client())(ctx, event)
+			_, err := handleRequest(cfg, testAPIKey, rec.Client())(ctx, event)
 
 			require.NoError(t, err)
 			require.NotEmpty(t, rec.request, "recorder received no requests")

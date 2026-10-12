@@ -10,9 +10,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"log/slog"
 	"net/http"
+	"os"
 	"sync"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/apikey"
@@ -30,9 +30,24 @@ import (
 )
 
 func main() {
+	initLogger(os.Stderr, os.Getenv(config.EnvLogLevel))
+
 	cfg, err := config.Load()
 	if err != nil {
-		log.Fatal(err)
+		slog.Error("config load", slog.Any("error", err))
+		os.Exit(1)
+	}
+	slog.Debug("configuration loaded", slog.Any("config", cfg))
+
+	ctx := context.Background()
+	apiKey, err := apikey.Resolve(ctx, apikey.Source{
+		SecretARN: cfg.APIKeySecretARN,
+		SSMName:   cfg.APIKeySSMName,
+		KMSKey:    cfg.APIKeyKMSKey,
+	})
+	if err != nil {
+		slog.Error("resolve API key", slog.Any("error", err))
+		os.Exit(1)
 	}
 
 	var tlsOpts []httpclient.TLSOption
@@ -41,17 +56,18 @@ func main() {
 	}
 	client := httpclient.New(tlsOpts...)
 
-	if err = apikey.Validate(context.Background(), client, cfg.APIURL, cfg.APIKey); err != nil {
+	if err = apikey.Validate(ctx, client, cfg.APIURL, apiKey); err != nil {
 		if !cfg.StoreOnFail {
-			log.Fatal(fmt.Errorf("no failed event storage set, validate API key: %w", err))
+			slog.Error("no failed event storage set, validate API key", slog.Any("error", err))
+			os.Exit(1)
 		}
 		slog.Error("API key validation", slog.Any("error", err))
 	}
 
-	lambda.Start(handleRequest(cfg, client))
+	lambda.Start(handleRequest(&cfg, apiKey, client))
 }
 
-func handleRequest(cfg *config.Config, client *http.Client) func(ctx context.Context, awsevent json.RawMessage) (any, error) {
+func handleRequest(cfg *config.Config, apiKey string, client *http.Client) func(ctx context.Context, awsevent json.RawMessage) (any, error) {
 	return func(ctx context.Context, awsevent json.RawMessage) (any, error) {
 		slog.DebugContext(ctx, "invocation start", slog.String("event", string(awsevent)))
 
@@ -73,7 +89,7 @@ func handleRequest(cfg *config.Config, client *http.Client) func(ctx context.Con
 			S3MultilineLogRegex: cfg.S3MultilineLogRegex,
 		}
 		forwarderCfg := forwarding.Config{
-			APIKey:                    cfg.APIKey,
+			APIKey:                    apiKey,
 			IntakeURL:                 cfg.IntakeURL,
 			CompressionLevel:          cfg.CompressionLevel,
 			StepFunctionsTraceEnabled: cfg.StepFunctionsTraceEnabled,

@@ -9,6 +9,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/aws/aws-sdk-go-v2/service/kms"
 	"github.com/stretchr/testify/assert"
@@ -89,4 +90,20 @@ func TestDecryptKMSCiphertext(t *testing.T) {
 			assert.Equal(t, tc.wantKey, got)
 		})
 	}
+}
+
+func TestDecryptKMSCiphertextEncodesNonUTF8Plaintext(t *testing.T) {
+	plaintext := []byte{0xff, 0xfe, 0x00, 0x01}
+
+	ctrl := gomock.NewController(t)
+	mock := NewMockKMS(ctrl)
+	mock.EXPECT().
+		Decrypt(gomock.Any(), gomock.Any()).
+		Return(&kms.DecryptOutput{Plaintext: plaintext}, nil)
+
+	got, err := DecryptKMSCiphertext(t.Context(), mock, base64.StdEncoding.EncodeToString([]byte("cipher")))
+
+	require.NoError(t, err)
+	assert.Equal(t, base64.StdEncoding.EncodeToString(plaintext), got)
+	assert.True(t, utf8.ValidString(got))
 }

@@ -7,29 +7,34 @@ package config
 
 import (
 	"compress/gzip"
-	"context"
 	"errors"
 	"fmt"
 	"log/slog"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/sdkclient"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/version"
+	"github.com/aws/aws-lambda-go/lambdacontext"
 )
 
 const (
-	DefaultSite                 = "datadoghq.com"
-	DefaultPort                 = "443"
-	DefaultProtocol             = "https"
-	DefaultLogLevel             = "INFO"
+	DefaultSite     = "datadoghq.com"
+	DefaultPort     = "443"
+	DefaultProtocol = "https"
+)
+
+const (
 	EnvAPIKey                   = "DD_API_KEY"
 	EnvSite                     = "DD_SITE"
 	EnvLogLevel                 = "DD_LOG_LEVEL"
 	EnvPort                     = "DD_PORT"
 	EnvUseHTTP                  = "DD_NO_SSL"
 	EnvSkipServerCertificate    = "DD_SKIP_SSL_VALIDATION"
+	EnvIntakeURL                = "DD_URL"
+	EnvAPIURL                   = "DD_API_URL"
 	EnvCompressionLevel         = "DD_COMPRESSION_LEVEL"
 	EnvSource                   = "DD_SOURCE"
 	EnvTags                     = "DD_TAGS"
@@ -44,22 +49,15 @@ const (
 	EnvSQSQueueURL              = "DD_SQS_QUEUE_URL"
 	EnvAdditionalTargets        = "DD_ADDITIONAL_TARGET_LAMBDAS"
 	EnvEnableStepFunctionsTrace = "DD_STEP_FUNCTIONS_TRACE_ENABLED"
-	ForwarderVersion            = "6.0"
+	EnvAPIKeySecretARN          = "DD_API_KEY_SECRET_ARN"
+	EnvAPIKeySSMName            = "DD_API_KEY_SSM_NAME"
+	EnvKMSAPIKey                = "DD_KMS_API_KEY"
 )
 
-type apiKeyResolver struct {
-	env     string
-	resolve func(ctx context.Context, value string) (string, error)
-}
-
-var apiKeyResolvers = []apiKeyResolver{
-	{"DD_API_KEY_SECRET_ARN", sdkclient.ResolveFromSecretsManager},
-	{"DD_API_KEY_SSM_NAME", sdkclient.ResolveFromSSM},
-	{"DD_KMS_API_KEY", sdkclient.ResolveFromKMS},
-}
-
 type Config struct {
-	APIKey                    string
+	APIKeySecretARN           string
+	APIKeySSMName             string
+	APIKeyKMSKey              string
 	APIURL                    string
 	IntakeURL                 string
 	CompressionLevel          int
@@ -81,110 +79,136 @@ type Config struct {
 	StepFunctionsTraceEnabled bool
 }
 
-func Load() (*Config, error) {
-	initLogger(envOrDefault(EnvLogLevel, DefaultLogLevel))
+func Load() (Config, error) {
 	logDroppedEnvVars()
 
-	var cfg Config
-	cfg.loadEnv()
-	cfg.extractFromEnv()
-
-	var errs []error
-	patterns := []struct {
-		env   string
-		field **regexp.Regexp
-	}{
-		{env: EnvScrubbingRule, field: &cfg.ScrubbingRegex},
-		{env: EnvIncludeAtMatch, field: &cfg.FilterInclude},
-		{env: EnvExcludeAtMatch, field: &cfg.FilterExclude},
-		{env: EnvMultilineLogRegex, field: &cfg.S3MultilineLogRegex},
-	}
-	for _, pattern := range patterns {
-		if envValue := os.Getenv(pattern.env); envValue != "" {
-			re, err := regexp.Compile(envValue)
-			*pattern.field = re
-			errs = append(errs, err)
-		}
-	}
-
-	var resolutionErr error
-	cfg.APIKey, resolutionErr = resolveAPIKey(context.Background(), apiKeyResolvers)
-	errs = append(errs, resolutionErr)
-
-	slog.Debug("configuration loaded", slog.Any("config", &cfg))
-	return &cfg, errors.Join(errs...)
-}
-
-func (c *Config) loadEnv() {
 	site := envOrDefault(EnvSite, DefaultSite)
 	port := envOrDefault(EnvPort, DefaultPort)
 	protocol := DefaultProtocol
-
-	c.SkipServerCertificate = envOrDefaultBool(EnvSkipServerCertificate, false)
-
 	if envOrDefaultBool(EnvUseHTTP, false) {
 		protocol = "http"
 	}
+	intakeURL := envOrDefault(EnvIntakeURL, protocol+"://http-intake.logs."+site+":"+port+"/api/v2/logs")
+	apiURL := envOrDefault(EnvAPIURL, protocol+"://api."+site+"/api/v1/validate")
 
-	compressionLevel := envOrDefaultInt(EnvCompressionLevel, gzip.DefaultCompression)
-	if compressionLevel < gzip.HuffmanOnly || compressionLevel > gzip.BestCompression {
-		slog.Warn("invalid compression level, falling back to default", slog.Int("level", compressionLevel), slog.Int("fallback", gzip.DefaultCompression))
-		compressionLevel = gzip.DefaultCompression
+	skipServerCertificate := envOrDefaultBool(EnvSkipServerCertificate, false)
+	compressionLevel := getCompressionLevel(os.Getenv(EnvCompressionLevel))
+	additionalTargets := getAdditionalTargets(os.Getenv(EnvAdditionalTargets))
+	stepFunctionsTraceEnabled := envOrDefaultBool(EnvEnableStepFunctionsTrace, false)
+
+	source := os.Getenv(EnvSource)
+	service, tags := getTags(source, os.Getenv(EnvTags))
+
+	scrubbingReplacement := envOrDefault(EnvScrubbingRuleReplacement, "")
+	scrubIP := envOrDefaultBool(EnvRedactIP, false)
+	scrubEmail := envOrDefaultBool(EnvRedactEmail, false)
+
+	scrubbingRegex, scrubbingErr := compilePattern(EnvScrubbingRule)
+	filterInclude, includeErr := compilePattern(EnvIncludeAtMatch)
+	filterExclude, excludeErr := compilePattern(EnvExcludeAtMatch)
+	multilineRegex, multilineErr := compilePattern(EnvMultilineLogRegex)
+
+	s3RetryBucketName := os.Getenv(EnvS3RetryBucketName)
+	sqsQueueURL := os.Getenv(EnvSQSQueueURL)
+	storeOnFail := s3RetryBucketName != "" || sqsQueueURL != ""
+
+	return Config{
+		APIKeySecretARN:           os.Getenv(EnvAPIKeySecretARN),
+		APIKeySSMName:             os.Getenv(EnvAPIKeySSMName),
+		APIKeyKMSKey:              os.Getenv(EnvKMSAPIKey),
+		APIURL:                    apiURL,
+		IntakeURL:                 intakeURL,
+		CompressionLevel:          compressionLevel,
+		SkipServerCertificate:     skipServerCertificate,
+		Source:                    source,
+		Service:                   service,
+		Tags:                      tags,
+		S3MultilineLogRegex:       multilineRegex,
+		FilterInclude:             filterInclude,
+		FilterExclude:             filterExclude,
+		ScrubbingRegex:            scrubbingRegex,
+		ScrubbingReplacement:      scrubbingReplacement,
+		ScrubIP:                   scrubIP,
+		ScrubEmail:                scrubEmail,
+		StoreOnFail:               storeOnFail,
+		S3RetryBucketName:         s3RetryBucketName,
+		SQSQueueURL:               sqsQueueURL,
+		AdditionalTargets:         additionalTargets,
+		StepFunctionsTraceEnabled: stepFunctionsTraceEnabled,
+	}, errors.Join(scrubbingErr, includeErr, excludeErr, multilineErr)
+}
+
+func compilePattern(key string) (*regexp.Regexp, error) {
+	pattern := strings.TrimSpace(os.Getenv(key))
+	if pattern == "" {
+		return nil, nil
 	}
-	c.CompressionLevel = compressionLevel
 
-	c.IntakeURL, c.APIURL = buildURLs(protocol, site, port)
+	re, err := regexp.Compile(pattern)
+	if err != nil {
+		return nil, fmt.Errorf("compile %s %q: %w", key, pattern, err)
+	}
 
-	c.Source = envOrDefault(EnvSource, "")
+	return re, nil
+}
 
-	c.S3RetryBucketName = envOrDefault(EnvS3RetryBucketName, "")
-	c.SQSQueueURL = envOrDefault(EnvSQSQueueURL, "")
-	c.StoreOnFail = c.S3RetryBucketName != "" || c.SQSQueueURL != ""
+func getAdditionalTargets(targets string) []string {
+	var additionalTargets []string
+	for target := range strings.SplitSeq(targets, ",") {
+		if strings.TrimSpace(target) != "" {
+			additionalTargets = append(additionalTargets, target)
+		}
+	}
+	return additionalTargets
+}
 
-	c.ScrubbingReplacement = envOrDefault(EnvScrubbingRuleReplacement, "")
-	c.ScrubIP = envOrDefaultBool(EnvRedactIP, false)
-	c.ScrubEmail = envOrDefaultBool(EnvRedactEmail, false)
+func getCompressionLevel(level string) int {
+	if level == "" {
+		return gzip.DefaultCompression
+	}
 
-	if v := os.Getenv(EnvAdditionalTargets); v != "" {
-		for target := range strings.SplitSeq(v, ",") {
-			if target == "" {
-				c.AdditionalTargets = append(c.AdditionalTargets, target)
+	v, err := strconv.Atoi(level)
+	if err != nil {
+		slog.Warn("invalid compression level, using default", slog.String("level", level))
+		return gzip.DefaultCompression
+	}
+
+	if gzip.HuffmanOnly <= v && v <= gzip.BestCompression {
+		return v
+	}
+
+	slog.Warn("invalid compression level, falling back to default", slog.String("level", level))
+	return gzip.DefaultCompression
+}
+
+func getTags(source, customTags string) (service string, tags model.Tags) {
+	if customTags != "" {
+		for tag := range strings.SplitSeq(customTags, model.TagSeparator) {
+			v, found := model.CutKey(tag, model.ServiceKey)
+			if found {
+				if service == "" {
+					service = v
+				}
+				continue
 			}
+			tags = append(tags, tag)
 		}
 	}
 
-	c.StepFunctionsTraceEnabled = envOrDefaultBool(EnvEnableStepFunctionsTrace, false)
-}
-
-func buildURLs(protocol, site, port string) (intakeURL string, apiURL string) {
-	intakeURL = protocol + "://http-intake.logs." + site + ":" + port + "/api/v2/logs"
-	apiURL = protocol + "://api." + site + "/api/v1/validate"
-	return
-}
-
-func resolveAPIKey(ctx context.Context, resolvers []apiKeyResolver) (string, error) {
-	for _, resolver := range resolvers {
-		v, ok := os.LookupEnv(resolver.env)
-		if !ok {
-			continue
-		}
-
-		slog.Debug("trying API key resolver", slog.String("env", resolver.env), slog.String("value", v))
-
-		key, err := resolver.resolve(ctx, v)
-		if err != nil {
-			return "", fmt.Errorf("resolve: %w", err)
-		}
-
-		slog.Debug("API key resolved", slog.String("env", resolver.env))
-		return key, nil
+	if source != "" {
+		tags.Add(model.SourceOverriddenKey, "true")
 	}
 
-	return "", errors.New("no Datadog API key configured")
+	tags.Add(model.ForwarderNameKey, strings.ToLower(lambdacontext.FunctionName))
+	tags.Add(model.ForwarderVersionKey, version.Forwarder)
+
+	return service, tags
 }
 
-func (c *Config) LogValue() slog.Value {
+func (c Config) LogValue() slog.Value {
 	return slog.GroupValue(
+		slog.Bool("api_key_configured", c.APIKeySecretARN != "" || c.APIKeySSMName != "" || c.APIKeyKMSKey != ""),
+		slog.String("api_url", c.APIURL),
 		slog.String("intake_url", c.IntakeURL),
 		slog.Int("compression_level", c.CompressionLevel),
 		slog.Bool("skip_tls", c.SkipServerCertificate),
@@ -192,6 +216,9 @@ func (c *Config) LogValue() slog.Value {
 		slog.String("s3_retry_bucket", c.S3RetryBucketName),
 		slog.String("sqs_queue_url", c.SQSQueueURL),
 		slog.String("source_override", c.Source),
+		slog.String("service", c.Service),
+		slog.Int("tags", len(c.Tags)),
+		slog.Bool("multiline_regex", c.S3MultilineLogRegex != nil),
 		slog.Bool("filter_include", c.FilterInclude != nil),
 		slog.Bool("filter_exclude", c.FilterExclude != nil),
 		slog.Bool("scrub_ip", c.ScrubIP),

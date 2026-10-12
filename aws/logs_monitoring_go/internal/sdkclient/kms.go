@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"unicode/utf8"
 
 	"github.com/aws/aws-sdk-go-v2/service/kms"
 )
@@ -53,6 +54,10 @@ func DecryptKMSCiphertext(ctx context.Context, kmsClient KMS, ciphertext string)
 
 	if result.Plaintext == nil {
 		return "", errors.New("KMS decryption returned no plaintext")
+	}
+
+	if !utf8.Valid(result.Plaintext) {
+		return base64.StdEncoding.EncodeToString(result.Plaintext), nil
 	}
 
 	return strings.TrimSpace(string(result.Plaintext)), nil

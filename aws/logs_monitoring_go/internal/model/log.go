@@ -5,7 +5,11 @@
 
 package model
 
-const sourceCategory = "aws"
+const (
+	sourceCategory = "aws"
+
+	TagsJSONKey = "ddtags"
+)
 
 type LogEntry struct {
 	Host           string     `json:"host,omitempty"`

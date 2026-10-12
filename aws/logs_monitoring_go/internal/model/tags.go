@@ -15,6 +15,15 @@ const (
 	TagSeparator      = ","
 )
 
+const (
+	EnvKey              = "env"
+	ForwarderNameKey    = "forwardername"
+	ForwarderVersionKey = "forwarder_version"
+	FunctionNameKey     = "functionname"
+	ServiceKey          = "service"
+	SourceOverriddenKey = "source_overridden"
+)
+
 type Tags []string
 
 func (t Tags) MarshalJSON() ([]byte, error) {
@@ -32,7 +41,7 @@ func (t *Tags) UnmarshalJSON(data []byte) error {
 		return nil
 	}
 
-	*t = strings.Split(s, ",")
+	*t = strings.Split(s, TagSeparator)
 	return nil
 }
 
@@ -42,9 +51,13 @@ func (t *Tags) Add(key, value string) {
 
 func (t *Tags) Has(key string) bool {
 	for _, tag := range *t {
-		if strings.HasPrefix(tag, key+KeyValueSeparator) {
+		if _, found := CutKey(tag, key); found {
 			return true
 		}
 	}
 	return false
+}
+
+func CutKey(tag, key string) (string, bool) {
+	return strings.CutPrefix(tag, key+KeyValueSeparator)
 }

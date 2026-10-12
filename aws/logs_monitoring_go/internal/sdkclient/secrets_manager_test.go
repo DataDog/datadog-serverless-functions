@@ -6,6 +6,7 @@
 package sdkclient
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -26,7 +27,7 @@ func TestFetchSecret(t *testing.T) {
 		"success": {
 			mockSetup: func(m *MockSecretsManager) {
 				m.EXPECT().
-					GetSecretValue(gomock.Any(), gomock.Any()).
+					GetSecretValue(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(&secretsmanager.GetSecretValueOutput{
 						SecretString: aws.String("abcdef1234567890abcdef1234567890"),
 					}, nil)
@@ -37,7 +38,7 @@ func TestFetchSecret(t *testing.T) {
 		"whitespace_trimmed": {
 			mockSetup: func(m *MockSecretsManager) {
 				m.EXPECT().
-					GetSecretValue(gomock.Any(), gomock.Any()).
+					GetSecretValue(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(&secretsmanager.GetSecretValueOutput{
 						SecretString: aws.String("  abcdef1234567890abcdef1234567890  \n"),
 					}, nil)
@@ -48,7 +49,7 @@ func TestFetchSecret(t *testing.T) {
 		"aws_error": {
 			mockSetup: func(m *MockSecretsManager) {
 				m.EXPECT().
-					GetSecretValue(gomock.Any(), gomock.Any()).
+					GetSecretValue(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil, errors.New("AccessDeniedException: access denied"))
 			},
 			arn:     "arn:aws:secretsmanager:us-east-1:012345678901:secret:my-secret",
@@ -57,7 +58,7 @@ func TestFetchSecret(t *testing.T) {
 		"nil_secret_string": {
 			mockSetup: func(m *MockSecretsManager) {
 				m.EXPECT().
-					GetSecretValue(gomock.Any(), gomock.Any()).
+					GetSecretValue(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(&secretsmanager.GetSecretValueOutput{
 						SecretString: nil,
 					}, nil)
@@ -82,4 +83,61 @@ func TestFetchSecret(t *testing.T) {
 			assert.Equal(t, tc.wantKey, got)
 		})
 	}
+}
+
+func TestFetchSecretUsesRegionFromARN(t *testing.T) {
+	tests := map[string]struct {
+		arn  string
+		want string
+	}{
+		"cross region arn": {
+			arn:  "arn:aws:secretsmanager:eu-west-3:012345678901:secret:dd",
+			want: "eu-west-3",
+		},
+		"non arn keeps default resolution": {
+			arn: "dd-api-key",
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			mock := NewMockSecretsManager(ctrl)
+
+			var gotRegion string
+			mock.EXPECT().
+				GetSecretValue(gomock.Any(), gomock.Any(), gomock.Any()).
+				DoAndReturn(func(_ context.Context, _ *secretsmanager.GetSecretValueInput, optFns ...func(*secretsmanager.Options)) (*secretsmanager.GetSecretValueOutput, error) {
+					var opts secretsmanager.Options
+					for _, fn := range optFns {
+						fn(&opts)
+					}
+					gotRegion = opts.Region
+
+					return &secretsmanager.GetSecretValueOutput{
+						SecretString: aws.String("abcdef1234567890abcdef1234567890"),
+					}, nil
+				})
+
+			_, err := FetchSecret(t.Context(), mock, tc.arn)
+
+			require.NoError(t, err)
+			assert.Equal(t, tc.want, gotRegion)
+		})
+	}
+}
+
+func TestFetchSecretParsesJSONSecret(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mock := NewMockSecretsManager(ctrl)
+	mock.EXPECT().
+		GetSecretValue(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(&secretsmanager.GetSecretValueOutput{
+			SecretString: aws.String(`{"apiKey":"abcdef1234567890abcdef1234567890"}`),
+		}, nil)
+
+	got, err := FetchSecret(t.Context(), mock, "arn:aws:secretsmanager:us-east-1:012345678901:secret:dd")
+
+	require.NoError(t, err)
+	assert.Equal(t, "abcdef1234567890abcdef1234567890", got)
 }

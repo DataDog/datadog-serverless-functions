@@ -10,7 +10,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 	"github.com/stretchr/testify/assert"
 )
@@ -143,8 +142,8 @@ func FuzzExtractFromMessage(f *testing.F) {
 		if outMessage != message {
 			var parsed map[string]any
 			assert.NoError(t, json.Unmarshal([]byte(outMessage), &parsed), "output message is not valid JSON")
-			_, ok := parsed[config.DdtagsJSONKey]
-			assert.False(t, ok, "output message still contains %q key", config.DdtagsJSONKey)
+			_, ok := parsed[model.TagsJSONKey]
+			assert.False(t, ok, "output message still contains %q key", model.TagsJSONKey)
 		}
 
 		for _, tag := range tags {
