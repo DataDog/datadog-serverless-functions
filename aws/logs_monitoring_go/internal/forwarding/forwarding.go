@@ -19,9 +19,9 @@ import (
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/batching"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/concurrent"
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/httpclient"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/storing"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/version"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -56,7 +56,7 @@ func NewForwarder(cfg Config, client *http.Client, storage storing.Storage) *For
 	header := http.Header{
 		"DD-API-KEY":            []string{cfg.APIKey},
 		"DD-EVP-ORIGIN":         []string{"aws_forwarder"},
-		"DD-EVP-ORIGIN-VERSION": []string{config.ForwarderVersion},
+		"DD-EVP-ORIGIN-VERSION": []string{version.Forwarder},
 		"Content-Type":          []string{"application/json"},
 	}
 
@@ -173,7 +173,8 @@ func (f *Forwarder) send(ctx context.Context, payload json.RawMessage, storageTa
 			return fmt.Errorf("compress: %w", err)
 		}
 
-		slog.DebugContext(ctx, "sending batch to intake",
+		slog.DebugContext(
+			ctx, "sending batch to intake",
 			slog.Int("original_bytes", len(payload)),
 			slog.Int("compressed_bytes", len(compressed)),
 		)

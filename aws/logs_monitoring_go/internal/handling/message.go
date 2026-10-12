@@ -9,12 +9,11 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 )
 
 func extractFromMessage(message string) (model.Tags, string, string) {
-	if !strings.Contains(message, "ddtags") {
+	if !strings.Contains(message, model.TagsJSONKey) {
 		return nil, "", message
 	}
 
@@ -23,7 +22,7 @@ func extractFromMessage(message string) (model.Tags, string, string) {
 		return nil, "", message
 	}
 
-	ddtagsRaw, ok := fields[config.DdtagsJSONKey]
+	ddtagsRaw, ok := fields[model.TagsJSONKey]
 	if !ok {
 		return nil, "", message
 	}
@@ -37,12 +36,12 @@ func extractFromMessage(message string) (model.Tags, string, string) {
 
 	var tags model.Tags
 	var service string
-	for tag := range strings.SplitSeq(ddtagsStr, config.TagSeparator) {
+	for tag := range strings.SplitSeq(ddtagsStr, model.TagSeparator) {
 		if tag == "" {
 			continue
 		}
 
-		v, found := strings.CutPrefix(tag, config.ServiceKey)
+		v, found := model.CutKey(tag, model.ServiceKey)
 		if found {
 			if service == "" {
 				service = v
@@ -53,7 +52,7 @@ func extractFromMessage(message string) (model.Tags, string, string) {
 		tags = append(tags, tag)
 	}
 
-	delete(fields, config.DdtagsJSONKey)
+	delete(fields, model.TagsJSONKey)
 
 	newMessage, err := json.Marshal(fields)
 	if err != nil {

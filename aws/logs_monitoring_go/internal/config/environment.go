@@ -24,7 +24,6 @@ var deprecatedEnvironmentVariables = []struct {
 	{"DD_FETCH_S3_TAGS", "Tag enrichment has moved to the Datadog backend. No configuration required."},
 	{"DD_FETCH_STEP_FUNCTIONS_TAGS", "Tag enrichment has moved to the Datadog backend. No configuration required."},
 	{"DD_FORWARD_LOG", "This version only supports log forwarding. For metrics and traces, please use the Datadog Lambda Extension (https://docs.datadoghq.com/serverless/libraries_integrations/extension/)."},
-	{"DD_HOST", "The host is derived from the log source and can no longer be overridden globally."},
 	{"DD_STORE_FAILED_EVENTS", "Replaced by DD_S3_BUCKET_NAME or DD_SQS_QUEUE_URL."},
 	{"DD_TAGS_CACHE_TTL_SECONDS", "Tag caching is no longer required. Tag enrichment has moved to the Datadog backend. No configuration required."},
 	{"DD_TRACE_INTAKE_URL", "This version only supports logs forwarding. For metrics and traces, please use the Datadog Lambda Extension (https://docs.datadoghq.com/serverless/libraries_integrations/extension/)."},
@@ -53,21 +52,6 @@ func envOrDefaultBool(key string, fallback bool) bool {
 	}
 
 	return b
-}
-
-func envOrDefaultInt(key string, fallback int) int {
-	v, ok := os.LookupEnv(key)
-	if !ok {
-		return fallback
-	}
-
-	n, err := strconv.Atoi(v)
-	if err != nil {
-		slog.Warn("invalid integer env var, using default", slog.String("key", key), slog.String("value", v), slog.Int("default", fallback))
-		return fallback
-	}
-
-	return n
 }
 
 func logDroppedEnvVars() {

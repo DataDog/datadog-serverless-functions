@@ -30,8 +30,6 @@ const (
 	logStreamCloudtrail = "_CloudTrail_"
 )
 
-const envTag = "env"
-
 // Custom log groups use the log stream format: YYYY/MM/DD/<function_name>[<function_version>][<execution_environment_GUID>]
 var lambdaLogStreamRegex = regexp.MustCompile(
 	`^\d{4}/[01]\d/[0-3]\d/([\w.-]{1,75})\[(?:\$LATEST|[\w-]{1,129})\][0-9a-f]{32}$`,
@@ -126,8 +124,8 @@ func (h *cloudwatchHandler) newCloudwatchBaseEntry(data events.CloudwatchLogsDat
 
 	if entry.Source == sourceLambda {
 		enrichLambdaLog(&entry, lambdaOrigin.ARN, logGroup, logStream)
-		if !h.cfg.Tags.Has(envTag) {
-			entry.Tags.Add(envTag, "none")
+		if !h.cfg.Tags.Has(model.EnvKey) {
+			entry.Tags.Add(model.EnvKey, "none")
 		}
 	}
 
@@ -147,8 +145,8 @@ func (h *cloudwatchHandler) newCloudwatchLogEntry(event events.CloudwatchLogsLog
 		entry.Host = cloudtrailHost(event.Message)
 	}
 
-	if entry.Lambda != nil && !entry.Tags.Has("service") {
-		entry.Tags.Add("service", entry.Service)
+	if entry.Lambda != nil && !entry.Tags.Has(model.ServiceKey) {
+		entry.Tags.Add(model.ServiceKey, entry.Service)
 	}
 
 	return entry

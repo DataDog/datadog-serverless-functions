@@ -41,6 +41,10 @@ func FetchSSMParameter(ctx context.Context, ssmClient SSM, name string) (string,
 	result, err := ssmClient.GetParameter(ctx, &ssm.GetParameterInput{
 		Name:           aws.String(name),
 		WithDecryption: aws.Bool(true),
+	}, func(o *ssm.Options) {
+		if region := regionFromARN(name); region != "" {
+			o.Region = region
+		}
 	})
 	if err != nil {
 		return "", fmt.Errorf("fetching parameter %q: %w", name, err)
