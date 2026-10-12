@@ -11,8 +11,9 @@ import (
 )
 
 const (
-	findingKey  = "finding"
-	findingsKey = "findings"
+	findingKey   = "finding"
+	findingsKey  = "findings"
+	resourcesKey = "resources"
 )
 
 func separateFindings(event json.RawMessage) []string {
@@ -35,7 +36,9 @@ func separateFindings(event json.RawMessage) []string {
 		if !ok {
 			continue
 		}
-		flattenByKey(finding, "Resources", "Type", "resources", true)
+		if _, ok := finding[resourcesKey]; !ok {
+			flattenByKey(finding, "Resources", "Type", resourcesKey, true)
+		}
 		detail[findingKey] = finding
 
 		out, err := json.Marshal(raw)

@@ -1,0 +1,34 @@
+{
+  "headers": {
+    "Accept-Encoding": "",
+    "Content-Encoding": "gzip",
+    "Content-Length": "",
+    "Content-Type": "application/json",
+    "Dd-Api-Key": "abcdefghijklmnopqrstuvwxyz012345",
+    "Dd-Evp-Origin": "aws_forwarder",
+    "Dd-Evp-Origin-Version": "",
+    "User-Agent": "Go-http-client/1.1"
+  },
+  "body": [
+    {
+      "message": "{\"detail\":{\"finding\":{\"resources\":[{\"cloud_partition\":\"aws\",\"provider\":\"AWS\",\"region\":\"us-east-1\",\"type\":\"AWS::EC2::SecurityGroup\",\"uid\":\"sg-clouds-8699\",\"uid_alt\":\"arn:aws:ec2:us-east-1:990703812051:security-group/sg-clouds-8699\",\"vpc_uid\":\"vpc-clouds-8699\"},{\"cloud_partition\":\"aws\",\"provider\":\"AWS\",\"region\":\"us-east-1\",\"type\":\"AWS::IAM::Role\",\"uid\":\"arn:aws:iam::990703812051:role/clouds-8699\"}],\"severity\":\"High\",\"title\":\"S3 bucket without encryption\"}},\"detail-type\":\"Findings Imported V2\",\"source\":\"aws.securityhub\"}",
+      "service": "securityhub",
+      "ddsource": "securityhub",
+      "ddsourcecategory": "aws",
+      "ddtags": "",
+      "aws": {
+        "invoked_function_arn": "arn:aws:lambda:us-east-1:123456789012:function:forwarder"
+      }
+    },
+    {
+      "message": "{\"detail\":{\"finding\":{\"resources\":[{\"cloud_partition\":\"aws\",\"provider\":\"AWS\",\"region\":\"us-west-2\",\"type\":\"AWS::EC2::SecurityGroup\",\"uid\":\"sg-clouds-8700\"}],\"title\":\"Open security group\"}},\"detail-type\":\"Findings Imported V2\",\"source\":\"aws.securityhub\"}",
+      "service": "securityhub",
+      "ddsource": "securityhub",
+      "ddsourcecategory": "aws",
+      "ddtags": "",
+      "aws": {
+        "invoked_function_arn": "arn:aws:lambda:us-east-1:123456789012:function:forwarder"
+      }
+    }
+  ]
+}

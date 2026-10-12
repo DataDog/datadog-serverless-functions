@@ -70,11 +70,10 @@ func newBase(cfg *Config, scrubber *scrubbing.Scrubber, filterer *filtering.Filt
 }
 
 func (h *baseHandler) emit(ctx context.Context, out chan<- json.RawMessage, entry model.LogEntry) error {
-	entry.Message = h.scrubber.Apply(entry.Message)
-
 	item, err := json.Marshal(entry)
 	if err != nil {
 		return fmt.Errorf("marshal log entry: %w", err)
 	}
-	return concurrent.SafeSender(ctx, out, item)
+
+	return concurrent.SafeSender(ctx, out, h.scrubber.Apply(item))
 }

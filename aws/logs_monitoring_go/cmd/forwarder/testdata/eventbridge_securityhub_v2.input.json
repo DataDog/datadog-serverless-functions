@@ -1,0 +1,42 @@
+{
+  "source": "aws.securityhub",
+  "detail-type": "Findings Imported V2",
+  "detail": {
+    "findings": [
+      {
+        "title": "S3 bucket without encryption",
+        "severity": "High",
+        "resources": [
+          {
+            "cloud_partition": "aws",
+            "provider": "AWS",
+            "region": "us-east-1",
+            "type": "AWS::EC2::SecurityGroup",
+            "uid": "sg-clouds-8699",
+            "uid_alt": "arn:aws:ec2:us-east-1:990703812051:security-group/sg-clouds-8699",
+            "vpc_uid": "vpc-clouds-8699"
+          },
+          {
+            "cloud_partition": "aws",
+            "provider": "AWS",
+            "region": "us-east-1",
+            "type": "AWS::IAM::Role",
+            "uid": "arn:aws:iam::990703812051:role/clouds-8699"
+          }
+        ]
+      },
+      {
+        "title": "Open security group",
+        "resources": [
+          {
+            "cloud_partition": "aws",
+            "provider": "AWS",
+            "region": "us-west-2",
+            "type": "AWS::EC2::SecurityGroup",
+            "uid": "sg-clouds-8700"
+          }
+        ]
+      }
+    ]
+  }
+}

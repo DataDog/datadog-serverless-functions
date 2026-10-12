@@ -42,6 +42,24 @@ func TestSeparateFindings(t *testing.T) {
 				`{"ddsource":"securityhub","detail":{"finding":{"myattribute":"somevalue","resources":{"AwsEc2SecurityGroup":{"Region":"us-east-1"}}}}}`,
 			},
 		},
+		"v2 finding preserves ocsf resources": {
+			input: `{"ddsource":"securityhub","detail-type":"Findings Imported V2","detail":{"findings":[{"resources":[{"cloud_partition":"aws","owner":{},"provider":"AWS","region":"us-east-1","type":"AWS::EC2::SecurityGroup","uid":"sg-clouds-8699","uid_alt":"arn:aws:ec2:us-east-1:990703812051:security-group/sg-clouds-8699","vpc_uid":"vpc-clouds-8699"}]}]}}`,
+			want: []string{
+				`{"ddsource":"securityhub","detail-type":"Findings Imported V2","detail":{"finding":{"resources":[{"cloud_partition":"aws","owner":{},"provider":"AWS","region":"us-east-1","type":"AWS::EC2::SecurityGroup","uid":"sg-clouds-8699","uid_alt":"arn:aws:ec2:us-east-1:990703812051:security-group/sg-clouds-8699","vpc_uid":"vpc-clouds-8699"}]}}}`,
+			},
+		},
+		"v2 finding with empty resources array": {
+			input: `{"ddsource":"securityhub","detail-type":"Findings Imported V2","detail":{"findings":[{"resources":[]}]}}`,
+			want: []string{
+				`{"ddsource":"securityhub","detail-type":"Findings Imported V2","detail":{"finding":{"resources":[]}}}`,
+			},
+		},
+		"finding with both resources keys": {
+			input: `{"ddsource":"securityhub","detail":{"findings":[{"Resources":[{"Region":"us-east-1","Type":"AwsEc2SecurityGroup"}],"resources":[{"region":"us-east-1","type":"AWS::EC2::SecurityGroup"}]}]}}`,
+			want: []string{
+				`{"ddsource":"securityhub","detail":{"finding":{"Resources":[{"Region":"us-east-1","Type":"AwsEc2SecurityGroup"}],"resources":[{"region":"us-east-1","type":"AWS::EC2::SecurityGroup"}]}}}`,
+			},
+		},
 		"multiple findings multiple resources": {
 			input: `{"ddsource":"securityhub","detail":{"findings":[{"myattribute":"somevalue","Resources":[{"Region":"us-east-1","Type":"AwsEc2SecurityGroup"}]},{"myattribute":"somevalue","Resources":[{"Region":"us-east-1","Type":"AwsEc2SecurityGroup"},{"Region":"us-east-1","Type":"AwsOtherSecurityGroup"}]},{"myattribute":"somevalue","Resources":[{"Region":"us-east-1","Type":"AwsEc2SecurityGroup"},{"Region":"us-east-1","Type":"AwsOtherSecurityGroup"},{"Region":"us-east-1","Type":"AwsAnotherSecurityGroup"}]}]}}`,
 			want: []string{

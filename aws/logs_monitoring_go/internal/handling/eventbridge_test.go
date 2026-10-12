@@ -136,6 +136,11 @@ func TestEventBridgeHandler_SecurityHub(t *testing.T) {
 				`{"source":"aws.securityhub","detail":{"finding":{"id":"f2","resources":{"AwsIamRole":{"Region":"us-west-2"}}}}}`,
 			},
 		},
+		"v2 findings imported": {
+			event: json.RawMessage(`{"source":"aws.securityhub","detail-type":"Findings Imported V2","detail":{"findings":[{"metadata":{"uid":"f1"},"resources":[{"cloud_partition":"aws","provider":"AWS","region":"us-east-1","type":"AWS::EC2::SecurityGroup","uid":"sg-clouds-8699","vpc_uid":"vpc-clouds-8699"}]}]}}`),
+			cfg:   &Config{},
+			want:  []string{`{"source":"aws.securityhub","detail-type":"Findings Imported V2","detail":{"finding":{"metadata":{"uid":"f1"},"resources":[{"cloud_partition":"aws","provider":"AWS","region":"us-east-1","type":"AWS::EC2::SecurityGroup","uid":"sg-clouds-8699","vpc_uid":"vpc-clouds-8699"}]}}}`},
+		},
 		"with filtering": {
 			event:    json.RawMessage(`{"source":"aws.securityhub","detail":{"findings":[{"id":"keep","Resources":[]},{"id":"drop","Resources":[]}]}}`),
 			cfg:      &Config{},
