@@ -1,5 +1,5 @@
 BINARY_NAME := bootstrap
-FORWARDER_VERSION := $(shell perl -ne 'print $$1 if /ForwarderVersion\s*=\s*"([^"]+)"/' internal/config/config.go)
+FORWARDER_VERSION := $(shell perl -ne 'print $$1 if /const\s+Forwarder\s*=\s*"([^"]+)"/' internal/version/version.go)
 ZIP_NAME := aws-dd-forwarder-$(FORWARDER_VERSION).zip
 
 # Go
