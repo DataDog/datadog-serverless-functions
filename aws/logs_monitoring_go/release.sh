@@ -66,7 +66,7 @@ for cmd in aws gh go jq perl unzip yq zip; do
     fi
 done
 
-CONFIG_FILE="internal/config/config.go"
+VERSION_FILE="internal/version/version.go"
 TEMPLATE_FILE="template.yaml"
 BASE_BRANCH="${BASE_BRANCH:-nabil.dakkoune/go-forwarder}" # TODO: update once merged in main
 BUNDLE_PATH="aws-dd-forwarder-${FORWARDER_VERSION}.zip"
@@ -74,10 +74,10 @@ VERSIONS_BUCKET="datadog-opensource-asset-versions"
 VERSIONS_KEY="forwarder/zip-versions.json"
 VERSIONS_JSON_PATH="zip-versions.json"
 
-CURRENT_VERSION=$(perl -ne 'print $1 if /ForwarderVersion\s*=\s*"([^"]+)"/' "${CONFIG_FILE}")
+CURRENT_VERSION=$(perl -ne 'print $1 if /const\s+Forwarder\s*=\s*"([^"]+)"/' "${VERSION_FILE}")
 
 if [[ -z ${CURRENT_VERSION} ]]; then
-    log_error "Could not read ForwarderVersion from ${CONFIG_FILE}"
+    log_error "Could not read Forwarder from ${VERSION_FILE}"
 fi
 
 if ! user_confirm "Release ${CURRENT_VERSION} -> ${FORWARDER_VERSION} to ${ACCOUNT}"; then
@@ -318,15 +318,15 @@ prod_release() {
         fi
     fi
 
-    log_info "Bumping ForwarderVersion to ${FORWARDER_VERSION} in ${CONFIG_FILE}..."
-    perl -pi -e "s/(ForwarderVersion\s*=\s*\")[^\"]+/\${1}${FORWARDER_VERSION}/" "${CONFIG_FILE}"
+    log_info "Bumping Forwarder to ${FORWARDER_VERSION} in ${VERSION_FILE}..."
+    perl -pi -e "s/(const\s+Forwarder\s*=\s*\")[^\"]+/\${1}${FORWARDER_VERSION}/" "${VERSION_FILE}"
 
-    if git diff --quiet -- "${CONFIG_FILE}"; then
-        log_error "Bumping ${CONFIG_FILE} produced no change, please check the file by hand"
+    if git diff --quiet -- "${VERSION_FILE}"; then
+        log_error "Bumping ${VERSION_FILE} produced no change, please check the file by hand"
     fi
 
     git checkout -b "${branch_name}"
-    git add "${CONFIG_FILE}"
+    git add "${VERSION_FILE}"
 
     if [[ -f ${TEMPLATE_FILE} ]]; then
         log_info "Bumping DdForwarder.Version to ${FORWARDER_VERSION} in ${TEMPLATE_FILE}..."
