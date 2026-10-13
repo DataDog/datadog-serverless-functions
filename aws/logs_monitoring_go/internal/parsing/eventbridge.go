@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"net/url"
 	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -52,7 +53,7 @@ func mapS3EventBridge(eb s3EventBridgeDetail) (json.RawMessage, error) {
 			EventSource: eventSourceS3,
 			S3: events.S3Entity{
 				Bucket: events.S3Bucket{Name: eb.Bucket.Name},
-				Object: events.S3Object{Key: eb.Object.Key, URLDecodedKey: eb.Object.Key},
+				Object: events.S3Object{Key: url.QueryEscape(eb.Object.Key)},
 			},
 		}},
 	}

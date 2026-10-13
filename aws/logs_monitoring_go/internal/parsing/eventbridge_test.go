@@ -17,40 +17,78 @@ import (
 func TestEventBridge(t *testing.T) {
 	t.Parallel()
 
+	type want struct {
+		contentType ContentType
+		bucket      string
+		key         string
+		encodedKey  string
+		err         bool
+	}
+
 	tests := map[string]struct {
-		event      json.RawMessage
-		want       ContentType
-		wantBucket string
-		wantKey    string
-		wantErr    bool
+		event json.RawMessage
+		want  want
 	}{
 		"s3 object created": {
-			event:      json.RawMessage(`{"version":"0","detail-type":"Object Created","source":"aws.s3","detail":{"bucket":{"name":"my-bucket"},"object":{"key":"my-key"}}}`),
-			want:       ContentTypeS3,
-			wantBucket: "my-bucket",
-			wantKey:    "my-key",
+			event: json.RawMessage(`{"version":"0","detail-type":"Object Created","source":"aws.s3","detail":{"bucket":{"name":"my-bucket"},"object":{"key":"my-key"}}}`),
+			want: want{
+				contentType: ContentTypeS3,
+				bucket:      "my-bucket",
+				key:         "my-key",
+				encodedKey:  "my-key",
+			},
 		},
 		"s3 object created via put": {
-			event:      json.RawMessage(`{"version":"0","detail-type":"Object Created: Put","source":"aws.s3","detail":{"bucket":{"name":"b"},"object":{"key":"nested/path/log.gz"}}}`),
-			want:       ContentTypeS3,
-			wantBucket: "b",
-			wantKey:    "nested/path/log.gz",
+			event: json.RawMessage(`{"version":"0","detail-type":"Object Created: Put","source":"aws.s3","detail":{"bucket":{"name":"b"},"object":{"key":"nested/path/log.gz"}}}`),
+			want: want{
+				contentType: ContentTypeS3,
+				bucket:      "b",
+				key:         "nested/path/log.gz",
+				encodedKey:  "nested%2Fpath%2Flog.gz",
+			},
+		},
+		"s3 key with plus": {
+			event: json.RawMessage(`{"version":"0","detail-type":"Object Created","source":"aws.s3","detail":{"bucket":{"name":"b"},"object":{"key":"logs/a+b.log"}}}`),
+			want: want{
+				contentType: ContentTypeS3,
+				bucket:      "b",
+				key:         "logs/a+b.log",
+				encodedKey:  "logs%2Fa%2Bb.log",
+			},
+		},
+		"s3 key with percent": {
+			event: json.RawMessage(`{"version":"0","detail-type":"Object Created","source":"aws.s3","detail":{"bucket":{"name":"b"},"object":{"key":"logs/100%.log"}}}`),
+			want: want{
+				contentType: ContentTypeS3,
+				bucket:      "b",
+				key:         "logs/100%.log",
+				encodedKey:  "logs%2F100%25.log",
+			},
+		},
+		"s3 key with space": {
+			event: json.RawMessage(`{"version":"0","detail-type":"Object Created","source":"aws.s3","detail":{"bucket":{"name":"b"},"object":{"key":"logs/my file.log"}}}`),
+			want: want{
+				contentType: ContentTypeS3,
+				bucket:      "b",
+				key:         "logs/my file.log",
+				encodedKey:  "logs%2Fmy+file.log",
+			},
 		},
 		"s3 object deleted stays eventbridge": {
 			event: json.RawMessage(`{"version":"0","detail-type":"Object Deleted","source":"aws.s3","detail":{}}`),
-			want:  ContentTypeEventBridge,
+			want:  want{contentType: ContentTypeEventBridge},
 		},
 		"non s3 source stays eventbridge": {
 			event: json.RawMessage(`{"version":"0","detail-type":"Object Created","source":"aws.ec2","detail":{"instance-id":"i-123"}}`),
-			want:  ContentTypeEventBridge,
+			want:  want{contentType: ContentTypeEventBridge},
 		},
 		"generic event stays eventbridge": {
 			event: json.RawMessage(`{"version":"0","id":"abc","detail-type":"Scheduled Event","source":"aws.events","detail":{}}`),
-			want:  ContentTypeEventBridge,
+			want:  want{contentType: ContentTypeEventBridge},
 		},
 		"s3 with malformed detail": {
-			event:   json.RawMessage(`{"version":"0","detail-type":"Object Created","source":"aws.s3","detail":"not-an-object"}`),
-			wantErr: true,
+			event: json.RawMessage(`{"version":"0","detail-type":"Object Created","source":"aws.s3","detail":"not-an-object"}`),
+			want:  want{err: true},
 		},
 	}
 
@@ -60,15 +98,15 @@ func TestEventBridge(t *testing.T) {
 
 			got, err := eventBridge(tc.event)
 
-			if tc.wantErr {
+			if tc.want.err {
 				require.Error(t, err)
 				return
 			}
 
 			require.NoError(t, err)
-			require.Equal(t, tc.want, got.ContentType)
+			require.Equal(t, tc.want.contentType, got.ContentType)
 
-			if tc.want != ContentTypeS3 {
+			if tc.want.contentType != ContentTypeS3 {
 				assert.JSONEq(t, string(tc.event), string(got.Payload))
 				return
 			}
@@ -79,9 +117,9 @@ func TestEventBridge(t *testing.T) {
 
 			record := s3Event.Records[0]
 			assert.Equal(t, eventSourceS3, record.EventSource)
-			assert.Equal(t, tc.wantBucket, record.S3.Bucket.Name)
-			assert.Equal(t, tc.wantKey, record.S3.Object.Key)
-			assert.Equal(t, tc.wantKey, record.S3.Object.URLDecodedKey)
+			assert.Equal(t, tc.want.bucket, record.S3.Bucket.Name)
+			assert.Equal(t, tc.want.encodedKey, record.S3.Object.Key)
+			assert.Equal(t, tc.want.key, record.S3.Object.URLDecodedKey)
 		})
 	}
 }
