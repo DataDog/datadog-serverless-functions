@@ -109,6 +109,18 @@ func TestScrub(t *testing.T) {
 			content: "src=1.2.3.4 dst=5.6.7.8 via=10.0.0.1",
 			want:    "src=xxx.xxx.xxx.xxx dst=xxx.xxx.xxx.xxx via=xxx.xxx.xxx.xxx",
 		},
+		"marshalled_log_metadata": {
+			ip:      true,
+			email:   true,
+			content: `{"message":"request served","service":"api","ddsource":"lambda","ddsourcecategory":"aws","ddtags":"env:prod,owner:ops@example.com","aws":{"invoked_function_arn":"arn:aws:lambda:us-east-1:123456789012:function:forwarder"},"host":"10.0.0.7"}`,
+			want:    `{"message":"request served","service":"api","ddsource":"lambda","ddsourcecategory":"aws","ddtags":"env:prod,owner:xxxxx@xxxxx.com","aws":{"invoked_function_arn":"arn:aws:lambda:us-east-1:123456789012:function:forwarder"},"host":"xxx.xxx.xxx.xxx"}`,
+		},
+		"marshalled_log_custom_rule_outside_message": {
+			customMatchRe:     regexp.MustCompile(`bucket-[a-z0-9-]+`),
+			customReplacement: "xxxxx",
+			content:           `{"message":"object created","aws":{"s3":{"bucket":"bucket-prod-secrets","key":"a.log"}}}`,
+			want:              `{"message":"object created","aws":{"s3":{"bucket":"xxxxx","key":"a.log"}}}`,
+		},
 		"non_ascii_custom": {
 			customMatchRe:     regexp.MustCompile(`[^\x01-\x7f]+`),
 			customReplacement: "xxxxx",
@@ -123,7 +135,7 @@ func TestScrub(t *testing.T) {
 
 			scrubber := NewScrubber(tc.customMatchRe, tc.customReplacement, tc.ip, tc.email)
 
-			assert.Equal(t, tc.want, scrubber.Apply(tc.content))
+			assert.Equal(t, tc.want, string(scrubber.Apply([]byte(tc.content))))
 		})
 	}
 }

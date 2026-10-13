@@ -15,7 +15,6 @@ type Filterer struct {
 	excludeRegex *regexp.Regexp
 }
 
-// nit: we may not want to return a pointer here since there is no reason for the filterer to change
 func NewFilterer(includeMatch, excludeMatch *regexp.Regexp) *Filterer {
 	return &Filterer{includeRegex: includeMatch, excludeRegex: excludeMatch}
 }
