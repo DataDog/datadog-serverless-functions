@@ -2,6 +2,7 @@ import unittest
 
 from customized_log_group import (
     get_lambda_function_name_from_logstream_name,
+    get_lambda_function_version_from_logstream_name,
     is_lambda_customized_log_group,
 )
 
@@ -59,3 +60,24 @@ class TestCustomizedLogGroup(unittest.TestCase):
             get_lambda_function_name_from_logstream_name(stepfunction_log_stream_name),
             None,
         )
+
+    def test_get_lambda_function_version_from_logstream_name(self):
+        for log_stream_name, expected_version in [
+            (
+                "2023/11/06/test-customized-log-group1[$LATEST]13e304cba4b9446eb7ef082a00038990",
+                "$LATEST",
+            ),
+            (
+                "2026/10/14/my-example-function[51]4ba11538c2434a5c94732afdb6eda1e0",
+                "51",
+            ),
+            (
+                "2023/11/06/test-customized-log-group1[Version2023_11]13e304cba4b9446eb7ef082a00038990",
+                "Version2023_11",
+            ),
+        ]:
+            with self.subTest(log_stream_name=log_stream_name):
+                self.assertEqual(
+                    get_lambda_function_version_from_logstream_name(log_stream_name),
+                    expected_version,
+                )
