@@ -101,10 +101,12 @@ assert_bootstrap_zip() {
     local zip_path="${1}"
     local entries
 
-    entries=$(unzip -Z1 "${zip_path}")
+    # META_INF* is added by AWS Signer
+    entries=$(unzip -Z1 "${zip_path}" | grep -v '^META_INF/' || true)
 
     if [[ ${entries} != "bootstrap" ]]; then
-        log_error "$(printf "%s must contain exactly one entry named 'bootstrap', found:\n%s" "${zip_path}" "${entries}")"
+        log_error "$(printf "%s must contain 'bootstrap' found:\n%s" \
+            "${zip_path}" "$(unzip -Z1 "${zip_path}")")"
     fi
 }
 
