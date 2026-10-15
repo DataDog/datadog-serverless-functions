@@ -9,6 +9,9 @@ http {
         location /api/v1/validate {
             proxy_pass https://api.datadoghq.com:443/api/v1/validate;
         }
+        location /api/v2/intake-key {
+            proxy_pass https://api.datadoghq.com:443/api/v2/intake-key;
+        }
         location / {
             proxy_pass https://haproxy-app.agent.datadoghq.com:443/;
         }
