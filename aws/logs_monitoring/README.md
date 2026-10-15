@@ -497,6 +497,9 @@ The Datadog Forwarder is signed by Datadog. To verify the integrity of the Forwa
 `DdApiKeySsmParameterName`
 : The name of the SSM parameter containing the Datadog API key, or its full ARN when the parameter lives in a different region than the Forwarder. If set, both `DdApiKey` and `DdApiKeySecretArn` are ignored.
 
+`DdOrgUuid`
+: Your Datadog organization UUID. When set, the Forwarder authenticates with [Workload Identity Federation][29]: it exchanges its execution role's AWS credentials for an API key at startup and again every hour by default, so no API key has to be provided. Before setting it, integrate the AWS account with Datadog and create an AWS intake mapping for `arn:aws:sts::<ACCOUNT_ID>:assumed-role/<ROLE_NAME>/*`, where `<ROLE_NAME>` is the stack's `ForwarderRoleName` output. If `DdApiKey`, `DdApiKeySecretArn` or `DdApiKeySsmParameterName` is also set, that key is used only when the exchange fails at startup; without one, the Forwarder cannot start while the exchange fails. Removing `DdApiKey` from an existing stack deletes the API key secret the stack created, along with its `ApiKeySecretArn` export. Not available on the Datadog for Government sites. When forwarding through a proxy, route `/api/v2/intake-key` to the Datadog API as the sample configurations in `proxy_conf/` do.
+
 `DdSite`
 : The [Datadog site][13] that your metrics and logs will be sent to. Your Datadog site is {{< region-param key="dd_site" code="true" >}}.
 
@@ -680,6 +683,12 @@ If you are installing the Forwarder manually, convert the parameter names from P
 
 `DD_KMS_API_KEY`
 : The Datadog API key encrypted with AWS KMS. Takes precedence over `DD_API_KEY`. The KMS key must be in the same region as the Forwarder.
+
+`DD_ORG_UUID`
+: Your Datadog organization UUID. When set, the Forwarder authenticates with [Workload Identity Federation][29] and takes precedence over the API key variables above, which are used only when the exchange fails at startup. Requires an AWS intake mapping in Datadog that authorizes the Forwarder's execution role.
+
+`DD_DELEGATED_AUTH_REFRESH_INTERVAL_MINS`
+: How often, in minutes, the Forwarder exchanges its credentials for a fresh API key when `DD_ORG_UUID` is set. Defaults to `60`.
 
 `DD_SITE`
 : The [Datadog site][13] that your metrics and logs will be sent to. Your Datadog site is {{< region-param key="dd_site" code="true" >}}.
@@ -962,3 +971,4 @@ Additional helpful documentation, links, and articles:
 [26]: https://docs.aws.amazon.com/vpc/latest/privatelink/aws-services-privatelink-support.html
 [27]: https://docs.datadoghq.com/agent/guide/private-link/?tab=crossregionprivatelinkendpoints#create-your-vpc-endpoint
 [28]: https://docs.aws.amazon.com/vpc/latest/privatelink/create-interface-endpoint.html#create-interface-endpoint
+[29]: https://docs.datadoghq.com/account_management/workload_identity_federation/
