@@ -213,7 +213,7 @@ Starting version 3.107.0 a new feature is added to enable Lambda function to sto
 ### Upgrade an older version to +3.106.0
 
 Starting version 3.106.0 Lambda function has been updated to add a prefix to cache filenames stored in the S3 bucket configured in `DD_S3_BUCKET_NAME`. This allows to use the same bucket to store cache files from several functions.
-Additionally, starting this version, the forwarder will attach custom S3 bucket tags by default to all logs exported to S3. For example, if a service is configured to send logs to a destiantion S3 bucket, the forwarder will add the bucket's tags to the logs while pulling and forwarding the logs.
+Additionally, starting this version, the forwarder will attach custom S3 bucket tags by default to all logs exported to S3. For example, if a service is configured to send logs to a destination S3 bucket, the forwarder will add the bucket's tags to the logs while pulling and forwarding the logs.
 
 ### Upgrade an older version to +3.99.0
 
