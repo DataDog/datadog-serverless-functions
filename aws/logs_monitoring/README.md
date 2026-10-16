@@ -32,9 +32,14 @@ Datadog recommends using [CloudFormation](?tab=cloudformation#cloudformation) to
 
 ### CloudFormation
 
+{{< site-region region="us,us3,us5,eu,ap1,ap2,uk1" >}}
 [![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home#/stacks/create/review?stackName=datadog-forwarder&templateURL=https://datadog-cloudformation-template.s3.amazonaws.com/aws/forwarder/latest.yaml)
+{{< /site-region >}}
+{{< site-region region="gov,gov2" >}}
+[![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.amazonaws-us-gov.com/cloudformation/home?region=us-gov-west-1#/stacks/create/review?stackName=datadog-forwarder&templateURL=https://datadog-cloudformation-template-us-gov.s3.us-gov-west-1.amazonaws.com/aws/forwarder/latest.yaml)
+{{< /site-region >}}
 
-1. Log into your admin AWS account or role and deploy the CloudFormation Stack with the button above.
+1. Log in to your admin AWS account or role and deploy the CloudFormation Stack with the button above.
 2. Fill in `DdApiKey` and select the appropriate `DdSite`. All other parameters are optional.
 3. Click **Create stack**, and wait for the creation to complete.
 4. Find the installed forwarder Lambda function under the stack's "Resources" tab with logical ID `Forwarder`.
@@ -58,6 +63,9 @@ If you're using AWS Organizations, you can use CloudFormation StackSets to deplo
 #### Single account, multiple regions
 
 1. Deploy the Forwarder template using [CloudFormation StackSets][151] in the AWS Console.
+    {{< site-region region="gov,gov2" >}}
+    <div class="alert alert-info">In AWS GovCloud, use the <a href="https://console.amazonaws-us-gov.com/cloudformation/home?region=us-gov-west-1#/stacksets/create">GovCloud CloudFormation StackSets console</a> instead.</div>
+    {{< /site-region >}}
 2. In the **Permissions** section, optionally provide an IAM admin role ARN, or leave the default IAM execution role name (`AWSCloudFormationStackSetExecutionRole`).
 3. In the **Specify template** section:
     1. Select **Amazon S3 URL**.
@@ -85,6 +93,9 @@ If you're using AWS Organizations, you can use CloudFormation StackSets to deplo
 
 1. Enable [trusted access for CloudFormation StackSets][153] in AWS Organizations (this is a one-time setup).
 2. Deploy from the organization management account using [CloudFormation StackSets][151].
+    {{< site-region region="gov,gov2" >}}
+    <div class="alert alert-info">In AWS GovCloud, use the <a href="https://console.amazonaws-us-gov.com/cloudformation/home?region=us-gov-west-1#/stacksets/create">GovCloud CloudFormation StackSets console</a> instead.</div>
+    {{< /site-region >}}
 3. In the **Permissions** section, choose **Service-managed permissions**. This option allows CloudFormation StackSets to create the necessary IAM roles in target accounts automatically.
 4. In the **Specify template** section:
     1. Select **Amazon S3 URL**.
