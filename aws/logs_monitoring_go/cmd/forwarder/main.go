@@ -98,7 +98,7 @@ func handleRequest(cfg *config.Config, apiKey string, client *http.Client) func(
 		var storage storing.Storage
 		var storageErr error
 		if cfg.StoreOnFail {
-			storageOpts := storing.Options{S3Bucket: cfg.S3RetryBucketName, SQSQueue: cfg.SQSQueueURL}
+			storageOpts := storing.Options{S3Bucket: cfg.S3BucketName, SQSQueue: cfg.SQSQueueURL}
 			if storage, storageErr = storing.NewStorage(storageOpts); storageErr != nil {
 				return nil, fmt.Errorf("new storage: %w", storageErr)
 			}

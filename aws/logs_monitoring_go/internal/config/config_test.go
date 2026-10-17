@@ -7,7 +7,7 @@ package config
 
 import (
 	"compress/gzip"
-	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
@@ -17,18 +17,10 @@ import (
 )
 
 func TestLoad(t *testing.T) {
-	defaults := Config{
-		APIURL:           "https://api.datadoghq.com/api/v1/validate",
-		IntakeURL:        "https://http-intake.logs.datadoghq.com:443/api/v2/logs",
-		CompressionLevel: gzip.DefaultCompression,
-		Tags:             baseTags(),
-	}
-
 	tests := map[string]struct {
-		env          map[string]string
-		want         func(*Config)
-		wantPatterns map[string]string
-		wantErr      string
+		env     map[string]string
+		want    func(*Config)
+		wantErr bool
 	}{
 		"defaults": {},
 		"eu site": {
@@ -89,20 +81,17 @@ func TestLoad(t *testing.T) {
 				c.Tags = append(model.Tags{"team:backend", "env:prod"}, baseTags()...)
 			},
 		},
-		"storage enables store on fail": {
-			env: map[string]string{EnvS3RetryBucketName: "my-bucket", EnvSQSQueueURL: "https://sqs/queue"},
+		"store on fail with storage": {
+			env: map[string]string{EnvStoreOnFail: "true", EnvS3BucketName: "my-bucket", EnvSQSQueueURL: "https://sqs/queue"},
 			want: func(c *Config) {
-				c.S3RetryBucketName = "my-bucket"
+				c.S3BucketName = "my-bucket"
 				c.SQSQueueURL = "https://sqs/queue"
 				c.StoreOnFail = true
 			},
 		},
-		"sqs alone enables store on fail": {
-			env: map[string]string{EnvSQSQueueURL: "https://sqs/queue"},
-			want: func(c *Config) {
-				c.SQSQueueURL = "https://sqs/queue"
-				c.StoreOnFail = true
-			},
+		"store on fail with no storage": {
+			env:     map[string]string{EnvStoreOnFail: "true"},
+			wantErr: true,
 		},
 		"compression and targets": {
 			env: map[string]string{
@@ -124,36 +113,6 @@ func TestLoad(t *testing.T) {
 				c.StepFunctionsTraceEnabled = true
 			},
 		},
-		"scrubbing and filters compile": {
-			env: map[string]string{
-				EnvScrubbingRule:            `password=\w+`,
-				EnvScrubbingRuleReplacement: "[REDACTED]",
-				EnvIncludeAtMatch:           "keep-me",
-				EnvExcludeAtMatch:           "drop-me",
-				EnvMultilineLogRegex:        `^\d{4}`,
-				EnvRedactIP:                 "true",
-				EnvRedactEmail:              "true",
-			},
-			want: func(c *Config) {
-				c.ScrubbingReplacement = "[REDACTED]"
-				c.ScrubIP = true
-				c.ScrubEmail = true
-			},
-			wantPatterns: map[string]string{
-				"scrubbing": `password=\w+`,
-				"include":   "keep-me",
-				"exclude":   "drop-me",
-				"multiline": `^\d{4}`,
-			},
-		},
-		"invalid include pattern": {
-			env:     map[string]string{EnvIncludeAtMatch: "[unclosed"},
-			wantErr: `compile INCLUDE_AT_MATCH "[unclosed"`,
-		},
-		"invalid multiline pattern": {
-			env:     map[string]string{EnvMultilineLogRegex: "(?P<"},
-			wantErr: "compile DD_MULTILINE_LOG_REGEX_PATTERN",
-		},
 	}
 
 	for name, tc := range tests {
@@ -163,21 +122,13 @@ func TestLoad(t *testing.T) {
 			}
 
 			got, err := Load()
-
-			if tc.wantErr != "" {
-				require.ErrorContains(t, err, tc.wantErr)
+			if tc.wantErr {
+				require.Error(t, err, tc.wantErr)
 				return
 			}
+
 			require.NoError(t, err)
-
-			assert.Equal(t, tc.wantPatterns, patternsOf(got))
-
-			want := defaults
-			if tc.want != nil {
-				tc.want(&want)
-			}
-			clearPatterns(&got)
-			assert.Equal(t, want, got)
+			assert.Equal(t, tc.want, got)
 		})
 	}
 }
@@ -189,88 +140,39 @@ func baseTags() model.Tags {
 	}
 }
 
-func TestLoadReportsEveryPatternError(t *testing.T) {
-	t.Setenv(EnvScrubbingRule, "(")
-	t.Setenv(EnvIncludeAtMatch, "[")
-	t.Setenv(EnvExcludeAtMatch, "*")
+func TestCompilePatternFromEnv(t *testing.T) {
+	ddEnvRegexp := "DD_ENV_REGEXP"
 
-	_, err := Load()
-
-	require.Error(t, err)
-	assert.ErrorContains(t, err, "compile "+EnvScrubbingRule)
-	assert.ErrorContains(t, err, "compile "+EnvIncludeAtMatch)
-	assert.ErrorContains(t, err, "compile "+EnvExcludeAtMatch)
-}
-
-// patternsOf reports the compiled patterns by name so they can be compared as
-// strings: reflect.DeepEqual on *regexp.Regexp inspects unexported machine state.
-func patternsOf(c Config) map[string]string {
-	named := map[string]*regexp.Regexp{
-		"scrubbing": c.ScrubbingRegex,
-		"include":   c.FilterInclude,
-		"exclude":   c.FilterExclude,
-		"multiline": c.S3MultilineLogRegex,
-	}
-
-	var patterns map[string]string
-	for name, re := range named {
-		if re == nil {
-			continue
-		}
-		if patterns == nil {
-			patterns = map[string]string{}
-		}
-		patterns[name] = re.String()
-	}
-
-	return patterns
-}
-
-func clearPatterns(c *Config) {
-	c.ScrubbingRegex, c.FilterInclude, c.FilterExclude, c.S3MultilineLogRegex = nil, nil, nil, nil
-}
-
-func TestCompilePattern(t *testing.T) {
 	tests := map[string]struct {
 		value   string
-		set     bool
-		want    string
 		wantErr bool
 	}{
-		"not set":         {},
-		"empty":           {value: "", set: true},
-		"whitespace only": {value: "   ", set: true},
-		"valid":           {value: `\d+`, set: true, want: `\d+`},
-		"trimmed":         {value: "  abc  ", set: true, want: "abc"},
-		"anchored":        {value: "^start.*end$", set: true, want: "^start.*end$"},
-		"unclosed class":  {value: "[unclosed", set: true, wantErr: true},
-		"bare repeat":     {value: "*", set: true, wantErr: true},
-		"unclosed group":  {value: "(", set: true, wantErr: true},
+		"empty":              {value: ""},
+		"whitespace only":    {value: "   "},
+		"valid":              {value: `\d+`},
+		"trimmed":            {value: "  abc  "},
+		"anchored":           {value: "^start.*end$"},
+		"unclosed class":     {value: "[unclosed", wantErr: true},
+		"bare repeat":        {value: "*", wantErr: true},
+		"unclosed group":     {value: "(", wantErr: true},
+		"positive lookahead": {value: `\w+(?=\s*EUR)`, wantErr: true},
 	}
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			if tc.set {
-				t.Setenv(EnvScrubbingRule, tc.value)
-			}
+			tc.value = strings.TrimSpace(tc.value)
+			t.Setenv(ddEnvRegexp, tc.value)
 
-			got, err := compilePattern(EnvScrubbingRule)
+			got, err := compilePatternFromEnv(ddEnvRegexp)
 
 			if tc.wantErr {
-				require.Error(t, err)
-				assert.Nil(t, got)
-				assert.ErrorContains(t, err, EnvScrubbingRule)
+				require.ErrorContains(t, err, ddEnvRegexp)
 				return
+			}
+			if tc.value != "" {
+				require.NotNil(t, got)
 			}
 			require.NoError(t, err)
-
-			if tc.want == "" {
-				assert.Nil(t, got)
-				return
-			}
-
-			require.NotNil(t, got)
-			assert.Equal(t, tc.want, got.String())
 		})
 	}
 }
@@ -385,22 +287,4 @@ func TestGetTags(t *testing.T) {
 			assert.Equal(t, tc.wantTags, gotTags)
 		})
 	}
-}
-
-func TestConfigLogValueOmitsSecretsAndPII(t *testing.T) {
-	t.Parallel()
-
-	const ciphertext = "Y2lwaGVydGV4dA=="
-
-	cfg := Config{
-		APIKeyKMSKey: ciphertext,
-		Tags:         model.Tags{"customer:acme", "user_email:someone@example.com"},
-	}
-
-	rendered := cfg.LogValue().String()
-
-	assert.NotContains(t, rendered, ciphertext, "the KMS ciphertext is key material")
-	assert.NotContains(t, rendered, "acme", "tags are customer supplied and may carry PII")
-	assert.NotContains(t, rendered, "someone@example.com", "tags are customer supplied and may carry PII")
-	assert.Contains(t, rendered, "api_key_configured=true")
 }

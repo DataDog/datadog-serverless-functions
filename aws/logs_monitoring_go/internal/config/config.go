@@ -45,7 +45,8 @@ const (
 	EnvRedactEmail              = "REDACT_EMAIL"
 	EnvIncludeAtMatch           = "INCLUDE_AT_MATCH"
 	EnvExcludeAtMatch           = "EXCLUDE_AT_MATCH"
-	EnvS3RetryBucketName        = "DD_S3_BUCKET_NAME"
+	EnvStoreOnFail              = "DD_STORE_FAILED_EVENTS"
+	EnvS3BucketName             = "DD_S3_BUCKET_NAME"
 	EnvSQSQueueURL              = "DD_SQS_QUEUE_URL"
 	EnvAdditionalTargets        = "DD_ADDITIONAL_TARGET_LAMBDAS"
 	EnvEnableStepFunctionsTrace = "DD_STEP_FUNCTIONS_TRACE_ENABLED"
@@ -73,13 +74,15 @@ type Config struct {
 	ScrubIP                   bool
 	ScrubEmail                bool
 	StoreOnFail               bool
-	S3RetryBucketName         string
+	S3BucketName              string
 	SQSQueueURL               string
 	AdditionalTargets         []string
 	StepFunctionsTraceEnabled bool
 }
 
 func Load() (Config, error) {
+	var err error
+
 	logDroppedEnvVars()
 
 	site := envOrDefault(EnvSite, DefaultSite)
@@ -103,14 +106,18 @@ func Load() (Config, error) {
 	scrubIP := envOrDefaultBool(EnvRedactIP, false)
 	scrubEmail := envOrDefaultBool(EnvRedactEmail, false)
 
-	scrubbingRegex, scrubbingErr := compilePattern(EnvScrubbingRule)
-	filterInclude, includeErr := compilePattern(EnvIncludeAtMatch)
-	filterExclude, excludeErr := compilePattern(EnvExcludeAtMatch)
-	multilineRegex, multilineErr := compilePattern(EnvMultilineLogRegex)
+	scrubbingRegex, scrubbingErr := compilePatternFromEnv(EnvScrubbingRule)
+	filterInclude, includeErr := compilePatternFromEnv(EnvIncludeAtMatch)
+	filterExclude, excludeErr := compilePatternFromEnv(EnvExcludeAtMatch)
+	multilineRegex, multilineErr := compilePatternFromEnv(EnvMultilineLogRegex)
+	err = errors.Join(err, scrubbingErr, includeErr, excludeErr, multilineErr)
 
-	s3RetryBucketName := os.Getenv(EnvS3RetryBucketName)
+	storeOnFail := envOrDefaultBool(EnvStoreOnFail, false)
+	s3BucketName := os.Getenv(EnvS3BucketName)
 	sqsQueueURL := os.Getenv(EnvSQSQueueURL)
-	storeOnFail := s3RetryBucketName != "" || sqsQueueURL != ""
+	if storeOnFail && s3BucketName == "" && sqsQueueURL == "" {
+		err = errors.Join(err, errors.New("failed event storage enabled, but no storage provided"))
+	}
 
 	return Config{
 		APIKeySecretARN:           os.Getenv(EnvAPIKeySecretARN),
@@ -131,22 +138,22 @@ func Load() (Config, error) {
 		ScrubIP:                   scrubIP,
 		ScrubEmail:                scrubEmail,
 		StoreOnFail:               storeOnFail,
-		S3RetryBucketName:         s3RetryBucketName,
+		S3BucketName:              s3BucketName,
 		SQSQueueURL:               sqsQueueURL,
 		AdditionalTargets:         additionalTargets,
 		StepFunctionsTraceEnabled: stepFunctionsTraceEnabled,
-	}, errors.Join(scrubbingErr, includeErr, excludeErr, multilineErr)
+	}, err
 }
 
-func compilePattern(key string) (*regexp.Regexp, error) {
-	pattern := strings.TrimSpace(os.Getenv(key))
+func compilePatternFromEnv(env string) (*regexp.Regexp, error) {
+	pattern := strings.TrimSpace(os.Getenv(env))
 	if pattern == "" {
 		return nil, nil
 	}
 
 	re, err := regexp.Compile(pattern)
 	if err != nil {
-		return nil, fmt.Errorf("compile %s %q: %w", key, pattern, err)
+		return nil, fmt.Errorf("compile %s %q: %w", env, pattern, err)
 	}
 
 	return re, nil
@@ -213,7 +220,7 @@ func (c Config) LogValue() slog.Value {
 		slog.Int("compression_level", c.CompressionLevel),
 		slog.Bool("skip_tls", c.SkipServerCertificate),
 		slog.Bool("store_on_fail", c.StoreOnFail),
-		slog.String("s3_retry_bucket", c.S3RetryBucketName),
+		slog.String("s3_bucket", c.S3BucketName),
 		slog.String("sqs_queue_url", c.SQSQueueURL),
 		slog.String("source_override", c.Source),
 		slog.String("service", c.Service),
