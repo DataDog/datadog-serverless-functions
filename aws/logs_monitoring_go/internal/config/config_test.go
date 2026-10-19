@@ -128,8 +128,22 @@ func TestLoad(t *testing.T) {
 			}
 
 			require.NoError(t, err)
-			assert.Equal(t, tc.want, got)
+
+			want := defaultConfig()
+			if tc.want != nil {
+				tc.want(&want)
+			}
+			assert.Equal(t, want, got)
 		})
+	}
+}
+
+func defaultConfig() Config {
+	return Config{
+		APIURL:           DefaultProtocol + "://api." + DefaultSite + "/api/v1/validate",
+		IntakeURL:        DefaultProtocol + "://http-intake.logs." + DefaultSite + ":" + DefaultPort + "/api/v2/logs",
+		CompressionLevel: gzip.DefaultCompression,
+		Tags:             baseTags(),
 	}
 }
 
