@@ -11,24 +11,23 @@ import (
 
 type scrubbingRule struct {
 	regex       *regexp.Regexp
-	replacement string
+	replacement []byte
 }
 
 var ipRule = scrubbingRule{
 	regex:       regexp.MustCompile(`\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}`),
-	replacement: "xxx.xxx.xxx.xxx",
+	replacement: []byte("xxx.xxx.xxx.xxx"),
 }
 
 var emailRule = scrubbingRule{
 	regex:       regexp.MustCompile(`[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+`),
-	replacement: "xxxxx@xxxxx.com",
+	replacement: []byte("xxxxx@xxxxx.com"),
 }
 
 type Scrubber struct {
 	rules []scrubbingRule
 }
 
-// nit: we may not want to return a pointer here since there is no reason for the scrubber to change
 func NewScrubber(customMatch *regexp.Regexp, customReplacement string, ip, email bool) *Scrubber {
 	var rules []scrubbingRule
 
@@ -42,19 +41,19 @@ func NewScrubber(customMatch *regexp.Regexp, customReplacement string, ip, email
 	if customMatch != nil {
 		rules = append(rules, scrubbingRule{
 			regex:       customMatch,
-			replacement: customReplacement,
+			replacement: []byte(customReplacement),
 		})
 	}
 
 	return &Scrubber{rules: rules}
 }
 
-func (s *Scrubber) Apply(content string) string {
+func (s *Scrubber) Apply(content []byte) []byte {
 	if s == nil {
 		return content
 	}
 	for _, rule := range s.rules {
-		content = rule.regex.ReplaceAllString(content, rule.replacement)
+		content = rule.regex.ReplaceAll(content, rule.replacement)
 	}
 	return content
 }
