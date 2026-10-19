@@ -15,19 +15,21 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/sdkclient/mocks"
 )
 
 func TestDecryptKMSCiphertext(t *testing.T) {
 	validCiphertext := base64.StdEncoding.EncodeToString([]byte("encrypted-blob"))
 
 	tests := map[string]struct {
-		mockSetup  func(m *MockKMS)
+		mockSetup  func(m *mocks.MockKMS)
 		ciphertext string
 		wantKey    string
 		wantErr    bool
 	}{
 		"success": {
-			mockSetup: func(m *MockKMS) {
+			mockSetup: func(m *mocks.MockKMS) {
 				m.EXPECT().
 					Decrypt(gomock.Any(), gomock.Any()).
 					Return(&kms.DecryptOutput{
@@ -38,7 +40,7 @@ func TestDecryptKMSCiphertext(t *testing.T) {
 			wantKey:    "abcdef1234567890abcdef1234567890",
 		},
 		"whitespace_trimmed": {
-			mockSetup: func(m *MockKMS) {
+			mockSetup: func(m *mocks.MockKMS) {
 				m.EXPECT().
 					Decrypt(gomock.Any(), gomock.Any()).
 					Return(&kms.DecryptOutput{
@@ -49,12 +51,12 @@ func TestDecryptKMSCiphertext(t *testing.T) {
 			wantKey:    "abcdef1234567890abcdef1234567890",
 		},
 		"invalid_base64": {
-			mockSetup:  func(m *MockKMS) {},
+			mockSetup:  func(m *mocks.MockKMS) {},
 			ciphertext: "not-valid-base64!@#$",
 			wantErr:    true,
 		},
 		"aws_error": {
-			mockSetup: func(m *MockKMS) {
+			mockSetup: func(m *mocks.MockKMS) {
 				m.EXPECT().
 					Decrypt(gomock.Any(), gomock.Any()).
 					Return(nil, errors.New("InvalidCiphertextException: invalid ciphertext"))
@@ -63,7 +65,7 @@ func TestDecryptKMSCiphertext(t *testing.T) {
 			wantErr:    true,
 		},
 		"nil_plaintext": {
-			mockSetup: func(m *MockKMS) {
+			mockSetup: func(m *mocks.MockKMS) {
 				m.EXPECT().
 					Decrypt(gomock.Any(), gomock.Any()).
 					Return(&kms.DecryptOutput{
@@ -78,7 +80,7 @@ func TestDecryptKMSCiphertext(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
-			mock := NewMockKMS(ctrl)
+			mock := mocks.NewMockKMS(ctrl)
 			tc.mockSetup(mock)
 
 			got, err := DecryptKMSCiphertext(t.Context(), mock, tc.ciphertext)
@@ -96,7 +98,7 @@ func TestDecryptKMSCiphertextEncodesNonUTF8Plaintext(t *testing.T) {
 	plaintext := []byte{0xff, 0xfe, 0x00, 0x01}
 
 	ctrl := gomock.NewController(t)
-	mock := NewMockKMS(ctrl)
+	mock := mocks.NewMockKMS(ctrl)
 	mock.EXPECT().
 		Decrypt(gomock.Any(), gomock.Any()).
 		Return(&kms.DecryptOutput{Plaintext: plaintext}, nil)

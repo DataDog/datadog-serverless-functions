@@ -12,7 +12,7 @@ import (
 	"io"
 	"testing"
 
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/sdkclient"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/sdkclient/mocks"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/testutil"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -25,12 +25,12 @@ func TestS3_Store(t *testing.T) {
 	t.Parallel()
 
 	tests := map[string]struct {
-		mockSetup func(m *sdkclient.MockS3)
+		mockSetup func(m *mocks.MockS3)
 		batch     Batch
 		wantErr   bool
 	}{
 		"success": {
-			mockSetup: func(m *sdkclient.MockS3) {
+			mockSetup: func(m *mocks.MockS3) {
 				m.EXPECT().
 					PutObject(gomock.Any(), gomock.Any()).
 					Return(nil, nil)
@@ -41,7 +41,7 @@ func TestS3_Store(t *testing.T) {
 			},
 		},
 		"error on PutObject call": {
-			mockSetup: func(m *sdkclient.MockS3) {
+			mockSetup: func(m *mocks.MockS3) {
 				m.EXPECT().
 					PutObject(gomock.Any(), gomock.Any()).
 					Return(nil, errors.New("denied"))
@@ -59,7 +59,7 @@ func TestS3_Store(t *testing.T) {
 			t.Parallel()
 
 			ctrl := gomock.NewController(t)
-			mock := sdkclient.NewMockS3(ctrl)
+			mock := mocks.NewMockS3(ctrl)
 			tc.mockSetup(mock)
 			storage := newS3(mock, "my-bucket")
 
@@ -78,11 +78,11 @@ func TestS3_Fetch(t *testing.T) {
 	t.Parallel()
 
 	tests := map[string]struct {
-		mockSetup func(m *sdkclient.MockS3)
+		mockSetup func(m *mocks.MockS3)
 		wantErr   bool
 	}{
 		"success": {
-			mockSetup: func(m *sdkclient.MockS3) {
+			mockSetup: func(m *mocks.MockS3) {
 				gomock.InOrder(
 					m.EXPECT().
 						ListObjectsV2(gomock.Any(), gomock.Any()).
@@ -108,7 +108,7 @@ func TestS3_Fetch(t *testing.T) {
 			},
 		},
 		"error on ListObjectsV2 call": {
-			mockSetup: func(m *sdkclient.MockS3) {
+			mockSetup: func(m *mocks.MockS3) {
 				m.EXPECT().
 					ListObjectsV2(gomock.Any(), gomock.Any()).
 					Return(nil, errors.New("denied"))
@@ -116,7 +116,7 @@ func TestS3_Fetch(t *testing.T) {
 			wantErr: true,
 		},
 		"error on GetObject call": {
-			mockSetup: func(m *sdkclient.MockS3) {
+			mockSetup: func(m *mocks.MockS3) {
 				gomock.InOrder(
 					m.EXPECT().
 						ListObjectsV2(gomock.Any(), gomock.Any()).
@@ -139,7 +139,7 @@ func TestS3_Fetch(t *testing.T) {
 			t.Parallel()
 
 			ctrl := gomock.NewController(t)
-			mock := sdkclient.NewMockS3(ctrl)
+			mock := mocks.NewMockS3(ctrl)
 			tc.mockSetup(mock)
 			storage := newS3(mock, "failed_events")
 
@@ -158,12 +158,12 @@ func TestS3_Delete(t *testing.T) {
 	t.Parallel()
 
 	tests := map[string]struct {
-		mockSetup func(m *sdkclient.MockS3)
+		mockSetup func(m *mocks.MockS3)
 		batch     Batch
 		wantErr   bool
 	}{
 		"success": {
-			mockSetup: func(m *sdkclient.MockS3) {
+			mockSetup: func(m *mocks.MockS3) {
 				m.EXPECT().
 					DeleteObject(gomock.Any(), gomock.Any()).
 					Return(nil, nil)
@@ -173,7 +173,7 @@ func TestS3_Delete(t *testing.T) {
 			},
 		},
 		"error on DeleteObject call": {
-			mockSetup: func(m *sdkclient.MockS3) {
+			mockSetup: func(m *mocks.MockS3) {
 				m.EXPECT().
 					DeleteObject(gomock.Any(), gomock.Any()).
 					Return(nil, errors.New("denied"))
@@ -190,7 +190,7 @@ func TestS3_Delete(t *testing.T) {
 			t.Parallel()
 
 			ctrl := gomock.NewController(t)
-			mock := sdkclient.NewMockS3(ctrl)
+			mock := mocks.NewMockS3(ctrl)
 			tc.mockSetup(mock)
 			storage := newS3(mock, "my-bucket")
 

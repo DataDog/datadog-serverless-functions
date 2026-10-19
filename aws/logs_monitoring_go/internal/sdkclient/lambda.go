@@ -5,7 +5,7 @@
 
 package sdkclient
 
-//go:generate go tool mockgen -source=lambda.go -package=$GOPACKAGE -destination=lambda_mockgen.go
+//go:generate go tool mockgen -source=lambda.go -package=mocks -destination=mocks/lambda.go
 
 import (
 	"context"

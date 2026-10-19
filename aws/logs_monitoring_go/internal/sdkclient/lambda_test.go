@@ -15,6 +15,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/lambda/types"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/sdkclient/mocks"
 )
 
 func TestInvokeTargets(t *testing.T) {
@@ -23,16 +25,16 @@ func TestInvokeTargets(t *testing.T) {
 	event := json.RawMessage(`{"Records":[{"eventSource":"aws:s3","s3":{"bucket":{"name":"my-bucket"},"object":{"key":"my-key"}}}]}`)
 
 	tests := map[string]struct {
-		mockSetup func(m *MockLambda)
+		mockSetup func(m *mocks.MockLambda)
 		targets   []string
 		wantErr   bool
 	}{
 		"no targets": {
-			mockSetup: func(m *MockLambda) {},
+			mockSetup: func(m *mocks.MockLambda) {},
 			targets:   nil,
 		},
 		"single target": {
-			mockSetup: func(m *MockLambda) {
+			mockSetup: func(m *mocks.MockLambda) {
 				m.EXPECT().
 					Invoke(gomock.Any(), &lambda.InvokeInput{
 						FunctionName:   aws.String("arn:aws:lambda:us-east-1:123456789012:function:first"),
@@ -44,7 +46,7 @@ func TestInvokeTargets(t *testing.T) {
 			targets: []string{"arn:aws:lambda:us-east-1:123456789012:function:first"},
 		},
 		"multiple targets": {
-			mockSetup: func(m *MockLambda) {
+			mockSetup: func(m *mocks.MockLambda) {
 				m.EXPECT().
 					Invoke(gomock.Any(), &lambda.InvokeInput{
 						FunctionName:   aws.String("arn:aws:lambda:us-east-1:123456789012:function:first"),
@@ -66,7 +68,7 @@ func TestInvokeTargets(t *testing.T) {
 			},
 		},
 		"error second target": {
-			mockSetup: func(m *MockLambda) {
+			mockSetup: func(m *mocks.MockLambda) {
 				m.EXPECT().
 					Invoke(gomock.Any(), &lambda.InvokeInput{
 						FunctionName:   aws.String("arn:aws:lambda:us-east-1:123456789012:function:first"),
@@ -95,7 +97,7 @@ func TestInvokeTargets(t *testing.T) {
 			t.Parallel()
 
 			ctrl := gomock.NewController(t)
-			mock := NewMockLambda(ctrl)
+			mock := mocks.NewMockLambda(ctrl)
 			tc.mockSetup(mock)
 
 			err := invokeTargets(t.Context(), mock, tc.targets, event)

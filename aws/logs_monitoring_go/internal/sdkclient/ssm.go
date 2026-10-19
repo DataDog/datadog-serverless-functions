@@ -5,7 +5,7 @@
 
 package sdkclient
 
-//go:generate go tool mockgen -source=ssm.go -package=sdkclient -destination=ssm_mockgen.go
+//go:generate go tool mockgen -source=ssm.go -package=mocks -destination=mocks/ssm.go
 
 import (
 	"context"
