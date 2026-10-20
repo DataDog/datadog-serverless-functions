@@ -15,17 +15,19 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/sdkclient/mocks"
 )
 
 func TestFetchSecret(t *testing.T) {
 	tests := map[string]struct {
-		mockSetup func(m *MockSecretsManager)
+		mockSetup func(m *mocks.MockSecretsManager)
 		arn       string
 		wantKey   string
 		wantErr   bool
 	}{
 		"success": {
-			mockSetup: func(m *MockSecretsManager) {
+			mockSetup: func(m *mocks.MockSecretsManager) {
 				m.EXPECT().
 					GetSecretValue(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(&secretsmanager.GetSecretValueOutput{
@@ -36,7 +38,7 @@ func TestFetchSecret(t *testing.T) {
 			wantKey: "abcdef1234567890abcdef1234567890",
 		},
 		"whitespace_trimmed": {
-			mockSetup: func(m *MockSecretsManager) {
+			mockSetup: func(m *mocks.MockSecretsManager) {
 				m.EXPECT().
 					GetSecretValue(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(&secretsmanager.GetSecretValueOutput{
@@ -47,7 +49,7 @@ func TestFetchSecret(t *testing.T) {
 			wantKey: "abcdef1234567890abcdef1234567890",
 		},
 		"aws_error": {
-			mockSetup: func(m *MockSecretsManager) {
+			mockSetup: func(m *mocks.MockSecretsManager) {
 				m.EXPECT().
 					GetSecretValue(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil, errors.New("AccessDeniedException: access denied"))
@@ -56,7 +58,7 @@ func TestFetchSecret(t *testing.T) {
 			wantErr: true,
 		},
 		"nil_secret_string": {
-			mockSetup: func(m *MockSecretsManager) {
+			mockSetup: func(m *mocks.MockSecretsManager) {
 				m.EXPECT().
 					GetSecretValue(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(&secretsmanager.GetSecretValueOutput{
@@ -71,7 +73,7 @@ func TestFetchSecret(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
-			mock := NewMockSecretsManager(ctrl)
+			mock := mocks.NewMockSecretsManager(ctrl)
 			tc.mockSetup(mock)
 
 			got, err := FetchSecret(t.Context(), mock, tc.arn)
@@ -102,7 +104,7 @@ func TestFetchSecretUsesRegionFromARN(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
-			mock := NewMockSecretsManager(ctrl)
+			mock := mocks.NewMockSecretsManager(ctrl)
 
 			var gotRegion string
 			mock.EXPECT().
@@ -129,7 +131,7 @@ func TestFetchSecretUsesRegionFromARN(t *testing.T) {
 
 func TestFetchSecretParsesJSONSecret(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	mock := NewMockSecretsManager(ctrl)
+	mock := mocks.NewMockSecretsManager(ctrl)
 	mock.EXPECT().
 		GetSecretValue(gomock.Any(), gomock.Any(), gomock.Any()).
 		Return(&secretsmanager.GetSecretValueOutput{

@@ -5,7 +5,7 @@
 
 package sdkclient
 
-//go:generate go tool mockgen -source=secrets_manager.go -package=sdkclient -destination=secrets_manager_mockgen.go
+//go:generate go tool mockgen -source=secrets_manager.go -package=mocks -destination=mocks/secrets_manager.go
 
 import (
 	"context"

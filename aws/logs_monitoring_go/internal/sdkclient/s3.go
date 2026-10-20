@@ -5,7 +5,7 @@
 
 package sdkclient
 
-//go:generate go tool mockgen -source=s3.go -package=$GOPACKAGE -destination=s3_mockgen.go
+//go:generate go tool mockgen -source=s3.go -package=mocks -destination=mocks/s3.go
 
 import (
 	"context"

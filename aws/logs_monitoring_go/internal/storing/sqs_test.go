@@ -9,7 +9,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/sdkclient"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/sdkclient/mocks"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/testutil"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
@@ -21,12 +21,12 @@ func TestSQS_Store(t *testing.T) {
 	t.Parallel()
 
 	tests := map[string]struct {
-		mockSetup func(m *sdkclient.MockSQS)
+		mockSetup func(m *mocks.MockSQS)
 		batch     Batch
 		wantErr   bool
 	}{
 		"five 100KB logs send one message": {
-			mockSetup: func(m *sdkclient.MockSQS) {
+			mockSetup: func(m *mocks.MockSQS) {
 				m.EXPECT().
 					SendMessage(gomock.Any(), gomock.Any()).
 					Return(nil, nil)
@@ -36,7 +36,7 @@ func TestSQS_Store(t *testing.T) {
 			},
 		},
 		"two 512KB logs send two messages": {
-			mockSetup: func(m *sdkclient.MockSQS) {
+			mockSetup: func(m *mocks.MockSQS) {
 				m.EXPECT().
 					SendMessage(gomock.Any(), gomock.Any()).
 					Times(2).
@@ -47,14 +47,14 @@ func TestSQS_Store(t *testing.T) {
 			},
 		},
 		"one 1MiB log send no message": {
-			mockSetup: func(m *sdkclient.MockSQS) {
+			mockSetup: func(m *mocks.MockSQS) {
 			},
 			batch: Batch{
 				Data: testutil.GenerateJSONLogs(t, 1*1024*1024),
 			},
 		},
 		"error on SendMessage call": {
-			mockSetup: func(m *sdkclient.MockSQS) {
+			mockSetup: func(m *mocks.MockSQS) {
 				m.EXPECT().
 					SendMessage(gomock.Any(), gomock.Any()).
 					Return(nil, errors.New("denied"))
@@ -71,7 +71,7 @@ func TestSQS_Store(t *testing.T) {
 			t.Parallel()
 
 			ctrl := gomock.NewController(t)
-			mock := sdkclient.NewMockSQS(ctrl)
+			mock := mocks.NewMockSQS(ctrl)
 			tc.mockSetup(mock)
 			sqs := newSQS(mock, "https://sqs.us-east-1.amazonaws.com/123456789012/MyQueue")
 
@@ -90,11 +90,11 @@ func TestSQS_Fetch(t *testing.T) {
 	t.Parallel()
 
 	tests := map[string]struct {
-		mockSetup func(m *sdkclient.MockSQS)
+		mockSetup func(m *mocks.MockSQS)
 		wantErr   bool
 	}{
 		"exit on empty poll": {
-			mockSetup: func(m *sdkclient.MockSQS) {
+			mockSetup: func(m *mocks.MockSQS) {
 				gomock.InOrder(
 					m.EXPECT().
 						ReceiveMessage(gomock.Any(), gomock.Any()).
@@ -113,7 +113,7 @@ func TestSQS_Fetch(t *testing.T) {
 			},
 		},
 		"error on ReceiveMessage": {
-			mockSetup: func(m *sdkclient.MockSQS) {
+			mockSetup: func(m *mocks.MockSQS) {
 				m.EXPECT().
 					ReceiveMessage(gomock.Any(), gomock.Any()).
 					Return(nil, errors.New("denied"))
@@ -127,7 +127,7 @@ func TestSQS_Fetch(t *testing.T) {
 			t.Parallel()
 
 			ctrl := gomock.NewController(t)
-			mock := sdkclient.NewMockSQS(ctrl)
+			mock := mocks.NewMockSQS(ctrl)
 			tc.mockSetup(mock)
 			s := newSQS(mock, "https://sqs.us-east-1.amazonaws.com/123456789012/MyQueue")
 
@@ -146,12 +146,12 @@ func TestSQS_Delete(t *testing.T) {
 	t.Parallel()
 
 	tests := map[string]struct {
-		mockSetup func(m *sdkclient.MockSQS)
+		mockSetup func(m *mocks.MockSQS)
 		batch     Batch
 		wantErr   bool
 	}{
 		"success": {
-			mockSetup: func(m *sdkclient.MockSQS) {
+			mockSetup: func(m *mocks.MockSQS) {
 				m.EXPECT().
 					DeleteMessage(gomock.Any(), gomock.Any()).
 					Return(nil, nil)
@@ -161,7 +161,7 @@ func TestSQS_Delete(t *testing.T) {
 			},
 		},
 		"error on DeleteMessage call": {
-			mockSetup: func(m *sdkclient.MockSQS) {
+			mockSetup: func(m *mocks.MockSQS) {
 				m.EXPECT().
 					DeleteMessage(gomock.Any(), gomock.Any()).
 					Return(nil, errors.New("denied"))
@@ -178,7 +178,7 @@ func TestSQS_Delete(t *testing.T) {
 			t.Parallel()
 
 			ctrl := gomock.NewController(t)
-			mock := sdkclient.NewMockSQS(ctrl)
+			mock := mocks.NewMockSQS(ctrl)
 			tc.mockSetup(mock)
 			sqs := newSQS(mock, "https://sqs.us-east-1.amazonaws.com/123456789012/MyQueue")
 

@@ -16,7 +16,7 @@ import (
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/filtering"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/sdkclient"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/sdkclient/mocks"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/testutil"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -61,7 +61,7 @@ func TestProcessS3Record(t *testing.T) {
 	t.Parallel()
 
 	tests := map[string]struct {
-		mockSetup   func(m *sdkclient.MockS3)
+		mockSetup   func(m *mocks.MockS3)
 		cfg         *Config
 		filterer    *filtering.Filterer
 		eventRecord events.S3EventRecord
@@ -69,7 +69,7 @@ func TestProcessS3Record(t *testing.T) {
 		wantErr     bool
 	}{
 		"single line": {
-			mockSetup: func(m *sdkclient.MockS3) {
+			mockSetup: func(m *mocks.MockS3) {
 				m.EXPECT().GetObject(gomock.Any(), gomock.Any()).
 					Return(&s3.GetObjectOutput{
 						Body: io.NopCloser(strings.NewReader("line1")),
@@ -80,7 +80,7 @@ func TestProcessS3Record(t *testing.T) {
 			want:        []model.LogEntry{wantS3Entry("line1", "s3", "s3", nil)},
 		},
 		"multiple lines": {
-			mockSetup: func(m *sdkclient.MockS3) {
+			mockSetup: func(m *mocks.MockS3) {
 				m.EXPECT().GetObject(gomock.Any(), gomock.Any()).
 					Return(&s3.GetObjectOutput{
 						Body: io.NopCloser(strings.NewReader("line1\nline2\nline3")),
@@ -95,7 +95,7 @@ func TestProcessS3Record(t *testing.T) {
 			},
 		},
 		"empty file": {
-			mockSetup: func(m *sdkclient.MockS3) {
+			mockSetup: func(m *mocks.MockS3) {
 				m.EXPECT().GetObject(gomock.Any(), gomock.Any()).
 					Return(&s3.GetObjectOutput{
 						Body: io.NopCloser(strings.NewReader("")),
@@ -106,7 +106,7 @@ func TestProcessS3Record(t *testing.T) {
 			want:        nil,
 		},
 		"s3 error": {
-			mockSetup: func(m *sdkclient.MockS3) {
+			mockSetup: func(m *mocks.MockS3) {
 				m.EXPECT().GetObject(gomock.Any(), gomock.Any()).
 					Return(nil, errors.New("access denied"))
 			},
@@ -115,7 +115,7 @@ func TestProcessS3Record(t *testing.T) {
 			wantErr:     true,
 		},
 		"ddtags extraction": {
-			mockSetup: func(m *sdkclient.MockS3) {
+			mockSetup: func(m *mocks.MockS3) {
 				m.EXPECT().GetObject(gomock.Any(), gomock.Any()).
 					Return(&s3.GetObjectOutput{
 						Body: io.NopCloser(strings.NewReader(`{"ddtags":"env:prod,service:myapp","msg":"hello"}`)),
@@ -126,7 +126,7 @@ func TestProcessS3Record(t *testing.T) {
 			want:        []model.LogEntry{wantS3Entry(`{"msg":"hello"}`, "s3", "myapp", model.Tags{"env:prod"})},
 		},
 		"invalid utf8 stripped": {
-			mockSetup: func(m *sdkclient.MockS3) {
+			mockSetup: func(m *mocks.MockS3) {
 				m.EXPECT().GetObject(gomock.Any(), gomock.Any()).
 					Return(&s3.GetObjectOutput{
 						Body: io.NopCloser(strings.NewReader("hello\x80world")),
@@ -137,7 +137,7 @@ func TestProcessS3Record(t *testing.T) {
 			want:        []model.LogEntry{wantS3Entry("helloworld", "s3", "s3", nil)},
 		},
 		"multiline groups continuation lines": {
-			mockSetup: func(m *sdkclient.MockS3) {
+			mockSetup: func(m *mocks.MockS3) {
 				m.EXPECT().GetObject(gomock.Any(), gomock.Any()).
 					Return(&s3.GetObjectOutput{
 						Body: io.NopCloser(strings.NewReader("2024-01-15 ERROR NullPointer\n    at com.foo.Bar\n2024-01-15 INFO started")),
@@ -151,7 +151,7 @@ func TestProcessS3Record(t *testing.T) {
 			},
 		},
 		"multiline flushes at eof": {
-			mockSetup: func(m *sdkclient.MockS3) {
+			mockSetup: func(m *mocks.MockS3) {
 				m.EXPECT().GetObject(gomock.Any(), gomock.Any()).
 					Return(&s3.GetObjectOutput{
 						Body: io.NopCloser(strings.NewReader("2024-01-15 ERROR\n    stacktrace")),
@@ -162,7 +162,7 @@ func TestProcessS3Record(t *testing.T) {
 			want:        []model.LogEntry{wantS3Entry("2024-01-15 ERROR\n    stacktrace", "s3", "s3", nil)},
 		},
 		"custom tags passed through": {
-			mockSetup: func(m *sdkclient.MockS3) {
+			mockSetup: func(m *mocks.MockS3) {
 				m.EXPECT().GetObject(gomock.Any(), gomock.Any()).
 					Return(&s3.GetObjectOutput{
 						Body: io.NopCloser(strings.NewReader("line1")),
@@ -173,7 +173,7 @@ func TestProcessS3Record(t *testing.T) {
 			want:        []model.LogEntry{wantS3Entry("line1", "s3", "s3", model.Tags{"env:prod", "team:aws"})},
 		},
 		"cloudtrail with ec2 host": {
-			mockSetup: func(m *sdkclient.MockS3) {
+			mockSetup: func(m *mocks.MockS3) {
 				data := testutil.MustGzipJSON(t, map[string]any{
 					"Records": []any{
 						map[string]any{
@@ -199,7 +199,7 @@ func TestProcessS3Record(t *testing.T) {
 			},
 		},
 		"cloudtrail without ec2 host": {
-			mockSetup: func(m *sdkclient.MockS3) {
+			mockSetup: func(m *mocks.MockS3) {
 				data := testutil.MustGzipJSON(t, map[string]any{
 					"Records": []any{
 						map[string]any{
@@ -225,7 +225,7 @@ func TestProcessS3Record(t *testing.T) {
 			},
 		},
 		"vpc flow logs skips header line": {
-			mockSetup: func(m *sdkclient.MockS3) {
+			mockSetup: func(m *mocks.MockS3) {
 				m.EXPECT().GetObject(gomock.Any(), gomock.Any()).
 					Return(&s3.GetObjectOutput{
 						Body: io.NopCloser(strings.NewReader("version account-id interface-id srcaddr dstaddr srcport dstport protocol\n2 123456789012 eni-abc123 10.0.0.1 10.0.0.2 443 49152 6\n2 123456789012 eni-abc123 10.0.0.2 10.0.0.1 49152 443 6")),
@@ -239,7 +239,7 @@ func TestProcessS3Record(t *testing.T) {
 			},
 		},
 		"waf single line": {
-			mockSetup: func(m *sdkclient.MockS3) {
+			mockSetup: func(m *mocks.MockS3) {
 				data := testutil.MustGzip(t, []byte(`{"httpRequest":{"headers":[{"name":"Host","value":"example.com"}]}}`))
 				m.EXPECT().GetObject(gomock.Any(), gomock.Any()).
 					Return(&s3.GetObjectOutput{
@@ -251,7 +251,7 @@ func TestProcessS3Record(t *testing.T) {
 			want:        []model.LogEntry{wantWAFEntry(`{"httpRequest":{"headers":{"Host":"example.com"}}}`)},
 		},
 		"waf multiple lines": {
-			mockSetup: func(m *sdkclient.MockS3) {
+			mockSetup: func(m *mocks.MockS3) {
 				lines := `{"httpRequest":{"headers":[{"name":"h1","value":"v1"}]}}` + "\n" +
 					`{"httpRequest":{"headers":[{"name":"h2","value":"v2"}]}}`
 				data := testutil.MustGzip(t, []byte(lines))
@@ -268,7 +268,7 @@ func TestProcessS3Record(t *testing.T) {
 			},
 		},
 		"waf does not apply multiline regex": {
-			mockSetup: func(m *sdkclient.MockS3) {
+			mockSetup: func(m *mocks.MockS3) {
 				lines := `{"action":"ALLOW"}` + "\n" + `{"action":"BLOCK"}`
 				data := testutil.MustGzip(t, []byte(lines))
 				m.EXPECT().GetObject(gomock.Any(), gomock.Any()).
@@ -284,7 +284,7 @@ func TestProcessS3Record(t *testing.T) {
 			},
 		},
 		"waf non-gzipped": {
-			mockSetup: func(m *sdkclient.MockS3) {
+			mockSetup: func(m *mocks.MockS3) {
 				m.EXPECT().GetObject(gomock.Any(), gomock.Any()).
 					Return(&s3.GetObjectOutput{
 						Body: io.NopCloser(strings.NewReader(`{"httpRequest":{"headers":[{"name":"Host","value":"example.com"}]}}`)),
@@ -295,7 +295,7 @@ func TestProcessS3Record(t *testing.T) {
 			want:        []model.LogEntry{wantWAFEntry(`{"httpRequest":{"headers":{"Host":"example.com"}}}`)},
 		},
 		"waf exclude at match": {
-			mockSetup: func(m *sdkclient.MockS3) {
+			mockSetup: func(m *mocks.MockS3) {
 				lines := `{"action":"ALLOW","httpRequest":{}}` + "\n" + `{"action":"BLOCK","httpRequest":{}}`
 				data := testutil.MustGzip(t, []byte(lines))
 				m.EXPECT().GetObject(gomock.Any(), gomock.Any()).
@@ -309,7 +309,7 @@ func TestProcessS3Record(t *testing.T) {
 			want:        []model.LogEntry{wantWAFEntry(`{"action":"ALLOW","httpRequest":{}}`)},
 		},
 		"waf include at match": {
-			mockSetup: func(m *sdkclient.MockS3) {
+			mockSetup: func(m *mocks.MockS3) {
 				lines := `{"action":"ALLOW","httpRequest":{}}` + "\n" + `{"action":"BLOCK","httpRequest":{}}`
 				data := testutil.MustGzip(t, []byte(lines))
 				m.EXPECT().GetObject(gomock.Any(), gomock.Any()).
@@ -329,7 +329,7 @@ func TestProcessS3Record(t *testing.T) {
 			t.Parallel()
 
 			ctrl := gomock.NewController(t)
-			mock := sdkclient.NewMockS3(ctrl)
+			mock := mocks.NewMockS3(ctrl)
 			tc.mockSetup(mock)
 
 			out := make(chan json.RawMessage, len(tc.want))

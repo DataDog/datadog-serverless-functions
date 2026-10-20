@@ -16,17 +16,19 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/sdkclient/mocks"
 )
 
 func TestFetchSSMParameter(t *testing.T) {
 	tests := map[string]struct {
-		mockSetup func(m *MockSSM)
+		mockSetup func(m *mocks.MockSSM)
 		name      string
 		wantKey   string
 		wantErr   bool
 	}{
 		"success": {
-			mockSetup: func(m *MockSSM) {
+			mockSetup: func(m *mocks.MockSSM) {
 				m.EXPECT().
 					GetParameter(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(&ssm.GetParameterOutput{
@@ -39,7 +41,7 @@ func TestFetchSSMParameter(t *testing.T) {
 			wantKey: "abcdef1234567890abcdef1234567890",
 		},
 		"whitespace_trimmed": {
-			mockSetup: func(m *MockSSM) {
+			mockSetup: func(m *mocks.MockSSM) {
 				m.EXPECT().
 					GetParameter(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(&ssm.GetParameterOutput{
@@ -52,7 +54,7 @@ func TestFetchSSMParameter(t *testing.T) {
 			wantKey: "abcdef1234567890abcdef1234567890",
 		},
 		"aws_error": {
-			mockSetup: func(m *MockSSM) {
+			mockSetup: func(m *mocks.MockSSM) {
 				m.EXPECT().
 					GetParameter(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil, errors.New("ParameterNotFound: parameter not found"))
@@ -61,7 +63,7 @@ func TestFetchSSMParameter(t *testing.T) {
 			wantErr: true,
 		},
 		"nil_parameter": {
-			mockSetup: func(m *MockSSM) {
+			mockSetup: func(m *mocks.MockSSM) {
 				m.EXPECT().
 					GetParameter(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(&ssm.GetParameterOutput{
@@ -72,7 +74,7 @@ func TestFetchSSMParameter(t *testing.T) {
 			wantErr: true,
 		},
 		"nil_value": {
-			mockSetup: func(m *MockSSM) {
+			mockSetup: func(m *mocks.MockSSM) {
 				m.EXPECT().
 					GetParameter(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(&ssm.GetParameterOutput{
@@ -89,7 +91,7 @@ func TestFetchSSMParameter(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
-			mock := NewMockSSM(ctrl)
+			mock := mocks.NewMockSSM(ctrl)
 			tc.mockSetup(mock)
 
 			got, err := FetchSSMParameter(t.Context(), mock, tc.name)
@@ -116,7 +118,7 @@ func TestFetchSSMParameterUsesRegionFromARN(t *testing.T) {
 	for label, tc := range tests {
 		t.Run(label, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
-			mock := NewMockSSM(ctrl)
+			mock := mocks.NewMockSSM(ctrl)
 
 			var gotRegion string
 			mock.EXPECT().
