@@ -12,40 +12,40 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/filtering"
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/forwarding"
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/handling"
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/parsing"
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/scrubbing"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/filterer"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/forwarder"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/handler"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/parser"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/scrubber"
 	"golang.org/x/sync/errgroup"
 
 	awsevents "github.com/aws/aws-lambda-go/events"
 )
 
 type Pipeline struct {
-	hcfg      handling.Config
-	scrubber  *scrubbing.Scrubber
-	filterer  *filtering.Filterer
-	forwarder *forwarding.Forwarder
+	hcfg      handler.Config
+	scrubber  *scrubber.Scrubber
+	filterer  *filterer.Filterer
+	forwarder *forwarder.Forwarder
 }
 
 func New(
-	hcfg handling.Config,
-	scrubber *scrubbing.Scrubber,
-	filterer *filtering.Filterer,
-	forwarder *forwarding.Forwarder,
+	hcfg handler.Config,
+	scrub *scrubber.Scrubber,
+	filter *filterer.Filterer,
+	fwd *forwarder.Forwarder,
 ) Pipeline {
 	return Pipeline{
 		hcfg:      hcfg,
-		scrubber:  scrubber,
-		filterer:  filterer,
-		forwarder: forwarder,
+		scrubber:  scrub,
+		filterer:  filter,
+		forwarder: fwd,
 	}
 }
 
 func (p Pipeline) Start(ctx context.Context, awsevent json.RawMessage) (any, error) {
-	if parsing.IsSQS(awsevent) {
-		events, err := parsing.SQS(awsevent)
+	if parser.IsSQS(awsevent) {
+		events, err := parser.SQS(awsevent)
 		if err != nil {
 			return nil, err
 		}
@@ -54,12 +54,12 @@ func (p Pipeline) Start(ctx context.Context, awsevent json.RawMessage) (any, err
 		return p.startSQS(ctx, events)
 	}
 
-	event, err := parsing.Parse(awsevent)
+	event, err := parser.Parse(awsevent)
 	if err != nil {
 		return nil, fmt.Errorf("parse: %w", err)
 	}
 
-	if event.ContentType == parsing.ContentTypeRetry {
+	if event.ContentType == parser.ContentTypeRetry {
 		slog.DebugContext(ctx, "retry event received, processing stored batches")
 		return nil, p.forwarder.Retry(ctx)
 	}
@@ -67,7 +67,7 @@ func (p Pipeline) Start(ctx context.Context, awsevent json.RawMessage) (any, err
 	return nil, p.run(ctx, event)
 }
 
-func (p Pipeline) startSQS(ctx context.Context, events []parsing.SQSEvent) (sqsEventResponse json.RawMessage, err error) {
+func (p Pipeline) startSQS(ctx context.Context, events []parser.SQSEvent) (sqsEventResponse json.RawMessage, err error) {
 	var response awsevents.SQSEventResponse
 	for i, event := range events {
 		err = p.run(ctx, event.Event)
@@ -92,7 +92,7 @@ func (p Pipeline) startSQS(ctx context.Context, events []parsing.SQSEvent) (sqsE
 	return sqsEventResponse, err
 }
 
-func (p Pipeline) run(ctx context.Context, event parsing.Event) error {
+func (p Pipeline) run(ctx context.Context, event parser.Event) error {
 	slog.DebugContext(ctx, "processing event", slog.String("content_type", event.ContentType.String()))
 
 	eg, ctx := errgroup.WithContext(ctx)
@@ -100,18 +100,18 @@ func (p Pipeline) run(ctx context.Context, event parsing.Event) error {
 	entries := make(chan json.RawMessage)
 	eg.Go(func() error {
 		defer close(entries)
-		handler, err := handling.NewHandler(p.hcfg, p.scrubber, p.filterer, event.ContentType)
+		h, err := handler.New(p.hcfg, p.scrubber, p.filterer, event.ContentType)
 		if err != nil {
 			return fmt.Errorf("new handler: %w", err)
 		}
 
-		if err := handler.Handle(ctx, event.Payload, entries); err != nil {
+		if err := h.Handle(ctx, event.Payload, entries); err != nil {
 			return fmt.Errorf("handle: %w", err)
 		}
 		return nil
 	})
 
-	err := p.forwarder.Start(ctx, entries, forwarding.StorageTag(event.ContentType))
+	err := p.forwarder.Start(ctx, entries, forwarder.StorageTag(event.ContentType))
 	if waitErr := eg.Wait(); waitErr != nil {
 		return errors.Join(err, waitErr)
 	}
