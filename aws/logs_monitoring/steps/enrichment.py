@@ -8,7 +8,7 @@ from settings import DD_CUSTOM_TAGS, DD_HOST, DD_SERVICE, DD_SOURCE
 from steps.enums import AwsEventSource
 
 HOST_IDENTITY_REGEXP = re.compile(
-    r"^arn:(?:aws|aws-cn|aws-us-gov):sts::.*?:assumed-role\/"
+    r"^arn:(?:aws|aws-cn|aws-us-gov|aws-iso|aws-iso-b):sts::.*?:assumed-role\/"
     r"(?P<role>.*?)/(?P<host>i-([0-9a-f]{8}|[0-9a-f]{17}))$"
 )
 
