@@ -38,32 +38,11 @@
         "description": "Comma-separated list of tags to add to all logs sent to Datadog"
       }
     },
-    "resourcesLocation": {
-      "type": "string",
-      "defaultValue": "[resourceGroup().location]",
-      "metadata": {
-        "description": "Location for all the Azure resources."
-      }
-    },
-    "functionAppName": {
-      "type": "string",
-      "defaultValue": "[concat('datadog-functionapp-', newGuid())]",
-      "metadata": {
-        "description": "The name of the function app."
-      }
-    },
     "eventhubName": {
       "type": "string",
       "defaultValue": "datadog-eventhub",
       "metadata": {
         "description": "The name of the eventhub."
-      }
-    },
-    "eventhubNamespace": {
-      "type": "string",
-      "defaultValue": "[concat('datadog-ns-', newGuid())]",
-      "metadata": {
-        "description": "The name of the eventhub namespace."
       }
     },
     "eventhubPartitionCount": {
@@ -79,23 +58,14 @@
       "metadata": {
         "description": "Code (packaged into a .zip) for the function to run"
       }
-    },
-    "storageEndpointSuffix": {
-      "type": "string",
-      "defaultValue": "[environment().suffixes.storage]",
-      "metadata": {
-        "description": "Endpoint suffix for storage account"
-      }
-    },
-    "diagnosticSettingName": {
-      "type": "string",
-      "defaultValue": "[concat('datadog-activity-logs-diagnostic-setting-', uniqueString(newGuid()))]",
-      "metadata": {
-        "description": "The name of the diagnostic setting if sending Activity Logs"
-      }
     }
   },
   "variables": {
+    "resourcesLocation": "[resourceGroup().location]",
+    "functionAppName": "[concat('datadog-functionapp-', uniqueString(resourceGroup().id))]",
+    "eventHubNamespace": "[concat('datadog-ns-', uniqueString(resourceGroup().id))]",
+    "storageEndpointSuffix": "[environment().suffixes.storage]",
+    "diagnosticSettingName": "[concat('datadog-activity-logs-diagnostic-setting-', uniqueString(resourceGroup().id))]",
     "eventHubTemplateLink": "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/eventhub_log_forwarder/event_hub.json",
     "functionAppTemplateLink": "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/eventhub_log_forwarder/function_template.json",
     "activityLogDiagnosticSettingsTemplateLink": "https://raw.githubusercontent.com/DataDog/datadog-serverless-functions/master/azure/eventhub_log_forwarder/activity_log_diagnostic_settings.json"
@@ -113,10 +83,10 @@
         },
         "parameters": {
           "location": {
-            "value": "[parameters('resourcesLocation')]"
+            "value": "[variables('resourcesLocation')]"
           },
           "eventHubNamespace": {
-            "value": "[parameters('eventHubNamespace')]"
+            "value": "[variables('eventHubNamespace')]"
           },
           "eventHubName": {
             "value": "[parameters('eventHubName')]"
@@ -139,16 +109,16 @@
         },
         "parameters": {
           "location": {
-            "value": "[parameters('resourcesLocation')]"
+            "value": "[variables('resourcesLocation')]"
           },
           "eventHubNamespace": {
-            "value": "[parameters('eventHubNamespace')]"
+            "value": "[variables('eventHubNamespace')]"
           },
           "eventHubName": {
             "value": "[parameters('eventHubName')]"
           },
           "functionAppName": {
-            "value": "[parameters('functionAppName')]"
+            "value": "[variables('functionAppName')]"
           },
           "functionPackageUri": {
             "value": "[parameters('functionPackageUri')]"
@@ -163,7 +133,7 @@
             "value": "[parameters('datadogSite')]"
           },
           "endpointSuffix": {
-            "value": "[parameters('storageEndpointSuffix')]"
+            "value": "[variables('storageEndpointSuffix')]"
           }
         }
       },
@@ -174,7 +144,7 @@
     {
       "condition": "[parameters('sendActivityLogs')]",
       "type": "Microsoft.Resources/deployments",
-      "name": "[concat(parameters('diagnosticSettingName'), '-Template')]",
+      "name": "[concat(variables('diagnosticSettingName'), '-Template')]",
       "apiVersion": "2024-07-01",
       "properties": {
         "mode": "Incremental",
@@ -184,13 +154,13 @@
         },
         "parameters": {
           "settingName": {
-            "value": "[parameters('diagnosticSettingName')]"
+            "value": "[variables('diagnosticSettingName')]"
           },
           "resourceGroup": {
             "value": "[resourceGroup().name]"
           },
           "eventHubNamespace": {
-            "value": "[parameters('eventHubNamespace')]"
+            "value": "[variables('eventHubNamespace')]"
           },
           "eventHubName": {
             "value": "[parameters('eventHubName')]"
@@ -201,13 +171,13 @@
         "[resourceId('Microsoft.Resources/deployments','functionAppTemplate')]"
       ],
       "subscriptionId": "[subscription().subscriptionId]",
-      "location": "[parameters('resourcesLocation')]"
+      "location": "[variables('resourcesLocation')]"
     }
   ],
   "outputs": {
     "eventHubNamespace": {
       "type": "string",
-      "value": "[parameters('eventHubNamespace')]"
+      "value": "[variables('eventHubNamespace')]"
     }
   }
 }
