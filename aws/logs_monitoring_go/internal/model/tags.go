@@ -61,3 +61,22 @@ func (t *Tags) Has(key string) bool {
 func CutKey(tag, key string) (string, bool) {
 	return strings.CutPrefix(tag, key+KeyValueSeparator)
 }
+
+func ParseTags(raw string) (service string, tags Tags) {
+	if raw == "" {
+		return "", nil
+	}
+
+	for tag := range strings.SplitSeq(raw, TagSeparator) {
+		value, found := CutKey(tag, ServiceKey)
+		if found {
+			if service == "" {
+				service = value
+			}
+			continue
+		}
+		tags = append(tags, tag)
+	}
+
+	return service, tags
+}

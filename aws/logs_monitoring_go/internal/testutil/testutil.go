@@ -61,7 +61,7 @@ func WithMultilineRegex(pattern string) ConfigOption {
 
 func WithTags(tags ...string) ConfigOption {
 	return func(_ *testing.T, cfg *config.Config) {
-		cfg.Tags = tags
+		cfg.Tags = strings.Join(tags, model.TagSeparator)
 	}
 }
 

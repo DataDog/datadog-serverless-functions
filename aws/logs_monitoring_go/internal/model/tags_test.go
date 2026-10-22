@@ -67,3 +67,31 @@ func TestTags_Has(t *testing.T) {
 		})
 	}
 }
+
+func TestParseTags(t *testing.T) {
+	t.Parallel()
+
+	tests := map[string]struct {
+		raw         string
+		wantService string
+		wantTags    Tags
+	}{
+		"empty":                              {},
+		"custom tags kept":                   {raw: "team:backend,env:prod", wantTags: Tags{"team:backend", "env:prod"}},
+		"service extracted and removed":      {raw: "team:backend,service:my-app", wantService: "my-app", wantTags: Tags{"team:backend"}},
+		"first service wins":                 {raw: "service:first,service:second", wantService: "first"},
+		"empty service value":                {raw: "service:"},
+		"bare key is kept":                   {raw: "servicelike", wantTags: Tags{"servicelike"}},
+		"service prefix not matched loosely": {raw: "service_name:my-app", wantTags: Tags{"service_name:my-app"}},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			gotService, gotTags := ParseTags(tc.raw)
+			assert.Equal(t, tc.wantService, gotService)
+			assert.Equal(t, tc.wantTags, gotTags)
+		})
+	}
+}

@@ -14,10 +14,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/version"
-	"github.com/aws/aws-lambda-go/lambdacontext"
 )
 
 const (
@@ -64,8 +60,7 @@ type Config struct {
 	CompressionLevel          int
 	SkipServerCertificate     bool
 	Source                    string
-	Service                   string
-	Tags                      model.Tags
+	Tags                      string
 	S3MultilineLogRegex       *regexp.Regexp
 	FilterInclude             *regexp.Regexp
 	FilterExclude             *regexp.Regexp
@@ -100,7 +95,6 @@ func Load() (Config, error) {
 	stepFunctionsTraceEnabled := envOrDefaultBool(EnvEnableStepFunctionsTrace, false)
 
 	source := os.Getenv(EnvSource)
-	service, tags := getTags(source, os.Getenv(EnvTags))
 
 	scrubbingReplacement := envOrDefault(EnvScrubbingRuleReplacement, "")
 	scrubIP := envOrDefaultBool(EnvRedactIP, false)
@@ -128,8 +122,7 @@ func Load() (Config, error) {
 		CompressionLevel:          compressionLevel,
 		SkipServerCertificate:     skipServerCertificate,
 		Source:                    source,
-		Service:                   service,
-		Tags:                      tags,
+		Tags:                      os.Getenv(EnvTags),
 		S3MultilineLogRegex:       multilineRegex,
 		FilterInclude:             filterInclude,
 		FilterExclude:             filterExclude,
@@ -188,30 +181,6 @@ func getCompressionLevel(level string) int {
 	return gzip.DefaultCompression
 }
 
-func getTags(source, customTags string) (service string, tags model.Tags) {
-	if customTags != "" {
-		for tag := range strings.SplitSeq(customTags, model.TagSeparator) {
-			v, found := model.CutKey(tag, model.ServiceKey)
-			if found {
-				if service == "" {
-					service = v
-				}
-				continue
-			}
-			tags = append(tags, tag)
-		}
-	}
-
-	if source != "" {
-		tags.Add(model.SourceOverriddenKey, "true")
-	}
-
-	tags.Add(model.ForwarderNameKey, strings.ToLower(lambdacontext.FunctionName))
-	tags.Add(model.ForwarderVersionKey, version.Forwarder)
-
-	return service, tags
-}
-
 func (c Config) LogValue() slog.Value {
 	return slog.GroupValue(
 		slog.Bool("api_key_configured", c.APIKeySecretARN != "" || c.APIKeySSMName != "" || c.APIKeyKMSKey != ""),
@@ -223,8 +192,7 @@ func (c Config) LogValue() slog.Value {
 		slog.String("s3_bucket", c.S3BucketName),
 		slog.String("sqs_queue_url", c.SQSQueueURL),
 		slog.String("source_override", c.Source),
-		slog.String("service", c.Service),
-		slog.Int("tags", len(c.Tags)),
+		slog.String("tags", c.Tags),
 		slog.Bool("multiline_regex", c.S3MultilineLogRegex != nil),
 		slog.Bool("filter_include", c.FilterInclude != nil),
 		slog.Bool("filter_exclude", c.FilterExclude != nil),

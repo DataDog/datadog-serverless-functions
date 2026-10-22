@@ -10,8 +10,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/version"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -67,18 +65,16 @@ func TestLoad(t *testing.T) {
 				c.APIKeyKMSKey = "Y2lwaGVydGV4dA=="
 			},
 		},
-		"source override adds tag": {
+		"source override": {
 			env: map[string]string{EnvSource: "my-source"},
 			want: func(c *Config) {
 				c.Source = "my-source"
-				c.Tags = append(model.Tags{"source_overridden:true"}, baseTags()...)
 			},
 		},
-		"custom tags extract service": {
+		"custom tags kept raw": {
 			env: map[string]string{EnvTags: "team:backend,service:my-app,env:prod"},
 			want: func(c *Config) {
-				c.Service = "my-app"
-				c.Tags = append(model.Tags{"team:backend", "env:prod"}, baseTags()...)
+				c.Tags = "team:backend,service:my-app,env:prod"
 			},
 		},
 		"store on fail with storage": {
@@ -143,14 +139,6 @@ func defaultConfig() Config {
 		APIURL:           DefaultProtocol + "://api." + DefaultSite + "/api/v1/validate",
 		IntakeURL:        DefaultProtocol + "://http-intake.logs." + DefaultSite + ":" + DefaultPort + "/api/v2/logs",
 		CompressionLevel: gzip.DefaultCompression,
-		Tags:             baseTags(),
-	}
-}
-
-func baseTags() model.Tags {
-	return model.Tags{
-		model.ForwarderNameKey + model.KeyValueSeparator,
-		model.ForwarderVersionKey + model.KeyValueSeparator + version.Forwarder,
 	}
 }
 
@@ -238,67 +226,6 @@ func TestGetCompressionLevel(t *testing.T) {
 			t.Parallel()
 
 			assert.Equal(t, tc.want, getCompressionLevel(tc.level))
-		})
-	}
-}
-
-func TestGetTags(t *testing.T) {
-	t.Parallel()
-
-	tests := map[string]struct {
-		source      string
-		customTags  string
-		wantService string
-		wantTags    model.Tags
-	}{
-		"no input": {
-			wantTags: baseTags(),
-		},
-		"source override": {
-			source:   "my-source",
-			wantTags: append(model.Tags{"source_overridden:true"}, baseTags()...),
-		},
-		"custom tags kept": {
-			customTags: "team:backend,env:prod",
-			wantTags:   append(model.Tags{"team:backend", "env:prod"}, baseTags()...),
-		},
-		"service extracted and removed": {
-			customTags:  "team:backend,service:my-app",
-			wantService: "my-app",
-			wantTags:    append(model.Tags{"team:backend"}, baseTags()...),
-		},
-		"first service wins": {
-			customTags:  "service:first,service:second",
-			wantService: "first",
-			wantTags:    baseTags(),
-		},
-		"empty service value": {
-			customTags: "service:",
-			wantTags:   baseTags(),
-		},
-		"source and custom tags": {
-			source:      "my-source",
-			customTags:  "service:my-app,env:prod",
-			wantService: "my-app",
-			wantTags:    append(model.Tags{"env:prod", "source_overridden:true"}, baseTags()...),
-		},
-		"bare key is kept": {
-			customTags: "servicelike",
-			wantTags:   append(model.Tags{"servicelike"}, baseTags()...),
-		},
-		"service prefix is not matched loosely": {
-			customTags: "service_name:my-app",
-			wantTags:   append(model.Tags{"service_name:my-app"}, baseTags()...),
-		},
-	}
-
-	for name, tc := range tests {
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-
-			gotService, gotTags := getTags(tc.source, tc.customTags)
-			assert.Equal(t, tc.wantService, gotService)
-			assert.Equal(t, tc.wantTags, gotTags)
 		})
 	}
 }
