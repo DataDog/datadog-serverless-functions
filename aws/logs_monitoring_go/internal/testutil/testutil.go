@@ -12,11 +12,9 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"regexp"
 	"strings"
 	"testing"
 
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambdacontext"
@@ -35,34 +33,6 @@ func LambdaContext(t *testing.T) context.Context {
 
 func LambdaOrigin() model.LambdaOrigin {
 	return model.LambdaOrigin{ARN: ARN}
-}
-
-func EmptyConfig() *config.Config {
-	return &config.Config{}
-}
-
-type ConfigOption func(t *testing.T, cfg *config.Config)
-
-func Config(t *testing.T, opts ...ConfigOption) *config.Config {
-	t.Helper()
-	cfg := EmptyConfig()
-	for _, opt := range opts {
-		opt(t, cfg)
-	}
-	return cfg
-}
-
-func WithMultilineRegex(pattern string) ConfigOption {
-	return func(t *testing.T, cfg *config.Config) {
-		t.Helper()
-		cfg.S3MultilineLogRegex = regexp.MustCompile(pattern)
-	}
-}
-
-func WithTags(tags ...string) ConfigOption {
-	return func(_ *testing.T, cfg *config.Config) {
-		cfg.Tags = strings.Join(tags, model.TagSeparator)
-	}
 }
 
 func MustGzip(t *testing.T, data []byte) []byte {
