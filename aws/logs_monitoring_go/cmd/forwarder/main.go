@@ -17,14 +17,14 @@ import (
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/apikey"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/filtering"
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/forwarding"
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/handling"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/filterer"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/forwarder"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/handler"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/httpclient"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/pipeline"
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/scrubbing"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/scrubber"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/sdkclient"
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/storing"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/storage"
 
 	"github.com/aws/aws-lambda-go/lambda"
 )
@@ -80,37 +80,37 @@ func handleRequest(cfg *config.Config, apiKey string, client *http.Client) func(
 			})
 		}
 
-		filterer := filtering.NewFilterer(cfg.FilterInclude, cfg.FilterExclude)
-		scrubber := scrubbing.NewScrubber(cfg.ScrubbingRegex, cfg.ScrubbingReplacement, cfg.ScrubIP, cfg.ScrubEmail)
-		handlerCfg := handling.Config{
+		filter := filterer.New(cfg.FilterInclude, cfg.FilterExclude)
+		scrub := scrubber.New(cfg.ScrubbingRegex, cfg.ScrubbingReplacement, cfg.ScrubIP, cfg.ScrubEmail)
+		handlerCfg := handler.Config{
 			Service:             cfg.Service,
 			Source:              cfg.Source,
 			Tags:                cfg.Tags,
 			S3MultilineLogRegex: cfg.S3MultilineLogRegex,
 		}
-		forwarderCfg := forwarding.Config{
+		forwarderCfg := forwarder.Config{
 			APIKey:                    apiKey,
 			IntakeURL:                 cfg.IntakeURL,
 			CompressionLevel:          cfg.CompressionLevel,
 			StepFunctionsTraceEnabled: cfg.StepFunctionsTraceEnabled,
 		}
 
-		var storage storing.Storage
+		var store storage.Storage
 		var storageErr error
 		if cfg.StoreOnFail {
-			storageOpts := storing.Options{S3Bucket: cfg.S3BucketName, SQSQueue: cfg.SQSQueueURL}
-			if storage, storageErr = storing.NewStorage(storageOpts); storageErr != nil {
+			storageOpts := storage.Options{S3Bucket: cfg.S3BucketName, SQSQueue: cfg.SQSQueueURL}
+			if store, storageErr = storage.New(storageOpts); storageErr != nil {
 				return nil, fmt.Errorf("new storage: %w", storageErr)
 			}
 		}
 
-		forwarder := forwarding.NewForwarder(
+		fwd := forwarder.New(
 			forwarderCfg,
 			client,
-			storage,
+			store,
 		)
 
-		out, pipelineErr := pipeline.New(handlerCfg, scrubber, filterer, forwarder).Start(ctx, awsevent)
+		out, pipelineErr := pipeline.New(handlerCfg, scrub, filter, fwd).Start(ctx, awsevent)
 
 		wg.Wait()
 		return out, errors.Join(invokeErr, pipelineErr)
