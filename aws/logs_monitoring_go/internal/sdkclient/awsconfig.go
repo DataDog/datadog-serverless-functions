@@ -15,7 +15,7 @@ import (
 )
 
 var AWSConfig = sync.OnceValues(func() (aws.Config, error) {
-	cfg, err := awsconfig.LoadDefaultConfig(context.Background())
+	cfg, err := awsconfig.LoadDefaultConfig(context.TODO())
 	if err != nil {
 		return aws.Config{}, fmt.Errorf("load aws config: %w", err)
 	}
