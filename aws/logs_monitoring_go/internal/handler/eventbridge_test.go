@@ -20,7 +20,7 @@ import (
 func TestEventBridgeHandler_Handle(t *testing.T) {
 	t.Parallel()
 
-	ctx := testutil.LambdaContext(t)
+	ctx := t.Context()
 
 	tests := map[string]struct {
 		event    json.RawMessage
@@ -92,7 +92,7 @@ func TestEventBridgeHandler_Handle(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			handler := &eventBridgeHandler{baseHandler: newBase(tc.cfg, nil, tc.filterer)}
+			handler := &eventBridgeHandler{baseHandler: newBase(tc.cfg, testutil.LambdaOrigin(), nil, tc.filterer)}
 			out := make(chan json.RawMessage, len(tc.want))
 
 			err := handler.Handle(ctx, tc.event, out)
@@ -115,7 +115,7 @@ func TestEventBridgeHandler_Handle(t *testing.T) {
 func TestEventBridgeHandler_SecurityHub(t *testing.T) {
 	t.Parallel()
 
-	ctx := testutil.LambdaContext(t)
+	ctx := t.Context()
 
 	tests := map[string]struct {
 		event    json.RawMessage
@@ -153,7 +153,7 @@ func TestEventBridgeHandler_SecurityHub(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			handler := &eventBridgeHandler{baseHandler: newBase(tc.cfg, nil, tc.filterer)}
+			handler := &eventBridgeHandler{baseHandler: newBase(tc.cfg, testutil.LambdaOrigin(), nil, tc.filterer)}
 			out := make(chan json.RawMessage, len(tc.want))
 
 			err := handler.Handle(ctx, tc.event, out)

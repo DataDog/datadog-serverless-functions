@@ -333,9 +333,9 @@ func TestProcessS3Record(t *testing.T) {
 			tc.mockSetup(mock)
 
 			out := make(chan json.RawMessage, len(tc.want))
-			handler := newS3(newBase(tc.cfg, nil, tc.filterer), mock)
+			handler := newS3(newBase(tc.cfg, testutil.LambdaOrigin(), nil, tc.filterer), mock)
 
-			err := handler.processRecord(t.Context(), out, tc.eventRecord, testutil.LambdaOrigin())
+			err := handler.processRecord(t.Context(), out, tc.eventRecord)
 			close(out)
 
 			got := testutil.Drain(t, out)
