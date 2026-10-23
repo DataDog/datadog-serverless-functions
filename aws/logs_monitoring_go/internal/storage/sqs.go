@@ -34,7 +34,7 @@ type SQS struct {
 	queue  string
 }
 
-func newSQS(client sdkclient.SQS, queue string) *SQS {
+func NewSQS(client sdkclient.SQS, queue string) *SQS {
 	return &SQS{client: client, queue: queue}
 }
 

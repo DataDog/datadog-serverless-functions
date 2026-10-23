@@ -19,7 +19,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/lambda/types"
 )
 
-var getLambda = sync.OnceValues(func() (Lambda, error) {
+var GetLambda = sync.OnceValues(func() (Lambda, error) {
 	cfg, err := AWSConfig()
 	if err != nil {
 		return nil, err
@@ -31,15 +31,7 @@ type Lambda interface {
 	Invoke(ctx context.Context, params *lambda.InvokeInput, optFns ...func(*lambda.Options)) (*lambda.InvokeOutput, error)
 }
 
-func InvokeTargets(ctx context.Context, targets []string, event json.RawMessage) error {
-	client, err := getLambda()
-	if err != nil {
-		return err
-	}
-	return invokeTargets(ctx, client, targets, event)
-}
-
-func invokeTargets(ctx context.Context, lambdaClient Lambda, targets []string, event json.RawMessage) error {
+func InvokeTargets(ctx context.Context, lambdaClient Lambda, targets []string, event json.RawMessage) error {
 	var err error
 	for _, target := range targets {
 		_, invokeErr := lambdaClient.Invoke(ctx, &lambda.InvokeInput{

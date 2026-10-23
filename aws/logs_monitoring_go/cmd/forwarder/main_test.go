@@ -16,8 +16,10 @@ import (
 	"testing"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/forwarder"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/handler"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/pipeline"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/testutil"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/version"
 	"github.com/stretchr/testify/require"
@@ -57,14 +59,17 @@ func TestHandleRequest(t *testing.T) {
 
 		t.Run(name, func(t *testing.T) {
 			rec := newRecorder(t)
-			cfg := &config.Config{
-				IntakeURL:        rec.URL,
-				CompressionLevel: gzip.DefaultCompression,
-			}
 			ctx := testutil.LambdaContext(t)
 			event := load(t, input)
 
-			_, err := handleRequest(cfg, handler.Config{}, testAPIKey, rec.Client())(ctx, event)
+			fwd := forwarder.New(forwarder.Config{
+				APIKey:           testAPIKey,
+				IntakeURL:        rec.URL,
+				CompressionLevel: gzip.DefaultCompression,
+			}, rec.Client(), nil)
+			p := pipeline.New(handler.Config{}, nil, nil, fwd, nil)
+
+			_, err := handleRequest(p, nil, nil)(ctx, event)
 
 			require.NoError(t, err)
 			require.NotEmpty(t, rec.request, "recorder received no requests")

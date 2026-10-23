@@ -30,7 +30,7 @@ type Config struct {
 	S3MultilineLogRegex *regexp.Regexp
 }
 
-func New(hcfg Config, origin model.LambdaOrigin, scrub *scrubber.Scrubber, filter *filterer.Filterer, ct parser.ContentType) (Handler, error) {
+func New(hcfg Config, origin model.LambdaOrigin, scrub *scrubber.Scrubber, filter *filterer.Filterer, s3Client sdkclient.S3, ct parser.ContentType) (Handler, error) {
 	base := newBase(&hcfg, origin, scrub, filter)
 
 	switch ct {
@@ -39,11 +39,7 @@ func New(hcfg Config, origin model.LambdaOrigin, scrub *scrubber.Scrubber, filte
 		return &cloudwatchHandler{baseHandler: base}, nil
 
 	case parser.ContentTypeS3:
-		client, err := sdkclient.GetS3()
-		if err != nil {
-			return nil, err
-		}
-		return newS3(base, client), nil
+		return newS3(base, s3Client), nil
 
 	case parser.ContentTypeKinesis:
 		return &kinesisHandler{baseHandler: base}, nil

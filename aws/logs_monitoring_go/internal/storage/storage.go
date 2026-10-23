@@ -9,8 +9,6 @@ import (
 	"context"
 	"encoding/json"
 	"iter"
-
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/sdkclient"
 )
 
 const metadataStorageTagKey = "dd-storage-tag"
@@ -25,29 +23,4 @@ type Storage interface {
 	Store(ctx context.Context, batch Batch) error
 	Fetch(ctx context.Context) iter.Seq2[Batch, error]
 	Delete(ctx context.Context, batch Batch) error
-}
-
-type Options struct {
-	S3Bucket string
-	SQSQueue string
-}
-
-func New(opts Options) (Storage, error) {
-	if opts.SQSQueue != "" {
-		sqsClient, err := sdkclient.GetSQS()
-		if err != nil {
-			return nil, err
-		}
-		return newSQS(sqsClient, opts.SQSQueue), nil
-	}
-
-	if opts.S3Bucket != "" {
-		s3Client, err := sdkclient.GetS3()
-		if err != nil {
-			return nil, err
-		}
-		return newS3(s3Client, opts.S3Bucket), nil
-	}
-
-	return nil, nil
 }
