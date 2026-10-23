@@ -1,5 +1,6 @@
 BINARY_NAME := bootstrap
 ZIP_NAME := forwarder.zip
+LICENSE_FILES := LICENSE NOTICE LICENSE-3rdparty.csv LICENSES
 
 # Go
 
@@ -9,7 +10,8 @@ build:
 
 .PHONY: package
 package: build
-	zip $(ZIP_NAME) $(BINARY_NAME)
+	rm -f $(ZIP_NAME)
+	zip -r $(ZIP_NAME) $(BINARY_NAME) $(LICENSE_FILES)
 
 .PHONY: test
 test:

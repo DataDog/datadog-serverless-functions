@@ -1,0 +1,39 @@
+Component,Origin,License,Copyright
+aws-lambda-go,github.com/aws/aws-lambda-go,Apache-2.0,"Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved."
+aws-sdk-go-v2,github.com/aws/aws-sdk-go-v2,Apache-2.0,"Copyright 2015 Amazon.com, Inc. or its affiliates. All Rights Reserved."
+aws-sdk-go-v2/aws/protocol/eventstream,github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream,Apache-2.0,"Copyright 2015 Amazon.com, Inc. or its affiliates. All Rights Reserved."
+aws-sdk-go-v2/config,github.com/aws/aws-sdk-go-v2/config,Apache-2.0,"Copyright 2015 Amazon.com, Inc. or its affiliates. All Rights Reserved."
+aws-sdk-go-v2/credentials,github.com/aws/aws-sdk-go-v2/credentials,Apache-2.0,"Copyright 2015 Amazon.com, Inc. or its affiliates. All Rights Reserved."
+aws-sdk-go-v2/feature/ec2/imds,github.com/aws/aws-sdk-go-v2/feature/ec2/imds,Apache-2.0,"Copyright 2015 Amazon.com, Inc. or its affiliates. All Rights Reserved."
+aws-sdk-go-v2/internal/configsources,github.com/aws/aws-sdk-go-v2/internal/configsources,Apache-2.0,"Copyright 2015 Amazon.com, Inc. or its affiliates. All Rights Reserved."
+aws-sdk-go-v2/internal/endpoints/v2,github.com/aws/aws-sdk-go-v2/internal/endpoints/v2,Apache-2.0,"Copyright 2015 Amazon.com, Inc. or its affiliates. All Rights Reserved."
+aws-sdk-go-v2/internal/ini,github.com/aws/aws-sdk-go-v2/internal/ini,Apache-2.0,"Copyright 2015 Amazon.com, Inc. or its affiliates. All Rights Reserved."
+aws-sdk-go-v2/internal/v4a,github.com/aws/aws-sdk-go-v2/internal/v4a,Apache-2.0,"Copyright 2015 Amazon.com, Inc. or its affiliates. All Rights Reserved."
+aws-sdk-go-v2/service/internal/accept-encoding,github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding,Apache-2.0,"Copyright 2015 Amazon.com, Inc. or its affiliates. All Rights Reserved."
+aws-sdk-go-v2/service/internal/checksum,github.com/aws/aws-sdk-go-v2/service/internal/checksum,Apache-2.0,"Copyright 2015 Amazon.com, Inc. or its affiliates. All Rights Reserved."
+aws-sdk-go-v2/service/internal/presigned-url,github.com/aws/aws-sdk-go-v2/service/internal/presigned-url,Apache-2.0,"Copyright 2015 Amazon.com, Inc. or its affiliates. All Rights Reserved."
+aws-sdk-go-v2/service/internal/s3shared,github.com/aws/aws-sdk-go-v2/service/internal/s3shared,Apache-2.0,"Copyright 2015 Amazon.com, Inc. or its affiliates. All Rights Reserved."
+aws-sdk-go-v2/service/kms,github.com/aws/aws-sdk-go-v2/service/kms,Apache-2.0,"Copyright 2015 Amazon.com, Inc. or its affiliates. All Rights Reserved."
+aws-sdk-go-v2/service/lambda,github.com/aws/aws-sdk-go-v2/service/lambda,Apache-2.0,"Copyright 2015 Amazon.com, Inc. or its affiliates. All Rights Reserved."
+aws-sdk-go-v2/service/s3,github.com/aws/aws-sdk-go-v2/service/s3,Apache-2.0,"Copyright 2015 Amazon.com, Inc. or its affiliates. All Rights Reserved."
+aws-sdk-go-v2/service/secretsmanager,github.com/aws/aws-sdk-go-v2/service/secretsmanager,Apache-2.0,"Copyright 2015 Amazon.com, Inc. or its affiliates. All Rights Reserved."
+aws-sdk-go-v2/service/signin,github.com/aws/aws-sdk-go-v2/service/signin,Apache-2.0,"Copyright 2015 Amazon.com, Inc. or its affiliates. All Rights Reserved."
+aws-sdk-go-v2/service/sqs,github.com/aws/aws-sdk-go-v2/service/sqs,Apache-2.0,"Copyright 2015 Amazon.com, Inc. or its affiliates. All Rights Reserved."
+aws-sdk-go-v2/service/ssm,github.com/aws/aws-sdk-go-v2/service/ssm,Apache-2.0,"Copyright 2015 Amazon.com, Inc. or its affiliates. All Rights Reserved."
+aws-sdk-go-v2/service/sso,github.com/aws/aws-sdk-go-v2/service/sso,Apache-2.0,"Copyright 2015 Amazon.com, Inc. or its affiliates. All Rights Reserved."
+aws-sdk-go-v2/service/ssooidc,github.com/aws/aws-sdk-go-v2/service/ssooidc,Apache-2.0,"Copyright 2015 Amazon.com, Inc. or its affiliates. All Rights Reserved."
+aws-sdk-go-v2/service/sts,github.com/aws/aws-sdk-go-v2/service/sts,Apache-2.0,"Copyright 2015 Amazon.com, Inc. or its affiliates. All Rights Reserved."
+smithy-go,github.com/aws/smithy-go,Apache-2.0,"Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved."
+golang.org/x/sync,golang.org/x/sync,BSD-3-Clause,Copyright 2009 The Go Authors.
+go-cmp,github.com/google/go-cmp,BSD-3-Clause,Copyright (c) 2017 The Go Authors. All rights reserved.
+go-difflib,github.com/pmezard/go-difflib,BSD-3-Clause,"Copyright (c) 2013, Patrick Mezard"
+go-spew,github.com/davecgh/go-spew,ISC,Copyright (c) 2012-2016 Dave Collins <dave@davec.name>
+mock,go.uber.org/mock,Apache-2.0,Copyright 2010-2022 Google Inc. and Google LLC
+testify,github.com/stretchr/testify,MIT,"Copyright (c) 2012-2020 Mat Ryer, Tyler Bunnell and contributors."
+yaml.v3,gopkg.in/yaml.v3,MIT AND Apache-2.0,Copyright 2011-2016 Canonical Ltd. | Copyright (c) 2006-2011 Kirill Simonov
+golang.org/x/mod,golang.org/x/mod,BSD-3-Clause,Copyright 2009 The Go Authors.
+golang.org/x/sys,golang.org/x/sys,BSD-3-Clause,Copyright 2009 The Go Authors.
+golang.org/x/telemetry,golang.org/x/telemetry,BSD-3-Clause,Copyright 2009 The Go Authors.
+golang.org/x/tools,golang.org/x/tools,BSD-3-Clause,Copyright 2009 The Go Authors.
+golang.org/x/tools/go/packages/packagestest,golang.org/x/tools/go/packages/packagestest,BSD-3-Clause,Copyright 2009 The Go Authors.
+golang.org/x/vuln,golang.org/x/vuln,BSD-3-Clause,Copyright 2009 The Go Authors.
