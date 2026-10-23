@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/apikey"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
@@ -31,6 +32,8 @@ import (
 	"github.com/aws/aws-lambda-go/lambdacontext"
 )
 
+const initTimeout = 8 * time.Second
+
 func main() {
 	initLogger(os.Stderr, os.Getenv(config.EnvLogLevel))
 
@@ -41,7 +44,9 @@ func main() {
 	}
 	slog.Debug("configuration loaded", slog.Any("config", cfg))
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), initTimeout)
+	defer cancel()
+
 	apiKey, err := apikey.Resolve(ctx, apikey.Source{
 		SecretARN: cfg.APIKeySecretARN,
 		SSMName:   cfg.APIKeySSMName,
