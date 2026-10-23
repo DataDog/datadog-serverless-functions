@@ -21,12 +21,14 @@ import (
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/forwarder"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/handler"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/httpclient"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/pipeline"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/scrubber"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/sdkclient"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/storage"
 
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-lambda-go/lambdacontext"
 )
 
 func main() {
@@ -110,9 +112,23 @@ func handleRequest(cfg *config.Config, apiKey string, client *http.Client) func(
 			store,
 		)
 
-		out, pipelineErr := pipeline.New(handlerCfg, scrub, filter, fwd).Start(ctx, awsevent)
+		out, pipelineErr := pipeline.New(handlerCfg, scrub, filter, fwd).Start(ctx, lambdaOrigin(ctx), awsevent)
 
 		wg.Wait()
 		return out, errors.Join(invokeErr, pipelineErr)
 	}
+}
+
+func lambdaOrigin(ctx context.Context) model.LambdaOrigin {
+	var origin model.LambdaOrigin
+
+	if lambdacontext.FunctionVersion != "$LATEST" {
+		origin.Version = lambdacontext.FunctionVersion
+	}
+
+	if lc, ok := lambdacontext.FromContext(ctx); ok {
+		origin.ARN = lc.InvokedFunctionArn
+	}
+
+	return origin
 }

@@ -22,11 +22,6 @@ type eventBridgeHandler struct {
 }
 
 func (h *eventBridgeHandler) Handle(ctx context.Context, event json.RawMessage, out chan<- json.RawMessage) error {
-	lambdaOrigin, err := model.GetLambdaOrigin(ctx)
-	if err != nil {
-		return fmt.Errorf("get lambda origin: %w", err)
-	}
-
 	source, err := eventBridgeSource(event)
 	if err != nil {
 		return err
@@ -35,31 +30,31 @@ func (h *eventBridgeHandler) Handle(ctx context.Context, event json.RawMessage, 
 
 	switch source {
 	case sourceSecurityHub:
-		return h.securityHub(ctx, event, source, out, lambdaOrigin)
+		return h.securityHub(ctx, event, source, out)
 	default:
-		return h.eventBridge(ctx, event, source, out, lambdaOrigin)
+		return h.eventBridge(ctx, event, source, out)
 	}
 }
 
-func (h *eventBridgeHandler) eventBridge(ctx context.Context, event json.RawMessage, source string, out chan<- json.RawMessage, lambdaOrigin model.LambdaOrigin) error {
+func (h *eventBridgeHandler) eventBridge(ctx context.Context, event json.RawMessage, source string, out chan<- json.RawMessage) error {
 	message := string(event)
 	if h.filterer.ShouldExclude(message) {
 		return nil
 	}
 
-	entry := h.newEntry(source, lambdaOrigin)
+	entry := h.newEntry(source)
 	entry.Message = message
 
 	return h.emit(ctx, out, entry)
 }
 
-func (h *eventBridgeHandler) securityHub(ctx context.Context, event json.RawMessage, source string, out chan<- json.RawMessage, lambdaOrigin model.LambdaOrigin) error {
+func (h *eventBridgeHandler) securityHub(ctx context.Context, event json.RawMessage, source string, out chan<- json.RawMessage) error {
 	messages := separateFindings(event)
 	if len(messages) == 0 {
-		return h.eventBridge(ctx, event, source, out, lambdaOrigin)
+		return h.eventBridge(ctx, event, source, out)
 	}
 
-	base := h.newEntry(source, lambdaOrigin)
+	base := h.newEntry(source)
 	for _, message := range messages {
 		if h.filterer.ShouldExclude(message) {
 			continue
@@ -75,12 +70,12 @@ func (h *eventBridgeHandler) securityHub(ctx context.Context, event json.RawMess
 	return nil
 }
 
-func (h *eventBridgeHandler) newEntry(source string, lambdaOrigin model.LambdaOrigin) model.LogEntry {
+func (h *eventBridgeHandler) newEntry(source string) model.LogEntry {
 	entry := model.NewLogEntry()
 	entry.Source = cmp.Or(h.cfg.Source, source)
 	entry.Service = cmp.Or(h.cfg.Service, entry.Source)
 	entry.Tags = h.cfg.Tags
-	entry.Metadata = lambdaOrigin
+	entry.Metadata = h.origin
 	return entry
 }
 

@@ -15,6 +15,7 @@ import (
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/filterer"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/forwarder"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/handler"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/parser"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/scrubber"
 	"golang.org/x/sync/errgroup"
@@ -43,7 +44,7 @@ func New(
 	}
 }
 
-func (p Pipeline) Start(ctx context.Context, awsevent json.RawMessage) (any, error) {
+func (p Pipeline) Start(ctx context.Context, origin model.LambdaOrigin, awsevent json.RawMessage) (any, error) {
 	if parser.IsSQS(awsevent) {
 		events, err := parser.SQS(awsevent)
 		if err != nil {
@@ -51,7 +52,7 @@ func (p Pipeline) Start(ctx context.Context, awsevent json.RawMessage) (any, err
 		}
 
 		slog.DebugContext(ctx, "SQS event dispatched", slog.Int("records", len(events)))
-		return p.startSQS(ctx, events)
+		return p.startSQS(ctx, origin, events)
 	}
 
 	event, err := parser.Parse(awsevent)
@@ -64,13 +65,13 @@ func (p Pipeline) Start(ctx context.Context, awsevent json.RawMessage) (any, err
 		return nil, p.forwarder.Retry(ctx)
 	}
 
-	return nil, p.run(ctx, event)
+	return nil, p.run(ctx, origin, event)
 }
 
-func (p Pipeline) startSQS(ctx context.Context, events []parser.SQSEvent) (sqsEventResponse json.RawMessage, err error) {
+func (p Pipeline) startSQS(ctx context.Context, origin model.LambdaOrigin, events []parser.SQSEvent) (sqsEventResponse json.RawMessage, err error) {
 	var response awsevents.SQSEventResponse
 	for i, event := range events {
-		err = p.run(ctx, event.Event)
+		err = p.run(ctx, origin, event.Event)
 		if err == nil {
 			continue
 		}
@@ -92,7 +93,7 @@ func (p Pipeline) startSQS(ctx context.Context, events []parser.SQSEvent) (sqsEv
 	return sqsEventResponse, err
 }
 
-func (p Pipeline) run(ctx context.Context, event parser.Event) error {
+func (p Pipeline) run(ctx context.Context, origin model.LambdaOrigin, event parser.Event) error {
 	slog.DebugContext(ctx, "processing event", slog.String("content_type", event.ContentType.String()))
 
 	eg, ctx := errgroup.WithContext(ctx)
@@ -100,7 +101,7 @@ func (p Pipeline) run(ctx context.Context, event parser.Event) error {
 	entries := make(chan json.RawMessage)
 	eg.Go(func() error {
 		defer close(entries)
-		h, err := handler.New(p.hcfg, p.scrubber, p.filterer, event.ContentType)
+		h, err := handler.New(p.hcfg, origin, p.scrubber, p.filterer, event.ContentType)
 		if err != nil {
 			return fmt.Errorf("new handler: %w", err)
 		}

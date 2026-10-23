@@ -17,7 +17,7 @@ import (
 func TestKinesisHandler_Handle(t *testing.T) {
 	t.Parallel()
 
-	ctx := testutil.LambdaContext(t)
+	ctx := t.Context()
 
 	tests := map[string]struct {
 		event   json.RawMessage
@@ -77,7 +77,7 @@ func TestKinesisHandler_Handle(t *testing.T) {
 			t.Parallel()
 
 			out := make(chan json.RawMessage, tc.wantN)
-			handler := &kinesisHandler{baseHandler: newBase(&Config{}, nil, nil)}
+			handler := &kinesisHandler{baseHandler: newBase(&Config{}, testutil.LambdaOrigin(), nil, nil)}
 
 			err := handler.Handle(ctx, tc.event, out)
 			close(out)
