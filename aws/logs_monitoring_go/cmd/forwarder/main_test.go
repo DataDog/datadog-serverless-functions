@@ -11,10 +11,12 @@ import (
 	"flag"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/testutil"
 	"github.com/stretchr/testify/require"
 )
@@ -85,5 +87,38 @@ func assertGolden(t *testing.T, goldenPath string, actual any) {
 
 	expected, err := os.ReadFile(goldenPath)
 	require.NoError(t, err, "%q golden file missing, run with -update to create it", goldenPath)
-	require.JSONEq(t, string(expected), string(actualJSON))
+	require.JSONEq(t, normalizeTags(t, expected), normalizeTags(t, actualJSON))
+}
+
+func normalizeTags(t *testing.T, data []byte) string {
+	t.Helper()
+
+	var payload map[string]any
+	require.NoError(t, json.Unmarshal(data, &payload))
+
+	entries, ok := payload["body"].([]any)
+	if !ok {
+		return string(data)
+	}
+
+	for _, entry := range entries {
+		fields, ok := entry.(map[string]any)
+		if !ok {
+			continue
+		}
+
+		tags, ok := fields[model.TagsJSONKey].(string)
+		if !ok {
+			continue
+		}
+
+		sorted := strings.Split(tags, model.TagSeparator)
+		slices.Sort(sorted)
+		fields[model.TagsJSONKey] = strings.Join(sorted, model.TagSeparator)
+	}
+
+	normalized, err := json.Marshal(payload)
+	require.NoError(t, err)
+
+	return string(normalized)
 }
