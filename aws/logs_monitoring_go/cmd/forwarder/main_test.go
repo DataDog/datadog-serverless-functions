@@ -16,8 +16,10 @@ import (
 	"testing"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/handler"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/testutil"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/version"
 	"github.com/stretchr/testify/require"
 )
 
@@ -62,7 +64,7 @@ func TestHandleRequest(t *testing.T) {
 			ctx := testutil.LambdaContext(t)
 			event := load(t, input)
 
-			_, err := handleRequest(cfg, testAPIKey, rec.Client())(ctx, event)
+			_, err := handleRequest(cfg, handler.Config{}, testAPIKey, rec.Client())(ctx, event)
 
 			require.NoError(t, err)
 			require.NotEmpty(t, rec.request, "recorder received no requests")
@@ -121,4 +123,53 @@ func normalizeTags(t *testing.T, data []byte) string {
 	require.NoError(t, err)
 
 	return string(normalized)
+}
+
+func TestNewHandlerConfig(t *testing.T) {
+	t.Parallel()
+
+	forwarderTags := model.Tags{
+		model.ForwarderNameKey + model.KeyValueSeparator + "my-forwarder",
+		model.ForwarderVersionKey + model.KeyValueSeparator + version.Forwarder,
+	}
+
+	tests := map[string]struct {
+		cfg         config.Config
+		wantService string
+		wantTags    model.Tags
+	}{
+		"identity tags always added": {
+			wantTags: forwarderTags,
+		},
+		"source override adds tag": {
+			cfg:      config.Config{Source: "my-source"},
+			wantTags: append(model.Tags{"source_overridden:true"}, forwarderTags...),
+		},
+		"custom tags precede identity tags": {
+			cfg:      config.Config{Tags: "team:backend,env:prod"},
+			wantTags: append(model.Tags{"team:backend", "env:prod"}, forwarderTags...),
+		},
+		"service extracted out of tags": {
+			cfg:         config.Config{Tags: "team:backend,service:my-app"},
+			wantService: "my-app",
+			wantTags:    append(model.Tags{"team:backend"}, forwarderTags...),
+		},
+		"source and custom tags": {
+			cfg:         config.Config{Source: "my-source", Tags: "service:my-app,env:prod"},
+			wantService: "my-app",
+			wantTags:    append(model.Tags{"env:prod", "source_overridden:true"}, forwarderTags...),
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			got := newHandlerConfig(&tc.cfg, "My-Forwarder")
+
+			require.Equal(t, tc.wantService, got.Service)
+			require.Equal(t, tc.cfg.Source, got.Source)
+			require.Equal(t, tc.wantTags, got.Tags)
+		})
+	}
 }

@@ -13,6 +13,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -27,6 +28,7 @@ import (
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/scrubber"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/sdkclient"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/storage"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/version"
 
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-lambda-go/lambdacontext"
@@ -71,10 +73,27 @@ func main() {
 		slog.Error("API key validation", slog.Any("error", err))
 	}
 
-	lambda.Start(handleRequest(&cfg, apiKey, client))
+	lambda.Start(handleRequest(&cfg, newHandlerConfig(&cfg, lambdacontext.FunctionName), apiKey, client))
 }
 
-func handleRequest(cfg *config.Config, apiKey string, client *http.Client) func(ctx context.Context, awsevent json.RawMessage) (any, error) {
+func newHandlerConfig(cfg *config.Config, functionName string) handler.Config {
+	service, tags := model.ParseTags(cfg.Tags)
+
+	if cfg.Source != "" {
+		tags.Add(model.SourceOverriddenKey, "true")
+	}
+	tags.Add(model.ForwarderNameKey, strings.ToLower(functionName))
+	tags.Add(model.ForwarderVersionKey, version.Forwarder)
+
+	return handler.Config{
+		Service:             service,
+		Source:              cfg.Source,
+		Tags:                tags,
+		S3MultilineLogRegex: cfg.S3MultilineLogRegex,
+	}
+}
+
+func handleRequest(cfg *config.Config, handlerCfg handler.Config, apiKey string, client *http.Client) func(ctx context.Context, awsevent json.RawMessage) (any, error) {
 	return func(ctx context.Context, awsevent json.RawMessage) (any, error) {
 		slog.DebugContext(ctx, "invocation start", slog.String("event", string(awsevent)))
 
@@ -89,12 +108,6 @@ func handleRequest(cfg *config.Config, apiKey string, client *http.Client) func(
 
 		filter := filterer.New(cfg.FilterInclude, cfg.FilterExclude)
 		scrub := scrubber.New(cfg.ScrubbingRegex, cfg.ScrubbingReplacement, cfg.ScrubIP, cfg.ScrubEmail)
-		handlerCfg := handler.Config{
-			Service:             cfg.Service,
-			Source:              cfg.Source,
-			Tags:                cfg.Tags,
-			S3MultilineLogRegex: cfg.S3MultilineLogRegex,
-		}
 		forwarderCfg := forwarder.Config{
 			APIKey:                    apiKey,
 			IntakeURL:                 cfg.IntakeURL,
