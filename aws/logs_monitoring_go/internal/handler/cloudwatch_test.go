@@ -18,7 +18,7 @@ import (
 func TestCloudwatchHandler_Handle(t *testing.T) {
 	t.Parallel()
 
-	ctx := testutil.LambdaContext(t)
+	ctx := t.Context()
 
 	tests := map[string]struct {
 		event    json.RawMessage
@@ -261,7 +261,7 @@ func TestCloudwatchHandler_Handle(t *testing.T) {
 			t.Parallel()
 
 			out := make(chan json.RawMessage, tc.chanSize)
-			handler := &cloudwatchHandler{baseHandler: newBase(tc.config, nil, nil)}
+			handler := &cloudwatchHandler{baseHandler: newBase(tc.config, testutil.LambdaOrigin(), nil, nil)}
 
 			err := handler.Handle(ctx, tc.event, out)
 			close(out)

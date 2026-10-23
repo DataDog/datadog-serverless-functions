@@ -15,6 +15,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/apikey"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
@@ -33,6 +34,8 @@ import (
 	"github.com/aws/aws-lambda-go/lambdacontext"
 )
 
+const initTimeout = 8 * time.Second
+
 func main() {
 	initLogger(os.Stderr, os.Getenv(config.EnvLogLevel))
 
@@ -43,7 +46,9 @@ func main() {
 	}
 	slog.Debug("configuration loaded", slog.Any("config", cfg))
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), initTimeout)
+	defer cancel()
+
 	apiKey, err := apikey.Resolve(ctx, apikey.Source{
 		SecretARN: cfg.APIKeySecretARN,
 		SSMName:   cfg.APIKeySSMName,
@@ -125,9 +130,23 @@ func handleRequest(cfg *config.Config, handlerCfg handler.Config, apiKey string,
 			store,
 		)
 
-		out, pipelineErr := pipeline.New(handlerCfg, scrub, filter, fwd).Start(ctx, awsevent)
+		out, pipelineErr := pipeline.New(handlerCfg, scrub, filter, fwd).Start(ctx, lambdaOrigin(ctx), awsevent)
 
 		wg.Wait()
 		return out, errors.Join(invokeErr, pipelineErr)
 	}
+}
+
+func lambdaOrigin(ctx context.Context) model.LambdaOrigin {
+	var origin model.LambdaOrigin
+
+	if lambdacontext.FunctionVersion != "$LATEST" {
+		origin.Version = lambdacontext.FunctionVersion
+	}
+
+	if lc, ok := lambdacontext.FromContext(ctx); ok {
+		origin.ARN = lc.InvokedFunctionArn
+	}
+
+	return origin
 }

@@ -9,7 +9,6 @@ import (
 	"cmp"
 	"context"
 	"encoding/json"
-	"fmt"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 )
@@ -19,11 +18,6 @@ type snsHandler struct {
 }
 
 func (h *snsHandler) Handle(ctx context.Context, event json.RawMessage, out chan<- json.RawMessage) error {
-	lambdaOrigin, err := model.GetLambdaOrigin(ctx)
-	if err != nil {
-		return fmt.Errorf("get lambda origin: %w", err)
-	}
-
 	message := string(event)
 	if h.filterer.ShouldExclude(message) {
 		return nil
@@ -36,7 +30,7 @@ func (h *snsHandler) Handle(ctx context.Context, event json.RawMessage, out chan
 	entry.Source = source
 	entry.Service = h.cfg.Service
 	entry.Tags = h.cfg.Tags
-	entry.Metadata = lambdaOrigin
+	entry.Metadata = h.origin
 
 	return h.emit(ctx, out, entry)
 }

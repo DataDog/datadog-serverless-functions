@@ -46,20 +46,15 @@ func (h *s3Handler) Handle(ctx context.Context, event json.RawMessage, out chan<
 		return fmt.Errorf("unmarshal: %w", err)
 	}
 
-	lambdaOrigin, err := model.GetLambdaOrigin(ctx)
-	if err != nil {
-		return err
-	}
-
 	for _, eventRecord := range s3Event.Records {
-		if err := h.processRecord(ctx, out, eventRecord, lambdaOrigin); err != nil {
+		if err := h.processRecord(ctx, out, eventRecord); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (h *s3Handler) processRecord(ctx context.Context, out chan<- json.RawMessage, eventRecord events.S3EventRecord, lambdaOrigin model.LambdaOrigin) error {
+func (h *s3Handler) processRecord(ctx context.Context, out chan<- json.RawMessage, eventRecord events.S3EventRecord) error {
 	output, err := h.client.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: &eventRecord.S3.Bucket.Name,
 		Key:    &eventRecord.S3.Object.URLDecodedKey,
@@ -92,11 +87,11 @@ func (h *s3Handler) processRecord(ctx context.Context, out chan<- json.RawMessag
 	)
 	switch source {
 	case sourceCloudtrail:
-		err = h.CloudTrail(ctx, out, reader, eventRecord, lambdaOrigin)
+		err = h.CloudTrail(ctx, out, reader, eventRecord)
 	case sourceWAF:
-		err = h.WAF(ctx, out, reader, eventRecord, lambdaOrigin)
+		err = h.WAF(ctx, out, reader, eventRecord)
 	default:
-		err = h.S3(ctx, out, reader, eventRecord, lambdaOrigin)
+		err = h.S3(ctx, out, reader, eventRecord)
 	}
 
 	if err != nil {
@@ -118,11 +113,11 @@ func S3Source(key string) string {
 	return sourceS3
 }
 
-func (h *s3Handler) S3(ctx context.Context, out chan<- json.RawMessage, r io.Reader, eventRecord events.S3EventRecord, lambdaOrigin model.LambdaOrigin) error {
+func (h *s3Handler) S3(ctx context.Context, out chan<- json.RawMessage, r io.Reader, eventRecord events.S3EventRecord) error {
 	var headerSkipped bool
 	isVpcFlowLogs := strings.Contains(eventRecord.S3.Object.URLDecodedKey, s3KeyVpcFlowLogs)
 
-	base := h.newBaseEntry(eventRecord, lambdaOrigin)
+	base := h.newBaseEntry(eventRecord)
 	for message, err := range scan(r, h.cfg.S3MultilineLogRegex) {
 		if err != nil {
 			return err
@@ -150,8 +145,8 @@ func (h *s3Handler) S3(ctx context.Context, out chan<- json.RawMessage, r io.Rea
 	return nil
 }
 
-func (h *s3Handler) WAF(ctx context.Context, out chan<- json.RawMessage, r io.Reader, eventRecord events.S3EventRecord, lambdaOrigin model.LambdaOrigin) error {
-	base := h.newBaseEntry(eventRecord, lambdaOrigin)
+func (h *s3Handler) WAF(ctx context.Context, out chan<- json.RawMessage, r io.Reader, eventRecord events.S3EventRecord) error {
+	base := h.newBaseEntry(eventRecord)
 	for message, err := range scan(r, nil) {
 		if err != nil {
 			return err
@@ -172,8 +167,8 @@ func (h *s3Handler) WAF(ctx context.Context, out chan<- json.RawMessage, r io.Re
 	return nil
 }
 
-func (h *s3Handler) CloudTrail(ctx context.Context, out chan<- json.RawMessage, r io.Reader, eventRecord events.S3EventRecord, lambdaOrigin model.LambdaOrigin) error {
-	base := h.newBaseEntry(eventRecord, lambdaOrigin)
+func (h *s3Handler) CloudTrail(ctx context.Context, out chan<- json.RawMessage, r io.Reader, eventRecord events.S3EventRecord) error {
+	base := h.newBaseEntry(eventRecord)
 	for message, err := range decodeCloudTrail(r) {
 		if err != nil {
 			return err
@@ -193,7 +188,7 @@ func (h *s3Handler) CloudTrail(ctx context.Context, out chan<- json.RawMessage, 
 	return nil
 }
 
-func (h *s3Handler) newBaseEntry(eventRecord events.S3EventRecord, lambdaOrigin model.LambdaOrigin) model.LogEntry {
+func (h *s3Handler) newBaseEntry(eventRecord events.S3EventRecord) model.LogEntry {
 	source := S3Source(eventRecord.S3.Object.URLDecodedKey)
 
 	entry := model.NewLogEntry()
@@ -201,7 +196,7 @@ func (h *s3Handler) newBaseEntry(eventRecord events.S3EventRecord, lambdaOrigin 
 	entry.Service = cmp.Or(h.cfg.Service, source)
 	entry.Tags = h.cfg.Tags
 	entry.Metadata = model.S3Metadata{
-		LambdaOrigin: lambdaOrigin,
+		LambdaOrigin: h.origin,
 		Origin: model.S3Origin{
 			Bucket: eventRecord.S3.Bucket.Name,
 			Key:    eventRecord.S3.Object.URLDecodedKey,

@@ -84,12 +84,7 @@ func (h *cloudwatchHandler) handleCloudwatchData(ctx context.Context, cwData eve
 		return nil
 	}
 
-	lambdaOrigin, err := model.GetLambdaOrigin(ctx)
-	if err != nil {
-		return err
-	}
-
-	base := h.newCloudwatchBaseEntry(cwData, lambdaOrigin)
+	base := h.newCloudwatchBaseEntry(cwData)
 	for _, event := range cwData.LogEvents {
 		entry := h.newCloudwatchLogEntry(event, base)
 		if h.filterer.ShouldExclude(entry.Message) {
@@ -104,11 +99,11 @@ func (h *cloudwatchHandler) handleCloudwatchData(ctx context.Context, cwData eve
 	return nil
 }
 
-func (h *cloudwatchHandler) newCloudwatchBaseEntry(data events.CloudwatchLogsData, lambdaOrigin model.LambdaOrigin) model.LogEntry {
+func (h *cloudwatchHandler) newCloudwatchBaseEntry(data events.CloudwatchLogsData) model.LogEntry {
 	logGroup := data.LogGroup
 	logStream := data.LogStream
 	metadata := model.CloudwatchMetadata{
-		LambdaOrigin: lambdaOrigin,
+		LambdaOrigin: h.origin,
 		Origin: model.CloudwatchOrigin{
 			LogGroup:  logGroup,
 			LogStream: logStream,
@@ -123,7 +118,7 @@ func (h *cloudwatchHandler) newCloudwatchBaseEntry(data events.CloudwatchLogsDat
 	entry.Metadata = metadata
 
 	if entry.Source == sourceLambda {
-		enrichLambdaLog(&entry, lambdaOrigin.ARN, logGroup, logStream)
+		enrichLambdaLog(&entry, h.origin.ARN, logGroup, logStream)
 		if !h.cfg.Tags.Has(model.EnvKey) {
 			entry.Tags.Add(model.EnvKey, "none")
 		}

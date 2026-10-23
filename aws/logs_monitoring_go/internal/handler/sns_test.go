@@ -17,7 +17,7 @@ import (
 func TestSNSHandler_Handle(t *testing.T) {
 	t.Parallel()
 
-	ctx := testutil.LambdaContext(t)
+	ctx := t.Context()
 
 	snsEvent := json.RawMessage(`{"EventSource":"aws:sns","Sns":{"Type":"Notification","Message":"hello world","TopicArn":"arn:aws:sns:us-east-1:123456789012:my-topic"}}`)
 
@@ -69,7 +69,7 @@ func TestSNSHandler_Handle(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			handler := &snsHandler{baseHandler: newBase(tc.cfg, nil, nil)}
+			handler := &snsHandler{baseHandler: newBase(tc.cfg, testutil.LambdaOrigin(), nil, nil)}
 			out := make(chan json.RawMessage, len(tc.want))
 
 			err := handler.Handle(ctx, tc.event, out)
