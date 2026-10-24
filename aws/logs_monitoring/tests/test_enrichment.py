@@ -187,6 +187,81 @@ class TestExtractHostFromLogEvents(unittest.TestCase):
         extract_host_from_cloudtrails(event)
         self.assertEqual(event["host"], "i-99999999")
 
+    def test_parse_source_cloudtrail_china_partition(self):
+        event = {
+            "ddsource": "cloudtrail",
+            "message": {
+                "userIdentity": {
+                    "arn": (
+                        "arn:aws-cn:sts::601427279990:assumed-role/"
+                        "gke-90725aa7-management/i-0123456789abcdef0"
+                    )
+                }
+            },
+        }
+        extract_host_from_cloudtrails(event)
+        self.assertEqual(event["host"], "i-0123456789abcdef0")
+
+    def test_parse_source_cloudtrail_govcloud_partition(self):
+        event = {
+            "ddsource": "cloudtrail",
+            "message": {
+                "userIdentity": {
+                    "arn": (
+                        "arn:aws-us-gov:sts::601427279990:assumed-role/"
+                        "gke-90725aa7-management/i-0123456789abcdef0"
+                    )
+                }
+            },
+        }
+        extract_host_from_cloudtrails(event)
+        self.assertEqual(event["host"], "i-0123456789abcdef0")
+
+    def test_parse_source_cloudtrail_iso_partition(self):
+        event = {
+            "ddsource": "cloudtrail",
+            "message": {
+                "userIdentity": {
+                    "arn": (
+                        "arn:aws-iso:sts::601427279990:assumed-role/"
+                        "gke-90725aa7-management/i-0123456789abcdef0"
+                    )
+                }
+            },
+        }
+        extract_host_from_cloudtrails(event)
+        self.assertEqual(event["host"], "i-0123456789abcdef0")
+
+    def test_parse_source_cloudtrail_iso_b_partition(self):
+        event = {
+            "ddsource": "cloudtrail",
+            "message": {
+                "userIdentity": {
+                    "arn": (
+                        "arn:aws-iso-b:sts::601427279990:assumed-role/"
+                        "gke-90725aa7-management/i-0123456789abcdef0"
+                    )
+                }
+            },
+        }
+        extract_host_from_cloudtrails(event)
+        self.assertEqual(event["host"], "i-0123456789abcdef0")
+
+    def test_parse_source_cloudtrail_unknown_partition(self):
+        event = {
+            "ddsource": "cloudtrail",
+            "message": {
+                "userIdentity": {
+                    "arn": (
+                        "arn:aws-fake:sts::601427279990:assumed-role/"
+                        "gke-90725aa7-management/i-0123456789abcdef0"
+                    )
+                }
+            },
+        }
+        extract_host_from_cloudtrails(event)
+        self.assertNotIn("host", event)
+
 
 class TestLambdaMetadataEnrichment(unittest.TestCase):
     def test_empty_event(self):
