@@ -140,9 +140,7 @@ func newHandlerConfig(cfg *config.Config, functionName string) handler.Config {
 	tags.Add(model.ForwarderVersionKey, version.Forwarder)
 
 	return handler.Config{
-		Service:             service,
-		Source:              cfg.Source,
-		Tags:                tags,
+		Template:            handler.NewTemplate(service, cfg.Source, tags),
 		S3MultilineLogRegex: cfg.S3MultilineLogRegex,
 	}
 }

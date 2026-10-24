@@ -71,10 +71,9 @@ func (h *eventBridgeHandler) securityHub(ctx context.Context, event json.RawMess
 }
 
 func (h *eventBridgeHandler) newEntry(source string) model.LogEntry {
-	entry := model.NewLogEntry()
-	entry.Source = cmp.Or(h.cfg.Source, source)
-	entry.Service = cmp.Or(h.cfg.Service, entry.Source)
-	entry.Tags = h.cfg.Tags
+	entry := h.tmpl.NewEntry()
+	entry.Source = cmp.Or(entry.Source, source)
+	entry.Service = cmp.Or(entry.Service, entry.Source)
 	entry.Metadata = h.origin
 	return entry
 }

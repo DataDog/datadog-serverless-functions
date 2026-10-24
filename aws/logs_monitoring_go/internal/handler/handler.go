@@ -24,9 +24,7 @@ type Handler interface {
 }
 
 type Config struct {
-	Service             string
-	Source              string
-	Tags                model.Tags
+	Template            Template
 	S3MultilineLogRegex *regexp.Regexp
 }
 
@@ -57,13 +55,14 @@ func New(hcfg Config, origin model.LambdaOrigin, scrub *scrubber.Scrubber, filte
 
 type baseHandler struct {
 	cfg      *Config
+	tmpl     Template
 	origin   model.LambdaOrigin
 	scrubber *scrubber.Scrubber
 	filterer *filterer.Filterer
 }
 
 func newBase(cfg *Config, origin model.LambdaOrigin, scrub *scrubber.Scrubber, filter *filterer.Filterer) baseHandler {
-	return baseHandler{cfg: cfg, origin: origin, scrubber: scrub, filterer: filter}
+	return baseHandler{cfg: cfg, tmpl: cfg.Template, origin: origin, scrubber: scrub, filterer: filter}
 }
 
 func (h *baseHandler) emit(ctx context.Context, out chan<- json.RawMessage, entry model.LogEntry) error {

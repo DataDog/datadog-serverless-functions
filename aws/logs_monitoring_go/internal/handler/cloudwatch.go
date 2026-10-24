@@ -112,14 +112,14 @@ func (h *cloudwatchHandler) newCloudwatchBaseEntry(data events.CloudwatchLogsDat
 	}
 	source := cloudwatchSource(strings.ToLower(logGroup), logStream)
 
-	entry := model.NewLogEntry()
-	entry.Source = cmp.Or(h.cfg.Source, source)
+	entry := h.tmpl.NewEntry()
+	entry.Source = cmp.Or(entry.Source, source)
 	entry.Host = logGroup
 	entry.Metadata = metadata
 
 	if entry.Source == sourceLambda {
 		enrichLambdaLog(&entry, h.origin.ARN, logGroup, logStream)
-		if !h.cfg.Tags.Has(model.EnvKey) {
+		if !entry.Tags.Has(model.EnvKey) {
 			entry.Tags.Add(model.EnvKey, "none")
 		}
 	}
@@ -130,8 +130,8 @@ func (h *cloudwatchHandler) newCloudwatchBaseEntry(data events.CloudwatchLogsDat
 func (h *cloudwatchHandler) newCloudwatchLogEntry(event events.CloudwatchLogsLogEvent, entry model.LogEntry) model.LogEntry {
 	tags, service, message := extractFromMessage(event.Message)
 
-	entry.Service = cmp.Or(service, entry.Service, h.cfg.Service, entry.Source)
-	entry.Tags = slices.Concat(tags, entry.Tags, h.cfg.Tags)
+	entry.Service = cmp.Or(service, entry.Service, entry.Source)
+	entry.Tags = slices.Concat(tags, entry.Tags)
 	entry.Message = message
 	entry.ID = event.ID
 	entry.Timestamp = event.Timestamp

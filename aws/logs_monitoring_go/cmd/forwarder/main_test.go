@@ -170,11 +170,11 @@ func TestNewHandlerConfig(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			got := newHandlerConfig(&tc.cfg, "My-Forwarder")
+			entry := newHandlerConfig(&tc.cfg, "My-Forwarder").Template.NewEntry()
 
-			require.Equal(t, tc.wantService, got.Service)
-			require.Equal(t, tc.cfg.Source, got.Source)
-			require.Equal(t, tc.wantTags, got.Tags)
+			require.Equal(t, tc.wantService, entry.Service)
+			require.Equal(t, tc.cfg.Source, entry.Source)
+			require.Equal(t, tc.wantTags, entry.Tags)
 		})
 	}
 }

@@ -40,7 +40,7 @@ func TestSNSHandler_Handle(t *testing.T) {
 		},
 		"custom source override": {
 			event: snsEvent,
-			cfg:   &Config{Source: "custom-source"},
+			cfg:   &Config{Template: NewTemplate("", "custom-source", nil)},
 			want: []model.LogEntry{
 				{
 					Message:        string(snsEvent),
@@ -52,7 +52,7 @@ func TestSNSHandler_Handle(t *testing.T) {
 		},
 		"custom service override": {
 			event: snsEvent,
-			cfg:   &Config{Service: "my-svc"},
+			cfg:   &Config{Template: NewTemplate("my-svc", "", nil)},
 			want: []model.LogEntry{
 				{
 					Message:        string(snsEvent),
