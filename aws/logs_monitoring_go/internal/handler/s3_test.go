@@ -168,7 +168,7 @@ func TestProcessS3Record(t *testing.T) {
 						Body: io.NopCloser(strings.NewReader("line1")),
 					}, nil)
 			},
-			cfg:         &Config{Tags: model.Tags{"env:prod", "team:aws"}},
+			cfg:         &Config{Template: NewTemplate("", "", model.Tags{"env:prod", "team:aws"})},
 			eventRecord: testS3EventRecord,
 			want:        []model.LogEntry{wantS3Entry("line1", "s3", "s3", model.Tags{"env:prod", "team:aws"})},
 		},

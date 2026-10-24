@@ -9,8 +9,6 @@ import (
 	"cmp"
 	"context"
 	"encoding/json"
-
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 )
 
 type snsHandler struct {
@@ -23,13 +21,9 @@ func (h *snsHandler) Handle(ctx context.Context, event json.RawMessage, out chan
 		return nil
 	}
 
-	source := cmp.Or(h.cfg.Source, sourceSNS)
-
-	entry := model.NewLogEntry()
+	entry := h.tmpl.NewEntry()
 	entry.Message = message
-	entry.Source = source
-	entry.Service = h.cfg.Service
-	entry.Tags = h.cfg.Tags
+	entry.Source = cmp.Or(entry.Source, sourceSNS)
 	entry.Metadata = h.origin
 
 	return h.emit(ctx, out, entry)

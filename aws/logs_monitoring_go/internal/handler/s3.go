@@ -191,10 +191,9 @@ func (h *s3Handler) CloudTrail(ctx context.Context, out chan<- json.RawMessage, 
 func (h *s3Handler) newBaseEntry(eventRecord events.S3EventRecord) model.LogEntry {
 	source := S3Source(eventRecord.S3.Object.URLDecodedKey)
 
-	entry := model.NewLogEntry()
-	entry.Source = cmp.Or(h.cfg.Source, source)
-	entry.Service = cmp.Or(h.cfg.Service, source)
-	entry.Tags = h.cfg.Tags
+	entry := h.tmpl.NewEntry()
+	entry.Source = cmp.Or(entry.Source, source)
+	entry.Service = cmp.Or(entry.Service, source)
 	entry.Metadata = model.S3Metadata{
 		LambdaOrigin: h.origin,
 		Origin: model.S3Origin{

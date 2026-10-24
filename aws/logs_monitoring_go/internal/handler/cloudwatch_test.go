@@ -209,9 +209,7 @@ func TestCloudwatchHandler_Handle(t *testing.T) {
 				},
 			})),
 			config: &Config{
-				Source:  "custom-source",
-				Service: "custom-service",
-				Tags:    model.Tags{"env:prod", "team:infra"},
+				Template: NewTemplate("custom-service", "custom-source", model.Tags{"env:prod", "team:infra"}),
 			},
 			chanSize: 1,
 			want: []model.LogEntry{
@@ -237,14 +235,14 @@ func TestCloudwatchHandler_Handle(t *testing.T) {
 					{"id": "ev1", "timestamp": 1000, "message": "hello"},
 				},
 			})),
-			config:   &Config{Tags: model.Tags{"env:prod"}},
+			config:   &Config{Template: NewTemplate("", "", model.Tags{"env:prod"})},
 			chanSize: 1,
 			want: []model.LogEntry{
 				{
 					Message: "hello", Source: "lambda", SourceCategory: "aws",
 					Service: "fn",
 					Host:    "arn:aws:lambda:us-east-1:123456789012:function:fn",
-					Tags:    model.Tags{"functionname:fn", "env:prod", "service:fn"},
+					Tags:    model.Tags{"env:prod", "functionname:fn", "service:fn"},
 					ID:      "ev1", Timestamp: 1000,
 					Lambda: &model.LambdaLog{ARN: "arn:aws:lambda:us-east-1:123456789012:function:fn"},
 					Metadata: model.CloudwatchMetadata{

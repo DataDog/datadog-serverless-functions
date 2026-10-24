@@ -6,6 +6,7 @@
 package handler
 
 import (
+	"cmp"
 	"strings"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
@@ -19,7 +20,7 @@ func enrichLambdaLog(entry *model.LogEntry, forwarderARN, logGroup, logStream st
 	entry.Tags.Add(model.FunctionNameKey, name)
 	entry.Lambda = &model.LambdaLog{ARN: arn}
 	entry.Host = arn
-	entry.Service = name
+	entry.Service = cmp.Or(name, entry.Service)
 }
 
 func lambdaName(logGroup, logStream string) string {

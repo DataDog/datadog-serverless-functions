@@ -57,7 +57,7 @@ func TestEventBridgeHandler_Handle(t *testing.T) {
 		},
 		"custom source override": {
 			event: json.RawMessage(`{"version":"0","id":"abc","detail-type":"Scheduled Event","source":"aws.events","account":"123456789012","time":"1970-01-01T00:00:00Z","region":"us-east-1","resources":[],"detail":{}}`),
-			cfg:   &Config{Source: "custom-source"},
+			cfg:   &Config{Template: NewTemplate("", "custom-source", nil)},
 			want: []model.LogEntry{
 				{
 					Message:        `{"version":"0","id":"abc","detail-type":"Scheduled Event","source":"aws.events","account":"123456789012","time":"1970-01-01T00:00:00Z","region":"us-east-1","resources":[],"detail":{}}`,
