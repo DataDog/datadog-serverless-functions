@@ -29,6 +29,7 @@ import (
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/storage"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/version"
 
+	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-lambda-go/lambdacontext"
 )
@@ -158,11 +159,24 @@ func handleRequest(p pipeline.Pipeline, lambdaClient sdkclient.Lambda, targets [
 			})
 		}
 
-		out, pipelineErr := p.Start(ctx, lambdaOrigin(ctx), awsevent)
+		result, pipelineErr := p.Start(ctx, lambdaOrigin(ctx), awsevent)
 
 		wg.Wait()
-		return out, errors.Join(invokeErr, pipelineErr)
+		return sqsResponse(result), errors.Join(invokeErr, pipelineErr)
 	}
+}
+
+func sqsResponse(result pipeline.Result) any {
+	if !result.SQSBatch {
+		return nil
+	}
+
+	var response events.SQSEventResponse
+	for _, receipt := range result.Unprocessed {
+		response.BatchItemFailures = append(response.BatchItemFailures, events.SQSBatchItemFailure{ItemIdentifier: receipt})
+	}
+
+	return response
 }
 
 func lambdaOrigin(ctx context.Context) model.LambdaOrigin {
