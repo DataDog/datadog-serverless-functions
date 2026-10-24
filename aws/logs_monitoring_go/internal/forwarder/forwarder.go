@@ -27,10 +27,10 @@ import (
 
 const (
 	ddRetryHeader      = "DD-RETRY-TAG"
-	maxLogSize         = 1 * 1024 * 1024
-	maxBatchSize       = 5 * 1024 * 1024
+	maxLogSize         = 1000 * 1000
+	maxBatchSize       = 5 * 1000 * 1000
 	maxLogsPerBatch    = 1000
-	maxBatchesInMemory = 12 // 12 * 5MiB = 60MiB maximum
+	maxBatchesInMemory = 12
 )
 
 var bufPool = sync.Pool{
