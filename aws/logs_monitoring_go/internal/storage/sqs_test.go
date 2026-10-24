@@ -73,7 +73,7 @@ func TestSQS_Store(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			mock := mocks.NewMockSQS(ctrl)
 			tc.mockSetup(mock)
-			sqs := newSQS(mock, "https://sqs.us-east-1.amazonaws.com/123456789012/MyQueue")
+			sqs := NewSQS(mock, "https://sqs.us-east-1.amazonaws.com/123456789012/MyQueue")
 
 			err := sqs.Store(t.Context(), tc.batch)
 
@@ -129,7 +129,7 @@ func TestSQS_Fetch(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			mock := mocks.NewMockSQS(ctrl)
 			tc.mockSetup(mock)
-			s := newSQS(mock, "https://sqs.us-east-1.amazonaws.com/123456789012/MyQueue")
+			s := NewSQS(mock, "https://sqs.us-east-1.amazonaws.com/123456789012/MyQueue")
 
 			for _, err := range s.Fetch(t.Context()) {
 				if tc.wantErr {
@@ -180,7 +180,7 @@ func TestSQS_Delete(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			mock := mocks.NewMockSQS(ctrl)
 			tc.mockSetup(mock)
-			sqs := newSQS(mock, "https://sqs.us-east-1.amazonaws.com/123456789012/MyQueue")
+			sqs := NewSQS(mock, "https://sqs.us-east-1.amazonaws.com/123456789012/MyQueue")
 
 			err := sqs.Delete(t.Context(), tc.batch)
 

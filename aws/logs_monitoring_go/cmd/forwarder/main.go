@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"net/http"
 	"os"
 	"strings"
 	"sync"
@@ -73,7 +72,62 @@ func main() {
 		slog.Error("API key validation", slog.Any("error", err))
 	}
 
-	lambda.Start(handleRequest(&cfg, newHandlerConfig(&cfg, lambdacontext.FunctionName), apiKey, client))
+	s3Client, err := sdkclient.GetS3()
+	if err != nil {
+		slog.Error("s3 client", slog.Any("error", err))
+		os.Exit(1)
+	}
+
+	store, err := newStorage(&cfg, s3Client)
+	if err != nil {
+		slog.Error("new storage", slog.Any("error", err))
+		os.Exit(1)
+	}
+
+	var lambdaClient sdkclient.Lambda
+	if cfg.AdditionalTargets != nil {
+		if lambdaClient, err = sdkclient.GetLambda(); err != nil {
+			slog.Error("lambda client", slog.Any("error", err))
+			os.Exit(1)
+		}
+	}
+
+	fwd := forwarder.New(forwarder.Config{
+		APIKey:                    apiKey,
+		IntakeURL:                 cfg.IntakeURL,
+		CompressionLevel:          cfg.CompressionLevel,
+		StepFunctionsTraceEnabled: cfg.StepFunctionsTraceEnabled,
+	}, client, store)
+
+	p := pipeline.New(
+		newHandlerConfig(&cfg, lambdacontext.FunctionName),
+		scrubber.New(cfg.ScrubbingRegex, cfg.ScrubbingReplacement, cfg.ScrubIP, cfg.ScrubEmail),
+		filterer.New(cfg.FilterInclude, cfg.FilterExclude),
+		fwd,
+		s3Client,
+	)
+
+	lambda.Start(handleRequest(p, lambdaClient, cfg.AdditionalTargets))
+}
+
+func newStorage(cfg *config.Config, s3Client sdkclient.S3) (storage.Storage, error) {
+	if !cfg.StoreOnFail {
+		return nil, nil
+	}
+
+	if cfg.SQSQueueURL != "" {
+		sqsClient, err := sdkclient.GetSQS()
+		if err != nil {
+			return nil, fmt.Errorf("sqs client: %w", err)
+		}
+		return storage.NewSQS(sqsClient, cfg.SQSQueueURL), nil
+	}
+
+	if cfg.S3BucketName != "" {
+		return storage.NewS3(s3Client, cfg.S3BucketName), nil
+	}
+
+	return nil, nil
 }
 
 func newHandlerConfig(cfg *config.Config, functionName string) handler.Config {
@@ -93,44 +147,20 @@ func newHandlerConfig(cfg *config.Config, functionName string) handler.Config {
 	}
 }
 
-func handleRequest(cfg *config.Config, handlerCfg handler.Config, apiKey string, client *http.Client) func(ctx context.Context, awsevent json.RawMessage) (any, error) {
+func handleRequest(p pipeline.Pipeline, lambdaClient sdkclient.Lambda, targets []string) func(ctx context.Context, awsevent json.RawMessage) (any, error) {
 	return func(ctx context.Context, awsevent json.RawMessage) (any, error) {
 		slog.DebugContext(ctx, "invocation start", slog.String("event", string(awsevent)))
 
 		var wg sync.WaitGroup
 
 		var invokeErr error
-		if cfg.AdditionalTargets != nil {
+		if targets != nil {
 			wg.Go(func() {
-				invokeErr = sdkclient.InvokeTargets(ctx, cfg.AdditionalTargets, awsevent)
+				invokeErr = sdkclient.InvokeTargets(ctx, lambdaClient, targets, awsevent)
 			})
 		}
 
-		filter := filterer.New(cfg.FilterInclude, cfg.FilterExclude)
-		scrub := scrubber.New(cfg.ScrubbingRegex, cfg.ScrubbingReplacement, cfg.ScrubIP, cfg.ScrubEmail)
-		forwarderCfg := forwarder.Config{
-			APIKey:                    apiKey,
-			IntakeURL:                 cfg.IntakeURL,
-			CompressionLevel:          cfg.CompressionLevel,
-			StepFunctionsTraceEnabled: cfg.StepFunctionsTraceEnabled,
-		}
-
-		var store storage.Storage
-		var storageErr error
-		if cfg.StoreOnFail {
-			storageOpts := storage.Options{S3Bucket: cfg.S3BucketName, SQSQueue: cfg.SQSQueueURL}
-			if store, storageErr = storage.New(storageOpts); storageErr != nil {
-				return nil, fmt.Errorf("new storage: %w", storageErr)
-			}
-		}
-
-		fwd := forwarder.New(
-			forwarderCfg,
-			client,
-			store,
-		)
-
-		out, pipelineErr := pipeline.New(handlerCfg, scrub, filter, fwd).Start(ctx, lambdaOrigin(ctx), awsevent)
+		out, pipelineErr := p.Start(ctx, lambdaOrigin(ctx), awsevent)
 
 		wg.Wait()
 		return out, errors.Join(invokeErr, pipelineErr)

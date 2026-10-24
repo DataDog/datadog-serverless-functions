@@ -61,7 +61,7 @@ func TestS3_Store(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			mock := mocks.NewMockS3(ctrl)
 			tc.mockSetup(mock)
-			storage := newS3(mock, "my-bucket")
+			storage := NewS3(mock, "my-bucket")
 
 			err := storage.Store(t.Context(), tc.batch)
 
@@ -141,7 +141,7 @@ func TestS3_Fetch(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			mock := mocks.NewMockS3(ctrl)
 			tc.mockSetup(mock)
-			storage := newS3(mock, "failed_events")
+			storage := NewS3(mock, "failed_events")
 
 			for _, err := range storage.Fetch(t.Context()) {
 				if tc.wantErr {
@@ -192,7 +192,7 @@ func TestS3_Delete(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			mock := mocks.NewMockS3(ctrl)
 			tc.mockSetup(mock)
-			storage := newS3(mock, "my-bucket")
+			storage := NewS3(mock, "my-bucket")
 
 			err := storage.Delete(t.Context(), tc.batch)
 

@@ -100,7 +100,7 @@ func TestInvokeTargets(t *testing.T) {
 			mock := mocks.NewMockLambda(ctrl)
 			tc.mockSetup(mock)
 
-			err := invokeTargets(t.Context(), mock, tc.targets, event)
+			err := InvokeTargets(t.Context(), mock, tc.targets, event)
 
 			if tc.wantErr {
 				require.Error(t, err)

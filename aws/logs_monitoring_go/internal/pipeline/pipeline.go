@@ -18,6 +18,7 @@ import (
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/parser"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/scrubber"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/sdkclient"
 	"golang.org/x/sync/errgroup"
 
 	awsevents "github.com/aws/aws-lambda-go/events"
@@ -28,6 +29,7 @@ type Pipeline struct {
 	scrubber  *scrubber.Scrubber
 	filterer  *filterer.Filterer
 	forwarder *forwarder.Forwarder
+	s3Client  sdkclient.S3
 }
 
 func New(
@@ -35,12 +37,14 @@ func New(
 	scrub *scrubber.Scrubber,
 	filter *filterer.Filterer,
 	fwd *forwarder.Forwarder,
+	s3Client sdkclient.S3,
 ) Pipeline {
 	return Pipeline{
 		hcfg:      hcfg,
 		scrubber:  scrub,
 		filterer:  filter,
 		forwarder: fwd,
+		s3Client:  s3Client,
 	}
 }
 
@@ -101,7 +105,7 @@ func (p Pipeline) run(ctx context.Context, origin model.LambdaOrigin, event pars
 	entries := make(chan json.RawMessage)
 	eg.Go(func() error {
 		defer close(entries)
-		h, err := handler.New(p.hcfg, origin, p.scrubber, p.filterer, event.ContentType)
+		h, err := handler.New(p.hcfg, origin, p.scrubber, p.filterer, p.s3Client, event.ContentType)
 		if err != nil {
 			return fmt.Errorf("new handler: %w", err)
 		}
