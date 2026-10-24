@@ -9,10 +9,14 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"flag"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/config"
@@ -22,6 +26,7 @@ import (
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/pipeline"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/testutil"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/version"
+	"github.com/aws/aws-lambda-go/events"
 	"github.com/stretchr/testify/require"
 )
 
@@ -177,4 +182,81 @@ func TestNewHandlerConfig(t *testing.T) {
 			require.Equal(t, tc.wantTags, entry.Tags)
 		})
 	}
+}
+
+func TestSQSResponse(t *testing.T) {
+	t.Parallel()
+
+	tests := map[string]struct {
+		result   pipeline.Result
+		want     any
+		wantJSON string
+	}{
+		"not an sqs batch": {
+			result:   pipeline.Result{},
+			want:     nil,
+			wantJSON: `null`,
+		},
+		"sqs batch fully processed": {
+			result:   pipeline.Result{SQSBatch: true},
+			want:     events.SQSEventResponse{},
+			wantJSON: `{"batchItemFailures":null}`,
+		},
+		"sqs batch with unprocessed records": {
+			result: pipeline.Result{SQSBatch: true, Unprocessed: []string{"r2", "r3"}},
+			want: events.SQSEventResponse{BatchItemFailures: []events.SQSBatchItemFailure{
+				{ItemIdentifier: "r2"},
+				{ItemIdentifier: "r3"},
+			}},
+			wantJSON: `{"batchItemFailures":[{"itemIdentifier":"r2"},{"itemIdentifier":"r3"}]}`,
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			got := sqsResponse(tc.result)
+			require.Equal(t, tc.want, got)
+
+			encoded, err := json.Marshal(got)
+			require.NoError(t, err)
+			require.JSONEq(t, tc.wantJSON, string(encoded))
+		})
+	}
+}
+
+func TestHandleRequestSQSReportsUnprocessedRecords(t *testing.T) {
+	var requests atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = io.Copy(io.Discard, r.Body)
+		if requests.Add(1) == 1 {
+			w.WriteHeader(http.StatusAccepted)
+			return
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	t.Cleanup(srv.Close)
+
+	event, err := json.Marshal(events.SQSEvent{Records: []events.SQSMessage{
+		{EventSource: "aws:sqs", ReceiptHandle: "r1", Body: `{"Type":"Notification","Message":"one"}`},
+		{EventSource: "aws:sqs", ReceiptHandle: "r2", Body: `{"Type":"Notification","Message":"two"}`},
+		{EventSource: "aws:sqs", ReceiptHandle: "r3", Body: `{"Type":"Notification","Message":"three"}`},
+	}})
+	require.NoError(t, err)
+
+	fwd := forwarder.New(forwarder.Config{
+		APIKey:           testAPIKey,
+		IntakeURL:        srv.URL,
+		CompressionLevel: gzip.DefaultCompression,
+	}, srv.Client(), nil)
+	p := pipeline.New(handler.Config{}, nil, nil, fwd, nil)
+
+	out, err := handleRequest(p, nil, nil)(testutil.LambdaContext(t), event)
+
+	require.Error(t, err)
+	require.Equal(t, events.SQSEventResponse{BatchItemFailures: []events.SQSBatchItemFailure{
+		{ItemIdentifier: "r2"},
+		{ItemIdentifier: "r3"},
+	}}, out)
 }

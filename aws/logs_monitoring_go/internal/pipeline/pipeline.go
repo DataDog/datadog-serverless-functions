@@ -20,9 +20,12 @@ import (
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/scrubber"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/sdkclient"
 	"golang.org/x/sync/errgroup"
-
-	awsevents "github.com/aws/aws-lambda-go/events"
 )
+
+type Result struct {
+	SQSBatch    bool
+	Unprocessed []string
+}
 
 type Pipeline struct {
 	hcfg      handler.Config
@@ -48,11 +51,11 @@ func New(
 	}
 }
 
-func (p Pipeline) Start(ctx context.Context, origin model.LambdaOrigin, awsevent json.RawMessage) (any, error) {
+func (p Pipeline) Start(ctx context.Context, origin model.LambdaOrigin, awsevent json.RawMessage) (Result, error) {
 	if parser.IsSQS(awsevent) {
 		events, err := parser.SQS(awsevent)
 		if err != nil {
-			return nil, err
+			return Result{SQSBatch: true}, err
 		}
 
 		slog.DebugContext(ctx, "SQS event dispatched", slog.Int("records", len(events)))
@@ -61,21 +64,22 @@ func (p Pipeline) Start(ctx context.Context, origin model.LambdaOrigin, awsevent
 
 	event, err := parser.Parse(awsevent)
 	if err != nil {
-		return nil, fmt.Errorf("parse: %w", err)
+		return Result{}, fmt.Errorf("parse: %w", err)
 	}
 
 	if event.ContentType == parser.ContentTypeRetry {
 		slog.DebugContext(ctx, "retry event received, processing stored batches")
-		return nil, p.forwarder.Retry(ctx)
+		return Result{}, p.forwarder.Retry(ctx)
 	}
 
-	return nil, p.run(ctx, origin, event)
+	return Result{}, p.run(ctx, origin, event)
 }
 
-func (p Pipeline) startSQS(ctx context.Context, origin model.LambdaOrigin, events []parser.SQSEvent) (sqsEventResponse json.RawMessage, err error) {
-	var response awsevents.SQSEventResponse
+func (p Pipeline) startSQS(ctx context.Context, origin model.LambdaOrigin, events []parser.SQSEvent) (Result, error) {
+	result := Result{SQSBatch: true}
+
 	for i, event := range events {
-		err = p.run(ctx, origin, event.Event)
+		err := p.run(ctx, origin, event.Event)
 		if err == nil {
 			continue
 		}
@@ -85,16 +89,13 @@ func (p Pipeline) startSQS(ctx context.Context, origin model.LambdaOrigin, event
 			slog.Int("messages sent back", len(events)-i),
 		)
 		for _, remaining := range events[i:] {
-			response.BatchItemFailures = append(response.BatchItemFailures, awsevents.SQSBatchItemFailure{ItemIdentifier: remaining.SQSReceiptHandle})
+			result.Unprocessed = append(result.Unprocessed, remaining.SQSReceiptHandle)
 		}
 
-		break
+		return result, err
 	}
 
-	sqsEventResponse, marshallErr := json.Marshal(response)
-	err = errors.Join(err, marshallErr)
-
-	return sqsEventResponse, err
+	return result, nil
 }
 
 func (p Pipeline) run(ctx context.Context, origin model.LambdaOrigin, event parser.Event) error {
