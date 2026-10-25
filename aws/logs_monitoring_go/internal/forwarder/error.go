@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"sync"
 )
 
 type SendError struct {
@@ -44,4 +45,25 @@ func isPermanent(err error) bool {
 	}
 
 	return intake.status == http.StatusBadRequest || intake.status == http.StatusRequestEntityTooLarge
+}
+
+type firstError struct {
+	mu    sync.Mutex
+	cause error
+}
+
+func (e *firstError) set(err error) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	if e.cause == nil {
+		e.cause = err
+	}
+}
+
+func (e *firstError) load() error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	return e.cause
 }

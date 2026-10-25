@@ -10,9 +10,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
+	"iter"
 	"net/http"
 	"net/http/httptest"
+	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -309,4 +313,193 @@ func TestForwarder_StartDrainsAfterFailure(t *testing.T) {
 	case <-time.After(30 * time.Second):
 		t.Fatal("Start never returned")
 	}
+}
+
+func TestForwarder_Retry(t *testing.T) {
+	t.Parallel()
+
+	const (
+		goodBatch = `[{"message":"good"}]`
+		badBatch  = `[{"message":"poison"}]`
+	)
+
+	tests := map[string]struct {
+		batches     []storage.Batch
+		deleteErr   error
+		deadline    time.Duration
+		wantDeletes []string
+		wantCalls   int
+		wantErr     bool
+	}{
+		"permanent rejection is deleted and the drain continues": {
+			batches: []storage.Batch{
+				{Data: json.RawMessage(badBatch), DeleteKey: "key-1"},
+				{Data: json.RawMessage(goodBatch), DeleteKey: "key-2"},
+				{Data: json.RawMessage(goodBatch), DeleteKey: "key-3"},
+			},
+			wantDeletes: []string{"key-1", "key-2", "key-3"},
+			wantCalls:   3,
+		},
+		"accepted batches are drained": {
+			batches: []storage.Batch{
+				{Data: json.RawMessage(goodBatch), DeleteKey: "key-1"},
+				{Data: json.RawMessage(goodBatch), DeleteKey: "key-2"},
+			},
+			wantDeletes: []string{"key-1", "key-2"},
+			wantCalls:   2,
+		},
+		"a delete failure does not stop the drain": {
+			batches: []storage.Batch{
+				{Data: json.RawMessage(goodBatch), DeleteKey: "key-1"},
+				{Data: json.RawMessage(goodBatch), DeleteKey: "key-2"},
+			},
+			deleteErr:   errors.New("access denied"),
+			wantDeletes: []string{"key-1", "key-2"},
+			wantCalls:   2,
+			wantErr:     true,
+		},
+		"the deadline budget stops the drain": {
+			batches: []storage.Batch{
+				{Data: json.RawMessage(goodBatch), DeleteKey: "key-1"},
+			},
+			deadline:  time.Second,
+			wantCalls: 0,
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			var callCount atomic.Int32
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+				callCount.Add(1)
+
+				body, err := io.ReadAll(req.Body)
+				if !assert.NoError(t, err, "read body") {
+					return
+				}
+
+				assert.Equal(t, "true", req.Header.Get(ddRetryHeader), ddRetryHeader)
+
+				if strings.Contains(string(body), "poison") {
+					w.WriteHeader(http.StatusBadRequest)
+					return
+				}
+				w.WriteHeader(http.StatusAccepted)
+			}))
+			t.Cleanup(server.Close)
+
+			var (
+				mu      sync.Mutex
+				deleted []string
+			)
+			store := mocks.NewMockStorage(gomock.NewController(t))
+			store.EXPECT().
+				Fetch(gomock.Any()).
+				Return(iter.Seq2[storage.Batch, error](func(yield func(storage.Batch, error) bool) {
+					for _, batch := range tc.batches {
+						if !yield(batch, nil) {
+							return
+						}
+					}
+				}))
+			store.EXPECT().
+				Delete(gomock.Any(), gomock.Any()).
+				DoAndReturn(func(_ context.Context, batch storage.Batch) error {
+					mu.Lock()
+					deleted = append(deleted, batch.DeleteKey)
+					mu.Unlock()
+
+					return tc.deleteErr
+				}).
+				AnyTimes()
+
+			forwarder := New(
+				Config{IntakeURL: server.URL, APIKey: "test-api-key", CompressionLevel: gzip.NoCompression},
+				server.Client(),
+				store,
+			)
+
+			ctx := t.Context()
+			if tc.deadline != 0 {
+				var cancel context.CancelFunc
+				ctx, cancel = context.WithDeadline(ctx, time.Now().Add(tc.deadline))
+				t.Cleanup(cancel)
+			}
+
+			err := forwarder.Retry(ctx)
+
+			assert.Equal(t, tc.wantCalls, int(callCount.Load()), "intake calls")
+			assert.ElementsMatch(t, tc.wantDeletes, deleted, "deleted keys")
+			if tc.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+		})
+	}
+}
+
+func TestForwarder_RetryStopsOnRetryableFailure(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}))
+	t.Cleanup(server.Close)
+
+	batches := make([]storage.Batch, 0, 50)
+	for i := range 50 {
+		batches = append(batches, storage.Batch{
+			Data:      json.RawMessage(`[{"message":"good"}]`),
+			DeleteKey: fmt.Sprintf("key-%d", i),
+		})
+	}
+
+	store := mocks.NewMockStorage(gomock.NewController(t))
+	store.EXPECT().
+		Fetch(gomock.Any()).
+		Return(iter.Seq2[storage.Batch, error](func(yield func(storage.Batch, error) bool) {
+			for _, batch := range batches {
+				if !yield(batch, nil) {
+					return
+				}
+			}
+		}))
+	store.EXPECT().Delete(gomock.Any(), gomock.Any()).Times(0)
+
+	forwarder := New(
+		Config{IntakeURL: server.URL, APIKey: "test-api-key", CompressionLevel: gzip.NoCompression},
+		server.Client(),
+		store,
+	)
+
+	require.Error(t, forwarder.Retry(t.Context()))
+}
+
+func TestForwarder_StartDoesNotSetTheRetryHeader(t *testing.T) {
+	t.Parallel()
+
+	var got string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		got = req.Header.Get(ddRetryHeader)
+		w.WriteHeader(http.StatusAccepted)
+	}))
+	t.Cleanup(server.Close)
+
+	forwarder := New(
+		Config{IntakeURL: server.URL, APIKey: "test-api-key", CompressionLevel: gzip.NoCompression},
+		server.Client(),
+		nil,
+	)
+
+	in := make(chan json.RawMessage, 1)
+	raw, err := json.Marshal(model.LogEntry{Message: "test payload"})
+	require.NoError(t, err)
+	in <- raw
+	close(in)
+
+	require.NoError(t, forwarder.Start(t.Context(), in, ""))
+	assert.Empty(t, got)
 }
