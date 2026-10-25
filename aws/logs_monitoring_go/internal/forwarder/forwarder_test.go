@@ -503,3 +503,36 @@ func TestForwarder_StartDoesNotSetTheRetryHeader(t *testing.T) {
 	require.NoError(t, forwarder.Start(t.Context(), in, ""))
 	assert.Empty(t, got)
 }
+
+func TestForwarder_StartStoresUnsentBatchesAfterPermanentRejection(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+	}))
+	t.Cleanup(server.Close)
+
+	store := mocks.NewMockStorage(gomock.NewController(t))
+	store.EXPECT().Store(gomock.Any(), gomock.Any()).Return(nil).MinTimes(1)
+
+	forwarder := New(
+		Config{IntakeURL: server.URL, APIKey: "test-api-key", CompressionLevel: gzip.NoCompression},
+		server.Client(),
+		store,
+	)
+
+	entries := maxLogsPerBatch * (maxBatchesInMemory + httpclient.MaxConcurrency + 10)
+	raw, err := json.Marshal(model.LogEntry{Message: "test payload"})
+	require.NoError(t, err)
+
+	in := make(chan json.RawMessage, entries)
+	for range entries {
+		in <- raw
+	}
+	close(in)
+
+	var sendErr *SendError
+	require.ErrorAs(t, forwarder.Start(t.Context(), in, ""), &sendErr)
+	assert.True(t, sendErr.Permanent, "permanent")
+	assert.True(t, sendErr.Stored, "stored")
+}

@@ -98,11 +98,10 @@ func (f *Forwarder) Start(ctx context.Context, in <-chan json.RawMessage, storag
 	})
 
 	var (
-		mu        sync.Mutex
-		sendErr   error
-		storeErr  error
-		permanent bool
-		failed    atomic.Bool
+		sendErr    firstError
+		storeErr   firstError
+		skipIntake atomic.Bool
+		stored     atomic.Bool
 	)
 	for range httpclient.MaxConcurrency {
 		eg.Go(func() error {
@@ -112,55 +111,48 @@ func (f *Forwarder) Start(ctx context.Context, in <-chan json.RawMessage, storag
 					return nil
 				}
 
-				if !failed.Load() {
+				if !skipIntake.Load() {
 					err := f.send(ctx, batch, storageTag, false)
 					if err == nil {
 						continue
 					}
 
-					mu.Lock()
-					if sendErr == nil {
-						sendErr = err
-						permanent = isPermanent(err)
+					sendErr.set(err)
+					skipIntake.Store(true)
+
+					if isPermanent(err) {
+						continue
 					}
-					mu.Unlock()
-					failed.Store(true)
 				}
 
 				if f.storage == nil {
 					continue
 				}
 
-				mu.Lock()
-				skipStore := permanent
-				mu.Unlock()
-				if skipStore {
+				slog.DebugContext(ctx, "storing batch for retry", slog.Int("batch_bytes", len(batch)))
+				if err := f.storage.Store(ctx, storage.Batch{Data: batch, StorageTag: storageTag}); err != nil {
+					storeErr.set(fmt.Errorf("store: %w", err))
+
 					continue
 				}
-
-				slog.DebugContext(ctx, "send failed, storing batch for retry", slog.Int("batch_bytes", len(batch)))
-				if err := f.storage.Store(ctx, storage.Batch{Data: batch, StorageTag: storageTag}); err != nil {
-					mu.Lock()
-					if storeErr == nil {
-						storeErr = fmt.Errorf("store: %w", err)
-					}
-					mu.Unlock()
-				}
+				stored.Store(true)
 			}
 		})
 	}
 
 	if err := eg.Wait(); err != nil {
-		return errors.Join(err, sendErr, storeErr)
+		return errors.Join(err, sendErr.load(), storeErr.load())
 	}
-	if sendErr == nil {
-		return storeErr
+
+	send, store := sendErr.load(), storeErr.load()
+	if send == nil && store == nil {
+		return nil
 	}
 
 	return &SendError{
-		Err:       errors.Join(sendErr, storeErr),
-		Stored:    f.storage != nil && storeErr == nil && !permanent,
-		Permanent: permanent,
+		Err:       errors.Join(send, store),
+		Stored:    store == nil && stored.Load(),
+		Permanent: isPermanent(send),
 	}
 }
 
