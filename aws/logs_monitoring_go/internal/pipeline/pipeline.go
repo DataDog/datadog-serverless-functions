@@ -55,11 +55,11 @@ func (p Pipeline) Start(ctx context.Context, origin model.LambdaOrigin, awsevent
 	if parser.IsSQS(awsevent) {
 		events, err := parser.SQS(awsevent)
 		if err != nil {
-			return Result{SQSBatch: true}, err
+			return Result{}, err
 		}
 
 		slog.DebugContext(ctx, "SQS event dispatched", slog.Int("records", len(events)))
-		return p.startSQS(ctx, origin, events)
+		return p.startSQS(ctx, origin, events), nil
 	}
 
 	event, err := parser.Parse(awsevent)
@@ -75,27 +75,52 @@ func (p Pipeline) Start(ctx context.Context, origin model.LambdaOrigin, awsevent
 	return Result{}, p.run(ctx, origin, event)
 }
 
-func (p Pipeline) startSQS(ctx context.Context, origin model.LambdaOrigin, events []parser.SQSEvent) (Result, error) {
+func (p Pipeline) startSQS(ctx context.Context, origin model.LambdaOrigin, events []parser.SQSEvent) Result {
 	result := Result{SQSBatch: true}
 
+	requeue := func(unprocessed ...parser.SQSEvent) {
+		for _, event := range unprocessed {
+			result.Unprocessed = append(result.Unprocessed, event.MessageID)
+		}
+	}
+
 	for i, event := range events {
-		err := p.run(ctx, origin, event.Event)
+		err := event.Err
+		if err == nil {
+			err = p.run(ctx, origin, event.Event)
+		}
 		if err == nil {
 			continue
 		}
 
-		slog.DebugContext(ctx, "SQS batch item failures",
-			slog.String("message_id", event.SQSReceiptHandle),
-			slog.Int("messages sent back", len(events)-i),
-		)
-		for _, remaining := range events[i:] {
-			result.Unprocessed = append(result.Unprocessed, remaining.SQSReceiptHandle)
+		var sendErr *forwarder.SendError
+		if !errors.As(err, &sendErr) || sendErr.Permanent {
+			slog.ErrorContext(ctx, "SQS message failed",
+				slog.String("message_id", event.MessageID),
+				slog.Any("error", err),
+			)
+			requeue(event)
+
+			continue
 		}
 
-		return result, err
+		unprocessed := events[i:]
+		if sendErr.Stored {
+			unprocessed = events[i+1:]
+		}
+
+		slog.ErrorContext(ctx, "SQS batch stopped on intake failure",
+			slog.String("message_id", event.MessageID),
+			slog.Bool("stored_for_retry", sendErr.Stored),
+			slog.Int("messages_returned", len(unprocessed)),
+			slog.Any("error", err),
+		)
+		requeue(unprocessed...)
+
+		break
 	}
 
-	return result, nil
+	return result
 }
 
 func (p Pipeline) run(ctx context.Context, origin model.LambdaOrigin, event parser.Event) error {

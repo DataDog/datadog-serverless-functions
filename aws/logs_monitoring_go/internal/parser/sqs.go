@@ -14,7 +14,8 @@ import (
 
 type SQSEvent struct {
 	Event
-	SQSReceiptHandle string
+	MessageID string
+	Err       error
 }
 
 type sqsBodyDiscriminator struct {
@@ -31,19 +32,16 @@ func IsSQS(event json.RawMessage) bool {
 	return len(disc.Records) > 0 && disc.Records[0].EventSource == eventSourceSQS
 }
 
-func SQS(awsevent json.RawMessage) (events []SQSEvent, err error) {
+func SQS(awsevent json.RawMessage) ([]SQSEvent, error) {
 	var sqsEvent awsevents.SQSEvent
 	if err := json.Unmarshal(awsevent, &sqsEvent); err != nil {
 		return nil, fmt.Errorf("unmarshal: %w", err)
 	}
 
+	events := make([]SQSEvent, 0, len(sqsEvent.Records))
 	for _, msg := range sqsEvent.Records {
 		event, err := sqsBody(msg.Body)
-		if err != nil {
-			return nil, err
-		}
-
-		events = append(events, SQSEvent{Event: event, SQSReceiptHandle: msg.ReceiptHandle})
+		events = append(events, SQSEvent{Event: event, MessageID: msg.MessageId, Err: err})
 	}
 
 	return events, nil
