@@ -10,8 +10,11 @@ package storage
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"iter"
 )
+
+var ErrNoConfigured = errors.New("no failed event storage configured")
 
 const metadataStorageTagKey = "dd-storage-tag"
 

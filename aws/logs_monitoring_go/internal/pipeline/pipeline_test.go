@@ -52,10 +52,12 @@ func TestPipelineStartSQS(t *testing.T) {
 		records         []awsevents.SQSMessage
 		statuses        []int
 		wantUnprocessed []string
+		wantCalls       int
 	}{
 		"all records delivered": {
-			records:  []awsevents.SQSMessage{testutil.SQSRecord("msg-1", snsBody("one")), testutil.SQSRecord("msg-2", snsBody("two"))},
-			statuses: []int{http.StatusAccepted, http.StatusAccepted},
+			records:   []awsevents.SQSMessage{testutil.SQSRecord("msg-1", snsBody("one")), testutil.SQSRecord("msg-2", snsBody("two"))},
+			statuses:  []int{http.StatusAccepted, http.StatusAccepted},
+			wantCalls: 2,
 		},
 		"intake failure stops the batch and returns the rest": {
 			records: []awsevents.SQSMessage{
@@ -65,15 +67,16 @@ func TestPipelineStartSQS(t *testing.T) {
 			},
 			statuses:        []int{http.StatusAccepted, http.StatusServiceUnavailable},
 			wantUnprocessed: []string{"msg-2", "msg-3"},
+			wantCalls:       2,
 		},
-		"permanent rejection is message scoped": {
+		"permanent rejection is dropped and the batch keeps going": {
 			records: []awsevents.SQSMessage{
 				testutil.SQSRecord("msg-1", snsBody("one")),
 				testutil.SQSRecord("msg-2", snsBody("two")),
 				testutil.SQSRecord("msg-3", snsBody("three")),
 			},
-			statuses:        []int{http.StatusAccepted, http.StatusBadRequest, http.StatusAccepted},
-			wantUnprocessed: []string{"msg-2"},
+			statuses:  []int{http.StatusAccepted, http.StatusBadRequest, http.StatusAccepted},
+			wantCalls: 3,
 		},
 		"unparseable record does not block healthy ones": {
 			records: []awsevents.SQSMessage{
@@ -83,6 +86,7 @@ func TestPipelineStartSQS(t *testing.T) {
 			},
 			statuses:        []int{http.StatusAccepted, http.StatusAccepted},
 			wantUnprocessed: []string{"msg-2"},
+			wantCalls:       2,
 		},
 	}
 
@@ -105,7 +109,8 @@ func TestPipelineStartSQS(t *testing.T) {
 
 			require.NoError(t, err)
 			require.True(t, result.SQSBatch)
-			require.Equal(t, tc.wantUnprocessed, result.Unprocessed)
+			assert.Equal(t, tc.wantUnprocessed, result.Unprocessed, "unprocessed")
+			assert.Equal(t, tc.wantCalls, int(sent.Load()), "intake calls")
 		})
 	}
 }
@@ -136,17 +141,14 @@ func TestPipelineStartSQSRoutesToStorage(t *testing.T) {
 		records         []awsevents.SQSMessage
 		failStoreOf     string
 		wantUnprocessed []string
-		wantCalls       int
 	}{
 		"remaining messages bypass the intake and are acked": {
-			records:   records,
-			wantCalls: 2,
+			records: records,
 		},
 		"storage failing during the bypass returns the rest": {
 			records:         records,
 			failStoreOf:     "four",
 			wantUnprocessed: []string{"msg-4"},
-			wantCalls:       2,
 		},
 		"an unparseable message during the bypass is message scoped": {
 			records: []awsevents.SQSMessage{
@@ -156,7 +158,6 @@ func TestPipelineStartSQSRoutesToStorage(t *testing.T) {
 				testutil.SQSRecord("msg-4", snsBody("four")),
 			},
 			wantUnprocessed: []string{"msg-3"},
-			wantCalls:       2,
 		},
 	}
 
@@ -192,7 +193,7 @@ func TestPipelineStartSQSRoutesToStorage(t *testing.T) {
 			require.NoError(t, err)
 			require.True(t, result.SQSBatch)
 			assert.Equal(t, tc.wantUnprocessed, result.Unprocessed, "unprocessed")
-			assert.Equal(t, tc.wantCalls, int(sent.Load()), "intake calls")
+			assert.Equal(t, 2, int(sent.Load()), "intake calls")
 		})
 	}
 }
