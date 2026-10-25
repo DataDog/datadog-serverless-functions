@@ -93,9 +93,10 @@ func TestSQS(t *testing.T) {
 	t.Parallel()
 
 	tests := map[string]struct {
-		event   json.RawMessage
-		want    []ContentType
-		wantErr bool
+		event      json.RawMessage
+		want       []ContentType
+		wantFailed []int
+		wantErr    bool
 	}{
 		"direct s3": {
 			event: json.RawMessage(`{"Records":[{"eventSource":"aws:sqs","body":"{\"Records\":[{\"eventSource\":\"aws:s3\",\"s3\":{\"bucket\":{\"name\":\"b\"},\"object\":{\"key\":\"k\"}}}]}"}]}`),
@@ -117,22 +118,29 @@ func TestSQS(t *testing.T) {
 			want:  []ContentType{ContentTypeSNS},
 		},
 		"subscription confirmation skipped": {
-			event:   json.RawMessage(`{"Records":[{"eventSource":"aws:sqs","body":"{\"Type\":\"SubscriptionConfirmation\",\"Message\":\"confirm\"}"}]}`),
-			wantErr: true,
+			event:      json.RawMessage(`{"Records":[{"eventSource":"aws:sqs","body":"{\"Type\":\"SubscriptionConfirmation\",\"Message\":\"confirm\"}"}]}`),
+			want:       []ContentType{ContentTypeUnknown},
+			wantFailed: []int{0},
 		},
 		"mixed valid and unrecognized": {
 			event: json.RawMessage(`{"Records":[` +
 				`{"eventSource":"aws:sqs","body":"{\"foo\":\"bar\"}"},` +
 				`{"eventSource":"aws:sqs","body":"{\"Records\":[{\"eventSource\":\"aws:s3\",\"s3\":{\"bucket\":{\"name\":\"b\"},\"object\":{\"key\":\"k\"}}}]}"}` +
 				`]}`),
-			wantErr: true,
+			want:       []ContentType{ContentTypeUnknown, ContentTypeS3},
+			wantFailed: []int{0},
 		},
 		"extra fields after body": {
 			event: json.RawMessage(`{"Records":[{"eventSource":"aws:sqs","body":"{\"Records\":[{\"eventSource\":\"aws:s3\",\"s3\":{\"bucket\":{\"name\":\"b\"},\"object\":{\"key\":\"k\"}}}]}","messageId":"abc","receiptHandle":"xyz","attributes":{"ApproximateReceiveCount":"1"}}]}`),
 			want:  []ContentType{ContentTypeS3},
 		},
 		"malformed body json": {
-			event:   json.RawMessage(`{"Records":[{"eventSource":"aws:sqs","body":"not json"}]}`),
+			event:      json.RawMessage(`{"Records":[{"eventSource":"aws:sqs","body":"not json"}]}`),
+			want:       []ContentType{ContentTypeUnknown},
+			wantFailed: []int{0},
+		},
+		"unreadable batch": {
+			event:   json.RawMessage(`{"Records":[{"eventSource":"aws:sqs"`),
 			wantErr: true,
 		},
 	}
@@ -151,10 +159,34 @@ func TestSQS(t *testing.T) {
 			require.NoError(t, err)
 			require.Len(t, got, len(tc.want))
 
+			failed := make(map[int]bool, len(tc.wantFailed))
+			for _, i := range tc.wantFailed {
+				failed[i] = true
+			}
+
 			for i, se := range got {
-				assert.Equal(t, tc.want[i], se.ContentType)
-				assert.NotEmpty(t, se.Payload)
+				assert.Equal(t, tc.want[i], se.ContentType, "record %d content type", i)
+
+				if failed[i] {
+					assert.Error(t, se.Err, "record %d", i)
+					continue
+				}
+
+				assert.NoError(t, se.Err, "record %d", i)
+				assert.NotEmpty(t, se.Payload, "record %d payload", i)
 			}
 		})
 	}
+}
+
+func TestSQS_MessageID(t *testing.T) {
+	t.Parallel()
+
+	event := json.RawMessage(`{"Records":[{"eventSource":"aws:sqs","body":"{\"Type\":\"Notification\",\"Message\":\"hello\"}","messageId":"abc","receiptHandle":"xyz"}]}`)
+
+	got, err := SQS(event)
+
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+	assert.Equal(t, "abc", got[0].MessageID)
 }

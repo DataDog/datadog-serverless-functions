@@ -124,6 +124,25 @@ func GenerateJSONLogs(t *testing.T, sizes ...int) json.RawMessage {
 	return data
 }
 
+func SQSRecord(messageID, body string) events.SQSMessage {
+	return events.SQSMessage{
+		EventSource:   "aws:sqs",
+		MessageId:     messageID,
+		ReceiptHandle: "receipt-handle-" + messageID,
+		Body:          body,
+	}
+}
+
+func MustSQSEvent(t *testing.T, records ...events.SQSMessage) json.RawMessage {
+	t.Helper()
+
+	raw, err := json.Marshal(events.SQSEvent{Records: records})
+	if err != nil {
+		t.Fatalf("marshal sqs event: %v", err)
+	}
+	return raw
+}
+
 func ToChannel[T any](t *testing.T, values []T) chan T {
 	t.Helper()
 

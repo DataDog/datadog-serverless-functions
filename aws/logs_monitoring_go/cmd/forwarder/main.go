@@ -162,18 +162,23 @@ func handleRequest(p pipeline.Pipeline, lambdaClient sdkclient.Lambda, targets [
 		result, pipelineErr := p.Start(ctx, lambdaOrigin(ctx), awsevent)
 
 		wg.Wait()
-		return sqsResponse(result), errors.Join(invokeErr, pipelineErr)
+
+		if !result.SQSBatch {
+			return nil, errors.Join(invokeErr, pipelineErr)
+		}
+
+		if invokeErr != nil {
+			slog.ErrorContext(ctx, "SQS batch response kept over invoke targets failure", slog.Any("error", invokeErr))
+		}
+
+		return sqsResponse(result.Unprocessed), pipelineErr
 	}
 }
 
-func sqsResponse(result pipeline.Result) any {
-	if !result.SQSBatch {
-		return nil
-	}
-
+func sqsResponse(unprocessed []string) events.SQSEventResponse {
 	var response events.SQSEventResponse
-	for _, receipt := range result.Unprocessed {
-		response.BatchItemFailures = append(response.BatchItemFailures, events.SQSBatchItemFailure{ItemIdentifier: receipt})
+	for _, messageID := range unprocessed {
+		response.BatchItemFailures = append(response.BatchItemFailures, events.SQSBatchItemFailure{ItemIdentifier: messageID})
 	}
 
 	return response

@@ -8,6 +8,7 @@ package main
 import (
 	"compress/gzip"
 	"encoding/json"
+	"errors"
 	"flag"
 	"io"
 	"net/http"
@@ -24,10 +25,12 @@ import (
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/handler"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/pipeline"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/sdkclient/mocks"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/testutil"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/version"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 )
 
 var update = flag.Bool("update", false, "update .golden files")
@@ -67,12 +70,7 @@ func TestHandleRequest(t *testing.T) {
 			ctx := testutil.LambdaContext(t)
 			event := load(t, input)
 
-			fwd := forwarder.New(forwarder.Config{
-				APIKey:           testAPIKey,
-				IntakeURL:        rec.URL,
-				CompressionLevel: gzip.DefaultCompression,
-			}, rec.Client(), nil)
-			p := pipeline.New(handler.Config{}, nil, nil, fwd, nil)
+			p := newPipeline(t, rec.URL, rec.Client())
 
 			_, err := handleRequest(p, nil, nil)(ctx, event)
 
@@ -188,27 +186,21 @@ func TestSQSResponse(t *testing.T) {
 	t.Parallel()
 
 	tests := map[string]struct {
-		result   pipeline.Result
-		want     any
-		wantJSON string
+		unprocessed []string
+		want        events.SQSEventResponse
+		wantJSON    string
 	}{
-		"not an sqs batch": {
-			result:   pipeline.Result{},
-			want:     nil,
-			wantJSON: `null`,
-		},
-		"sqs batch fully processed": {
-			result:   pipeline.Result{SQSBatch: true},
+		"batch fully processed": {
 			want:     events.SQSEventResponse{},
 			wantJSON: `{"batchItemFailures":null}`,
 		},
-		"sqs batch with unprocessed records": {
-			result: pipeline.Result{SQSBatch: true, Unprocessed: []string{"r2", "r3"}},
+		"batch with unprocessed records": {
+			unprocessed: []string{"msg-2", "msg-3"},
 			want: events.SQSEventResponse{BatchItemFailures: []events.SQSBatchItemFailure{
-				{ItemIdentifier: "r2"},
-				{ItemIdentifier: "r3"},
+				{ItemIdentifier: "msg-2"},
+				{ItemIdentifier: "msg-3"},
 			}},
-			wantJSON: `{"batchItemFailures":[{"itemIdentifier":"r2"},{"itemIdentifier":"r3"}]}`,
+			wantJSON: `{"batchItemFailures":[{"itemIdentifier":"msg-2"},{"itemIdentifier":"msg-3"}]}`,
 		},
 	}
 
@@ -216,7 +208,7 @@ func TestSQSResponse(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			got := sqsResponse(tc.result)
+			got := sqsResponse(tc.unprocessed)
 			require.Equal(t, tc.want, got)
 
 			encoded, err := json.Marshal(got)
@@ -238,25 +230,52 @@ func TestHandleRequestSQSReportsUnprocessedRecords(t *testing.T) {
 	}))
 	t.Cleanup(srv.Close)
 
-	event, err := json.Marshal(events.SQSEvent{Records: []events.SQSMessage{
-		{EventSource: "aws:sqs", ReceiptHandle: "r1", Body: `{"Type":"Notification","Message":"one"}`},
-		{EventSource: "aws:sqs", ReceiptHandle: "r2", Body: `{"Type":"Notification","Message":"two"}`},
-		{EventSource: "aws:sqs", ReceiptHandle: "r3", Body: `{"Type":"Notification","Message":"three"}`},
-	}})
-	require.NoError(t, err)
+	event := testutil.MustSQSEvent(t,
+		testutil.SQSRecord("msg-1", `{"Type":"Notification","Message":"one"}`),
+		testutil.SQSRecord("msg-2", `{"Type":"Notification","Message":"two"}`),
+		testutil.SQSRecord("msg-3", `{"Type":"Notification","Message":"three"}`),
+	)
 
-	fwd := forwarder.New(forwarder.Config{
-		APIKey:           testAPIKey,
-		IntakeURL:        srv.URL,
-		CompressionLevel: gzip.DefaultCompression,
-	}, srv.Client(), nil)
-	p := pipeline.New(handler.Config{}, nil, nil, fwd, nil)
+	p := newPipeline(t, srv.URL, srv.Client())
 
 	out, err := handleRequest(p, nil, nil)(testutil.LambdaContext(t), event)
 
-	require.Error(t, err)
+	require.NoError(t, err)
 	require.Equal(t, events.SQSEventResponse{BatchItemFailures: []events.SQSBatchItemFailure{
-		{ItemIdentifier: "r2"},
-		{ItemIdentifier: "r3"},
+		{ItemIdentifier: "msg-2"},
+		{ItemIdentifier: "msg-3"},
 	}}, out)
+}
+
+func TestHandleRequestSQSKeepsResponseWhenInvokeTargetsFails(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = io.Copy(io.Discard, r.Body)
+		w.WriteHeader(http.StatusAccepted)
+	}))
+	t.Cleanup(srv.Close)
+
+	lambdaClient := mocks.NewMockLambda(gomock.NewController(t))
+	lambdaClient.EXPECT().Invoke(gomock.Any(), gomock.Any()).Return(nil, errors.New("invoke failed"))
+
+	event := testutil.MustSQSEvent(t, testutil.SQSRecord("msg-1", `{"Type":"Notification","Message":"one"}`))
+
+	p := newPipeline(t, srv.URL, srv.Client())
+
+	targets := []string{"arn:aws:lambda:us-east-1:123456789012:function:target"}
+	out, err := handleRequest(p, lambdaClient, targets)(testutil.LambdaContext(t), event)
+
+	require.NoError(t, err)
+	require.Equal(t, events.SQSEventResponse{}, out)
+}
+
+func newPipeline(t *testing.T, intakeURL string, client *http.Client) pipeline.Pipeline {
+	t.Helper()
+
+	fwd := forwarder.New(forwarder.Config{
+		APIKey:           testAPIKey,
+		IntakeURL:        intakeURL,
+		CompressionLevel: gzip.DefaultCompression,
+	}, client, nil)
+
+	return pipeline.New(handler.Config{}, nil, nil, fwd, nil)
 }
