@@ -72,7 +72,7 @@ func (p Pipeline) Start(ctx context.Context, origin model.LambdaOrigin, awsevent
 		return Result{}, p.forwarder.Retry(ctx)
 	}
 
-	return Result{}, p.run(ctx, origin, event)
+	return Result{}, p.run(ctx, origin, event, forwarder.ToIntake)
 }
 
 func (p Pipeline) startSQS(ctx context.Context, origin model.LambdaOrigin, events []parser.SQSEvent) Result {
@@ -84,10 +84,11 @@ func (p Pipeline) startSQS(ctx context.Context, origin model.LambdaOrigin, event
 		}
 	}
 
+	delivery := forwarder.ToIntake
 	for i, event := range events {
 		err := event.Err
 		if err == nil {
-			err = p.run(ctx, origin, event.Event)
+			err = p.run(ctx, origin, event.Event, delivery)
 		}
 		if err == nil {
 			continue
@@ -104,26 +105,34 @@ func (p Pipeline) startSQS(ctx context.Context, origin model.LambdaOrigin, event
 			continue
 		}
 
-		unprocessed := events[i:]
-		if sendErr.Stored {
-			unprocessed = events[i+1:]
+		if !sendErr.Stored {
+			slog.ErrorContext(ctx, "SQS batch stopped, messages were not durably kept",
+				slog.String("message_id", event.MessageID),
+				slog.Int("messages_returned", len(events[i:])),
+				slog.Any("error", err),
+			)
+			requeue(events[i:]...)
+
+			break
 		}
 
-		slog.ErrorContext(ctx, "SQS batch stopped on intake failure",
+		slog.ErrorContext(ctx, "intake unreachable, remaining messages routed to storage",
 			slog.String("message_id", event.MessageID),
-			slog.Bool("stored_for_retry", sendErr.Stored),
-			slog.Int("messages_returned", len(unprocessed)),
+			slog.Int("messages_stored", len(events[i+1:])),
 			slog.Any("error", err),
 		)
-		requeue(unprocessed...)
-
-		break
+		delivery = forwarder.ToStorage
 	}
 
 	return result
 }
 
-func (p Pipeline) run(ctx context.Context, origin model.LambdaOrigin, event parser.Event) error {
+func (p Pipeline) run(
+	ctx context.Context,
+	origin model.LambdaOrigin,
+	event parser.Event,
+	delivery forwarder.Delivery,
+) error {
 	slog.DebugContext(ctx, "processing event", slog.String("content_type", event.ContentType.String()))
 
 	eg, ctx := errgroup.WithContext(ctx)
@@ -142,7 +151,7 @@ func (p Pipeline) run(ctx context.Context, origin model.LambdaOrigin, event pars
 		return nil
 	})
 
-	err := p.forwarder.Start(ctx, entries, forwarder.StorageTag(event.ContentType))
+	err := p.forwarder.Start(ctx, entries, forwarder.StorageTag(event.ContentType), delivery)
 	if waitErr := eg.Wait(); waitErr != nil {
 		return errors.Join(err, waitErr)
 	}
