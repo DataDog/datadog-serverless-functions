@@ -118,7 +118,7 @@ func TestForwarder_Start(t *testing.T) {
 			}
 			close(in)
 
-			err := forwarder.Start(ctx, in, tc.storageTag)
+			err := forwarder.Start(ctx, in, tc.storageTag, ToIntake)
 
 			assert.Equal(t, tc.wantCalls, int(callCount.Load()))
 			if tc.wantErr {
@@ -170,7 +170,7 @@ func TestForwarder_StepFunctionsTraceHeader(t *testing.T) {
 			in <- raw
 			close(in)
 
-			require.NoError(t, forwarder.Start(ctx, in, ""))
+			require.NoError(t, forwarder.Start(ctx, in, "", ToIntake))
 
 			want := ""
 			if tc.enabled {
@@ -268,7 +268,7 @@ func TestForwarder_StartSendError(t *testing.T) {
 			in <- raw
 			close(in)
 
-			err = forwarder.Start(t.Context(), in, "")
+			err = forwarder.Start(t.Context(), in, "", ToIntake)
 
 			var sendErr *SendError
 			require.ErrorAs(t, err, &sendErr)
@@ -303,7 +303,7 @@ func TestForwarder_StartDrainsAfterFailure(t *testing.T) {
 	close(in)
 
 	done := make(chan error, 1)
-	go func() { done <- forwarder.Start(t.Context(), in, "") }()
+	go func() { done <- forwarder.Start(t.Context(), in, "", ToIntake) }()
 
 	select {
 	case err := <-done:
@@ -500,7 +500,7 @@ func TestForwarder_StartDoesNotSetTheRetryHeader(t *testing.T) {
 	in <- raw
 	close(in)
 
-	require.NoError(t, forwarder.Start(t.Context(), in, ""))
+	require.NoError(t, forwarder.Start(t.Context(), in, "", ToIntake))
 	assert.Empty(t, got)
 }
 
@@ -532,7 +532,91 @@ func TestForwarder_StartStoresUnsentBatchesAfterPermanentRejection(t *testing.T)
 	close(in)
 
 	var sendErr *SendError
-	require.ErrorAs(t, forwarder.Start(t.Context(), in, ""), &sendErr)
+	require.ErrorAs(t, forwarder.Start(t.Context(), in, "", ToIntake), &sendErr)
 	assert.True(t, sendErr.Permanent, "permanent")
 	assert.True(t, sendErr.Stored, "stored")
+}
+
+func TestForwarder_StartToStorage(t *testing.T) {
+	t.Parallel()
+
+	tests := map[string]struct {
+		storage  func(t *testing.T) storage.Storage
+		wantErr  bool
+		wantSent bool
+	}{
+		"every batch is stored without reaching the intake": {
+			storage: func(t *testing.T) storage.Storage {
+				t.Helper()
+
+				store := mocks.NewMockStorage(gomock.NewController(t))
+				store.EXPECT().Store(gomock.Any(), gomock.Any()).Return(nil).MinTimes(1)
+
+				return store
+			},
+		},
+		"a store failure still drains the producer": {
+			storage: func(t *testing.T) storage.Storage {
+				t.Helper()
+
+				store := mocks.NewMockStorage(gomock.NewController(t))
+				store.EXPECT().Store(gomock.Any(), gomock.Any()).Return(errors.New("bucket unavailable")).MinTimes(1)
+
+				return store
+			},
+			wantErr: true,
+		},
+		"without storage configured it refuses rather than dropping": {
+			wantErr: true,
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			var callCount atomic.Int32
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				callCount.Add(1)
+				w.WriteHeader(http.StatusAccepted)
+			}))
+			t.Cleanup(server.Close)
+
+			var store storage.Storage
+			if tc.storage != nil {
+				store = tc.storage(t)
+			}
+
+			forwarder := New(
+				Config{IntakeURL: server.URL, APIKey: "test-api-key", CompressionLevel: gzip.NoCompression},
+				server.Client(),
+				store,
+			)
+
+			entries := maxLogsPerBatch * (maxBatchesInMemory + httpclient.MaxConcurrency + 10)
+			raw, err := json.Marshal(model.LogEntry{Message: "test payload"})
+			require.NoError(t, err)
+
+			in := make(chan json.RawMessage, entries)
+			for range entries {
+				in <- raw
+			}
+			close(in)
+
+			done := make(chan error, 1)
+			go func() { done <- forwarder.Start(t.Context(), in, "cloudwatch", ToStorage) }()
+
+			select {
+			case err := <-done:
+				assert.Zero(t, callCount.Load(), "intake calls")
+				if tc.wantErr {
+					require.Error(t, err)
+					return
+				}
+				require.NoError(t, err)
+			case <-time.After(30 * time.Second):
+				t.Fatal("Start never returned")
+			}
+		})
+	}
 }

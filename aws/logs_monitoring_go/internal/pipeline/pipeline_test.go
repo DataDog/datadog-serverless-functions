@@ -7,17 +7,24 @@ package pipeline
 
 import (
 	"compress/gzip"
+	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync/atomic"
 	"testing"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/forwarder"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/handler"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/storage"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/storage/mocks"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/testutil"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 
 	awsevents "github.com/aws/aws-lambda-go/events"
 )
@@ -26,13 +33,13 @@ func snsBody(message string) string {
 	return `{"Type":"Notification","Message":"` + message + `"}`
 }
 
-func newPipeline(t *testing.T, intakeURL string) Pipeline {
+func newPipeline(t *testing.T, intakeURL string, store storage.Storage) Pipeline {
 	t.Helper()
 
 	fwd := forwarder.New(
 		forwarder.Config{APIKey: "test-api-key", IntakeURL: intakeURL, CompressionLevel: gzip.NoCompression},
 		http.DefaultClient,
-		nil,
+		store,
 	)
 
 	return New(handler.Config{}, nil, nil, fwd, nil)
@@ -94,7 +101,7 @@ func TestPipelineStartSQS(t *testing.T) {
 			}))
 			t.Cleanup(server.Close)
 
-			result, err := newPipeline(t, server.URL).Start(t.Context(), model.LambdaOrigin{}, testutil.MustSQSEvent(t, tc.records...))
+			result, err := newPipeline(t, server.URL, nil).Start(t.Context(), model.LambdaOrigin{}, testutil.MustSQSEvent(t, tc.records...))
 
 			require.NoError(t, err)
 			require.True(t, result.SQSBatch)
@@ -108,9 +115,84 @@ func TestPipelineStartSQSUnparseableEnvelopeFailsInvocation(t *testing.T) {
 
 	event := json.RawMessage(`{"Records":[{"eventSource":"aws:sqs","body":0}]}`)
 
-	result, err := newPipeline(t, "http://127.0.0.1:1").Start(t.Context(), model.LambdaOrigin{}, event)
+	result, err := newPipeline(t, "http://127.0.0.1:1", nil).Start(t.Context(), model.LambdaOrigin{}, event)
 
 	require.Error(t, err)
 	require.False(t, result.SQSBatch)
 	require.Nil(t, result.Unprocessed)
+}
+
+func TestPipelineStartSQSRoutesToStorage(t *testing.T) {
+	t.Parallel()
+
+	records := []awsevents.SQSMessage{
+		testutil.SQSRecord("msg-1", snsBody("one")),
+		testutil.SQSRecord("msg-2", snsBody("two")),
+		testutil.SQSRecord("msg-3", snsBody("three")),
+		testutil.SQSRecord("msg-4", snsBody("four")),
+	}
+
+	tests := map[string]struct {
+		records         []awsevents.SQSMessage
+		failStoreOf     string
+		wantUnprocessed []string
+		wantCalls       int
+	}{
+		"remaining messages bypass the intake and are acked": {
+			records:   records,
+			wantCalls: 2,
+		},
+		"storage failing during the bypass returns the rest": {
+			records:         records,
+			failStoreOf:     "four",
+			wantUnprocessed: []string{"msg-4"},
+			wantCalls:       2,
+		},
+		"an unparseable message during the bypass is message scoped": {
+			records: []awsevents.SQSMessage{
+				testutil.SQSRecord("msg-1", snsBody("one")),
+				testutil.SQSRecord("msg-2", snsBody("two")),
+				testutil.SQSRecord("msg-3", `{"not":"a known event"}`),
+				testutil.SQSRecord("msg-4", snsBody("four")),
+			},
+			wantUnprocessed: []string{"msg-3"},
+			wantCalls:       2,
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			var sent atomic.Int32
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				status := http.StatusAccepted
+				if sent.Add(1) == 2 {
+					status = http.StatusServiceUnavailable
+				}
+				w.WriteHeader(status)
+			}))
+			t.Cleanup(server.Close)
+
+			store := mocks.NewMockStorage(gomock.NewController(t))
+			store.EXPECT().
+				Store(gomock.Any(), gomock.Any()).
+				DoAndReturn(func(_ context.Context, batch storage.Batch) error {
+					if tc.failStoreOf != "" && strings.Contains(string(batch.Data), tc.failStoreOf) {
+						return errors.New("bucket unavailable")
+					}
+
+					return nil
+				}).
+				AnyTimes()
+
+			result, err := newPipeline(t, server.URL, store).
+				Start(t.Context(), model.LambdaOrigin{}, testutil.MustSQSEvent(t, tc.records...))
+
+			require.NoError(t, err)
+			require.True(t, result.SQSBatch)
+			assert.Equal(t, tc.wantUnprocessed, result.Unprocessed, "unprocessed")
+			assert.Equal(t, tc.wantCalls, int(sent.Load()), "intake calls")
+		})
+	}
 }

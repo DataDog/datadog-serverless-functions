@@ -43,6 +43,13 @@ var bufPool = sync.Pool{
 	New: func() any { return new(bytes.Buffer) },
 }
 
+type Delivery int
+
+const (
+	ToIntake Delivery = iota
+	ToStorage
+)
+
 type Forwarder struct {
 	cfg      Config
 	client   *http.Client
@@ -84,7 +91,16 @@ func New(cfg Config, client *http.Client, store storage.Storage) *Forwarder {
 	}
 }
 
-func (f *Forwarder) Start(ctx context.Context, in <-chan json.RawMessage, storageTag string) error {
+func (f *Forwarder) Start(
+	ctx context.Context,
+	in <-chan json.RawMessage,
+	storageTag string,
+	delivery Delivery,
+) error {
+	if delivery == ToStorage && f.storage == nil {
+		return errors.New("no failed event storage configured")
+	}
+
 	eg, ctx := errgroup.WithContext(ctx)
 	eg.SetLimit(1 + httpclient.MaxConcurrency)
 
@@ -103,6 +119,8 @@ func (f *Forwarder) Start(ctx context.Context, in <-chan json.RawMessage, storag
 		skipIntake atomic.Bool
 		stored     atomic.Bool
 	)
+	skipIntake.Store(delivery == ToStorage)
+
 	for range httpclient.MaxConcurrency {
 		eg.Go(func() error {
 			for {

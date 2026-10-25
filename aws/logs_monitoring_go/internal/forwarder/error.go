@@ -19,7 +19,7 @@ type SendError struct {
 }
 
 func (e *SendError) Error() string {
-	return fmt.Sprintf("send to intake: %v (stored for retry: %t, permanent: %t)", e.Err, e.Stored, e.Permanent)
+	return fmt.Sprintf("forward: %v (stored for retry: %t, permanent: %t)", e.Err, e.Stored, e.Permanent)
 }
 
 func (e *SendError) Unwrap() error {
