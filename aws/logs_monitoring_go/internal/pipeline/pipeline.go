@@ -58,7 +58,6 @@ func (p Pipeline) Start(ctx context.Context, origin model.LambdaOrigin, awsevent
 			return Result{}, err
 		}
 
-		slog.DebugContext(ctx, "SQS event dispatched", slog.Int("records", len(events)))
 		return p.startSQS(ctx, origin, events), nil
 	}
 
@@ -95,12 +94,21 @@ func (p Pipeline) startSQS(ctx context.Context, origin model.LambdaOrigin, event
 		}
 
 		var sendErr *forwarder.SendError
-		if !errors.As(err, &sendErr) || sendErr.Permanent {
+		if !errors.As(err, &sendErr) {
 			slog.ErrorContext(ctx, "SQS message failed",
 				slog.String("message_id", event.MessageID),
 				slog.Any("error", err),
 			)
 			requeue(event)
+
+			continue
+		}
+
+		if sendErr.Permanent {
+			slog.ErrorContext(ctx, "SQS message dropped, rejected by the intake",
+				slog.String("message_id", event.MessageID),
+				slog.Any("error", err),
+			)
 
 			continue
 		}

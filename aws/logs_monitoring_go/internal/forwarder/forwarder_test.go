@@ -15,6 +15,7 @@ import (
 	"iter"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -25,6 +26,7 @@ import (
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/storage"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/storage/mocks"
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/testutil"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/version"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -88,6 +90,7 @@ func TestForwarder_Start(t *testing.T) {
 				assert.Equal(t, "gzip", req.Header.Get("Content-Encoding"), "Content-Encoding")
 				assert.Equal(t, "aws_forwarder", req.Header.Get("DD-EVP-ORIGIN"), "DD-EVP-ORIGIN")
 				assert.Equal(t, version.Forwarder, req.Header.Get("DD-EVP-ORIGIN-VERSION"), "DD-EVP-ORIGIN-VERSION")
+				assert.Empty(t, req.Header.Get(ddRetryHeader), ddRetryHeader)
 				if tc.storageTag != "" {
 					assert.Equal(t, tc.storageTag, req.Header.Get("DD-STORAGE-TAG"), "DD-STORAGE-TAG")
 				}
@@ -256,11 +259,7 @@ func TestForwarder_StartSendError(t *testing.T) {
 				store = tc.storage(t)
 			}
 
-			forwarder := New(
-				Config{IntakeURL: server.URL, APIKey: "test-api-key", CompressionLevel: gzip.NoCompression},
-				server.Client(),
-				store,
-			)
+			forwarder := newForwarder(t, server.URL, store)
 
 			in := make(chan json.RawMessage, 1)
 			raw, err := json.Marshal(model.LogEntry{Message: "test payload"})
@@ -286,11 +285,7 @@ func TestForwarder_StartDrainsAfterFailure(t *testing.T) {
 	}))
 	t.Cleanup(server.Close)
 
-	forwarder := New(
-		Config{IntakeURL: server.URL, APIKey: "test-api-key", CompressionLevel: gzip.NoCompression},
-		server.Client(),
-		nil,
-	)
+	forwarder := newForwarder(t, server.URL, nil)
 
 	entries := maxLogsPerBatch * (maxBatchesInMemory + httpclient.MaxConcurrency + 10)
 	raw, err := json.Marshal(model.LogEntry{Message: "test payload"})
@@ -397,13 +392,7 @@ func TestForwarder_Retry(t *testing.T) {
 			store := mocks.NewMockStorage(gomock.NewController(t))
 			store.EXPECT().
 				Fetch(gomock.Any()).
-				Return(iter.Seq2[storage.Batch, error](func(yield func(storage.Batch, error) bool) {
-					for _, batch := range tc.batches {
-						if !yield(batch, nil) {
-							return
-						}
-					}
-				}))
+				Return(batchSeq(tc.batches))
 			store.EXPECT().
 				Delete(gomock.Any(), gomock.Any()).
 				DoAndReturn(func(_ context.Context, batch storage.Batch) error {
@@ -415,11 +404,7 @@ func TestForwarder_Retry(t *testing.T) {
 				}).
 				AnyTimes()
 
-			forwarder := New(
-				Config{IntakeURL: server.URL, APIKey: "test-api-key", CompressionLevel: gzip.NoCompression},
-				server.Client(),
-				store,
-			)
+			forwarder := newForwarder(t, server.URL, store)
 
 			ctx := t.Context()
 			if tc.deadline != 0 {
@@ -460,48 +445,12 @@ func TestForwarder_RetryStopsOnRetryableFailure(t *testing.T) {
 	store := mocks.NewMockStorage(gomock.NewController(t))
 	store.EXPECT().
 		Fetch(gomock.Any()).
-		Return(iter.Seq2[storage.Batch, error](func(yield func(storage.Batch, error) bool) {
-			for _, batch := range batches {
-				if !yield(batch, nil) {
-					return
-				}
-			}
-		}))
+		Return(batchSeq(batches))
 	store.EXPECT().Delete(gomock.Any(), gomock.Any()).Times(0)
 
-	forwarder := New(
-		Config{IntakeURL: server.URL, APIKey: "test-api-key", CompressionLevel: gzip.NoCompression},
-		server.Client(),
-		store,
-	)
+	forwarder := newForwarder(t, server.URL, store)
 
 	require.Error(t, forwarder.Retry(t.Context()))
-}
-
-func TestForwarder_StartDoesNotSetTheRetryHeader(t *testing.T) {
-	t.Parallel()
-
-	var got string
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		got = req.Header.Get(ddRetryHeader)
-		w.WriteHeader(http.StatusAccepted)
-	}))
-	t.Cleanup(server.Close)
-
-	forwarder := New(
-		Config{IntakeURL: server.URL, APIKey: "test-api-key", CompressionLevel: gzip.NoCompression},
-		server.Client(),
-		nil,
-	)
-
-	in := make(chan json.RawMessage, 1)
-	raw, err := json.Marshal(model.LogEntry{Message: "test payload"})
-	require.NoError(t, err)
-	in <- raw
-	close(in)
-
-	require.NoError(t, forwarder.Start(t.Context(), in, "", ToIntake))
-	assert.Empty(t, got)
 }
 
 func TestForwarder_StartStoresUnsentBatchesAfterPermanentRejection(t *testing.T) {
@@ -515,24 +464,10 @@ func TestForwarder_StartStoresUnsentBatchesAfterPermanentRejection(t *testing.T)
 	store := mocks.NewMockStorage(gomock.NewController(t))
 	store.EXPECT().Store(gomock.Any(), gomock.Any()).Return(nil).MinTimes(1)
 
-	forwarder := New(
-		Config{IntakeURL: server.URL, APIKey: "test-api-key", CompressionLevel: gzip.NoCompression},
-		server.Client(),
-		store,
-	)
-
-	entries := maxLogsPerBatch * (maxBatchesInMemory + httpclient.MaxConcurrency + 10)
-	raw, err := json.Marshal(model.LogEntry{Message: "test payload"})
-	require.NoError(t, err)
-
-	in := make(chan json.RawMessage, entries)
-	for range entries {
-		in <- raw
-	}
-	close(in)
+	forwarder := newForwarder(t, server.URL, store)
 
 	var sendErr *SendError
-	require.ErrorAs(t, forwarder.Start(t.Context(), in, "", ToIntake), &sendErr)
+	require.ErrorAs(t, forwarder.Start(t.Context(), saturatedInput(t), "", ToIntake), &sendErr)
 	assert.True(t, sendErr.Permanent, "permanent")
 	assert.True(t, sendErr.Stored, "stored")
 }
@@ -541,33 +476,13 @@ func TestForwarder_StartToStorage(t *testing.T) {
 	t.Parallel()
 
 	tests := map[string]struct {
-		storage  func(t *testing.T) storage.Storage
+		storeErr error
 		wantErr  bool
-		wantSent bool
 	}{
-		"every batch is stored without reaching the intake": {
-			storage: func(t *testing.T) storage.Storage {
-				t.Helper()
-
-				store := mocks.NewMockStorage(gomock.NewController(t))
-				store.EXPECT().Store(gomock.Any(), gomock.Any()).Return(nil).MinTimes(1)
-
-				return store
-			},
-		},
+		"every batch is stored without reaching the intake": {},
 		"a store failure still drains the producer": {
-			storage: func(t *testing.T) storage.Storage {
-				t.Helper()
-
-				store := mocks.NewMockStorage(gomock.NewController(t))
-				store.EXPECT().Store(gomock.Any(), gomock.Any()).Return(errors.New("bucket unavailable")).MinTimes(1)
-
-				return store
-			},
-			wantErr: true,
-		},
-		"without storage configured it refuses rather than dropping": {
-			wantErr: true,
+			storeErr: errors.New("bucket unavailable"),
+			wantErr:  true,
 		},
 	}
 
@@ -582,29 +497,15 @@ func TestForwarder_StartToStorage(t *testing.T) {
 			}))
 			t.Cleanup(server.Close)
 
-			var store storage.Storage
-			if tc.storage != nil {
-				store = tc.storage(t)
-			}
+			store := mocks.NewMockStorage(gomock.NewController(t))
+			store.EXPECT().Store(gomock.Any(), gomock.Any()).Return(tc.storeErr).MinTimes(1)
 
-			forwarder := New(
-				Config{IntakeURL: server.URL, APIKey: "test-api-key", CompressionLevel: gzip.NoCompression},
-				server.Client(),
-				store,
-			)
-
-			entries := maxLogsPerBatch * (maxBatchesInMemory + httpclient.MaxConcurrency + 10)
-			raw, err := json.Marshal(model.LogEntry{Message: "test payload"})
-			require.NoError(t, err)
-
-			in := make(chan json.RawMessage, entries)
-			for range entries {
-				in <- raw
-			}
-			close(in)
+			forwarder := newForwarder(t, server.URL, store)
 
 			done := make(chan error, 1)
-			go func() { done <- forwarder.Start(t.Context(), in, "cloudwatch", ToStorage) }()
+			go func() {
+				done <- forwarder.Start(t.Context(), saturatedInput(t), "cloudwatch", ToStorage)
+			}()
 
 			select {
 			case err := <-done:
@@ -618,5 +519,45 @@ func TestForwarder_StartToStorage(t *testing.T) {
 				t.Fatal("Start never returned")
 			}
 		})
+	}
+}
+
+func TestForwarder_StartToStorageWithoutStorage(t *testing.T) {
+	t.Parallel()
+
+	in := make(chan json.RawMessage)
+	close(in)
+
+	err := newForwarder(t, "http://127.0.0.1:1", nil).Start(t.Context(), in, "", ToStorage)
+
+	require.ErrorIs(t, err, storage.ErrNoConfigured)
+}
+
+func newForwarder(t *testing.T, intakeURL string, store storage.Storage) *Forwarder {
+	t.Helper()
+
+	return New(
+		Config{IntakeURL: intakeURL, APIKey: "test-api-key", CompressionLevel: gzip.NoCompression},
+		&http.Client{},
+		store,
+	)
+}
+
+func saturatedInput(t *testing.T) chan json.RawMessage {
+	t.Helper()
+
+	raw, err := json.Marshal(model.LogEntry{Message: "test payload"})
+	require.NoError(t, err)
+
+	return testutil.ToChannel(t, slices.Repeat([]json.RawMessage{raw}, maxLogsPerBatch*(maxBatchesInMemory+httpclient.MaxConcurrency+10)))
+}
+
+func batchSeq(batches []storage.Batch) iter.Seq2[storage.Batch, error] {
+	return func(yield func(storage.Batch, error) bool) {
+		for _, batch := range batches {
+			if !yield(batch, nil) {
+				return
+			}
+		}
 	}
 }

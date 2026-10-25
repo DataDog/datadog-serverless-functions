@@ -54,8 +54,6 @@ func TestFirstError(t *testing.T) {
 		}
 		wg.Wait()
 
-		kept := first.load()
-		require.Error(t, kept)
-		assert.Equal(t, kept, first.load())
+		require.Error(t, first.load())
 	})
 }

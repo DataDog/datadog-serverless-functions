@@ -27,16 +27,14 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-const (
-	ddRetryHeader = "DD-RETRY-TAG"
-	retryReserve  = httpclient.RequestTimeout + 2*time.Second
-)
+const ddRetryHeader = "DD-RETRY-TAG"
 
 const (
 	maxLogSize         = 1000 * 1000
 	maxBatchSize       = 5 * 1000 * 1000
 	maxLogsPerBatch    = 1000
 	maxBatchesInMemory = 12
+	retryReserve       = httpclient.RequestTimeout + 2*time.Second
 )
 
 var bufPool = sync.Pool{
@@ -98,7 +96,7 @@ func (f *Forwarder) Start(
 	delivery Delivery,
 ) error {
 	if delivery == ToStorage && f.storage == nil {
-		return errors.New("no failed event storage configured")
+		return storage.ErrNoConfigured
 	}
 
 	eg, ctx := errgroup.WithContext(ctx)
@@ -114,12 +112,10 @@ func (f *Forwarder) Start(
 	})
 
 	var (
-		sendErr    firstError
-		storeErr   firstError
-		skipIntake atomic.Bool
-		stored     atomic.Bool
+		sendErr  firstError
+		storeErr firstError
+		stored   atomic.Bool
 	)
-	skipIntake.Store(delivery == ToStorage)
 
 	for range httpclient.MaxConcurrency {
 		eg.Go(func() error {
@@ -129,14 +125,13 @@ func (f *Forwarder) Start(
 					return nil
 				}
 
-				if !skipIntake.Load() {
+				if delivery == ToIntake && sendErr.load() == nil {
 					err := f.send(ctx, batch, storageTag, false)
 					if err == nil {
 						continue
 					}
 
 					sendErr.set(err)
-					skipIntake.Store(true)
 
 					if isPermanent(err) {
 						continue
@@ -147,10 +142,8 @@ func (f *Forwarder) Start(
 					continue
 				}
 
-				slog.DebugContext(ctx, "storing batch for retry", slog.Int("batch_bytes", len(batch)))
 				if err := f.storage.Store(ctx, storage.Batch{Data: batch, StorageTag: storageTag}); err != nil {
 					storeErr.set(fmt.Errorf("store: %w", err))
-
 					continue
 				}
 				stored.Store(true)
@@ -229,15 +222,15 @@ func (f *Forwarder) Retry(ctx context.Context) error {
 					continue
 				}
 
-				slog.DebugContext(ctx, "retrying stored batch", slog.Int("batch_bytes", len(batch.Data)))
-				if err := f.send(ctx, batch.Data, batch.StorageTag, true); err != nil {
-					if !isPermanent(err) {
-						drainErr.set(fmt.Errorf("send: %w", err))
-						stop.Store(true)
+				err := f.send(ctx, batch.Data, batch.StorageTag, true)
+				if err != nil && !isPermanent(err) {
+					drainErr.set(fmt.Errorf("send: %w", err))
+					stop.Store(true)
 
-						continue
-					}
+					continue
+				}
 
+				if err != nil {
 					slog.ErrorContext(ctx, "stored batch dropped, rejected by the intake",
 						slog.String("key", batch.DeleteKey),
 						slog.Int("batch_bytes", len(batch.Data)),
