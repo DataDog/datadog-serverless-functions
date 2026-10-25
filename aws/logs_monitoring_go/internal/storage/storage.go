@@ -5,6 +5,8 @@
 
 package storage
 
+//go:generate go tool mockgen -source=storage.go -package=mocks -destination=mocks/storage.go
+
 import (
 	"context"
 	"encoding/json"

@@ -16,6 +16,7 @@ import (
 	"log/slog"
 	"net/http"
 	"sync"
+	"sync/atomic"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/batcher"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/concurrent"
@@ -91,39 +92,71 @@ func (f *Forwarder) Start(ctx context.Context, in <-chan json.RawMessage, storag
 		return nil
 	})
 
-	var sentErr error
-	var onceSent sync.Once
+	var (
+		mu        sync.Mutex
+		sendErr   error
+		storeErr  error
+		permanent bool
+		failed    atomic.Bool
+	)
 	for range httpclient.MaxConcurrency {
 		eg.Go(func() error {
 			for {
 				batch, ok, _ := concurrent.SafeReader(ctx, batches)
 				if !ok {
-					break
+					return nil
 				}
 
-				if sentErr == nil {
+				if !failed.Load() {
 					err := f.send(ctx, batch, storageTag)
 					if err == nil {
 						continue
 					}
 
-					onceSent.Do(func() { sentErr = err })
+					mu.Lock()
+					if sendErr == nil {
+						sendErr = err
+						permanent = isPermanent(err)
+					}
+					mu.Unlock()
+					failed.Store(true)
 				}
 
 				if f.storage == nil {
-					break
+					continue
+				}
+
+				mu.Lock()
+				skipStore := permanent
+				mu.Unlock()
+				if skipStore {
+					continue
 				}
 
 				slog.DebugContext(ctx, "send failed, storing batch for retry", slog.Int("batch_bytes", len(batch)))
 				if err := f.storage.Store(ctx, storage.Batch{Data: batch, StorageTag: storageTag}); err != nil {
-					return fmt.Errorf("store: %w", err)
+					mu.Lock()
+					if storeErr == nil {
+						storeErr = fmt.Errorf("store: %w", err)
+					}
+					mu.Unlock()
 				}
 			}
-			return nil
 		})
 	}
 
-	return errors.Join(eg.Wait(), sentErr)
+	if err := eg.Wait(); err != nil {
+		return errors.Join(err, sendErr, storeErr)
+	}
+	if sendErr == nil {
+		return storeErr
+	}
+
+	return &SendError{
+		Err:       errors.Join(sendErr, storeErr),
+		Stored:    f.storage != nil && storeErr == nil && !permanent,
+		Permanent: permanent,
+	}
 }
 
 func (f *Forwarder) Retry(ctx context.Context) error {
@@ -194,10 +227,7 @@ func (f *Forwarder) send(ctx context.Context, payload json.RawMessage, storageTa
 
 	if resp.StatusCode != http.StatusAccepted {
 		body, _ := io.ReadAll(resp.Body)
-		if len(body) > 0 {
-			return fmt.Errorf("intake (http/%d): %s", resp.StatusCode, string(body))
-		}
-		return fmt.Errorf("intake (http/%d)", resp.StatusCode)
+		return &intakeError{status: resp.StatusCode, body: string(body)}
 	}
 
 	return nil
