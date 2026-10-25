@@ -17,6 +17,7 @@ import (
 	"net/http"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/batcher"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/concurrent"
@@ -27,7 +28,11 @@ import (
 )
 
 const (
-	ddRetryHeader      = "DD-RETRY-TAG"
+	ddRetryHeader = "DD-RETRY-TAG"
+	retryReserve  = httpclient.RequestTimeout + 2*time.Second
+)
+
+const (
 	maxLogSize         = 1000 * 1000
 	maxBatchSize       = 5 * 1000 * 1000
 	maxLogsPerBatch    = 1000
@@ -108,7 +113,7 @@ func (f *Forwarder) Start(ctx context.Context, in <-chan json.RawMessage, storag
 				}
 
 				if !failed.Load() {
-					err := f.send(ctx, batch, storageTag)
+					err := f.send(ctx, batch, storageTag, false)
 					if err == nil {
 						continue
 					}
@@ -164,28 +169,87 @@ func (f *Forwarder) Retry(ctx context.Context) error {
 		return nil
 	}
 
-	f.header.Add(ddRetryHeader, "true")
-	defer func() { f.header.Del(ddRetryHeader) }()
+	eg, ctx := errgroup.WithContext(ctx)
+	eg.SetLimit(1 + httpclient.MaxConcurrency)
 
-	for batch, err := range f.storage.Fetch(ctx) {
-		if err != nil {
-			return fmt.Errorf("fetch: %w", err)
+	var (
+		drainErr firstError
+		stop     atomic.Bool
+	)
+
+	batches := make(chan storage.Batch)
+	eg.Go(func() error {
+		defer close(batches)
+
+		deadline, hasDeadline := ctx.Deadline()
+		for batch, err := range f.storage.Fetch(ctx) {
+			if err != nil {
+				return fmt.Errorf("fetch: %w", err)
+			}
+
+			if stop.Load() {
+				return nil
+			}
+
+			if hasDeadline && time.Until(deadline) < retryReserve {
+				slog.WarnContext(ctx, "retry drain stopped, not enough time left in the invocation",
+					slog.Duration("remaining", time.Until(deadline)),
+				)
+
+				return nil
+			}
+
+			if err := concurrent.SafeSender(ctx, batches, batch); err != nil {
+				return nil
+			}
 		}
 
-		slog.DebugContext(ctx, "retrying stored batch", slog.Int("batch_bytes", len(batch.Data)))
-		if sendErr := f.send(ctx, batch.Data, batch.StorageTag); sendErr != nil {
-			return fmt.Errorf("send: %w", sendErr)
-		}
+		return nil
+	})
 
-		if deleteErr := f.storage.Delete(ctx, batch); deleteErr != nil {
-			return fmt.Errorf("delete: %w", deleteErr)
-		}
+	for range httpclient.MaxConcurrency {
+		eg.Go(func() error {
+			for {
+				batch, ok, _ := concurrent.SafeReader(ctx, batches)
+				if !ok {
+					return nil
+				}
+
+				if stop.Load() {
+					continue
+				}
+
+				slog.DebugContext(ctx, "retrying stored batch", slog.Int("batch_bytes", len(batch.Data)))
+				if err := f.send(ctx, batch.Data, batch.StorageTag, true); err != nil {
+					if !isPermanent(err) {
+						drainErr.set(fmt.Errorf("send: %w", err))
+						stop.Store(true)
+
+						continue
+					}
+
+					slog.ErrorContext(ctx, "stored batch dropped, rejected by the intake",
+						slog.String("key", batch.DeleteKey),
+						slog.Int("batch_bytes", len(batch.Data)),
+						slog.Any("error", err),
+					)
+				}
+
+				if err := f.storage.Delete(ctx, batch); err != nil {
+					drainErr.set(fmt.Errorf("delete: %w", err))
+				}
+			}
+		})
 	}
 
-	return nil
+	if err := eg.Wait(); err != nil {
+		return errors.Join(err, drainErr.load())
+	}
+
+	return drainErr.load()
 }
 
-func (f *Forwarder) send(ctx context.Context, payload json.RawMessage, storageTag string) error {
+func (f *Forwarder) send(ctx context.Context, payload json.RawMessage, storageTag string, retry bool) error {
 	ctx, cancel := context.WithTimeout(ctx, httpclient.RequestTimeout)
 	defer cancel()
 
@@ -196,7 +260,10 @@ func (f *Forwarder) send(ctx context.Context, payload json.RawMessage, storageTa
 
 	header := f.header.Clone()
 	if storageTag != "" {
-		header["DD-STORAGE-TAG"] = []string{storageTag}
+		header[storageTagHeader] = []string{storageTag}
+	}
+	if retry {
+		header[ddRetryHeader] = []string{"true"}
 	}
 	req.Header = header
 
