@@ -21,6 +21,11 @@ Parameters:
     Default: "/my/parameter/path"
     AllowedPattern: "^(/[a-zA-Z0-9/_.-]*|arn:[a-z0-9-]*:ssm:[a-z0-9-]+:[0-9]{12}:parameter/[a-zA-Z0-9/_.-]+)$"
     Description: The name of the SSM parameter containing Datadog's API key, or its full ARN when the parameter lives in another region. If set, both DdApiKey and DdApiKeySecretArn will be ignored, the forwarder will use the SSM parameter name to fetch the API key.
+  DdOrgUuid:
+    Type: String
+    Default: ""
+    AllowedPattern: "^$|^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+    Description: Your Datadog organization UUID. When set, the Forwarder authenticates through Workload Identity Federation, exchanging its execution role's AWS credentials for an API key, and no API key needs to be provided. Requires an AWS intake mapping in Datadog that authorizes the Forwarder's execution role. If an API key is also provided, it is used only when the exchange fails at startup.
   DdSite:
     Type: String
     Default: datadoghq.com
@@ -325,9 +330,23 @@ Conditions:
       - !Equals [!Ref InstallAsLayer, "false"]
       - !Not
         - !Condition SetLayerARN
+  SetDdOrgUuid: !Not
+    - !Equals [!Ref DdOrgUuid, ""]
+  UseDelegatedAuthOnly: !And
+    - !Condition SetDdOrgUuid
+    - !Equals [!Ref DdApiKey, ""]
+    - !Equals [!Ref DdApiKeySecretArn, "arn:aws:secretsmanager:DEFAULT"]
+    - !Equals [!Ref DdApiKeySsmParameterName, "/my/parameter/path"]
   CreateDdApiKeySecret: !And
     - !Equals [!Ref DdApiKeySecretArn, "arn:aws:secretsmanager:DEFAULT"]
     - !Equals [!Ref DdApiKeySsmParameterName, "/my/parameter/path"]
+    - !Not
+      - !Condition UseDelegatedAuthOnly
+  SetDdApiKeySecretArn: !And
+    - !Not
+      - !Condition SetDDApiSsmParamName
+    - !Not
+      - !Condition UseDelegatedAuthOnly
   SetDDApiSsmParamName: !Not
     - !Equals [!Ref DdApiKeySsmParameterName, "/my/parameter/path"]
   SetFunctionName: !Not
@@ -429,7 +448,9 @@ Rules:
             - !Equals [!Ref DdApiKeySecretArn, "arn:aws:secretsmanager:DEFAULT"]
           - !Not
             - !Equals [!Ref DdApiKeySsmParameterName, ""]
-        AssertDescription: DdApiKey or DdApiKeySecretArn or DdApiKeySecretName must be set
+          - !Not
+            - !Equals [!Ref DdOrgUuid, ""]
+        AssertDescription: DdApiKey or DdApiKeySecretArn or DdApiKeySecretName or DdOrgUuid must be set
 Resources:
   Forwarder:
     Type: AWS::Lambda::Function
@@ -479,12 +500,12 @@ Resources:
       Environment:
         Variables:
           DD_API_KEY_SECRET_ARN: !If
-            - SetDDApiSsmParamName
-            - !Ref AWS::NoValue
+            - SetDdApiKeySecretArn
             - !If
               - CreateDdApiKeySecret
               - !Ref DdApiKeySecret
               - !Ref DdApiKeySecretArn
+            - !Ref AWS::NoValue
           DD_API_KEY_SSM_NAME: !If
             - SetDDApiSsmParamName
             - !Ref DdApiKeySsmParameterName
@@ -493,6 +514,10 @@ Resources:
             - CreateS3Bucket
             - !Ref ForwarderBucket
             - !Ref DdForwarderExistingBucketName
+          DD_ORG_UUID: !If
+            - SetDdOrgUuid
+            - !Ref DdOrgUuid
+            - !Ref AWS::NoValue
           DD_SITE: !Ref DdSite
           DD_TAGS: !If
             - SetDdTags
@@ -710,8 +735,7 @@ Resources:
                   - "*"
                 Effect: Allow
               - !If
-                - SetDDApiSsmParamName # Access the Datadog API key from Secrets Manager
-                - !Ref AWS::NoValue
+                - SetDdApiKeySecretArn # Access the Datadog API key from Secrets Manager
                 - Action:
                     - secretsmanager:GetSecretValue
                   Resource: !If
@@ -719,6 +743,7 @@ Resources:
                     - !Ref DdApiKeySecret
                     - !Sub "${DdApiKeySecretArn}*"
                   Effect: Allow
+                - !Ref AWS::NoValue
               - !If
                 # Fetch Lambda resource tags for data enrichment
                 # Fetch Step Functions resource tags for data enrichment
@@ -1088,6 +1113,11 @@ Outputs:
       - Arn
     Export:
       Name: !Sub ${AWS::StackName}-ForwarderArn
+  ForwarderRoleName:
+    Description: Name of the Forwarder's execution role, for the AWS intake mapping when DdOrgUuid is set (arn:aws:sts::<account-id>:assumed-role/<role-name>/*)
+    Value: !Ref ForwarderRole
+    Export:
+      Name: !Sub ${AWS::StackName}-ForwarderRoleName
   DdApiKeySecretArn:
     Condition: CreateDdApiKeySecret
     Description: ARN of SecretsManager Secret with Datadog API Key
@@ -1112,6 +1142,7 @@ Metadata:
           - DdApiKey
           - DdApiKeySecretArn
           - DdApiKeySsmParameterName
+          - DdOrgUuid
           - DdSite
       - Label:
           default: Lambda Function (Optional)

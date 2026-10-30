@@ -6,7 +6,7 @@ frontend metrics-forwarder
     option tcplog
     default_backend datadog-metrics
 
-    use_backend datadog-api if { path_beg -i  /api/v1/validate }
+    use_backend datadog-api if { path_beg -i  /api/v1/validate } || { path_beg -i  /api/v2/intake-key }
 
 frontend traces-forwarder
     bind *:3835
