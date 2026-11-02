@@ -15,7 +15,7 @@ import (
 
 var (
 	cloudTrailRegex   = regexp.MustCompile(`\d+_CloudTrail(|-Digest|-Insight)_\w{2}(|-gov|-cn)-\w{4,9}-\d_(|.+)\d{8}T\d{4,6}Z(|.+)\.json\.gz$`)
-	ec2InstanceRegexp = regexp.MustCompile(`^arn:aws:sts::.*?:assumed-role/(?P<role>.*?)/(?P<host>i-([0-9a-f]{8}|[0-9a-f]{17}))$`)
+	ec2InstanceRegexp = regexp.MustCompile(`^arn:(?:aws|aws-cn|aws-us-gov|aws-iso|aws-iso-b):sts::.*?:assumed-role/(?P<role>.*?)/(?P<host>i-([0-9a-f]{8}|[0-9a-f]{17}))$`)
 )
 
 func decodeCloudTrail(r io.Reader) iter.Seq2[string, error] {
