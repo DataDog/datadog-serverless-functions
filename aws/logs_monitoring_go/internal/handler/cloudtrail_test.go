@@ -81,6 +81,26 @@ func TestCloudtrailHost(t *testing.T) {
 			message: `{"userIdentity":{"arn":"arn:aws:sts::601427279990:assumed-role/MyRole/my-session"}}`,
 			want:    "",
 		},
+		"china partition": {
+			message: `{"userIdentity":{"arn":"arn:aws-cn:sts::601427279990:assumed-role/MyRole/i-0123456789abcdef0"}}`,
+			want:    "i-0123456789abcdef0",
+		},
+		"govcloud partition": {
+			message: `{"userIdentity":{"arn":"arn:aws-us-gov:sts::601427279990:assumed-role/MyRole/i-0123456789abcdef0"}}`,
+			want:    "i-0123456789abcdef0",
+		},
+		"iso partition": {
+			message: `{"userIdentity":{"arn":"arn:aws-iso:sts::601427279990:assumed-role/MyRole/i-0123456789abcdef0"}}`,
+			want:    "i-0123456789abcdef0",
+		},
+		"iso-b partition": {
+			message: `{"userIdentity":{"arn":"arn:aws-iso-b:sts::601427279990:assumed-role/MyRole/i-0123456789abcdef0"}}`,
+			want:    "i-0123456789abcdef0",
+		},
+		"unknown partition": {
+			message: `{"userIdentity":{"arn":"arn:aws-fake:sts::601427279990:assumed-role/MyRole/i-0123456789abcdef0"}}`,
+			want:    "",
+		},
 		"missing userIdentity": {
 			message: `{"eventName":"DescribeTable"}`,
 			want:    "",
