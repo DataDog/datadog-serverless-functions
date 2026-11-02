@@ -172,12 +172,12 @@ publish_layer() {
     aws_version_key="${3}"
     layer_path="${4}"
 
-    version_nbr=$(aws lambda publish-layer-version --layer-name "${layer_name}" \
+    version_nbr=$(AWS_MAX_ATTEMPTS=1 aws lambda publish-layer-version --layer-name "${layer_name}" \
         --description "Datadog Forwarder Layer Package" \
         --zip-file "fileb://$layer_path" \
         --region "${region}" \
         --compatible-runtimes "${aws_version_key}" \
-        --cli-read-timeout 60 |
+        --cli-read-timeout 0 |
         jq -r '.Version')
 
     if [[ -z ${version_nbr:-} ]]; then
