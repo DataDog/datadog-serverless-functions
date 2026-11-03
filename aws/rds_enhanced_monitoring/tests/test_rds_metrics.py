@@ -1,3 +1,4 @@
+import json
 import unittest
 import os
 from unittest.mock import patch, MagicMock
@@ -13,6 +14,7 @@ env_patch = patch.dict(
 )
 env_patch.start()
 from lambda_function import extract_json_objects
+from lambda_function import _process_rds_enhanced_monitoring_message
 
 env_patch.stop()
 
@@ -361,6 +363,24 @@ class TestStats(unittest.TestCase):
         stats.gauge("test.metric", 42)
         stats.flush()
         self.assertEqual(mock_urlopen.call_count, 1)
+
+
+class TestProcessRDSEnhancedMonitoringMessage(unittest.TestCase):
+    @patch("lambda_function.stats")
+    def test_missing_num_vcpus_still_submits_other_metrics(self, mock_stats):
+        message = json.loads(full_message_example)
+        # full_message_example has its whitespace stripped, so restore a parseable uptime
+        message["uptime"] = "10 days, 1:53:04"
+        del message["numVCPUs"]
+
+        _process_rds_enhanced_monitoring_message(
+            1451610061, message, "123456789012", "us-east-1"
+        )
+
+        submitted = [c.args[0] for c in mock_stats.gauge.call_args_list]
+        self.assertNotIn("aws.rds.virtual_cpus", submitted)
+        self.assertIn("aws.rds.uptime", submitted)
+        self.assertIn("aws.rds.load.1", submitted)
 
 
 if __name__ == "__main__":
