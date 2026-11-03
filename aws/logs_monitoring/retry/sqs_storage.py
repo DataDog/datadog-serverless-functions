@@ -72,11 +72,15 @@ class SQSStorage(BaseStorage):
         return key_data
 
     def store_data(self, prefix, data):
-        """Store data as one or more SQS messages, chunking to stay under the size limit."""
+        """Store data as one or more SQS messages, chunking to stay under the size limit.
+
+        Returns True only if every chunk was sent successfully.
+        """
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug(f"Storing retry data to SQS for prefix {prefix}")
 
         chunks = self._chunk_data(data)
+        success = True
         for chunk in chunks:
             serialized = self._serialize(chunk)
             try:
@@ -96,6 +100,8 @@ class SQSStorage(BaseStorage):
                 )
             except ClientError as e:
                 logger.error(f"Failed to send SQS message for prefix {prefix}: {e}")
+                success = False
+        return success
 
     def delete_data(self, key):
         """Delete a message by receipt handle. Idempotent — logs and swallows errors."""
@@ -112,13 +118,21 @@ class SQSStorage(BaseStorage):
 
         Store-then-delete: a crash between the two calls risks a duplicate of
         the still-failing remainder on the next retry, never a loss. The
-        reverse order would risk losing the remainder outright.
+        reverse order would risk losing the remainder outright. The old
+        message is only deleted once every new chunk is confirmed stored —
+        if any chunk's send fails, the original is kept so the next retry
+        reprocesses the full payload instead of losing what didn't fit.
         """
         if not data:
             self.delete_data(key)
             return
-        self.store_data(prefix, data)
-        self.delete_data(key)
+        if self.store_data(prefix, data):
+            self.delete_data(key)
+        else:
+            logger.error(
+                f"Not all replacement chunks were stored for key {key}; "
+                "keeping original data for the next retry"
+            )
 
     def _release_message(self, receipt_handle):
         """Make a non-matching message immediately visible to other consumers."""

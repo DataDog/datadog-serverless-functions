@@ -41,8 +41,10 @@ class S3Storage(BaseStorage):
             self.s3_client.put_object(
                 Bucket=self.bucket_name, Key=key, Body=serialized_data
             )
+            return True
         except ClientError as e:
             logger.error(f"Failed to store retry data for prefix {prefix}: {e}")
+            return False
 
     def delete_data(self, key):
         try:

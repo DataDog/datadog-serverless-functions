@@ -8,8 +8,8 @@ class BaseStorage(ABC):
         ...
 
     @abstractmethod
-    def store_data(self, prefix, data) -> None:
-        """Store data under the given prefix."""
+    def store_data(self, prefix, data) -> bool:
+        """Store data under the given prefix. Returns True iff fully persisted."""
         ...
 
     @abstractmethod

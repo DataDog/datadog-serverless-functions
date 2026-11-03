@@ -16,7 +16,8 @@ class TestS3Storage(unittest.TestCase):
                 self.storage = S3Storage("test_function_prefix")
 
     def test_store_data_puts_object(self):
-        self.storage.store_data("logs", [{"message": "hello"}])
+        result = self.storage.store_data("logs", [{"message": "hello"}])
+        self.assertTrue(result)
         self.mock_s3.put_object.assert_called_once()
         call_kwargs = self.mock_s3.put_object.call_args[1]
         self.assertEqual(call_kwargs["Bucket"], "test-bucket")
@@ -29,8 +30,9 @@ class TestS3Storage(unittest.TestCase):
         self.mock_s3.put_object.side_effect = ClientError(
             {"Error": {"Code": "500", "Message": "Error"}}, "PutObject"
         )
-        # Should not raise
-        self.storage.store_data("logs", [{"message": "hello"}])
+        # Should not raise, and should report the failure
+        result = self.storage.store_data("logs", [{"message": "hello"}])
+        self.assertFalse(result)
 
     def test_get_data_returns_data_for_keys(self):
         self.mock_s3.list_objects_v2.return_value = {
