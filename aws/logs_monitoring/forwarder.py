@@ -46,9 +46,9 @@ class Forwarder:
             include_pattern=INCLUDE_AT_MATCH, exclude_pattern=EXCLUDE_AT_MATCH
         )
         self._batcher = DatadogBatcher(
-            max_item_size_bytes=512 * 1000,
-            max_batch_size_bytes=4 * 1000 * 1000,
-            max_items_count=400,
+            max_item_size_bytes=1000 * 1000,
+            max_batch_size_bytes=4500 * 1000,
+            max_items_count=1000,
         )
 
     def forward(self, logs, metrics, traces, remaining_time_provider=None):
