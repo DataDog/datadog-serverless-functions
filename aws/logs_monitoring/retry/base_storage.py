@@ -16,3 +16,8 @@ class BaseStorage(ABC):
     def delete_data(self, key) -> None:
         """Delete stored data by key."""
         ...
+
+    @abstractmethod
+    def replace_data(self, key, prefix, data) -> None:
+        """Replace the contents stored under key with data."""
+        ...

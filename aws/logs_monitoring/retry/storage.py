@@ -50,6 +50,15 @@ class S3Storage(BaseStorage):
         except ClientError as e:
             logger.error(f"Failed to delete retry data for key {key}: {e}")
 
+    def replace_data(self, key, prefix, data):
+        serialized_data = self._serialize(data)
+        try:
+            self.s3_client.put_object(
+                Bucket=self.bucket_name, Key=key, Body=serialized_data
+            )
+        except ClientError as e:
+            logger.error(f"Failed to replace retry data for key {key}: {e}")
+
     def _list_keys(self, prefix):
         key_prefix = self._get_key_prefix(prefix)
         try:

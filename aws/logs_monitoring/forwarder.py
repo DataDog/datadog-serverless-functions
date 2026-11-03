@@ -13,7 +13,6 @@ from logs.datadog_client import DatadogClient
 from logs.datadog_http_client import DatadogHTTPClient
 from logs.datadog_matcher import DatadogMatcher
 from logs.datadog_scrubber import DatadogScrubber
-from logs.helpers import add_retry_tag
 from retry import create_storage
 from retry.enums import RetryPrefix
 from settings import (
@@ -94,9 +93,6 @@ class Forwarder:
 
         logs_to_forward = []
         for log in logs:
-            if key:
-                log = add_retry_tag(log)
-
             evaluated_log = log
             to_forward = None
 
@@ -120,6 +116,7 @@ class Forwarder:
             DD_SKIP_SSL_VALIDATION,
             DD_API_KEY,
             self._scrubber,
+            is_retry=bool(key),
         )
 
         failed_logs = []
@@ -135,10 +132,13 @@ class Forwarder:
                 else:
                     if logger.isEnabledFor(logging.DEBUG):
                         logger.debug(f"Forwarded log batch: {batch}")
-                    if key:
-                        self.storage.delete_data(key)
 
-        if DD_STORE_FAILED_EVENTS and failed_logs and not key:
+        if key:
+            if failed_logs:
+                self.storage.replace_data(key, RetryPrefix.LOGS, failed_logs)
+            else:
+                self.storage.delete_data(key)
+        elif DD_STORE_FAILED_EVENTS and failed_logs:
             self.storage.store_data(RetryPrefix.LOGS, failed_logs)
 
         if failed_logs:
@@ -166,10 +166,13 @@ class Forwarder:
             else:
                 if logger.isEnabledFor(logging.DEBUG):
                     logger.debug(f"Forwarded metric: {json.dumps(metric)}")
-                if key:
-                    self.storage.delete_data(key)
 
-        if DD_STORE_FAILED_EVENTS and failed_metrics and not key:
+        if key:
+            if failed_metrics:
+                self.storage.replace_data(key, RetryPrefix.METRICS, failed_metrics)
+            else:
+                self.storage.delete_data(key)
+        elif DD_STORE_FAILED_EVENTS and failed_metrics:
             self.storage.store_data(RetryPrefix.METRICS, failed_metrics)
 
         if failed_metrics:

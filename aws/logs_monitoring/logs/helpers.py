@@ -5,12 +5,9 @@
 
 
 import gzip
-import json
 import logging
 import os
 import re
-
-from settings import DD_CUSTOM_TAGS, DD_RETRY_KEYWORD
 
 logger = logging.getLogger()
 logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
@@ -44,13 +41,3 @@ def compileRegex(rule, pattern):
         )
     except Exception as e:
         raise Exception(f"Failed to compile {rule} regex pattern '{pattern}': {e}")
-
-
-def add_retry_tag(log):
-    try:
-        log = json.loads(log)
-        log[DD_CUSTOM_TAGS] = log.get(DD_CUSTOM_TAGS, "") + f",{DD_RETRY_KEYWORD}:true"
-    except Exception:
-        logger.warning(f"cannot add retry tag for log {log}")
-
-    return log

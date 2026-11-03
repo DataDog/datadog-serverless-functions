@@ -85,6 +85,25 @@ class TestS3Storage(unittest.TestCase):
         prefix = self.storage._get_key_prefix("logs")
         self.assertEqual(prefix, "failed_events/test_function_prefix/logs/")
 
+    def test_replace_data_overwrites_same_key(self):
+        self.storage.replace_data(
+            "failed_events/test_function_prefix/logs/123",
+            "logs",
+            [{"message": "hello"}],
+        )
+        self.mock_s3.put_object.assert_called_once_with(
+            Bucket="test-bucket",
+            Key="failed_events/test_function_prefix/logs/123",
+            Body=json.dumps([{"message": "hello"}]).encode("UTF-8"),
+        )
+
+    def test_replace_data_handles_client_error(self):
+        self.mock_s3.put_object.side_effect = ClientError(
+            {"Error": {"Code": "500", "Message": "Error"}}, "PutObject"
+        )
+        # Should not raise
+        self.storage.replace_data("some_key", "logs", [{"message": "hello"}])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -7,13 +7,15 @@ sys.modules["requests_futures.sessions"] = MagicMock()
 
 
 class TestDatadogHTTPClient(unittest.TestCase):
-    def _client(self, session):
+    def _client(self, session, is_retry=False):
         from logs.datadog_http_client import DatadogHTTPClient
 
         scrubber = MagicMock()
         scrubber.scrub.side_effect = lambda payload: payload
 
-        client = DatadogHTTPClient("example.com", 443, False, False, "apikey", scrubber)
+        client = DatadogHTTPClient(
+            "example.com", 443, False, False, "apikey", scrubber, is_retry=is_retry
+        )
         client._session = session
         return client
 
@@ -83,6 +85,30 @@ class TestDatadogHTTPClient(unittest.TestCase):
 
         response.raise_for_status.assert_called_once_with()
 
+    def test_send_includes_retry_header_when_is_retry(self):
+        response = MagicMock()
+        future = MagicMock()
+        future.result.return_value = response
+        session = MagicMock()
+        session.post.return_value = future
+
+        self._client(session, is_retry=True).send(['{"message":"hello"}'])
+
+        self.assertEqual(
+            session.post.call_args.kwargs["headers"], {"DD-RETRY-TAG": "true"}
+        )
+
+    def test_send_omits_retry_header_when_not_retry(self):
+        response = MagicMock()
+        future = MagicMock()
+        future.result.return_value = response
+        session = MagicMock()
+        session.post.return_value = future
+
+        self._client(session, is_retry=False).send(['{"message":"hello"}'])
+
+        self.assertIsNone(session.post.call_args.kwargs["headers"])
+
 
 class TestForwarderFailedLogs(unittest.TestCase):
     @patch("logs.datadog_client.time.sleep")
@@ -128,6 +154,134 @@ class TestForwarderFailedLogs(unittest.TestCase):
                 )
                 mock_send_metric.assert_any_call("logs_failed", ['"hello"'])
                 mock_send_metric.assert_any_call("logs_forwarded", 0)
+
+    @patch("logs.datadog_client.time.sleep")
+    @patch("forwarder.send_event_metric")
+    @patch("forwarder.DatadogHTTPClient")
+    @patch("forwarder.DD_STORE_FAILED_EVENTS", True)
+    def test_forward_logs_replaces_data_on_partial_retry_failure(
+        self, mock_http_client, mock_send_metric, mock_sleep
+    ):
+        from forwarder import Forwarder
+        from retry.enums import RetryPrefix
+
+        client = MagicMock()
+        client.__enter__.return_value = client
+        client.send.side_effect = [None, Exception("boom")]
+        mock_http_client.return_value = client
+
+        forwarder = Forwarder.__new__(Forwarder)
+        forwarder.storage = MagicMock()
+        forwarder._scrubber = MagicMock()
+        forwarder._matcher = MagicMock()
+        forwarder._matcher.match.return_value = True
+        forwarder._batcher = MagicMock()
+        forwarder._batcher.batch.return_value = [['"a"'], ['"b"']]
+
+        forwarder._forward_logs(
+            ["a", "b"], key="some-s3-key", remaining_time_provider=None
+        )
+
+        forwarder.storage.replace_data.assert_called_once_with(
+            "some-s3-key", RetryPrefix.LOGS, ['"b"']
+        )
+        forwarder.storage.delete_data.assert_not_called()
+        forwarder.storage.store_data.assert_not_called()
+
+    @patch("logs.datadog_client.time.sleep")
+    @patch("forwarder.send_event_metric")
+    @patch("forwarder.DatadogHTTPClient")
+    @patch("forwarder.DD_STORE_FAILED_EVENTS", True)
+    def test_forward_logs_deletes_key_on_full_retry_success(
+        self, mock_http_client, mock_send_metric, mock_sleep
+    ):
+        from forwarder import Forwarder
+
+        client = MagicMock()
+        client.__enter__.return_value = client
+        client.send.return_value = None
+        mock_http_client.return_value = client
+
+        forwarder = Forwarder.__new__(Forwarder)
+        forwarder.storage = MagicMock()
+        forwarder._scrubber = MagicMock()
+        forwarder._matcher = MagicMock()
+        forwarder._matcher.match.return_value = True
+        forwarder._batcher = MagicMock()
+        forwarder._batcher.batch.return_value = [['"a"'], ['"b"']]
+
+        forwarder._forward_logs(
+            ["a", "b"], key="some-s3-key", remaining_time_provider=None
+        )
+
+        forwarder.storage.delete_data.assert_called_once_with("some-s3-key")
+        forwarder.storage.replace_data.assert_not_called()
+
+    @patch("forwarder.send_event_metric")
+    @patch("forwarder.DatadogHTTPClient")
+    def test_forward_logs_constructs_client_with_is_retry_flag(
+        self, mock_http_client, mock_send_metric
+    ):
+        from forwarder import Forwarder
+
+        client = MagicMock()
+        client.__enter__.return_value = client
+        client.send.return_value = None
+        mock_http_client.return_value = client
+
+        forwarder = Forwarder.__new__(Forwarder)
+        forwarder.storage = MagicMock()
+        forwarder._scrubber = MagicMock()
+        forwarder._matcher = MagicMock()
+        forwarder._matcher.match.return_value = True
+        forwarder._batcher = MagicMock()
+        forwarder._batcher.batch.return_value = [['"a"']]
+
+        forwarder._forward_logs(["a"], key="some-s3-key")
+        self.assertTrue(mock_http_client.call_args.kwargs["is_retry"])
+
+        forwarder._forward_logs(["a"], key=None)
+        self.assertFalse(mock_http_client.call_args.kwargs["is_retry"])
+
+    @patch("forwarder.send_event_metric")
+    @patch("forwarder.send_log_metric")
+    @patch("forwarder.DD_STORE_FAILED_EVENTS", True)
+    def test_forward_metrics_replaces_data_on_partial_retry_failure(
+        self, mock_send_log_metric, mock_send_metric
+    ):
+        from forwarder import Forwarder
+        from retry.enums import RetryPrefix
+
+        mock_send_log_metric.side_effect = [None, Exception("boom")]
+
+        forwarder = Forwarder.__new__(Forwarder)
+        forwarder.storage = MagicMock()
+
+        forwarder._forward_metrics([{"m": 1}, {"m": 2}], key="some-s3-key")
+
+        forwarder.storage.replace_data.assert_called_once_with(
+            "some-s3-key", RetryPrefix.METRICS, [{"m": 2}]
+        )
+        forwarder.storage.delete_data.assert_not_called()
+        forwarder.storage.store_data.assert_not_called()
+
+    @patch("forwarder.send_event_metric")
+    @patch("forwarder.send_log_metric")
+    @patch("forwarder.DD_STORE_FAILED_EVENTS", True)
+    def test_forward_metrics_deletes_key_on_full_retry_success(
+        self, mock_send_log_metric, mock_send_metric
+    ):
+        from forwarder import Forwarder
+
+        mock_send_log_metric.return_value = None
+
+        forwarder = Forwarder.__new__(Forwarder)
+        forwarder.storage = MagicMock()
+
+        forwarder._forward_metrics([{"m": 1}, {"m": 2}], key="some-s3-key")
+
+        forwarder.storage.delete_data.assert_called_once_with("some-s3-key")
+        forwarder.storage.replace_data.assert_not_called()
 
 
 class TestDatadogClient(unittest.TestCase):

@@ -107,6 +107,19 @@ class SQSStorage(BaseStorage):
         except ClientError as e:
             logger.error(f"Failed to delete SQS message (receipt={key}): {e}")
 
+    def replace_data(self, key, prefix, data):
+        """Store the remaining data as new message(s), then delete the old message.
+
+        Store-then-delete: a crash between the two calls risks a duplicate of
+        the still-failing remainder on the next retry, never a loss. The
+        reverse order would risk losing the remainder outright.
+        """
+        if not data:
+            self.delete_data(key)
+            return
+        self.store_data(prefix, data)
+        self.delete_data(key)
+
     def _release_message(self, receipt_handle):
         """Make a non-matching message immediately visible to other consumers."""
         try:

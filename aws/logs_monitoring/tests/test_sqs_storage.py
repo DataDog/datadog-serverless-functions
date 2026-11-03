@@ -152,6 +152,48 @@ class TestSQSStorage(unittest.TestCase):
         # Should not raise
         self.storage.delete_data("already_deleted_handle")
 
+    def test_replace_data_deletes_when_data_empty(self):
+        self.storage.replace_data("receipt_handle_123", "logs", [])
+        self.mock_sqs.delete_message.assert_called_once_with(
+            QueueUrl="https://sqs.us-east-1.amazonaws.com/123456789012/my-queue",
+            ReceiptHandle="receipt_handle_123",
+        )
+        self.mock_sqs.send_message.assert_not_called()
+
+    def test_replace_data_stores_then_deletes(self):
+        data = [{"message": "hello"}]
+        self.storage.replace_data("receipt_handle_123", "logs", data)
+
+        self.mock_sqs.send_message.assert_called_once()
+        call_kwargs = self.mock_sqs.send_message.call_args[1]
+        self.assertEqual(
+            call_kwargs["MessageAttributes"]["retry_prefix"]["StringValue"], "logs"
+        )
+        self.assertEqual(json.loads(call_kwargs["MessageBody"]), data)
+
+        self.mock_sqs.delete_message.assert_called_once_with(
+            QueueUrl="https://sqs.us-east-1.amazonaws.com/123456789012/my-queue",
+            ReceiptHandle="receipt_handle_123",
+        )
+
+        method_names = [c[0] for c in self.mock_sqs.method_calls]
+        self.assertLess(
+            method_names.index("send_message"), method_names.index("delete_message")
+        )
+
+    def test_replace_data_reuses_chunking_for_large_data(self):
+        large_item = {"message": "x" * (SQS_MAX_CHUNK_BYTES - 50)}
+        small_item = {"message": "y" * 100}
+        data = [large_item, small_item]
+
+        self.storage.replace_data("receipt_handle_123", "logs", data)
+
+        self.assertEqual(self.mock_sqs.send_message.call_count, 2)
+        self.mock_sqs.delete_message.assert_called_once_with(
+            QueueUrl="https://sqs.us-east-1.amazonaws.com/123456789012/my-queue",
+            ReceiptHandle="receipt_handle_123",
+        )
+
     def test_chunk_data_single_small_list(self):
         data = [{"a": 1}, {"b": 2}]
         chunks = self.storage._chunk_data(data)
