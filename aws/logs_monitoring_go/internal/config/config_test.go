@@ -91,13 +91,21 @@ func TestLoad(t *testing.T) {
 		},
 		"compression and targets": {
 			env: map[string]string{
-				EnvCompressionLevel:  "9",
-				EnvAdditionalTargets: "arn:one,arn:two,",
+				EnvCompressionLevel: "9",
+				EnvAdditionalTargets: "arn:aws:lambda:us-east-1:123456789012:function:target-one," +
+					"arn:aws:lambda:us-east-1:123456789012:function:target-two,",
 			},
 			want: func(c *Config) {
 				c.CompressionLevel = 9
-				c.AdditionalTargets = []string{"arn:one", "arn:two"}
+				c.AdditionalTargets = []string{
+					"arn:aws:lambda:us-east-1:123456789012:function:target-one",
+					"arn:aws:lambda:us-east-1:123456789012:function:target-two",
+				}
 			},
+		},
+		"invalid additional target": {
+			env:     map[string]string{EnvAdditionalTargets: "not-an-arn"},
+			wantErr: true,
 		},
 		"invalid compression falls back": {
 			env: map[string]string{EnvCompressionLevel: "nope"},
@@ -182,24 +190,41 @@ func TestCompilePatternFromEnv(t *testing.T) {
 func TestGetAdditionalTargets(t *testing.T) {
 	t.Parallel()
 
+	const (
+		arnOne = "arn:aws:lambda:us-east-1:123456789012:function:target-one"
+		arnTwo = "arn:aws:lambda:us-east-1:123456789012:function:target-two"
+	)
+
 	tests := map[string]struct {
 		targets string
 		want    []string
+		wantErr bool
 	}{
-		"empty":            {targets: ""},
-		"only separators":  {targets: ",,,"},
-		"only whitespace":  {targets: " , \t , "},
-		"single":           {targets: "arn:one", want: []string{"arn:one"}},
-		"multiple":         {targets: "arn:one,arn:two", want: []string{"arn:one", "arn:two"}},
-		"blanks dropped":   {targets: "arn:one,,arn:two,", want: []string{"arn:one", "arn:two"}},
-		"padding retained": {targets: " arn:one , arn:two ", want: []string{" arn:one ", " arn:two "}},
+		"empty":              {targets: ""},
+		"only separators":    {targets: ",,,"},
+		"only whitespace":    {targets: " , \t , "},
+		"single":             {targets: arnOne, want: []string{arnOne}},
+		"multiple":           {targets: arnOne + "," + arnTwo, want: []string{arnOne, arnTwo}},
+		"blanks dropped":     {targets: arnOne + ",," + arnTwo + ",", want: []string{arnOne, arnTwo}},
+		"padding retained":   {targets: " " + arnOne + " , " + arnTwo + " ", want: []string{" " + arnOne + " ", " " + arnTwo + " "}},
+		"not an arn":         {targets: "not-an-arn", wantErr: true},
+		"malformed arn":      {targets: "arn:aws:lambda:us-east-1", wantErr: true},
+		"non-lambda arn":     {targets: "arn:aws:s3:::my-bucket", wantErr: true},
+		"bare function name": {targets: "my-function", wantErr: true},
 	}
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			assert.Equal(t, tc.want, getAdditionalTargets(tc.targets))
+			got, err := getAdditionalTargets(tc.targets)
+
+			if tc.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tc.want, got)
 		})
 	}
 }

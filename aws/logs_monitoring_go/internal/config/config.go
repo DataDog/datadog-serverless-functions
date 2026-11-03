@@ -14,6 +14,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/aws/aws-sdk-go-v2/aws/arn"
 )
 
 const (
@@ -91,7 +93,7 @@ func Load() (Config, error) {
 
 	skipServerCertificate := envOrDefaultBool(EnvSkipServerCertificate, false)
 	compressionLevel := getCompressionLevel(os.Getenv(EnvCompressionLevel))
-	additionalTargets := getAdditionalTargets(os.Getenv(EnvAdditionalTargets))
+	additionalTargets, additionalTargetsErr := getAdditionalTargets(os.Getenv(EnvAdditionalTargets))
 	stepFunctionsTraceEnabled := envOrDefaultBool(EnvEnableStepFunctionsTrace, false)
 
 	source := os.Getenv(EnvSource)
@@ -104,7 +106,7 @@ func Load() (Config, error) {
 	filterInclude, includeErr := compilePatternFromEnv(EnvIncludeAtMatch)
 	filterExclude, excludeErr := compilePatternFromEnv(EnvExcludeAtMatch)
 	multilineRegex, multilineErr := compilePatternFromEnv(EnvMultilineLogRegex)
-	err = errors.Join(err, scrubbingErr, includeErr, excludeErr, multilineErr)
+	err = errors.Join(err, scrubbingErr, includeErr, excludeErr, multilineErr, additionalTargetsErr)
 
 	storeOnFail := envOrDefaultBool(EnvStoreOnFail, false)
 	s3BucketName := os.Getenv(EnvS3BucketName)
@@ -152,14 +154,24 @@ func compilePatternFromEnv(env string) (*regexp.Regexp, error) {
 	return re, nil
 }
 
-func getAdditionalTargets(targets string) []string {
+func getAdditionalTargets(targets string) ([]string, error) {
 	var additionalTargets []string
+	var err error
+
 	for target := range strings.SplitSeq(targets, ",") {
-		if strings.TrimSpace(target) != "" {
-			additionalTargets = append(additionalTargets, target)
+		if strings.TrimSpace(target) == "" {
+			continue
 		}
+
+		parsed, parseErr := arn.Parse(strings.TrimSpace(target))
+		if parseErr != nil || parsed.Service != "lambda" || !strings.HasPrefix(parsed.Resource, "function:") {
+			err = errors.Join(err, fmt.Errorf("%s: %q is not a valid Lambda function ARN", EnvAdditionalTargets, target))
+			continue
+		}
+		additionalTargets = append(additionalTargets, target)
 	}
-	return additionalTargets
+
+	return additionalTargets, err
 }
 
 func getCompressionLevel(level string) int {

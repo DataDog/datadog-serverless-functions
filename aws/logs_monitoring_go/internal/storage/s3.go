@@ -12,42 +12,48 @@ import (
 	"io"
 	"iter"
 	"log/slog"
-	"sync/atomic"
 	"time"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/sdkclient"
 	"github.com/aws/aws-lambda-go/lambdacontext"
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/arn"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"github.com/google/uuid"
 )
 
 const prefix = "failed_events/"
 
 type S3 struct {
-	client   sdkclient.S3
-	bucket   string
-	sequence atomic.Int64
+	client       sdkclient.S3
+	bucket       string
+	functionName string
 }
 
-func NewS3(client sdkclient.S3, bucket string) *S3 {
-	return &S3{client: client, bucket: bucket}
+func NewS3(client sdkclient.S3, bucket, functionName string) *S3 {
+	return &S3{client: client, bucket: bucket, functionName: functionName}
+}
+
+func (s *S3) prefix(invokedFunctionARN string) string {
+	accountID, region := "unknown", "unknown"
+	if parsed, err := arn.Parse(invokedFunctionARN); err == nil {
+		accountID, region = parsed.AccountID, parsed.Region
+	}
+
+	return fmt.Sprintf("%s%s/%s/%s/", prefix, accountID, region, s.functionName)
 }
 
 func (s *S3) Store(ctx context.Context, batch Batch) error {
 	invocationID := "unknown"
+	var invokedFunctionARN string
 	if lc, ok := lambdacontext.FromContext(ctx); ok {
 		invocationID = lc.AwsRequestID
+		invokedFunctionARN = lc.InvokedFunctionArn
 	}
 
-	datetime := time.Now().UTC().Format("2006/01/02/150405000")
-	key := fmt.Sprintf("%s%s_%s_%d.json", prefix, datetime, invocationID, s.sequence.Add(1))
-
-	slog.DebugContext(ctx, "storing batch to S3",
-		slog.String("bucket", s.bucket),
-		slog.String("key", key),
-		slog.Int("batch_bytes", len(batch.Data)),
-	)
+	datetime := time.Now().UTC().Format("2006/01/02/150405")
+	key := fmt.Sprintf("%s%s_%s_%s.json", s.prefix(invokedFunctionARN), datetime, invocationID, uuid.NewString())
 
 	_, err := s.client.PutObject(ctx, &s3.PutObjectInput{
 		Bucket:   aws.String(s.bucket),
@@ -64,10 +70,15 @@ func (s *S3) Store(ctx context.Context, batch Batch) error {
 
 func (s *S3) Fetch(ctx context.Context) iter.Seq2[Batch, error] {
 	return func(yield func(Batch, error) bool) {
+		var invokedFunctionARN string
+		if lc, ok := lambdacontext.FromContext(ctx); ok {
+			invokedFunctionARN = lc.InvokedFunctionArn
+		}
+
 		listOut, err := s.client.ListObjectsV2(ctx,
 			&s3.ListObjectsV2Input{
 				Bucket: aws.String(s.bucket),
-				Prefix: aws.String(prefix),
+				Prefix: aws.String(s.prefix(invokedFunctionARN)),
 			},
 		)
 		if err != nil {
