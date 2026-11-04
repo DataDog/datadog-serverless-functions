@@ -125,7 +125,7 @@ func newStorage(cfg *config.Config, s3Client sdkclient.S3) (storage.Storage, err
 	}
 
 	if cfg.S3BucketName != "" {
-		return storage.NewS3(s3Client, cfg.S3BucketName), nil
+		return storage.NewS3(s3Client, cfg.S3BucketName, lambdacontext.FunctionName), nil
 	}
 
 	return nil, nil
