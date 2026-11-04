@@ -53,6 +53,9 @@ class S3Storage(BaseStorage):
             logger.error(f"Failed to delete retry data for key {key}: {e}")
 
     def replace_data(self, key, prefix, data):
+        if not data:
+            self.delete_data(key)
+            return
         serialized_data = self._serialize(data)
         try:
             self.s3_client.put_object(

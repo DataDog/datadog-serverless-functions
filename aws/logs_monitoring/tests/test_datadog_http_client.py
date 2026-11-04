@@ -244,6 +244,32 @@ class TestForwarderFailedLogs(unittest.TestCase):
         self.assertFalse(mock_http_client.call_args.kwargs["is_retry"])
 
     @patch("forwarder.send_event_metric")
+    @patch("forwarder.DatadogHTTPClient")
+    def test_forward_logs_deserializes_stored_logs_before_resending(
+        self, mock_http_client, mock_send_metric
+    ):
+        from forwarder import Forwarder
+
+        client = MagicMock()
+        client.__enter__.return_value = client
+        mock_http_client.return_value = client
+
+        forwarder = Forwarder.__new__(Forwarder)
+        forwarder.storage = MagicMock()
+        forwarder._scrubber = MagicMock()
+        forwarder._matcher = MagicMock()
+        forwarder._matcher.match.return_value = True
+        forwarder._batcher = MagicMock()
+        forwarder._batcher.batch.return_value = []
+
+        stored_log = '{"message": "hello", "ddtags": "env:prod"}'
+
+        forwarder._forward_logs([stored_log], key="some-s3-key")
+
+        logs_to_forward = forwarder._batcher.batch.call_args[0][0]
+        self.assertEqual(logs_to_forward, [stored_log])
+
+    @patch("forwarder.send_event_metric")
     @patch("forwarder.send_log_metric")
     @patch("forwarder.DD_STORE_FAILED_EVENTS", True)
     def test_forward_metrics_replaces_data_on_partial_retry_failure(

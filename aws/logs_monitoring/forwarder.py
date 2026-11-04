@@ -93,6 +93,12 @@ class Forwarder:
 
         logs_to_forward = []
         for log in logs:
+            if key:
+                try:
+                    log = json.loads(log)
+                except Exception:
+                    logger.warning(f"cannot deserialize stored log for retry: {log}")
+
             evaluated_log = log
             to_forward = None
 
