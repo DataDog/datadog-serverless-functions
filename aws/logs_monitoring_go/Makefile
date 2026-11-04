@@ -1,6 +1,7 @@
 BINARY_NAME := bootstrap
-ZIP_NAME := forwarder.zip
 LICENSE_FILES := LICENSE NOTICE LICENSE-3rdparty.csv LICENSES
+FORWARDER_VERSION := $(shell perl -ne 'print $$1 if /const\s+Forwarder\s*=\s*"([^"]+)"/' internal/version/version.go)
+ZIP_NAME := aws-dd-forwarder-$(FORWARDER_VERSION).zip
 
 # Go
 
@@ -32,7 +33,7 @@ generate:
 
 .PHONY: clean
 clean:
-	rm -f $(BINARY_NAME) $(ZIP_NAME)
+	rm -f $(BINARY_NAME) $(ZIP_NAME) aws-dd-forwarder-*.zip
 
 # SAM
 

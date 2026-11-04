@@ -5,4 +5,4 @@
 
 package version
 
-const Forwarder = "6.0"
+const Forwarder = "6.0.0-rc.1"
