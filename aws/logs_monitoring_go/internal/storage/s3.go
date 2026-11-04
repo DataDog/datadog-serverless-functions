@@ -86,8 +86,6 @@ func (s *S3) Fetch(ctx context.Context) iter.Seq2[Batch, error] {
 			return
 		}
 
-		slog.DebugContext(ctx, "fetched retry batches from S3", slog.Int("objects", len(listOut.Contents)))
-
 		for _, object := range listOut.Contents {
 			storedBatch, err := s.getBatch(ctx, object)
 			if err != nil {
