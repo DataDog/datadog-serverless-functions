@@ -60,12 +60,21 @@ class DatadogHTTPClient(object):
         _HEADERS["DD-STEP-FUNCTIONS-TRACE-ENABLED"] = "true"
 
     def __init__(
-        self, host, port, no_ssl, skip_ssl_validation, api_key, scrubber, timeout=10
+        self,
+        host,
+        port,
+        no_ssl,
+        skip_ssl_validation,
+        api_key,
+        scrubber,
+        is_retry=False,
+        timeout=10,
     ):
         self._HEADERS.update({"DD-API-KEY": api_key})
         protocol = "http" if no_ssl else "https"
         self._url = "{}://{}:{}/api/v2/logs".format(protocol, host, port)
         self._scrubber = scrubber
+        self._is_retry = is_retry
         self._timeout = timeout
         self._session = None
         self._ssl_validation = not skip_ssl_validation
@@ -95,9 +104,14 @@ class DatadogHTTPClient(object):
         if DD_USE_COMPRESSION:
             data = compress_logs(data, DD_COMPRESSION_LEVEL)
 
+        headers = {"DD-RETRY-TAG": "true"} if self._is_retry else None
         # Resolve the future here so callers can attribute failures to this batch.
         response = self._session.post(
-            self._url, data, timeout=self._timeout, verify=self._ssl_validation
+            self._url,
+            data,
+            timeout=self._timeout,
+            verify=self._ssl_validation,
+            headers=headers,
         ).result()
         if response.status_code // 100 == 5:
             raise RetriableException(

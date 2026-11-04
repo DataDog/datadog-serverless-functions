@@ -16,7 +16,8 @@ class TestS3Storage(unittest.TestCase):
                 self.storage = S3Storage("test_function_prefix")
 
     def test_store_data_puts_object(self):
-        self.storage.store_data("logs", [{"message": "hello"}])
+        result = self.storage.store_data("logs", [{"message": "hello"}])
+        self.assertTrue(result)
         self.mock_s3.put_object.assert_called_once()
         call_kwargs = self.mock_s3.put_object.call_args[1]
         self.assertEqual(call_kwargs["Bucket"], "test-bucket")
@@ -29,8 +30,9 @@ class TestS3Storage(unittest.TestCase):
         self.mock_s3.put_object.side_effect = ClientError(
             {"Error": {"Code": "500", "Message": "Error"}}, "PutObject"
         )
-        # Should not raise
-        self.storage.store_data("logs", [{"message": "hello"}])
+        # Should not raise, and should report the failure
+        result = self.storage.store_data("logs", [{"message": "hello"}])
+        self.assertFalse(result)
 
     def test_get_data_returns_data_for_keys(self):
         self.mock_s3.list_objects_v2.return_value = {
@@ -84,6 +86,34 @@ class TestS3Storage(unittest.TestCase):
     def test_get_key_prefix(self):
         prefix = self.storage._get_key_prefix("logs")
         self.assertEqual(prefix, "failed_events/test_function_prefix/logs/")
+
+    def test_replace_data_deletes_when_data_empty(self):
+        self.storage.replace_data(
+            "failed_events/test_function_prefix/logs/123", "logs", []
+        )
+        self.mock_s3.delete_object.assert_called_once_with(
+            Bucket="test-bucket", Key="failed_events/test_function_prefix/logs/123"
+        )
+        self.mock_s3.put_object.assert_not_called()
+
+    def test_replace_data_overwrites_same_key(self):
+        self.storage.replace_data(
+            "failed_events/test_function_prefix/logs/123",
+            "logs",
+            [{"message": "hello"}],
+        )
+        self.mock_s3.put_object.assert_called_once_with(
+            Bucket="test-bucket",
+            Key="failed_events/test_function_prefix/logs/123",
+            Body=json.dumps([{"message": "hello"}]).encode("UTF-8"),
+        )
+
+    def test_replace_data_handles_client_error(self):
+        self.mock_s3.put_object.side_effect = ClientError(
+            {"Error": {"Code": "500", "Message": "Error"}}, "PutObject"
+        )
+        # Should not raise
+        self.storage.replace_data("some_key", "logs", [{"message": "hello"}])
 
 
 if __name__ == "__main__":

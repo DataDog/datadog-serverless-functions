@@ -52,8 +52,13 @@ class TestSQSStorage(unittest.TestCase):
         self.mock_sqs.send_message.side_effect = ClientError(
             {"Error": {"Code": "500", "Message": "Error"}}, "SendMessage"
         )
-        # Should not raise
-        self.storage.store_data("logs", [{"message": "hello"}])
+        # Should not raise, and should report the failure
+        result = self.storage.store_data("logs", [{"message": "hello"}])
+        self.assertFalse(result)
+
+    def test_store_data_returns_true_on_success(self):
+        result = self.storage.store_data("logs", [{"message": "hello"}])
+        self.assertTrue(result)
 
     def test_get_data_returns_matching_messages(self):
         self.mock_sqs.receive_message.side_effect = [
@@ -151,6 +156,72 @@ class TestSQSStorage(unittest.TestCase):
         )
         # Should not raise
         self.storage.delete_data("already_deleted_handle")
+
+    def test_replace_data_deletes_when_data_empty(self):
+        self.storage.replace_data("receipt_handle_123", "logs", [])
+        self.mock_sqs.delete_message.assert_called_once_with(
+            QueueUrl="https://sqs.us-east-1.amazonaws.com/123456789012/my-queue",
+            ReceiptHandle="receipt_handle_123",
+        )
+        self.mock_sqs.send_message.assert_not_called()
+
+    def test_replace_data_stores_then_deletes(self):
+        data = [{"message": "hello"}]
+        self.storage.replace_data("receipt_handle_123", "logs", data)
+
+        self.mock_sqs.send_message.assert_called_once()
+        call_kwargs = self.mock_sqs.send_message.call_args[1]
+        self.assertEqual(
+            call_kwargs["MessageAttributes"]["retry_prefix"]["StringValue"], "logs"
+        )
+        self.assertEqual(json.loads(call_kwargs["MessageBody"]), data)
+
+        self.mock_sqs.delete_message.assert_called_once_with(
+            QueueUrl="https://sqs.us-east-1.amazonaws.com/123456789012/my-queue",
+            ReceiptHandle="receipt_handle_123",
+        )
+
+        method_names = [c[0] for c in self.mock_sqs.method_calls]
+        self.assertLess(
+            method_names.index("send_message"), method_names.index("delete_message")
+        )
+
+    def test_replace_data_reuses_chunking_for_large_data(self):
+        large_item = {"message": "x" * (SQS_MAX_CHUNK_BYTES - 50)}
+        small_item = {"message": "y" * 100}
+        data = [large_item, small_item]
+
+        self.storage.replace_data("receipt_handle_123", "logs", data)
+
+        self.assertEqual(self.mock_sqs.send_message.call_count, 2)
+        self.mock_sqs.delete_message.assert_called_once_with(
+            QueueUrl="https://sqs.us-east-1.amazonaws.com/123456789012/my-queue",
+            ReceiptHandle="receipt_handle_123",
+        )
+
+    def test_replace_data_keeps_original_when_store_fails(self):
+        self.mock_sqs.send_message.side_effect = ClientError(
+            {"Error": {"Code": "500", "Message": "Error"}}, "SendMessage"
+        )
+
+        self.storage.replace_data("receipt_handle_123", "logs", [{"message": "hello"}])
+
+        self.mock_sqs.send_message.assert_called_once()
+        self.mock_sqs.delete_message.assert_not_called()
+
+    def test_replace_data_keeps_original_when_one_of_several_chunks_fails(self):
+        large_item = {"message": "x" * (SQS_MAX_CHUNK_BYTES - 50)}
+        small_item = {"message": "y" * 100}
+        data = [large_item, small_item]
+        self.mock_sqs.send_message.side_effect = [
+            None,
+            ClientError({"Error": {"Code": "500", "Message": "Error"}}, "SendMessage"),
+        ]
+
+        self.storage.replace_data("receipt_handle_123", "logs", data)
+
+        self.assertEqual(self.mock_sqs.send_message.call_count, 2)
+        self.mock_sqs.delete_message.assert_not_called()
 
     def test_chunk_data_single_small_list(self):
         data = [{"a": 1}, {"b": 2}]
