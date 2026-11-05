@@ -137,13 +137,14 @@ def _process_rds_enhanced_monitoring_message(ts, message, account, region):
     uptime += int(uptime_day[2])
     stats.gauge("aws.rds.uptime", uptime, timestamp=ts, tags=tags, host=host_id)
 
-    stats.gauge(
-        "aws.rds.virtual_cpus",
-        message["numVCPUs"],
-        timestamp=ts,
-        tags=tags,
-        host=host_id,
-    )
+    if "numVCPUs" in message:
+        stats.gauge(
+            "aws.rds.virtual_cpus",
+            message["numVCPUs"],
+            timestamp=ts,
+            tags=tags,
+            host=host_id,
+        )
 
     if "loadAverageMinute" in message:
         stats.gauge(
