@@ -20,6 +20,9 @@ class TraceConnection:
     def __init__(self, root_url, api_key, insecure_skip_verify):
         dir = os.path.dirname(os.path.realpath(__file__))
         self.lib = cdll.LoadLibrary("{}/bin/trace-intake.so".format(dir))
+        self.configure(root_url, api_key, insecure_skip_verify)
+
+    def configure(self, root_url, api_key, insecure_skip_verify):
         self.lib.Configure(
             make_go_string(root_url),
             make_go_string(api_key),

@@ -23,6 +23,7 @@ from settings import (
     DD_RETRY_KEYWORD,
     DD_SKIP_SSL_VALIDATION,
     DD_STORE_FAILED_EVENTS,
+    get_api_key,
     is_api_key_valid,
 )
 from steps.enrichment import enrich
@@ -57,6 +58,9 @@ def datadog_forwarder(event, context):
 
     if DD_ADDITIONAL_TARGET_LAMBDAS:
         invoke_additional_target_lambdas(event)
+
+    # A delegated API key is re-minted periodically; metrics read it from here.
+    api._api_key = get_api_key()
 
     function_prefix = get_function_arn_digest(context)
     init_cache_layer(function_prefix)
