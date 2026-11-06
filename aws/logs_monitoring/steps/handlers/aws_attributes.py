@@ -11,6 +11,7 @@ class AwsAttributes:
         self.owner = owner
         self.partition = self._get_aws_partition(context)
         self.lambda_arn = None
+        self.lambda_version = None
         self.account = None
         self.region = None
 
@@ -33,7 +34,10 @@ class AwsAttributes:
             }
         }
         if arn := self.lambda_arn:
-            return merge_dicts(awslogs, {"lambda": {"arn": arn}})
+            lambda_attributes = {"arn": arn}
+            if version := self.lambda_version:
+                lambda_attributes["version"] = version
+            return merge_dicts(awslogs, {"lambda": lambda_attributes})
 
         return awslogs
 
@@ -54,6 +58,9 @@ class AwsAttributes:
 
     def set_lambda_arn(self, arn):
         self.lambda_arn = arn
+
+    def set_lambda_version(self, version):
+        self.lambda_version = version
 
     def set_account_region(self, arn):
         try:

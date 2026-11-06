@@ -291,6 +291,23 @@ class TestLambdaCustomizedLogGroup(unittest.TestCase):
             "test-customized-log-group1",
         )
 
+    def test_process_lambda_logs_sets_version(self):
+        aws_attributes = AwsAttributes(
+            self.context,
+            "customizeLambdaGroup",
+            "2023/11/06/test-customized-log-group1[51]13e304cba4b9446eb7ef082a00038990",
+            [],
+        )
+        self.aws_handler.process_lambda_logs({"ddtags": ""}, aws_attributes)
+
+        self.assertEqual(
+            aws_attributes.to_dict()["lambda"],
+            {
+                "arn": "invoked_function_arnfunction:test-customized-log-group1",
+                "version": "51",
+            },
+        )
+
 
 class TestAwsPartitionExtraction(unittest.TestCase):
     def test_get_log_group_aws_partition(self):
