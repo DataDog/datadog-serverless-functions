@@ -18,7 +18,7 @@ func enrichLambdaLog(entry *model.LogEntry, forwarderARN, logGroup, logStream st
 
 	arn := prefix + "function:" + name
 	entry.Tags.Add(model.FunctionNameKey, name)
-	entry.Lambda = &model.LambdaLog{ARN: arn}
+	entry.Lambda = model.LambdaLog{ARN: arn}
 	entry.Host = arn
 	entry.Service = cmp.Or(name, entry.Service)
 }

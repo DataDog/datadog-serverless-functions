@@ -11,7 +11,8 @@ import (
 	"compress/gzip"
 	"context"
 	"encoding/base64"
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"fmt"
 	"log/slog"
 	"regexp"
@@ -39,7 +40,7 @@ type cloudwatchHandler struct {
 	baseHandler
 }
 
-func (h *cloudwatchHandler) Handle(ctx context.Context, event json.RawMessage, out chan<- json.RawMessage) error {
+func (h *cloudwatchHandler) Handle(ctx context.Context, event jsontext.Value, out chan<- jsontext.Value) error {
 	var cwEvent events.CloudwatchLogsEvent
 	if err := json.Unmarshal(event, &cwEvent); err != nil {
 		return fmt.Errorf("unmarshal: %w", err)
@@ -73,13 +74,13 @@ func decompressCloudwatchLogs(data []byte) (events.CloudwatchLogsData, error) {
 	}()
 
 	var cwData events.CloudwatchLogsData
-	if err := json.NewDecoder(zr).Decode(&cwData); err != nil {
+	if err := json.UnmarshalRead(zr, &cwData); err != nil {
 		return events.CloudwatchLogsData{}, fmt.Errorf("json decode: %w", err)
 	}
 	return cwData, nil
 }
 
-func (h *cloudwatchHandler) handleCloudwatchData(ctx context.Context, cwData events.CloudwatchLogsData, out chan<- json.RawMessage) error {
+func (h *cloudwatchHandler) handleCloudwatchData(ctx context.Context, cwData events.CloudwatchLogsData, out chan<- jsontext.Value) error {
 	if cwData.MessageType == "CONTROL_MESSAGE" {
 		return nil
 	}
@@ -140,7 +141,7 @@ func (h *cloudwatchHandler) newCloudwatchLogEntry(event events.CloudwatchLogsLog
 		entry.Host = cloudtrailHost(event.Message)
 	}
 
-	if entry.Lambda != nil && !entry.Tags.Has(model.ServiceKey) {
+	if entry.Lambda.ARN != "" && !entry.Tags.Has(model.ServiceKey) {
 		entry.Tags.Add(model.ServiceKey, entry.Service)
 	}
 

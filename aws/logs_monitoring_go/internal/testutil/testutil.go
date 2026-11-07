@@ -10,7 +10,8 @@ import (
 	"compress/gzip"
 	"context"
 	"encoding/base64"
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"fmt"
 	"strings"
 	"testing"
@@ -59,7 +60,7 @@ func MustGzipJSON(t *testing.T, v any) []byte {
 	return MustGzip(t, raw)
 }
 
-func MustCloudwatchEvent(t *testing.T, data []byte) json.RawMessage {
+func MustCloudwatchEvent(t *testing.T, data []byte) jsontext.Value {
 	t.Helper()
 
 	evt := events.CloudwatchLogsEvent{
@@ -75,7 +76,7 @@ func MustCloudwatchEvent(t *testing.T, data []byte) json.RawMessage {
 	return raw
 }
 
-func MustKinesisEvent(t *testing.T, records ...[]byte) json.RawMessage {
+func MustKinesisEvent(t *testing.T, records ...[]byte) jsontext.Value {
 	t.Helper()
 
 	var evt events.KinesisEvent
@@ -95,7 +96,7 @@ func MustKinesisEvent(t *testing.T, records ...[]byte) json.RawMessage {
 	return raw
 }
 
-func GenerateJSONLog(t *testing.T, size int) json.RawMessage {
+func GenerateJSONLog(t *testing.T, size int) jsontext.Value {
 	t.Helper()
 
 	const template = `{"id":"0","timestamp":1718540400000,"message":"%s","ddsourcecategory":"aws"}`
@@ -106,13 +107,13 @@ func GenerateJSONLog(t *testing.T, size int) json.RawMessage {
 		t.Fatalf("GenerateJSONLog: requested size %d is smaller than the fixed overhead %d", size, overhead)
 	}
 
-	return json.RawMessage(fmt.Sprintf(template, strings.Repeat("x", padding)))
+	return jsontext.Value(fmt.Sprintf(template, strings.Repeat("x", padding)))
 }
 
-func GenerateJSONLogs(t *testing.T, sizes ...int) json.RawMessage {
+func GenerateJSONLogs(t *testing.T, sizes ...int) jsontext.Value {
 	t.Helper()
 
-	logs := make([]json.RawMessage, 0, len(sizes))
+	logs := make([]jsontext.Value, 0, len(sizes))
 	for _, size := range sizes {
 		logs = append(logs, GenerateJSONLog(t, size))
 	}
@@ -133,7 +134,7 @@ func SQSRecord(messageID, body string) events.SQSMessage {
 	}
 }
 
-func MustSQSEvent(t *testing.T, records ...events.SQSMessage) json.RawMessage {
+func MustSQSEvent(t *testing.T, records ...events.SQSMessage) jsontext.Value {
 	t.Helper()
 
 	raw, err := json.Marshal(events.SQSEvent{Records: records})
@@ -165,13 +166,51 @@ func Drain[T any](t *testing.T, ch <-chan T) (values []T) {
 	return values
 }
 
-func AssertJSONEntries(t *testing.T, want []model.LogEntry, got []json.RawMessage) {
+func AssertJSONEntries(t *testing.T, want []model.LogEntry, got []jsontext.Value) {
 	t.Helper()
 
 	require.Len(t, got, len(want))
 	for i := range want {
 		raw, err := json.Marshal(want[i])
 		require.NoError(t, err)
-		assert.JSONEq(t, string(raw), string(got[i]))
+		AssertJSONEq(t, string(raw), string(got[i]))
+	}
+}
+
+func AssertJSONEq(t *testing.T, want, got string) {
+	t.Helper()
+
+	var wantVal, gotVal any
+	require.NoError(t, json.Unmarshal([]byte(want), &wantVal), "want is not valid JSON")
+	require.NoError(t, json.Unmarshal([]byte(got), &gotVal), "got is not valid JSON")
+
+	assert.Equal(t, normalizeJSON(wantVal), normalizeJSON(gotVal))
+}
+
+func normalizeJSON(v any) any {
+	switch vv := v.(type) {
+	case string:
+		var parsed any
+		if err := json.Unmarshal([]byte(vv), &parsed); err == nil {
+			switch parsed.(type) {
+			case map[string]any, []any:
+				return normalizeJSON(parsed)
+			}
+		}
+		return vv
+	case map[string]any:
+		out := make(map[string]any, len(vv))
+		for k, val := range vv {
+			out[k] = normalizeJSON(val)
+		}
+		return out
+	case []any:
+		out := make([]any, len(vv))
+		for i, val := range vv {
+			out[i] = normalizeJSON(val)
+		}
+		return out
+	default:
+		return vv
 	}
 }

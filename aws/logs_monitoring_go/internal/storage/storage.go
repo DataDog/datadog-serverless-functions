@@ -9,7 +9,7 @@ package storage
 
 import (
 	"context"
-	"encoding/json"
+	"encoding/json/jsontext"
 	"errors"
 	"iter"
 )
@@ -19,7 +19,7 @@ var ErrNoConfigured = errors.New("no failed event storage configured")
 const metadataStorageTagKey = "dd-storage-tag"
 
 type Batch struct {
-	Data       json.RawMessage
+	Data       jsontext.Value
 	StorageTag string
 	DeleteKey  string
 }

@@ -9,7 +9,8 @@ package sdkclient
 
 import (
 	"context"
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"fmt"
 	"strings"
 	"sync"
@@ -60,7 +61,7 @@ func FetchSecret(ctx context.Context, smClient SecretsManager, arn string) (stri
 var secretAPIKeyFields = []string{"DD_API_KEY", "apiKey"}
 
 func apiKeyFromSecret(arn, secret string) (string, error) {
-	var fields map[string]json.RawMessage
+	var fields map[string]jsontext.Value
 	if err := json.Unmarshal([]byte(secret), &fields); err != nil {
 		return secret, nil
 	}

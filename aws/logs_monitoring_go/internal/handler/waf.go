@@ -5,7 +5,7 @@
 
 package handler
 
-import "encoding/json"
+import "encoding/json/v2"
 
 const (
 	headersKey                     = "headers"

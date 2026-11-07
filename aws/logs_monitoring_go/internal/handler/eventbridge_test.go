@@ -6,7 +6,8 @@
 package handler
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"regexp"
 	"testing"
 
@@ -23,14 +24,14 @@ func TestEventBridgeHandler_Handle(t *testing.T) {
 	ctx := t.Context()
 
 	tests := map[string]struct {
-		event    json.RawMessage
+		event    jsontext.Value
 		cfg      *Config
 		filterer *filterer.Filterer
 		want     []model.LogEntry
 		wantErr  bool
 	}{
 		"scheduled event": {
-			event: json.RawMessage(`{"version":"0","id":"abc","detail-type":"Scheduled Event","source":"aws.events","account":"123456789012","time":"1970-01-01T00:00:00Z","region":"us-east-1","resources":[],"detail":{}}`),
+			event: jsontext.Value(`{"version":"0","id":"abc","detail-type":"Scheduled Event","source":"aws.events","account":"123456789012","time":"1970-01-01T00:00:00Z","region":"us-east-1","resources":[],"detail":{}}`),
 			cfg:   &Config{},
 			want: []model.LogEntry{
 				{
@@ -43,7 +44,7 @@ func TestEventBridgeHandler_Handle(t *testing.T) {
 			},
 		},
 		"ec2 event": {
-			event: json.RawMessage(`{"version":"0","id":"abc","detail-type":"EC2 Instance State-change Notification","source":"aws.ec2","account":"123456789012","time":"1970-01-01T00:00:00Z","region":"us-east-1","resources":[],"detail":{"instance-id":"i-123","state":"running"}}`),
+			event: jsontext.Value(`{"version":"0","id":"abc","detail-type":"EC2 Instance State-change Notification","source":"aws.ec2","account":"123456789012","time":"1970-01-01T00:00:00Z","region":"us-east-1","resources":[],"detail":{"instance-id":"i-123","state":"running"}}`),
 			cfg:   &Config{},
 			want: []model.LogEntry{
 				{
@@ -56,7 +57,7 @@ func TestEventBridgeHandler_Handle(t *testing.T) {
 			},
 		},
 		"custom source override": {
-			event: json.RawMessage(`{"version":"0","id":"abc","detail-type":"Scheduled Event","source":"aws.events","account":"123456789012","time":"1970-01-01T00:00:00Z","region":"us-east-1","resources":[],"detail":{}}`),
+			event: jsontext.Value(`{"version":"0","id":"abc","detail-type":"Scheduled Event","source":"aws.events","account":"123456789012","time":"1970-01-01T00:00:00Z","region":"us-east-1","resources":[],"detail":{}}`),
 			cfg:   &Config{Template: NewTemplate("", "custom-source", nil)},
 			want: []model.LogEntry{
 				{
@@ -69,12 +70,12 @@ func TestEventBridgeHandler_Handle(t *testing.T) {
 			},
 		},
 		"invalid JSON": {
-			event:   json.RawMessage(`not json`),
+			event:   jsontext.Value(`not json`),
 			cfg:     &Config{},
 			wantErr: true,
 		},
 		"securityhub no findings falls back": {
-			event: json.RawMessage(`{"source":"aws.securityhub","detail":{}}`),
+			event: jsontext.Value(`{"source":"aws.securityhub","detail":{}}`),
 			cfg:   &Config{},
 			want: []model.LogEntry{
 				{
@@ -93,7 +94,7 @@ func TestEventBridgeHandler_Handle(t *testing.T) {
 			t.Parallel()
 
 			handler := &eventBridgeHandler{baseHandler: newBase(tc.cfg, testutil.LambdaOrigin(), nil, tc.filterer)}
-			out := make(chan json.RawMessage, len(tc.want))
+			out := make(chan jsontext.Value, len(tc.want))
 
 			err := handler.Handle(ctx, tc.event, out)
 			close(out)
@@ -118,18 +119,18 @@ func TestEventBridgeHandler_SecurityHub(t *testing.T) {
 	ctx := t.Context()
 
 	tests := map[string]struct {
-		event    json.RawMessage
+		event    jsontext.Value
 		cfg      *Config
 		filterer *filterer.Filterer
 		want     []string
 	}{
 		"one finding": {
-			event: json.RawMessage(`{"source":"aws.securityhub","detail-type":"Security Hub Findings - Imported","detail":{"findings":[{"myattribute":"somevalue","Resources":[{"Region":"us-east-1","Type":"AwsEc2SecurityGroup"}]}]}}`),
+			event: jsontext.Value(`{"source":"aws.securityhub","detail-type":"Security Hub Findings - Imported","detail":{"findings":[{"myattribute":"somevalue","Resources":[{"Region":"us-east-1","Type":"AwsEc2SecurityGroup"}]}]}}`),
 			cfg:   &Config{},
 			want:  []string{`{"source":"aws.securityhub","detail-type":"Security Hub Findings - Imported","detail":{"finding":{"myattribute":"somevalue","resources":{"AwsEc2SecurityGroup":{"Region":"us-east-1"}}}}}`},
 		},
 		"multiple findings": {
-			event: json.RawMessage(`{"source":"aws.securityhub","detail":{"findings":[{"id":"f1","Resources":[{"Type":"AwsEc2SecurityGroup","Region":"us-east-1"}]},{"id":"f2","Resources":[{"Type":"AwsIamRole","Region":"us-west-2"}]}]}}`),
+			event: jsontext.Value(`{"source":"aws.securityhub","detail":{"findings":[{"id":"f1","Resources":[{"Type":"AwsEc2SecurityGroup","Region":"us-east-1"}]},{"id":"f2","Resources":[{"Type":"AwsIamRole","Region":"us-west-2"}]}]}}`),
 			cfg:   &Config{},
 			want: []string{
 				`{"source":"aws.securityhub","detail":{"finding":{"id":"f1","resources":{"AwsEc2SecurityGroup":{"Region":"us-east-1"}}}}}`,
@@ -137,12 +138,12 @@ func TestEventBridgeHandler_SecurityHub(t *testing.T) {
 			},
 		},
 		"v2 findings imported": {
-			event: json.RawMessage(`{"source":"aws.securityhub","detail-type":"Findings Imported V2","detail":{"findings":[{"metadata":{"uid":"f1"},"resources":[{"cloud_partition":"aws","provider":"AWS","region":"us-east-1","type":"AWS::EC2::SecurityGroup","uid":"sg-clouds-8699","vpc_uid":"vpc-clouds-8699"}]}]}}`),
+			event: jsontext.Value(`{"source":"aws.securityhub","detail-type":"Findings Imported V2","detail":{"findings":[{"metadata":{"uid":"f1"},"resources":[{"cloud_partition":"aws","provider":"AWS","region":"us-east-1","type":"AWS::EC2::SecurityGroup","uid":"sg-clouds-8699","vpc_uid":"vpc-clouds-8699"}]}]}}`),
 			cfg:   &Config{},
 			want:  []string{`{"source":"aws.securityhub","detail-type":"Findings Imported V2","detail":{"finding":{"metadata":{"uid":"f1"},"resources":[{"cloud_partition":"aws","provider":"AWS","region":"us-east-1","type":"AWS::EC2::SecurityGroup","uid":"sg-clouds-8699","vpc_uid":"vpc-clouds-8699"}]}}}`},
 		},
 		"with filtering": {
-			event:    json.RawMessage(`{"source":"aws.securityhub","detail":{"findings":[{"id":"keep","Resources":[]},{"id":"drop","Resources":[]}]}}`),
+			event:    jsontext.Value(`{"source":"aws.securityhub","detail":{"findings":[{"id":"keep","Resources":[]},{"id":"drop","Resources":[]}]}}`),
 			cfg:      &Config{},
 			filterer: filterer.New(nil, regexp.MustCompile(`"id":"drop"`)),
 			want:     []string{`{"source":"aws.securityhub","detail":{"finding":{"id":"keep","resources":{}}}}`},
@@ -154,7 +155,7 @@ func TestEventBridgeHandler_SecurityHub(t *testing.T) {
 			t.Parallel()
 
 			handler := &eventBridgeHandler{baseHandler: newBase(tc.cfg, testutil.LambdaOrigin(), nil, tc.filterer)}
-			out := make(chan json.RawMessage, len(tc.want))
+			out := make(chan jsontext.Value, len(tc.want))
 
 			err := handler.Handle(ctx, tc.event, out)
 			close(out)

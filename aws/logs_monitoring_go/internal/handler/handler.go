@@ -7,7 +7,8 @@ package handler
 
 import (
 	"context"
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"fmt"
 	"regexp"
 
@@ -20,7 +21,7 @@ import (
 )
 
 type Handler interface {
-	Handle(ctx context.Context, event json.RawMessage, out chan<- json.RawMessage) error
+	Handle(ctx context.Context, event jsontext.Value, out chan<- jsontext.Value) error
 }
 
 type Config struct {
@@ -65,7 +66,7 @@ func newBase(cfg *Config, origin model.LambdaOrigin, scrub *scrubber.Scrubber, f
 	return baseHandler{cfg: cfg, tmpl: cfg.Template, origin: origin, scrubber: scrub, filterer: filter}
 }
 
-func (h *baseHandler) emit(ctx context.Context, out chan<- json.RawMessage, entry model.LogEntry) error {
+func (h *baseHandler) emit(ctx context.Context, out chan<- jsontext.Value, entry model.LogEntry) error {
 	item, err := json.Marshal(entry)
 	if err != nil {
 		return fmt.Errorf("marshal log entry: %w", err)

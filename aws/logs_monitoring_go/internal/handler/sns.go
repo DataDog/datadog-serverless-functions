@@ -8,14 +8,14 @@ package handler
 import (
 	"cmp"
 	"context"
-	"encoding/json"
+	"encoding/json/jsontext"
 )
 
 type snsHandler struct {
 	baseHandler
 }
 
-func (h *snsHandler) Handle(ctx context.Context, event json.RawMessage, out chan<- json.RawMessage) error {
+func (h *snsHandler) Handle(ctx context.Context, event jsontext.Value, out chan<- jsontext.Value) error {
 	message := string(event)
 	if h.filterer.ShouldExclude(message) {
 		return nil

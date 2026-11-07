@@ -7,7 +7,7 @@ package batcher
 
 import (
 	"context"
-	"encoding/json"
+	"encoding/json/jsontext"
 	"log/slog"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/concurrent"
@@ -17,7 +17,7 @@ type Batcher struct {
 	maxItemSize      int
 	maxBatchSize     int
 	maxItemsPerBatch int
-	batch            []json.RawMessage
+	batch            []jsontext.Value
 	batchSize        int
 }
 
@@ -26,12 +26,12 @@ func New(maxItemSize, maxBatchSize, maxItemsPerBatch int) *Batcher {
 		maxItemSize:      maxItemSize,
 		maxBatchSize:     maxBatchSize,
 		maxItemsPerBatch: maxItemsPerBatch,
-		batch:            make([]json.RawMessage, 0, maxItemsPerBatch),
+		batch:            make([]jsontext.Value, 0, maxItemsPerBatch),
 		batchSize:        2, // '[' and ']'
 	}
 }
 
-func (b *Batcher) Start(ctx context.Context, in <-chan json.RawMessage, out chan<- json.RawMessage) error {
+func (b *Batcher) Start(ctx context.Context, in <-chan jsontext.Value, out chan<- jsontext.Value) error {
 	for {
 		item, ok, _ := concurrent.SafeReader(ctx, in)
 		if !ok {
@@ -76,7 +76,7 @@ func (b *Batcher) Start(ctx context.Context, in <-chan json.RawMessage, out chan
 	return nil
 }
 
-func (b *Batcher) add(item json.RawMessage) bool {
+func (b *Batcher) add(item jsontext.Value) bool {
 	if (b.maxItemsPerBatch != 0 && len(b.batch) >= b.maxItemsPerBatch) || b.batchSize+len(item)+1 > b.maxBatchSize {
 		return false
 	}
@@ -86,11 +86,11 @@ func (b *Batcher) add(item json.RawMessage) bool {
 	return true
 }
 
-func (b *Batcher) valid(item json.RawMessage) bool {
+func (b *Batcher) valid(item jsontext.Value) bool {
 	return len(item) <= b.maxItemSize
 }
 
-func (b *Batcher) construct() (json.RawMessage, bool, error) {
+func (b *Batcher) construct() (jsontext.Value, bool, error) {
 	if len(b.batch) == 0 {
 		return nil, false, nil
 	}
@@ -108,7 +108,7 @@ func (b *Batcher) construct() (json.RawMessage, bool, error) {
 	slog.Debug("batch constructed", slog.Int("items", len(b.batch)), slog.Int("size_bytes", len(batch)))
 
 	b.reset()
-	return json.RawMessage(batch), true, nil
+	return jsontext.Value(batch), true, nil
 }
 
 func (b *Batcher) reset() {

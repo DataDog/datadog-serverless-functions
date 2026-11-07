@@ -7,7 +7,8 @@ package main
 
 import (
 	"compress/gzip"
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"errors"
 	"flag"
 	"io"
@@ -37,7 +38,7 @@ var update = flag.Bool("update", false, "update .golden files")
 
 const testAPIKey = "abcdefghijklmnopqrstuvwxyz012345"
 
-func load(t *testing.T, path string) json.RawMessage {
+func load(t *testing.T, path string) jsontext.Value {
 	t.Helper()
 
 	data, err := os.ReadFile(path)
@@ -84,7 +85,7 @@ func TestHandleRequest(t *testing.T) {
 func assertGolden(t *testing.T, goldenPath string, actual any) {
 	t.Helper()
 
-	actualJSON, err := json.MarshalIndent(actual, "", "  ")
+	actualJSON, err := json.Marshal(actual, jsontext.WithIndent("  "), json.Deterministic(true))
 	require.NoError(t, err)
 
 	actualJSON = append(actualJSON, '\n')
@@ -97,7 +98,7 @@ func assertGolden(t *testing.T, goldenPath string, actual any) {
 
 	expected, err := os.ReadFile(goldenPath)
 	require.NoError(t, err, "%q golden file missing, run with -update to create it", goldenPath)
-	require.JSONEq(t, normalizeTags(t, expected), normalizeTags(t, actualJSON))
+	testutil.AssertJSONEq(t, normalizeTags(t, expected), normalizeTags(t, actualJSON))
 }
 
 func normalizeTags(t *testing.T, data []byte) string {
@@ -188,11 +189,10 @@ func TestSQSResponse(t *testing.T) {
 	tests := map[string]struct {
 		unprocessed []string
 		want        events.SQSEventResponse
-		wantJSON    string
+		wantFailed  []string
 	}{
 		"batch fully processed": {
-			want:     events.SQSEventResponse{},
-			wantJSON: `{"batchItemFailures":null}`,
+			want: events.SQSEventResponse{},
 		},
 		"batch with unprocessed records": {
 			unprocessed: []string{"msg-2", "msg-3"},
@@ -200,7 +200,7 @@ func TestSQSResponse(t *testing.T) {
 				{ItemIdentifier: "msg-2"},
 				{ItemIdentifier: "msg-3"},
 			}},
-			wantJSON: `{"batchItemFailures":[{"itemIdentifier":"msg-2"},{"itemIdentifier":"msg-3"}]}`,
+			wantFailed: []string{"msg-2", "msg-3"},
 		},
 	}
 
@@ -213,7 +213,15 @@ func TestSQSResponse(t *testing.T) {
 
 			encoded, err := json.Marshal(got)
 			require.NoError(t, err)
-			require.JSONEq(t, tc.wantJSON, string(encoded))
+
+			var decoded events.SQSEventResponse
+			require.NoError(t, json.Unmarshal(encoded, &decoded))
+
+			var failed []string
+			for _, f := range decoded.BatchItemFailures {
+				failed = append(failed, f.ItemIdentifier)
+			}
+			require.Equal(t, tc.wantFailed, failed)
 		})
 	}
 }

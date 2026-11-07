@@ -6,7 +6,8 @@
 package parser
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"fmt"
 
 	awsevents "github.com/aws/aws-lambda-go/events"
@@ -24,7 +25,7 @@ type sqsBodyDiscriminator struct {
 	recordsDiscriminator
 }
 
-func IsSQS(event json.RawMessage) bool {
+func IsSQS(event jsontext.Value) bool {
 	var disc recordsDiscriminator
 	if err := json.Unmarshal(event, &disc); err != nil {
 		return false
@@ -32,7 +33,7 @@ func IsSQS(event json.RawMessage) bool {
 	return len(disc.Records) > 0 && disc.Records[0].EventSource == eventSourceSQS
 }
 
-func SQS(awsevent json.RawMessage) ([]SQSEvent, error) {
+func SQS(awsevent jsontext.Value) ([]SQSEvent, error) {
 	var sqsEvent awsevents.SQSEvent
 	if err := json.Unmarshal(awsevent, &sqsEvent); err != nil {
 		return nil, fmt.Errorf("unmarshal: %w", err)
@@ -48,7 +49,7 @@ func SQS(awsevent json.RawMessage) ([]SQSEvent, error) {
 }
 
 func sqsBody(body string) (Event, error) {
-	raw := json.RawMessage(body)
+	raw := jsontext.Value(body)
 
 	var disc sqsBodyDiscriminator
 	if err := json.Unmarshal(raw, &disc); err != nil {
@@ -62,7 +63,7 @@ func sqsBody(body string) (Event, error) {
 	case disc.Type == "Notification" && disc.Message != "":
 		var innerDisc recordsDiscriminator
 		if err := json.Unmarshal([]byte(disc.Message), &innerDisc); err == nil && len(innerDisc.Records) > 0 && innerDisc.Records[0].EventSource == eventSourceS3 {
-			return Event{ContentType: ContentTypeS3, Payload: json.RawMessage(disc.Message)}, nil
+			return Event{ContentType: ContentTypeS3, Payload: jsontext.Value(disc.Message)}, nil
 		}
 
 		return Event{ContentType: ContentTypeSNS, Payload: raw}, nil

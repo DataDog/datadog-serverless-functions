@@ -8,7 +8,7 @@ package storage
 import (
 	"bytes"
 	"context"
-	"encoding/json"
+	"encoding/json/jsontext"
 	"errors"
 	"io"
 	"strings"
@@ -145,13 +145,13 @@ func TestS3_Fetch(t *testing.T) {
 					m.EXPECT().
 						GetObject(gomock.Any(), gomock.Any()).
 						Return(&s3.GetObjectOutput{
-							Body:     io.NopCloser(bytes.NewReader(json.RawMessage(`[]`))),
+							Body:     io.NopCloser(bytes.NewReader(jsontext.Value(`[]`))),
 							Metadata: map[string]string{},
 						}, nil),
 					m.EXPECT().
 						GetObject(gomock.Any(), gomock.Any()).
 						Return(&s3.GetObjectOutput{
-							Body:     io.NopCloser(bytes.NewReader(json.RawMessage(`[]`))),
+							Body:     io.NopCloser(bytes.NewReader(jsontext.Value(`[]`))),
 							Metadata: map[string]string{},
 						}, nil),
 				)

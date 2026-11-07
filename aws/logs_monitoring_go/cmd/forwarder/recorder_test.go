@@ -8,7 +8,7 @@ package main
 import (
 	"bytes"
 	"compress/gzip"
-	"encoding/json"
+	"encoding/json/jsontext"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -26,7 +26,7 @@ var nonDeterministicHeaders = []string{
 
 type recordedRequest struct {
 	Headers map[string]string `json:"headers"`
-	Body    json.RawMessage   `json:"body"`
+	Body    jsontext.Value    `json:"body"`
 }
 
 type recorder struct {

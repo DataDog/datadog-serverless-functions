@@ -6,20 +6,21 @@
 package parser
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"fmt"
 	"log/slog"
 
 	"github.com/aws/aws-lambda-go/events"
 )
 
-func sns(event json.RawMessage) (Event, error) {
+func sns(event jsontext.Value) (Event, error) {
 	var snsEvent events.SNSEvent
 	if err := json.Unmarshal(event, &snsEvent); err != nil {
 		return Event{}, fmt.Errorf("unmarshal: %w", err)
 	}
 
-	inner := json.RawMessage(snsEvent.Records[0].SNS.Message)
+	inner := jsontext.Value(snsEvent.Records[0].SNS.Message)
 
 	var disc recordsDiscriminator
 	if err := json.Unmarshal(inner, &disc); err != nil {

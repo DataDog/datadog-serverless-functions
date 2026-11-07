@@ -8,7 +8,7 @@ package pipeline
 import (
 	"compress/gzip"
 	"context"
-	"encoding/json"
+	"encoding/json/jsontext"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -118,7 +118,7 @@ func TestPipelineStartSQS(t *testing.T) {
 func TestPipelineStartSQSUnparseableEnvelopeFailsInvocation(t *testing.T) {
 	t.Parallel()
 
-	event := json.RawMessage(`{"Records":[{"eventSource":"aws:sqs","body":0}]}`)
+	event := jsontext.Value(`{"Records":[{"eventSource":"aws:sqs","body":0}]}`)
 
 	result, err := newPipeline(t, "http://127.0.0.1:1", nil).Start(t.Context(), model.LambdaOrigin{}, event)
 

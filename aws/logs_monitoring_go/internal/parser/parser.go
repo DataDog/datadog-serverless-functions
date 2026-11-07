@@ -6,7 +6,8 @@
 package parser
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"errors"
 	"fmt"
 )
@@ -19,10 +20,10 @@ const (
 )
 
 type eventDiscriminator struct {
-	AWSLogs json.RawMessage `json:"awslogs"` // CloudWatch logs
+	AWSLogs jsontext.Value `json:"awslogs"` // CloudWatch logs
 	recordsDiscriminator
-	Detail json.RawMessage `json:"detail"` // EventBridge
-	Retry  json.RawMessage `json:"retry"`
+	Detail jsontext.Value `json:"detail"` // EventBridge
+	Retry  jsontext.Value `json:"retry"`
 }
 
 type recordsDiscriminator struct {
@@ -31,9 +32,10 @@ type recordsDiscriminator struct {
 	} `json:"Records"` // S3, SQS, SNS
 }
 
-func Parse(event json.RawMessage) (Event, error) {
+func Parse(event jsontext.Value) (Event, error) {
 	var disc eventDiscriminator
-	if err := json.Unmarshal(event, &disc); err != nil {
+	// Unlike all AWS events, SNS has an "EventSource" field instead of "eventSource"
+	if err := json.Unmarshal(event, &disc, json.MatchCaseInsensitiveNames(true)); err != nil {
 		return Event{}, fmt.Errorf("unmarshal: %w", err)
 	}
 
@@ -62,7 +64,7 @@ func Parse(event json.RawMessage) (Event, error) {
 	return Event{}, errors.New("unsupported event")
 }
 
-func records(event json.RawMessage, disc eventDiscriminator) (Event, error) {
+func records(event jsontext.Value, disc eventDiscriminator) (Event, error) {
 	switch disc.Records[0].EventSource {
 	case eventSourceS3:
 		return Event{ContentType: ContentTypeS3, Payload: event}, nil

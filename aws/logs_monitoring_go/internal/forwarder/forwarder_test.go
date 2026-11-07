@@ -8,7 +8,8 @@ package forwarder
 import (
 	"compress/gzip"
 	"context"
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"errors"
 	"fmt"
 	"io"
@@ -113,7 +114,7 @@ func TestForwarder_Start(t *testing.T) {
 			ctx, cancel := context.WithCancel(t.Context())
 			t.Cleanup(cancel)
 
-			in := make(chan json.RawMessage, len(tc.entries))
+			in := make(chan jsontext.Value, len(tc.entries))
 			for _, e := range tc.entries {
 				raw, err := json.Marshal(e)
 				require.NoError(t, err)
@@ -167,7 +168,7 @@ func TestForwarder_StepFunctionsTraceHeader(t *testing.T) {
 			ctx, cancel := context.WithCancel(t.Context())
 			t.Cleanup(cancel)
 
-			in := make(chan json.RawMessage, 1)
+			in := make(chan jsontext.Value, 1)
 			raw, err := json.Marshal(model.LogEntry{})
 			require.NoError(t, err)
 			in <- raw
@@ -261,7 +262,7 @@ func TestForwarder_StartSendError(t *testing.T) {
 
 			forwarder := newForwarder(t, server.URL, store)
 
-			in := make(chan json.RawMessage, 1)
+			in := make(chan jsontext.Value, 1)
 			raw, err := json.Marshal(model.LogEntry{Message: "test payload"})
 			require.NoError(t, err)
 			in <- raw
@@ -291,7 +292,7 @@ func TestForwarder_StartDrainsAfterFailure(t *testing.T) {
 	raw, err := json.Marshal(model.LogEntry{Message: "test payload"})
 	require.NoError(t, err)
 
-	in := make(chan json.RawMessage, entries)
+	in := make(chan jsontext.Value, entries)
 	for range entries {
 		in <- raw
 	}
@@ -328,25 +329,25 @@ func TestForwarder_Retry(t *testing.T) {
 	}{
 		"permanent rejection is deleted and the drain continues": {
 			batches: []storage.Batch{
-				{Data: json.RawMessage(badBatch), DeleteKey: "key-1"},
-				{Data: json.RawMessage(goodBatch), DeleteKey: "key-2"},
-				{Data: json.RawMessage(goodBatch), DeleteKey: "key-3"},
+				{Data: jsontext.Value(badBatch), DeleteKey: "key-1"},
+				{Data: jsontext.Value(goodBatch), DeleteKey: "key-2"},
+				{Data: jsontext.Value(goodBatch), DeleteKey: "key-3"},
 			},
 			wantDeletes: []string{"key-1", "key-2", "key-3"},
 			wantCalls:   3,
 		},
 		"accepted batches are drained": {
 			batches: []storage.Batch{
-				{Data: json.RawMessage(goodBatch), DeleteKey: "key-1"},
-				{Data: json.RawMessage(goodBatch), DeleteKey: "key-2"},
+				{Data: jsontext.Value(goodBatch), DeleteKey: "key-1"},
+				{Data: jsontext.Value(goodBatch), DeleteKey: "key-2"},
 			},
 			wantDeletes: []string{"key-1", "key-2"},
 			wantCalls:   2,
 		},
 		"a delete failure does not stop the drain": {
 			batches: []storage.Batch{
-				{Data: json.RawMessage(goodBatch), DeleteKey: "key-1"},
-				{Data: json.RawMessage(goodBatch), DeleteKey: "key-2"},
+				{Data: jsontext.Value(goodBatch), DeleteKey: "key-1"},
+				{Data: jsontext.Value(goodBatch), DeleteKey: "key-2"},
 			},
 			deleteErr:   errors.New("access denied"),
 			wantDeletes: []string{"key-1", "key-2"},
@@ -355,7 +356,7 @@ func TestForwarder_Retry(t *testing.T) {
 		},
 		"the deadline budget stops the drain": {
 			batches: []storage.Batch{
-				{Data: json.RawMessage(goodBatch), DeleteKey: "key-1"},
+				{Data: jsontext.Value(goodBatch), DeleteKey: "key-1"},
 			},
 			deadline:  time.Second,
 			wantCalls: 0,
@@ -437,7 +438,7 @@ func TestForwarder_RetryStopsOnRetryableFailure(t *testing.T) {
 	batches := make([]storage.Batch, 0, 50)
 	for i := range 50 {
 		batches = append(batches, storage.Batch{
-			Data:      json.RawMessage(`[{"message":"good"}]`),
+			Data:      jsontext.Value(`[{"message":"good"}]`),
 			DeleteKey: fmt.Sprintf("key-%d", i),
 		})
 	}
@@ -525,7 +526,7 @@ func TestForwarder_StartToStorage(t *testing.T) {
 func TestForwarder_StartToStorageWithoutStorage(t *testing.T) {
 	t.Parallel()
 
-	in := make(chan json.RawMessage)
+	in := make(chan jsontext.Value)
 	close(in)
 
 	err := newForwarder(t, "http://127.0.0.1:1", nil).Start(t.Context(), in, "", ToStorage)
@@ -543,13 +544,13 @@ func newForwarder(t *testing.T, intakeURL string, store storage.Storage) *Forwar
 	)
 }
 
-func saturatedInput(t *testing.T) chan json.RawMessage {
+func saturatedInput(t *testing.T) chan jsontext.Value {
 	t.Helper()
 
 	raw, err := json.Marshal(model.LogEntry{Message: "test payload"})
 	require.NoError(t, err)
 
-	return testutil.ToChannel(t, slices.Repeat([]json.RawMessage{raw}, maxLogsPerBatch*(maxBatchesInMemory+httpclient.MaxConcurrency+10)))
+	return testutil.ToChannel(t, slices.Repeat([]jsontext.Value{raw}, maxLogsPerBatch*(maxBatchesInMemory+httpclient.MaxConcurrency+10)))
 }
 
 func batchSeq(batches []storage.Batch) iter.Seq2[storage.Batch, error] {

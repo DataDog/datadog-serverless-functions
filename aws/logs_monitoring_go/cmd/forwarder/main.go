@@ -7,7 +7,7 @@ package main
 
 import (
 	"context"
-	"encoding/json"
+	"encoding/json/jsontext"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -146,8 +146,8 @@ func newHandlerConfig(cfg *config.Config, functionName string) handler.Config {
 	}
 }
 
-func handleRequest(p pipeline.Pipeline, lambdaClient sdkclient.Lambda, targets []string) func(ctx context.Context, awsevent json.RawMessage) (any, error) {
-	return func(ctx context.Context, awsevent json.RawMessage) (any, error) {
+func handleRequest(p pipeline.Pipeline, lambdaClient sdkclient.Lambda, targets []string) func(ctx context.Context, awsevent jsontext.Value) (any, error) {
+	return func(ctx context.Context, awsevent jsontext.Value) (any, error) {
 		slog.DebugContext(ctx, "invocation start", slog.String("event", string(awsevent)))
 
 		var wg sync.WaitGroup

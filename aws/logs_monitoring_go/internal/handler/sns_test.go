@@ -6,7 +6,7 @@
 package handler
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
 	"testing"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
@@ -19,10 +19,10 @@ func TestSNSHandler_Handle(t *testing.T) {
 
 	ctx := t.Context()
 
-	snsEvent := json.RawMessage(`{"EventSource":"aws:sns","Sns":{"Type":"Notification","Message":"hello world","TopicArn":"arn:aws:sns:us-east-1:123456789012:my-topic"}}`)
+	snsEvent := jsontext.Value(`{"EventSource":"aws:sns","Sns":{"Type":"Notification","Message":"hello world","TopicArn":"arn:aws:sns:us-east-1:123456789012:my-topic"}}`)
 
 	tests := map[string]struct {
-		event json.RawMessage
+		event jsontext.Value
 		cfg   *Config
 		want  []model.LogEntry
 	}{
@@ -70,7 +70,7 @@ func TestSNSHandler_Handle(t *testing.T) {
 			t.Parallel()
 
 			handler := &snsHandler{baseHandler: newBase(tc.cfg, testutil.LambdaOrigin(), nil, nil)}
-			out := make(chan json.RawMessage, len(tc.want))
+			out := make(chan jsontext.Value, len(tc.want))
 
 			err := handler.Handle(ctx, tc.event, out)
 			close(out)

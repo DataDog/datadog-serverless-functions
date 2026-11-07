@@ -7,5 +7,5 @@ package model
 
 type LambdaOrigin struct {
 	ARN     string `json:"invoked_function_arn"`
-	Version string `json:"function_version,omitempty"`
+	Version string `json:"function_version,omitzero"`
 }

@@ -6,7 +6,8 @@
 package parser
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"testing"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -26,11 +27,11 @@ func TestEventBridge(t *testing.T) {
 	}
 
 	tests := map[string]struct {
-		event json.RawMessage
+		event jsontext.Value
 		want  want
 	}{
 		"s3 object created": {
-			event: json.RawMessage(`{"version":"0","detail-type":"Object Created","source":"aws.s3","detail":{"bucket":{"name":"my-bucket"},"object":{"key":"my-key"}}}`),
+			event: jsontext.Value(`{"version":"0","detail-type":"Object Created","source":"aws.s3","detail":{"bucket":{"name":"my-bucket"},"object":{"key":"my-key"}}}`),
 			want: want{
 				contentType: ContentTypeS3,
 				bucket:      "my-bucket",
@@ -39,7 +40,7 @@ func TestEventBridge(t *testing.T) {
 			},
 		},
 		"s3 object created via put": {
-			event: json.RawMessage(`{"version":"0","detail-type":"Object Created: Put","source":"aws.s3","detail":{"bucket":{"name":"b"},"object":{"key":"nested/path/log.gz"}}}`),
+			event: jsontext.Value(`{"version":"0","detail-type":"Object Created: Put","source":"aws.s3","detail":{"bucket":{"name":"b"},"object":{"key":"nested/path/log.gz"}}}`),
 			want: want{
 				contentType: ContentTypeS3,
 				bucket:      "b",
@@ -48,7 +49,7 @@ func TestEventBridge(t *testing.T) {
 			},
 		},
 		"s3 key with plus": {
-			event: json.RawMessage(`{"version":"0","detail-type":"Object Created","source":"aws.s3","detail":{"bucket":{"name":"b"},"object":{"key":"logs/a+b.log"}}}`),
+			event: jsontext.Value(`{"version":"0","detail-type":"Object Created","source":"aws.s3","detail":{"bucket":{"name":"b"},"object":{"key":"logs/a+b.log"}}}`),
 			want: want{
 				contentType: ContentTypeS3,
 				bucket:      "b",
@@ -57,7 +58,7 @@ func TestEventBridge(t *testing.T) {
 			},
 		},
 		"s3 key with percent": {
-			event: json.RawMessage(`{"version":"0","detail-type":"Object Created","source":"aws.s3","detail":{"bucket":{"name":"b"},"object":{"key":"logs/100%.log"}}}`),
+			event: jsontext.Value(`{"version":"0","detail-type":"Object Created","source":"aws.s3","detail":{"bucket":{"name":"b"},"object":{"key":"logs/100%.log"}}}`),
 			want: want{
 				contentType: ContentTypeS3,
 				bucket:      "b",
@@ -66,7 +67,7 @@ func TestEventBridge(t *testing.T) {
 			},
 		},
 		"s3 key with space": {
-			event: json.RawMessage(`{"version":"0","detail-type":"Object Created","source":"aws.s3","detail":{"bucket":{"name":"b"},"object":{"key":"logs/my file.log"}}}`),
+			event: jsontext.Value(`{"version":"0","detail-type":"Object Created","source":"aws.s3","detail":{"bucket":{"name":"b"},"object":{"key":"logs/my file.log"}}}`),
 			want: want{
 				contentType: ContentTypeS3,
 				bucket:      "b",
@@ -75,19 +76,19 @@ func TestEventBridge(t *testing.T) {
 			},
 		},
 		"s3 object deleted stays eventbridge": {
-			event: json.RawMessage(`{"version":"0","detail-type":"Object Deleted","source":"aws.s3","detail":{}}`),
+			event: jsontext.Value(`{"version":"0","detail-type":"Object Deleted","source":"aws.s3","detail":{}}`),
 			want:  want{contentType: ContentTypeEventBridge},
 		},
 		"non s3 source stays eventbridge": {
-			event: json.RawMessage(`{"version":"0","detail-type":"Object Created","source":"aws.ec2","detail":{"instance-id":"i-123"}}`),
+			event: jsontext.Value(`{"version":"0","detail-type":"Object Created","source":"aws.ec2","detail":{"instance-id":"i-123"}}`),
 			want:  want{contentType: ContentTypeEventBridge},
 		},
 		"generic event stays eventbridge": {
-			event: json.RawMessage(`{"version":"0","id":"abc","detail-type":"Scheduled Event","source":"aws.events","detail":{}}`),
+			event: jsontext.Value(`{"version":"0","id":"abc","detail-type":"Scheduled Event","source":"aws.events","detail":{}}`),
 			want:  want{contentType: ContentTypeEventBridge},
 		},
 		"s3 with malformed detail": {
-			event: json.RawMessage(`{"version":"0","detail-type":"Object Created","source":"aws.s3","detail":"not-an-object"}`),
+			event: jsontext.Value(`{"version":"0","detail-type":"Object Created","source":"aws.s3","detail":"not-an-object"}`),
 			want:  want{err: true},
 		},
 	}

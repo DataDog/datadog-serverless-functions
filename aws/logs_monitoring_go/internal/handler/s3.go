@@ -11,7 +11,8 @@ import (
 	"cmp"
 	"compress/gzip"
 	"context"
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"fmt"
 	"io"
 	"log/slog"
@@ -40,7 +41,7 @@ func newS3(base baseHandler, client sdkclient.S3) *s3Handler {
 	return &s3Handler{baseHandler: base, client: client}
 }
 
-func (h *s3Handler) Handle(ctx context.Context, event json.RawMessage, out chan<- json.RawMessage) error {
+func (h *s3Handler) Handle(ctx context.Context, event jsontext.Value, out chan<- jsontext.Value) error {
 	var s3Event events.S3Event
 	if err := json.Unmarshal(event, &s3Event); err != nil {
 		return fmt.Errorf("unmarshal: %w", err)
@@ -54,7 +55,7 @@ func (h *s3Handler) Handle(ctx context.Context, event json.RawMessage, out chan<
 	return nil
 }
 
-func (h *s3Handler) processRecord(ctx context.Context, out chan<- json.RawMessage, eventRecord events.S3EventRecord) error {
+func (h *s3Handler) processRecord(ctx context.Context, out chan<- jsontext.Value, eventRecord events.S3EventRecord) error {
 	output, err := h.client.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: &eventRecord.S3.Bucket.Name,
 		Key:    &eventRecord.S3.Object.URLDecodedKey,
@@ -113,7 +114,7 @@ func s3Source(key string) model.Source {
 	return sourceS3
 }
 
-func (h *s3Handler) S3(ctx context.Context, out chan<- json.RawMessage, r io.Reader, eventRecord events.S3EventRecord) error {
+func (h *s3Handler) S3(ctx context.Context, out chan<- jsontext.Value, r io.Reader, eventRecord events.S3EventRecord) error {
 	var headerSkipped bool
 	isVpcFlowLogs := strings.Contains(eventRecord.S3.Object.URLDecodedKey, s3KeyVpcFlowLogs)
 
@@ -145,7 +146,7 @@ func (h *s3Handler) S3(ctx context.Context, out chan<- json.RawMessage, r io.Rea
 	return nil
 }
 
-func (h *s3Handler) WAF(ctx context.Context, out chan<- json.RawMessage, r io.Reader, eventRecord events.S3EventRecord) error {
+func (h *s3Handler) WAF(ctx context.Context, out chan<- jsontext.Value, r io.Reader, eventRecord events.S3EventRecord) error {
 	base := h.newBaseEntry(eventRecord)
 	for message, err := range scan(r, nil) {
 		if err != nil {
@@ -167,7 +168,7 @@ func (h *s3Handler) WAF(ctx context.Context, out chan<- json.RawMessage, r io.Re
 	return nil
 }
 
-func (h *s3Handler) CloudTrail(ctx context.Context, out chan<- json.RawMessage, r io.Reader, eventRecord events.S3EventRecord) error {
+func (h *s3Handler) CloudTrail(ctx context.Context, out chan<- jsontext.Value, r io.Reader, eventRecord events.S3EventRecord) error {
 	base := h.newBaseEntry(eventRecord)
 	for message, err := range decodeCloudTrail(r) {
 		if err != nil {
