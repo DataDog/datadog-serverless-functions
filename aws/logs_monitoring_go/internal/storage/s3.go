@@ -14,13 +14,14 @@ import (
 	"log/slog"
 	"time"
 
+	"uuid"
+
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/sdkclient"
 	"github.com/aws/aws-lambda-go/lambdacontext"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/aws/arn"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
-	"github.com/google/uuid"
 )
 
 const prefix = "failed_events/"
@@ -53,7 +54,7 @@ func (s *S3) Store(ctx context.Context, batch Batch) error {
 	}
 
 	datetime := time.Now().UTC().Format("2006/01/02/150405")
-	key := fmt.Sprintf("%s%s_%s_%s.json", s.prefix(invokedFunctionARN), datetime, invocationID, uuid.NewString())
+	key := fmt.Sprintf("%s%s_%s_%s.json", s.prefix(invokedFunctionARN), datetime, invocationID, uuid.New().String())
 
 	_, err := s.client.PutObject(ctx, &s3.PutObjectInput{
 		Bucket:   aws.String(s.bucket),
