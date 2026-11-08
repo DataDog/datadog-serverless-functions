@@ -176,7 +176,7 @@ func TestNewHandlerConfig(t *testing.T) {
 			entry := newHandlerConfig(&tc.cfg, "My-Forwarder").Template.NewEntry()
 
 			require.Equal(t, tc.wantService, entry.Service)
-			require.Equal(t, tc.cfg.Source, entry.Source)
+			require.Equal(t, model.Source(tc.cfg.Source), entry.Source)
 			require.Equal(t, tc.wantTags, entry.Tags)
 		})
 	}

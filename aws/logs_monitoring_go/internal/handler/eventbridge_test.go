@@ -81,7 +81,7 @@ func TestEventBridgeHandler_Handle(t *testing.T) {
 					Message:        `{"source":"aws.securityhub","detail":{}}`,
 					Source:         sourceSecurityHub,
 					SourceCategory: "aws",
-					Service:        sourceSecurityHub,
+					Service:        string(sourceSecurityHub),
 					Metadata:       testutil.LambdaOrigin(),
 				},
 			},

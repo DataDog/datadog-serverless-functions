@@ -26,7 +26,7 @@ func (h *eventBridgeHandler) Handle(ctx context.Context, event json.RawMessage, 
 	if err != nil {
 		return err
 	}
-	slog.DebugContext(ctx, "processing eventbridge event", slog.String("source", source))
+	slog.DebugContext(ctx, "processing eventbridge event", slog.String("source", string(source)))
 
 	switch source {
 	case sourceSecurityHub:
@@ -36,7 +36,7 @@ func (h *eventBridgeHandler) Handle(ctx context.Context, event json.RawMessage, 
 	}
 }
 
-func (h *eventBridgeHandler) eventBridge(ctx context.Context, event json.RawMessage, source string, out chan<- json.RawMessage) error {
+func (h *eventBridgeHandler) eventBridge(ctx context.Context, event json.RawMessage, source model.Source, out chan<- json.RawMessage) error {
 	message := string(event)
 	if h.filterer.ShouldExclude(message) {
 		return nil
@@ -48,7 +48,7 @@ func (h *eventBridgeHandler) eventBridge(ctx context.Context, event json.RawMess
 	return h.emit(ctx, out, entry)
 }
 
-func (h *eventBridgeHandler) securityHub(ctx context.Context, event json.RawMessage, source string, out chan<- json.RawMessage) error {
+func (h *eventBridgeHandler) securityHub(ctx context.Context, event json.RawMessage, source model.Source, out chan<- json.RawMessage) error {
 	messages := separateFindings(event)
 	if len(messages) == 0 {
 		return h.eventBridge(ctx, event, source, out)
@@ -70,15 +70,15 @@ func (h *eventBridgeHandler) securityHub(ctx context.Context, event json.RawMess
 	return nil
 }
 
-func (h *eventBridgeHandler) newEntry(source string) model.LogEntry {
+func (h *eventBridgeHandler) newEntry(source model.Source) model.LogEntry {
 	entry := h.tmpl.NewEntry()
 	entry.Source = cmp.Or(entry.Source, source)
-	entry.Service = cmp.Or(entry.Service, entry.Source)
+	entry.Service = cmp.Or(entry.Service, string(entry.Source))
 	entry.Metadata = h.origin
 	return entry
 }
 
-func eventBridgeSource(event json.RawMessage) (string, error) {
+func eventBridgeSource(event json.RawMessage) (model.Source, error) {
 	var s struct {
 		Source string `json:"source"`
 	}
@@ -93,7 +93,7 @@ func eventBridgeSource(event json.RawMessage) (string, error) {
 
 	_, source, found := strings.Cut(s.Source, ".")
 	if found {
-		return source, nil
+		return model.Source(source), nil
 	}
-	return sourceCloudwatch, nil
+	return sourceCloudWatch, nil
 }

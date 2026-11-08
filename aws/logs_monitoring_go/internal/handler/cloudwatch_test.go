@@ -282,7 +282,7 @@ func TestCloudwatchSource(t *testing.T) {
 	tests := map[string]struct {
 		logGroup  string
 		logStream string
-		want      string
+		want      model.Source
 	}{
 		"cloudtrail via log stream":               {logGroup: "/aws/something", logStream: "123_CloudTrail_us-east-1", want: "cloudtrail"},
 		"cloudtrail via log group":                {logGroup: "_cloudtrail_logs", logStream: "stream", want: "cloudtrail"},
@@ -299,7 +299,7 @@ func TestCloudwatchSource(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			assert.Equal(t, tc.want, cloudwatchSource(tc.logGroup, tc.logStream))
+			assert.Equal(t, tc.want, cloudWatchSource(tc.logGroup, tc.logStream))
 		})
 	}
 }

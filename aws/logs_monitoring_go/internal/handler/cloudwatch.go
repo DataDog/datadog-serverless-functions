@@ -23,11 +23,11 @@ import (
 )
 
 const (
-	logGroupCloudtrail  = "_cloudtrail_"
+	logGroupCloudTrail  = "_cloudtrail_"
 	logGroupKinesis     = "/aws/kinesis"
 	logGroupLambda      = "/aws/lambda"
 	logGroupSNS         = "sns/"
-	logStreamCloudtrail = "_CloudTrail_"
+	logStreamCloudTrail = "_CloudTrail_"
 )
 
 // Custom log groups use the log stream format: YYYY/MM/DD/<function_name>[<function_version>][<execution_environment_GUID>]
@@ -110,7 +110,7 @@ func (h *cloudwatchHandler) newCloudwatchBaseEntry(data events.CloudwatchLogsDat
 			Owner:     data.Owner,
 		},
 	}
-	source := cloudwatchSource(strings.ToLower(logGroup), logStream)
+	source := cloudWatchSource(strings.ToLower(logGroup), logStream)
 
 	entry := h.tmpl.NewEntry()
 	entry.Source = cmp.Or(entry.Source, source)
@@ -130,13 +130,13 @@ func (h *cloudwatchHandler) newCloudwatchBaseEntry(data events.CloudwatchLogsDat
 func (h *cloudwatchHandler) newCloudwatchLogEntry(event events.CloudwatchLogsLogEvent, entry model.LogEntry) model.LogEntry {
 	tags, service, message := extractFromMessage(event.Message)
 
-	entry.Service = cmp.Or(service, entry.Service, entry.Source)
+	entry.Service = cmp.Or(service, entry.Service, string(entry.Source))
 	entry.Tags = slices.Concat(tags, entry.Tags)
 	entry.Message = message
 	entry.ID = event.ID
 	entry.Timestamp = event.Timestamp
 
-	if entry.Source == sourceCloudtrail {
+	if entry.Source == sourceCloudTrail {
 		entry.Host = cloudtrailHost(event.Message)
 	}
 
@@ -147,12 +147,12 @@ func (h *cloudwatchHandler) newCloudwatchLogEntry(event events.CloudwatchLogsLog
 	return entry
 }
 
-func cloudwatchSource(logGroup, logStream string) string {
-	if strings.Contains(logStream, logStreamCloudtrail) {
-		return sourceCloudtrail
+func cloudWatchSource(logGroup, logStream string) model.Source {
+	if strings.Contains(logStream, logStreamCloudTrail) {
+		return sourceCloudTrail
 	}
-	if strings.HasPrefix(logGroup, logGroupCloudtrail) {
-		return sourceCloudtrail
+	if strings.HasPrefix(logGroup, logGroupCloudTrail) {
+		return sourceCloudTrail
 	}
 	if strings.HasPrefix(logGroup, logGroupKinesis) {
 		return sourceKinesis
@@ -163,8 +163,8 @@ func cloudwatchSource(logGroup, logStream string) string {
 	if strings.HasPrefix(logGroup, logGroupSNS) {
 		return sourceSNS
 	}
-	if strings.Contains(logGroup, sourceCloudtrail) {
-		return sourceCloudtrail
+	if strings.Contains(logGroup, string(sourceCloudTrail)) {
+		return sourceCloudTrail
 	}
-	return sourceCloudwatch
+	return sourceCloudWatch
 }
