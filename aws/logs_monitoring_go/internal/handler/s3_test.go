@@ -354,8 +354,8 @@ func wantCloudTrailEntry(message, host string) model.LogEntry {
 	entry := model.NewLogEntry()
 	entry.Message = message
 	entry.Host = host
-	entry.Source = sourceCloudtrail
-	entry.Service = sourceCloudtrail
+	entry.Source = sourceCloudTrail
+	entry.Service = string(sourceCloudTrail)
 	entry.Metadata = model.S3Metadata{
 		LambdaOrigin: testutil.LambdaOrigin(),
 		Origin:       model.S3Origin{Bucket: "trail-bucket", Key: testCloudTrailKey},
@@ -367,7 +367,7 @@ func wantVpcFlowLogsEntry(message string) model.LogEntry {
 	entry := model.NewLogEntry()
 	entry.Message = message
 	entry.Source = sourceS3
-	entry.Service = sourceS3
+	entry.Service = string(sourceS3)
 	entry.Metadata = model.S3Metadata{
 		LambdaOrigin: testutil.LambdaOrigin(),
 		Origin:       model.S3Origin{Bucket: "vpc-bucket", Key: testVpcFlowLogsKey},
@@ -379,7 +379,7 @@ func wantWAFEntry(message string) model.LogEntry {
 	entry := model.NewLogEntry()
 	entry.Message = message
 	entry.Source = sourceWAF
-	entry.Service = sourceWAF
+	entry.Service = string(sourceWAF)
 	entry.Metadata = model.S3Metadata{
 		LambdaOrigin: testutil.LambdaOrigin(),
 		Origin:       model.S3Origin{Bucket: "waf-bucket", Key: testWAFKey},
@@ -390,7 +390,7 @@ func wantWAFEntry(message string) model.LogEntry {
 func wantS3Entry(message, source, service string, tags model.Tags) model.LogEntry {
 	entry := model.NewLogEntry()
 	entry.Message = message
-	entry.Source = source
+	entry.Source = model.Source(source)
 	entry.Service = service
 	entry.Tags = tags
 	entry.Metadata = model.S3Metadata{

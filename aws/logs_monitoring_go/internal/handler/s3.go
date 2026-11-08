@@ -78,15 +78,15 @@ func (h *s3Handler) processRecord(ctx context.Context, out chan<- json.RawMessag
 		}
 	}()
 
-	source := S3Source(eventRecord.S3.Object.URLDecodedKey)
+	source := s3Source(eventRecord.S3.Object.URLDecodedKey)
 	slog.DebugContext(
 		ctx, "processing S3 object",
 		slog.String("bucket", eventRecord.S3.Bucket.Name),
 		slog.String("key", eventRecord.S3.Object.URLDecodedKey),
-		slog.String("source", source),
+		slog.String("source", string(source)),
 	)
 	switch source {
-	case sourceCloudtrail:
+	case sourceCloudTrail:
 		err = h.CloudTrail(ctx, out, reader, eventRecord)
 	case sourceWAF:
 		err = h.WAF(ctx, out, reader, eventRecord)
@@ -100,7 +100,7 @@ func (h *s3Handler) processRecord(ctx context.Context, out chan<- json.RawMessag
 	return nil
 }
 
-func S3Source(key string) string {
+func s3Source(key string) model.Source {
 	if strings.Contains(key, s3KeyWAF1) || strings.Contains(key, s3KeyWAF2) {
 		return sourceWAF
 	}
@@ -108,7 +108,7 @@ func S3Source(key string) string {
 		return sourceKinesis
 	}
 	if cloudTrailRegex.Match([]byte(key)) {
-		return sourceCloudtrail
+		return sourceCloudTrail
 	}
 	return sourceS3
 }
@@ -189,11 +189,11 @@ func (h *s3Handler) CloudTrail(ctx context.Context, out chan<- json.RawMessage, 
 }
 
 func (h *s3Handler) newBaseEntry(eventRecord events.S3EventRecord) model.LogEntry {
-	source := S3Source(eventRecord.S3.Object.URLDecodedKey)
+	source := s3Source(eventRecord.S3.Object.URLDecodedKey)
 
 	entry := h.tmpl.NewEntry()
 	entry.Source = cmp.Or(entry.Source, source)
-	entry.Service = cmp.Or(entry.Service, source)
+	entry.Service = cmp.Or(entry.Service, string(source))
 	entry.Metadata = model.S3Metadata{
 		LambdaOrigin: h.origin,
 		Origin: model.S3Origin{

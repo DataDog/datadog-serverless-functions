@@ -13,11 +13,11 @@ import (
 
 type Template struct {
 	service string
-	source  string
+	source  model.Source
 	tags    model.Tags
 }
 
-func NewTemplate(service, source string, tags model.Tags) Template {
+func NewTemplate(service string, source model.Source, tags model.Tags) Template {
 	return Template{service: service, source: source, tags: slices.Clip(tags)}
 }
 
