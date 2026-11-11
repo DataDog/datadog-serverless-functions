@@ -9,28 +9,22 @@ import (
 	"encoding/json/jsontext"
 	"encoding/json/v2"
 	"fmt"
-	"log/slog"
 
 	"github.com/aws/aws-lambda-go/events"
 )
 
 func sns(event jsontext.Value) (Event, error) {
-	var snsEvent events.SNSEvent
-	if err := json.Unmarshal(event, &snsEvent); err != nil {
+	var e events.SNSEvent
+	if err := json.Unmarshal(event, &e); err != nil {
 		return Event{}, fmt.Errorf("unmarshal: %w", err)
 	}
 
-	inner := jsontext.Value(snsEvent.Records[0].SNS.Message)
+	msg := jsontext.Value(e.Records[0].SNS.Message)
 
 	var disc recordsDiscriminator
-	if err := json.Unmarshal(inner, &disc); err != nil {
-		return Event{ContentType: ContentTypeSNS, Payload: inner}, nil
+	if err := json.Unmarshal(msg, &disc); err == nil && len(disc.Records) > 0 && disc.Records[0].EventSource == eventSourceS3 {
+		return Event{ContentType: ContentTypeS3, Payload: msg}, nil
 	}
 
-	if len(disc.Records) > 0 && disc.Records[0].EventSource == eventSourceS3 {
-		slog.Debug("S3 notification found in SNS")
-		return Event{ContentType: ContentTypeS3, Payload: inner}, nil
-	}
-
-	return Event{}, fmt.Errorf("unknown event: %q", disc.Records[0].EventSource)
+	return Event{ContentType: ContentTypeSNS, Payload: msg}, nil
 }

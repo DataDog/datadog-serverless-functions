@@ -66,7 +66,7 @@ func sqsBody(body string) (Event, error) {
 			return Event{ContentType: ContentTypeS3, Payload: jsontext.Value(disc.Message)}, nil
 		}
 
-		return Event{ContentType: ContentTypeSNS, Payload: raw}, nil
+		return Event{ContentType: ContentTypeSNS, Payload: jsontext.Value(disc.Message)}, nil
 	}
 
 	return Event{}, fmt.Errorf("unknown event")
