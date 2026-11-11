@@ -6,7 +6,7 @@
 package model
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"strings"
 )
 

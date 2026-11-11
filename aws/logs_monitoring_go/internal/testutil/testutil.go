@@ -10,7 +10,8 @@ import (
 	"compress/gzip"
 	"context"
 	"encoding/base64"
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"fmt"
 	"strings"
 	"testing"
@@ -52,14 +53,14 @@ func MustGzip(t *testing.T, data []byte) []byte {
 func MustGzipJSON(t *testing.T, v any) []byte {
 	t.Helper()
 
-	raw, err := json.Marshal(v)
+	raw, err := json.Marshal(v, json.Deterministic(true))
 	if err != nil {
 		t.Fatalf("marshal: %v", err)
 	}
 	return MustGzip(t, raw)
 }
 
-func MustCloudwatchEvent(t *testing.T, data []byte) json.RawMessage {
+func MustCloudwatchEvent(t *testing.T, data []byte) jsontext.Value {
 	t.Helper()
 
 	evt := events.CloudwatchLogsEvent{
@@ -75,7 +76,7 @@ func MustCloudwatchEvent(t *testing.T, data []byte) json.RawMessage {
 	return raw
 }
 
-func MustKinesisEvent(t *testing.T, records ...[]byte) json.RawMessage {
+func MustKinesisEvent(t *testing.T, records ...[]byte) jsontext.Value {
 	t.Helper()
 
 	var evt events.KinesisEvent
@@ -95,7 +96,7 @@ func MustKinesisEvent(t *testing.T, records ...[]byte) json.RawMessage {
 	return raw
 }
 
-func GenerateJSONLog(t *testing.T, size int) json.RawMessage {
+func GenerateJSONLog(t *testing.T, size int) jsontext.Value {
 	t.Helper()
 
 	const template = `{"id":"0","timestamp":1718540400000,"message":"%s","ddsourcecategory":"aws"}`
@@ -106,13 +107,13 @@ func GenerateJSONLog(t *testing.T, size int) json.RawMessage {
 		t.Fatalf("GenerateJSONLog: requested size %d is smaller than the fixed overhead %d", size, overhead)
 	}
 
-	return json.RawMessage(fmt.Sprintf(template, strings.Repeat("x", padding)))
+	return jsontext.Value(fmt.Sprintf(template, strings.Repeat("x", padding)))
 }
 
-func GenerateJSONLogs(t *testing.T, sizes ...int) json.RawMessage {
+func GenerateJSONLogs(t *testing.T, sizes ...int) jsontext.Value {
 	t.Helper()
 
-	logs := make([]json.RawMessage, 0, len(sizes))
+	logs := make([]jsontext.Value, 0, len(sizes))
 	for _, size := range sizes {
 		logs = append(logs, GenerateJSONLog(t, size))
 	}
@@ -133,7 +134,7 @@ func SQSRecord(messageID, body string) events.SQSMessage {
 	}
 }
 
-func MustSQSEvent(t *testing.T, records ...events.SQSMessage) json.RawMessage {
+func MustSQSEvent(t *testing.T, records ...events.SQSMessage) jsontext.Value {
 	t.Helper()
 
 	raw, err := json.Marshal(events.SQSEvent{Records: records})
@@ -165,7 +166,7 @@ func Drain[T any](t *testing.T, ch <-chan T) (values []T) {
 	return values
 }
 
-func AssertJSONEntries(t *testing.T, want []model.LogEntry, got []json.RawMessage) {
+func AssertJSONEntries(t *testing.T, want []model.LogEntry, got []jsontext.Value) {
 	t.Helper()
 
 	require.Len(t, got, len(want))

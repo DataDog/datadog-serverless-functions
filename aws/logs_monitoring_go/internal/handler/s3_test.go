@@ -7,7 +7,7 @@ package handler
 
 import (
 	"bytes"
-	"encoding/json"
+	"encoding/json/jsontext"
 	"errors"
 	"io"
 	"regexp"
@@ -332,7 +332,7 @@ func TestProcessS3Record(t *testing.T) {
 			mock := mocks.NewMockS3(ctrl)
 			tc.mockSetup(mock)
 
-			out := make(chan json.RawMessage, len(tc.want))
+			out := make(chan jsontext.Value, len(tc.want))
 			handler := newS3(newBase(tc.cfg, testutil.LambdaOrigin(), nil, tc.filterer), mock)
 
 			err := handler.processRecord(t.Context(), out, tc.eventRecord)

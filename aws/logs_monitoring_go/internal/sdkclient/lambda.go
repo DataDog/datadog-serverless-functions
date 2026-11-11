@@ -9,7 +9,7 @@ package sdkclient
 
 import (
 	"context"
-	"encoding/json"
+	"encoding/json/jsontext"
 	"errors"
 	"fmt"
 	"sync"
@@ -31,7 +31,7 @@ type Lambda interface {
 	Invoke(ctx context.Context, params *lambda.InvokeInput, optFns ...func(*lambda.Options)) (*lambda.InvokeOutput, error)
 }
 
-func InvokeTargets(ctx context.Context, lambdaClient Lambda, targets []string, event json.RawMessage) error {
+func InvokeTargets(ctx context.Context, lambdaClient Lambda, targets []string, event jsontext.Value) error {
 	var err error
 	for _, target := range targets {
 		_, invokeErr := lambdaClient.Invoke(ctx, &lambda.InvokeInput{

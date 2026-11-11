@@ -9,7 +9,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
-	"encoding/json"
+	"encoding/json/jsontext"
 	"errors"
 	"fmt"
 	"io"
@@ -91,7 +91,7 @@ func New(cfg Config, client *http.Client, store storage.Storage) *Forwarder {
 
 func (f *Forwarder) Start(
 	ctx context.Context,
-	in <-chan json.RawMessage,
+	in <-chan jsontext.Value,
 	storageTag string,
 	delivery Delivery,
 ) error {
@@ -102,7 +102,7 @@ func (f *Forwarder) Start(
 	eg, ctx := errgroup.WithContext(ctx)
 	eg.SetLimit(1 + httpclient.MaxConcurrency)
 
-	batches := make(chan json.RawMessage, maxBatchesInMemory)
+	batches := make(chan jsontext.Value, maxBatchesInMemory)
 	eg.Go(func() error {
 		defer close(batches)
 		if err := batcher.New(maxLogSize, maxBatchSize, maxLogsPerBatch).Start(ctx, in, batches); err != nil {
@@ -252,7 +252,7 @@ func (f *Forwarder) Retry(ctx context.Context) error {
 	return drainErr.load()
 }
 
-func (f *Forwarder) send(ctx context.Context, payload json.RawMessage, storageTag string, retry bool) error {
+func (f *Forwarder) send(ctx context.Context, payload jsontext.Value, storageTag string, retry bool) error {
 	ctx, cancel := context.WithTimeout(ctx, httpclient.RequestTimeout)
 	defer cancel()
 
@@ -303,7 +303,7 @@ func (f *Forwarder) send(ctx context.Context, payload json.RawMessage, storageTa
 	return nil
 }
 
-func (f *Forwarder) compress(payload json.RawMessage) (json.RawMessage, error) {
+func (f *Forwarder) compress(payload jsontext.Value) (jsontext.Value, error) {
 	buf := bufPool.Get().(*bytes.Buffer)
 	gz := f.gzipPool.Get().(*gzip.Writer)
 	defer bufPool.Put(buf)

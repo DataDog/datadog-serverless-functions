@@ -6,7 +6,8 @@
 package handler
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"strings"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/model"
@@ -17,7 +18,7 @@ func extractFromMessage(message string) (model.Tags, string, string) {
 		return nil, "", message
 	}
 
-	var fields map[string]json.RawMessage
+	var fields map[string]jsontext.Value
 	if err := json.Unmarshal([]byte(message), &fields); err != nil {
 		return nil, "", message
 	}

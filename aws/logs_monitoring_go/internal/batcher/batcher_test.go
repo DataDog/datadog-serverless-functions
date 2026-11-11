@@ -6,7 +6,8 @@
 package batcher
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"testing"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/testutil"
@@ -18,7 +19,7 @@ func TestBatch(t *testing.T) {
 	t.Parallel()
 
 	tests := map[string]struct {
-		items          []json.RawMessage
+		items          []jsontext.Value
 		wantBatchItems []int
 	}{
 		"empty": {
@@ -26,19 +27,19 @@ func TestBatch(t *testing.T) {
 			wantBatchItems: nil,
 		},
 		"single entry": {
-			items:          []json.RawMessage{testutil.GenerateJSONLogs(t, 1024)},
+			items:          []jsontext.Value{testutil.GenerateJSONLogs(t, 1024)},
 			wantBatchItems: []int{1},
 		},
 		"multiple entries, one batch": {
-			items:          []json.RawMessage{testutil.GenerateJSONLogs(t, 1024), testutil.GenerateJSONLogs(t, 1024), testutil.GenerateJSONLogs(t, 1024)},
+			items:          []jsontext.Value{testutil.GenerateJSONLogs(t, 1024), testutil.GenerateJSONLogs(t, 1024), testutil.GenerateJSONLogs(t, 1024)},
 			wantBatchItems: []int{3},
 		},
 		"drop oversized entry": {
-			items:          []json.RawMessage{testutil.GenerateJSONLogs(t, 1*1024*1024+1)},
+			items:          []jsontext.Value{testutil.GenerateJSONLogs(t, 1*1024*1024+1)},
 			wantBatchItems: nil,
 		},
 		"split": {
-			items: func() (items []json.RawMessage) {
+			items: func() (items []jsontext.Value) {
 				for range 1001 {
 					items = append(items, testutil.GenerateJSONLog(t, 100))
 				}
@@ -54,7 +55,7 @@ func TestBatch(t *testing.T) {
 
 			batcher := New(1*1024*1024, 5*1024*1024, 1000)
 			in := testutil.ToChannel(t, tc.items)
-			out := make(chan json.RawMessage, len(tc.wantBatchItems))
+			out := make(chan jsontext.Value, len(tc.wantBatchItems))
 
 			err := batcher.Start(t.Context(), in, out)
 			close(out)
@@ -62,7 +63,7 @@ func TestBatch(t *testing.T) {
 			got := testutil.Drain(t, out)
 			require.NoError(t, err)
 			for i := range len(tc.wantBatchItems) {
-				var gotItems []json.RawMessage
+				var gotItems []jsontext.Value
 				_ = json.Unmarshal(got[i], &gotItems)
 				assert.Equal(t, tc.wantBatchItems[i], len(gotItems))
 			}

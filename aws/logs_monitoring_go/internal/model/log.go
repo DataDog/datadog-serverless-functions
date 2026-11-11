@@ -14,16 +14,16 @@ const (
 type Source string
 
 type LogEntry struct {
-	Host           string     `json:"host,omitempty"`
-	ID             string     `json:"id,omitempty"`
-	Timestamp      int64      `json:"timestamp,omitempty"`
-	Message        string     `json:"message,omitempty"`
-	Service        string     `json:"service,omitempty"`
-	Source         Source     `json:"ddsource"`
-	SourceCategory string     `json:"ddsourcecategory"`
-	Tags           Tags       `json:"ddtags"`
-	Metadata       any        `json:"aws"`
-	Lambda         *LambdaLog `json:"lambda,omitempty"`
+	Host           string    `json:"host,omitzero"`
+	ID             string    `json:"id,omitzero"`
+	Timestamp      int64     `json:"timestamp,omitzero"`
+	Message        string    `json:"message,omitzero"`
+	Service        string    `json:"service,omitzero"`
+	Source         Source    `json:"ddsource"`
+	SourceCategory string    `json:"ddsourcecategory"`
+	Tags           Tags      `json:"ddtags"`
+	Metadata       any       `json:"aws"`
+	Lambda         LambdaLog `json:"lambda,omitzero"`
 }
 
 func NewLogEntry() LogEntry {

@@ -6,7 +6,7 @@
 package handler
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
 	"testing"
 
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/testutil"
@@ -20,16 +20,16 @@ func TestKinesisHandler_Handle(t *testing.T) {
 	ctx := t.Context()
 
 	tests := map[string]struct {
-		event   json.RawMessage
+		event   jsontext.Value
 		wantN   int
 		wantErr bool
 	}{
 		"invalid JSON": {
-			event:   json.RawMessage(`not json`),
+			event:   jsontext.Value(`not json`),
 			wantErr: true,
 		},
 		"no records": {
-			event: json.RawMessage(`{"Records":[]}`),
+			event: jsontext.Value(`{"Records":[]}`),
 			wantN: 0,
 		},
 		"single record": {
@@ -76,7 +76,7 @@ func TestKinesisHandler_Handle(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			out := make(chan json.RawMessage, tc.wantN)
+			out := make(chan jsontext.Value, tc.wantN)
 			handler := &kinesisHandler{baseHandler: newBase(&Config{}, testutil.LambdaOrigin(), nil, nil)}
 
 			err := handler.Handle(ctx, tc.event, out)

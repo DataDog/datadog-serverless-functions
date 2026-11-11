@@ -5,7 +5,7 @@
 
 package parser
 
-import "encoding/json"
+import "encoding/json/jsontext"
 
 //go:generate stringer -type ContentType -trimprefix ContentType -output content_string.go
 type ContentType int
@@ -22,5 +22,5 @@ const (
 
 type Event struct {
 	ContentType ContentType
-	Payload     json.RawMessage
+	Payload     jsontext.Value
 }

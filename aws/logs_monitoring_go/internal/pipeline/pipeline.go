@@ -7,7 +7,7 @@ package pipeline
 
 import (
 	"context"
-	"encoding/json"
+	"encoding/json/jsontext"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -51,7 +51,7 @@ func New(
 	}
 }
 
-func (p Pipeline) Start(ctx context.Context, origin model.LambdaOrigin, awsevent json.RawMessage) (Result, error) {
+func (p Pipeline) Start(ctx context.Context, origin model.LambdaOrigin, awsevent jsontext.Value) (Result, error) {
 	if parser.IsSQS(awsevent) {
 		events, err := parser.SQS(awsevent)
 		if err != nil {
@@ -145,7 +145,7 @@ func (p Pipeline) run(
 
 	eg, ctx := errgroup.WithContext(ctx)
 
-	entries := make(chan json.RawMessage)
+	entries := make(chan jsontext.Value)
 	eg.Go(func() error {
 		defer close(entries)
 		h, err := handler.New(p.hcfg, origin, p.scrubber, p.filterer, p.s3Client, event.ContentType)

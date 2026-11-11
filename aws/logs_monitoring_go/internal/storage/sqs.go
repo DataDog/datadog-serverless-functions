@@ -7,7 +7,8 @@ package storage
 
 import (
 	"context"
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"fmt"
 	"iter"
 	"log/slog"
@@ -44,14 +45,14 @@ func (s *SQS) Store(ctx context.Context, batch Batch) error {
 		slog.Int("batch_bytes", len(batch.Data)),
 	)
 
-	var logs []json.RawMessage
+	var logs []jsontext.Value
 	if err := json.Unmarshal(batch.Data, &logs); err != nil {
 		return fmt.Errorf("unmarshal: %w", err)
 	}
 
 	eg, ctx := errgroup.WithContext(ctx)
 
-	in := make(chan json.RawMessage, 10)
+	in := make(chan jsontext.Value, 10)
 	eg.Go(func() error {
 		defer close(in)
 		for _, log := range logs {
@@ -62,7 +63,7 @@ func (s *SQS) Store(ctx context.Context, batch Batch) error {
 		return nil
 	})
 
-	out := make(chan json.RawMessage)
+	out := make(chan jsontext.Value)
 	eg.Go(func() error {
 		defer close(out)
 		b := batcher.New(maxSizePerSQSMessage, maxSizePerSQSMessage, 0)

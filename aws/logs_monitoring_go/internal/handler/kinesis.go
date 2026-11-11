@@ -7,7 +7,8 @@ package handler
 
 import (
 	"context"
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"fmt"
 	"log/slog"
 
@@ -18,7 +19,7 @@ type kinesisHandler struct {
 	baseHandler
 }
 
-func (h *kinesisHandler) Handle(ctx context.Context, event json.RawMessage, out chan<- json.RawMessage) error {
+func (h *kinesisHandler) Handle(ctx context.Context, event jsontext.Value, out chan<- jsontext.Value) error {
 	var kinesisEvent events.KinesisEvent
 	if err := json.Unmarshal(event, &kinesisEvent); err != nil {
 		return fmt.Errorf("unmarshal: %w", err)

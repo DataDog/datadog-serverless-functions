@@ -6,7 +6,8 @@
 package handler
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"log/slog"
 )
 
@@ -16,7 +17,7 @@ const (
 	resourcesKey = "resources"
 )
 
-func separateFindings(event json.RawMessage) []string {
+func separateFindings(event jsontext.Value) []string {
 	var raw map[string]any
 	if err := json.Unmarshal(event, &raw); err != nil {
 		return nil
@@ -41,7 +42,7 @@ func separateFindings(event json.RawMessage) []string {
 		}
 		detail[findingKey] = finding
 
-		out, err := json.Marshal(raw)
+		out, err := json.Marshal(raw, json.Deterministic(true))
 		if err != nil {
 			slog.Warn("marshal securityhub finding, skipped", slog.Any("error", err))
 			continue

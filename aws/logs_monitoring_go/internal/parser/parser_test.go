@@ -6,7 +6,7 @@
 package parser
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -17,56 +17,56 @@ func TestParse(t *testing.T) {
 	t.Parallel()
 
 	tests := map[string]struct {
-		event   json.RawMessage
+		event   jsontext.Value
 		want    ContentType
 		wantErr bool
 	}{
 		"cloudwatch logs": {
-			event: json.RawMessage(`{"awslogs":{"data":"dGVzdA=="}}`),
+			event: jsontext.Value(`{"awslogs":{"data":"dGVzdA=="}}`),
 			want:  ContentTypeCloudwatchLogs,
 		},
 		"s3": {
-			event: json.RawMessage(`{"Records":[{"eventSource":"aws:s3","s3":{"bucket":{"name":"b"},"object":{"key":"k"}}}]}`),
+			event: jsontext.Value(`{"Records":[{"eventSource":"aws:s3","s3":{"bucket":{"name":"b"},"object":{"key":"k"}}}]}`),
 			want:  ContentTypeS3,
 		},
 		"kinesis": {
-			event: json.RawMessage(`{"Records":[{"eventSource":"aws:kinesis","kinesis":{"data":"dGVzdA=="}}]}`),
+			event: jsontext.Value(`{"Records":[{"eventSource":"aws:kinesis","kinesis":{"data":"dGVzdA=="}}]}`),
 			want:  ContentTypeKinesis,
 		},
 		"eventbridge generic": {
-			event: json.RawMessage(`{"version":"0","id":"abc","detail-type":"Scheduled Event","source":"aws.events","detail":{}}`),
+			event: jsontext.Value(`{"version":"0","id":"abc","detail-type":"Scheduled Event","source":"aws.events","detail":{}}`),
 			want:  ContentTypeEventBridge,
 		},
 		"eventbridge s3": {
-			event: json.RawMessage(`{"version":"0","detail-type":"Object Created","source":"aws.s3","detail":{"bucket":{"name":"my-bucket"},"object":{"key":"my-key"}}}`),
+			event: jsontext.Value(`{"version":"0","detail-type":"Object Created","source":"aws.s3","detail":{"bucket":{"name":"my-bucket"},"object":{"key":"my-key"}}}`),
 			want:  ContentTypeS3,
 		},
 		"eventbridge ec2": {
-			event: json.RawMessage(`{"version":"0","detail-type":"EC2 Instance State-change Notification","source":"aws.ec2","detail":{"instance-id":"i-123"}}`),
+			event: jsontext.Value(`{"version":"0","detail-type":"EC2 Instance State-change Notification","source":"aws.ec2","detail":{"instance-id":"i-123"}}`),
 			want:  ContentTypeEventBridge,
 		},
 		"eventbridge s3 without object created": {
-			event: json.RawMessage(`{"version":"0","detail-type":"Object Deleted","source":"aws.s3","detail":{}}`),
+			event: jsontext.Value(`{"version":"0","detail-type":"Object Deleted","source":"aws.s3","detail":{}}`),
 			want:  ContentTypeEventBridge,
 		},
 		"sns with s3": {
-			event: json.RawMessage(`{"Records":[{"EventSource":"aws:sns","Sns":{"Type":"Notification","Message":"{\"Records\":[{\"eventSource\":\"aws:s3\",\"s3\":{\"bucket\":{\"name\":\"b\"},\"object\":{\"key\":\"k\"}}}]}"}}]}`),
+			event: jsontext.Value(`{"Records":[{"EventSource":"aws:sns","Sns":{"Type":"Notification","Message":"{\"Records\":[{\"eventSource\":\"aws:s3\",\"s3\":{\"bucket\":{\"name\":\"b\"},\"object\":{\"key\":\"k\"}}}]}"}}]}`),
 			want:  ContentTypeS3,
 		},
 		"sns standalone": {
-			event: json.RawMessage(`{"Records":[{"EventSource":"aws:sns","Sns":{"Type":"Notification","Message":"hello world","TopicArn":"arn:aws:sns:us-east-1:123456789012:my-topic"}}]}`),
+			event: jsontext.Value(`{"Records":[{"EventSource":"aws:sns","Sns":{"Type":"Notification","Message":"hello world","TopicArn":"arn:aws:sns:us-east-1:123456789012:my-topic"}}]}`),
 			want:  ContentTypeSNS,
 		},
 		"empty object": {
-			event:   json.RawMessage(`{}`),
+			event:   jsontext.Value(`{}`),
 			wantErr: true,
 		},
 		"unsupported source": {
-			event:   json.RawMessage(`{"Records":[{"eventSource":"aws:dynamodb"}]}`),
+			event:   jsontext.Value(`{"Records":[{"eventSource":"aws:dynamodb"}]}`),
 			wantErr: true,
 		},
 		"not JSON": {
-			event:   json.RawMessage(`not json`),
+			event:   jsontext.Value(`not json`),
 			wantErr: true,
 		},
 	}
@@ -93,37 +93,37 @@ func TestSQS(t *testing.T) {
 	t.Parallel()
 
 	tests := map[string]struct {
-		event      json.RawMessage
+		event      jsontext.Value
 		want       []ContentType
 		wantFailed []int
 		wantErr    bool
 	}{
 		"direct s3": {
-			event: json.RawMessage(`{"Records":[{"eventSource":"aws:sqs","body":"{\"Records\":[{\"eventSource\":\"aws:s3\",\"s3\":{\"bucket\":{\"name\":\"b\"},\"object\":{\"key\":\"k\"}}}]}"}]}`),
+			event: jsontext.Value(`{"Records":[{"eventSource":"aws:sqs","body":"{\"Records\":[{\"eventSource\":\"aws:s3\",\"s3\":{\"bucket\":{\"name\":\"b\"},\"object\":{\"key\":\"k\"}}}]}"}]}`),
 			want:  []ContentType{ContentTypeS3},
 		},
 		"sns s3": {
-			event: json.RawMessage(`{"Records":[{"eventSource":"aws:sqs","body":"{\"Type\":\"Notification\",\"Message\":\"{\\\"Records\\\":[{\\\"eventSource\\\":\\\"aws:s3\\\",\\\"s3\\\":{\\\"bucket\\\":{\\\"name\\\":\\\"b\\\"},\\\"object\\\":{\\\"key\\\":\\\"k\\\"}}}]}\"}"}]}`),
+			event: jsontext.Value(`{"Records":[{"eventSource":"aws:sqs","body":"{\"Type\":\"Notification\",\"Message\":\"{\\\"Records\\\":[{\\\"eventSource\\\":\\\"aws:s3\\\",\\\"s3\\\":{\\\"bucket\\\":{\\\"name\\\":\\\"b\\\"},\\\"object\\\":{\\\"key\\\":\\\"k\\\"}}}]}\"}"}]}`),
 			want:  []ContentType{ContentTypeS3},
 		},
 		"multiple records": {
-			event: json.RawMessage(`{"Records":[` +
+			event: jsontext.Value(`{"Records":[` +
 				`{"eventSource":"aws:sqs","body":"{\"Records\":[{\"eventSource\":\"aws:s3\",\"s3\":{\"bucket\":{\"name\":\"b1\"},\"object\":{\"key\":\"k1\"}}}]}"},` +
 				`{"eventSource":"aws:sqs","body":"{\"Records\":[{\"eventSource\":\"aws:s3\",\"s3\":{\"bucket\":{\"name\":\"b2\"},\"object\":{\"key\":\"k2\"}}}]}"}` +
 				`]}`),
 			want: []ContentType{ContentTypeS3, ContentTypeS3},
 		},
 		"sns standalone": {
-			event: json.RawMessage(`{"Records":[{"eventSource":"aws:sqs","body":"{\"Type\":\"Notification\",\"Message\":\"hello world\"}"}]}`),
+			event: jsontext.Value(`{"Records":[{"eventSource":"aws:sqs","body":"{\"Type\":\"Notification\",\"Message\":\"hello world\"}"}]}`),
 			want:  []ContentType{ContentTypeSNS},
 		},
 		"subscription confirmation skipped": {
-			event:      json.RawMessage(`{"Records":[{"eventSource":"aws:sqs","body":"{\"Type\":\"SubscriptionConfirmation\",\"Message\":\"confirm\"}"}]}`),
+			event:      jsontext.Value(`{"Records":[{"eventSource":"aws:sqs","body":"{\"Type\":\"SubscriptionConfirmation\",\"Message\":\"confirm\"}"}]}`),
 			want:       []ContentType{ContentTypeUnknown},
 			wantFailed: []int{0},
 		},
 		"mixed valid and unrecognized": {
-			event: json.RawMessage(`{"Records":[` +
+			event: jsontext.Value(`{"Records":[` +
 				`{"eventSource":"aws:sqs","body":"{\"foo\":\"bar\"}"},` +
 				`{"eventSource":"aws:sqs","body":"{\"Records\":[{\"eventSource\":\"aws:s3\",\"s3\":{\"bucket\":{\"name\":\"b\"},\"object\":{\"key\":\"k\"}}}]}"}` +
 				`]}`),
@@ -131,16 +131,16 @@ func TestSQS(t *testing.T) {
 			wantFailed: []int{0},
 		},
 		"extra fields after body": {
-			event: json.RawMessage(`{"Records":[{"eventSource":"aws:sqs","body":"{\"Records\":[{\"eventSource\":\"aws:s3\",\"s3\":{\"bucket\":{\"name\":\"b\"},\"object\":{\"key\":\"k\"}}}]}","messageId":"abc","receiptHandle":"xyz","attributes":{"ApproximateReceiveCount":"1"}}]}`),
+			event: jsontext.Value(`{"Records":[{"eventSource":"aws:sqs","body":"{\"Records\":[{\"eventSource\":\"aws:s3\",\"s3\":{\"bucket\":{\"name\":\"b\"},\"object\":{\"key\":\"k\"}}}]}","messageId":"abc","receiptHandle":"xyz","attributes":{"ApproximateReceiveCount":"1"}}]}`),
 			want:  []ContentType{ContentTypeS3},
 		},
 		"malformed body json": {
-			event:      json.RawMessage(`{"Records":[{"eventSource":"aws:sqs","body":"not json"}]}`),
+			event:      jsontext.Value(`{"Records":[{"eventSource":"aws:sqs","body":"not json"}]}`),
 			want:       []ContentType{ContentTypeUnknown},
 			wantFailed: []int{0},
 		},
 		"unreadable batch": {
-			event:   json.RawMessage(`{"Records":[{"eventSource":"aws:sqs"`),
+			event:   jsontext.Value(`{"Records":[{"eventSource":"aws:sqs"`),
 			wantErr: true,
 		},
 	}
@@ -182,7 +182,7 @@ func TestSQS(t *testing.T) {
 func TestSQS_MessageID(t *testing.T) {
 	t.Parallel()
 
-	event := json.RawMessage(`{"Records":[{"eventSource":"aws:sqs","body":"{\"Type\":\"Notification\",\"Message\":\"hello\"}","messageId":"abc","receiptHandle":"xyz"}]}`)
+	event := jsontext.Value(`{"Records":[{"eventSource":"aws:sqs","body":"{\"Type\":\"Notification\",\"Message\":\"hello\"}","messageId":"abc","receiptHandle":"xyz"}]}`)
 
 	got, err := SQS(event)
 

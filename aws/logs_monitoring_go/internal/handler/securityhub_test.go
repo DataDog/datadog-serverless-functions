@@ -6,7 +6,7 @@
 package handler
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -73,7 +73,7 @@ func TestSeparateFindings(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			got := separateFindings(json.RawMessage(tc.input))
+			got := separateFindings(jsontext.Value(tc.input))
 			require.Len(t, got, len(tc.want))
 			for i, want := range tc.want {
 				assert.JSONEq(t, want, got[i])

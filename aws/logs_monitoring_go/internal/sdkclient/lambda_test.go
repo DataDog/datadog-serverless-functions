@@ -6,7 +6,7 @@
 package sdkclient
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
 	"errors"
 	"testing"
 
@@ -22,7 +22,7 @@ import (
 func TestInvokeTargets(t *testing.T) {
 	t.Parallel()
 
-	event := json.RawMessage(`{"Records":[{"eventSource":"aws:s3","s3":{"bucket":{"name":"my-bucket"},"object":{"key":"my-key"}}}]}`)
+	event := jsontext.Value(`{"Records":[{"eventSource":"aws:s3","s3":{"bucket":{"name":"my-bucket"},"object":{"key":"my-key"}}}]}`)
 
 	tests := map[string]struct {
 		mockSetup func(m *mocks.MockLambda)

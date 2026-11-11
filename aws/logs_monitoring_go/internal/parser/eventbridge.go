@@ -6,7 +6,8 @@
 package parser
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"fmt"
 	"log/slog"
 	"net/url"
@@ -24,7 +25,7 @@ type s3EventBridgeDetail struct {
 	} `json:"object"`
 }
 
-func eventBridge(event json.RawMessage) (Event, error) {
+func eventBridge(event jsontext.Value) (Event, error) {
 	var eventBridgeEvent events.EventBridgeEvent
 	if err := json.Unmarshal(event, &eventBridgeEvent); err != nil {
 		return Event{}, fmt.Errorf("unmarshal: %w", err)
@@ -47,7 +48,7 @@ func eventBridge(event json.RawMessage) (Event, error) {
 	return Event{ContentType: ContentTypeEventBridge, Payload: event}, nil
 }
 
-func mapS3EventBridge(eb s3EventBridgeDetail) (json.RawMessage, error) {
+func mapS3EventBridge(eb s3EventBridgeDetail) (jsontext.Value, error) {
 	s3Event := events.S3Event{
 		Records: []events.S3EventRecord{{
 			EventSource: eventSourceS3,

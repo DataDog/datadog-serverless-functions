@@ -6,7 +6,8 @@
 package handler
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"fmt"
 	"io"
 	"iter"
@@ -20,40 +21,41 @@ var (
 
 func decodeCloudTrail(r io.Reader) iter.Seq2[string, error] {
 	return func(yield func(string, error) bool) {
-		dec := json.NewDecoder(r)
-		t, err := dec.Token()
+		dec := jsontext.NewDecoder(r)
+
+		tok, err := dec.ReadToken()
 		if err != nil {
 			yield("", err)
 			return
 		}
-		if t != json.Delim('{') {
-			yield("", fmt.Errorf(`expected "{" token, got %q`, t))
+		if tok.Kind() != '{' {
+			yield("", fmt.Errorf(`expected "{" token, got %q`, tok.String()))
 			return
 		}
 
-		t, err = dec.Token()
+		tok, err = dec.ReadToken()
 		if err != nil {
 			yield("", err)
 			return
 		}
-		if t != "Records" {
-			yield("", fmt.Errorf(`expected "Records" token, got %q`, t))
+		if tok.String() != "Records" {
+			yield("", fmt.Errorf(`expected "Records" token, got %q`, tok.String()))
 			return
 		}
 
-		t, err = dec.Token()
+		tok, err = dec.ReadToken()
 		if err != nil {
 			yield("", err)
 			return
 		}
-		if t != json.Delim('[') {
-			yield("", fmt.Errorf(`expected "[" token, got %q`, t))
+		if tok.Kind() != '[' {
+			yield("", fmt.Errorf(`expected "[" token, got %q`, tok.String()))
 			return
 		}
 
-		for dec.More() {
-			var raw json.RawMessage
-			if err := dec.Decode(&raw); err != nil {
+		for dec.PeekKind() != ']' {
+			raw, err := dec.ReadValue()
+			if err != nil {
 				yield("", fmt.Errorf(`decode: %w`, err))
 				return
 			}
