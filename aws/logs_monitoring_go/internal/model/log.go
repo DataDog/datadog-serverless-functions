@@ -19,7 +19,7 @@ type LogEntry struct {
 	Timestamp      int64     `json:"timestamp,omitzero"`
 	Message        string    `json:"message,omitzero"`
 	Service        string    `json:"service,omitzero"`
-	Source         string    `json:"ddsource"`
+	Source         Source    `json:"ddsource"`
 	SourceCategory string    `json:"ddsourcecategory"`
 	Tags           Tags      `json:"ddtags"`
 	Metadata       any       `json:"aws"`

@@ -26,7 +26,7 @@ func flattenWAFMessage(message string) string {
 	flattenByKey(msg, "rateBasedRuleList", "rateBasedRuleName", "", false)
 	flattenByKey(msg, nonTerminatingMatchingRulesKey, ruleIDKey, "", false)
 
-	out, err := json.Marshal(msg)
+	out, err := json.Marshal(msg, json.Deterministic(true))
 	if err != nil {
 		return message
 	}

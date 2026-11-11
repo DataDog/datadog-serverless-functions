@@ -53,7 +53,7 @@ func MustGzip(t *testing.T, data []byte) []byte {
 func MustGzipJSON(t *testing.T, v any) []byte {
 	t.Helper()
 
-	raw, err := json.Marshal(v)
+	raw, err := json.Marshal(v, json.Deterministic(true))
 	if err != nil {
 		t.Fatalf("marshal: %v", err)
 	}
@@ -173,44 +173,6 @@ func AssertJSONEntries(t *testing.T, want []model.LogEntry, got []jsontext.Value
 	for i := range want {
 		raw, err := json.Marshal(want[i])
 		require.NoError(t, err)
-		AssertJSONEq(t, string(raw), string(got[i]))
-	}
-}
-
-func AssertJSONEq(t *testing.T, want, got string) {
-	t.Helper()
-
-	var wantVal, gotVal any
-	require.NoError(t, json.Unmarshal([]byte(want), &wantVal), "want is not valid JSON")
-	require.NoError(t, json.Unmarshal([]byte(got), &gotVal), "got is not valid JSON")
-
-	assert.Equal(t, normalizeJSON(wantVal), normalizeJSON(gotVal))
-}
-
-func normalizeJSON(v any) any {
-	switch vv := v.(type) {
-	case string:
-		var parsed any
-		if err := json.Unmarshal([]byte(vv), &parsed); err == nil {
-			switch parsed.(type) {
-			case map[string]any, []any:
-				return normalizeJSON(parsed)
-			}
-		}
-		return vv
-	case map[string]any:
-		out := make(map[string]any, len(vv))
-		for k, val := range vv {
-			out[k] = normalizeJSON(val)
-		}
-		return out
-	case []any:
-		out := make([]any, len(vv))
-		for i, val := range vv {
-			out[i] = normalizeJSON(val)
-		}
-		return out
-	default:
-		return vv
+		assert.JSONEq(t, string(raw), string(got[i]))
 	}
 }

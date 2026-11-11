@@ -37,7 +37,7 @@ func (h *eventBridgeHandler) Handle(ctx context.Context, event jsontext.Value, o
 	}
 }
 
-func (h *eventBridgeHandler) eventBridge(ctx context.Context, event jsontext.Value, source string, out chan<- jsontext.Value) error {
+func (h *eventBridgeHandler) eventBridge(ctx context.Context, event jsontext.Value, source model.Source, out chan<- jsontext.Value) error {
 	message := string(event)
 	if h.filterer.ShouldExclude(message) {
 		return nil
@@ -49,7 +49,7 @@ func (h *eventBridgeHandler) eventBridge(ctx context.Context, event jsontext.Val
 	return h.emit(ctx, out, entry)
 }
 
-func (h *eventBridgeHandler) securityHub(ctx context.Context, event jsontext.Value, source string, out chan<- jsontext.Value) error {
+func (h *eventBridgeHandler) securityHub(ctx context.Context, event jsontext.Value, source model.Source, out chan<- jsontext.Value) error {
 	messages := separateFindings(event)
 	if len(messages) == 0 {
 		return h.eventBridge(ctx, event, source, out)
@@ -79,7 +79,7 @@ func (h *eventBridgeHandler) newEntry(source model.Source) model.LogEntry {
 	return entry
 }
 
-func eventBridgeSource(event jsontext.Value) (string, error) {
+func eventBridgeSource(event jsontext.Value) (model.Source, error) {
 	var s struct {
 		Source string `json:"source"`
 	}

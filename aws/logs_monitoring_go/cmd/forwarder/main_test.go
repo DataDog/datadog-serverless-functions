@@ -98,7 +98,7 @@ func assertGolden(t *testing.T, goldenPath string, actual any) {
 
 	expected, err := os.ReadFile(goldenPath)
 	require.NoError(t, err, "%q golden file missing, run with -update to create it", goldenPath)
-	testutil.AssertJSONEq(t, normalizeTags(t, expected), normalizeTags(t, actualJSON))
+	require.JSONEq(t, normalizeTags(t, expected), normalizeTags(t, actualJSON))
 }
 
 func normalizeTags(t *testing.T, data []byte) string {

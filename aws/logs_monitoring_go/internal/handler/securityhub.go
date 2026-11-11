@@ -42,7 +42,7 @@ func separateFindings(event jsontext.Value) []string {
 		}
 		detail[findingKey] = finding
 
-		out, err := json.Marshal(raw)
+		out, err := json.Marshal(raw, json.Deterministic(true))
 		if err != nil {
 			slog.Warn("marshal securityhub finding, skipped", slog.Any("error", err))
 			continue
