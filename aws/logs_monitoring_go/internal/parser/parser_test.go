@@ -7,8 +7,11 @@ package parser
 
 import (
 	"encoding/json/jsontext"
+	"encoding/json/v2"
+	"errors"
 	"testing"
 
+	"github.com/aws/aws-lambda-go/events"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -16,46 +19,61 @@ import (
 func TestParse(t *testing.T) {
 	t.Parallel()
 
+	cloudwatchEvent := jsontext.Value(`{"awslogs":{"data":"dGVzdA=="}}`)
+	s3Event := jsontext.Value(`{"Records":[{"eventSource":"aws:s3","s3":{"bucket":{"name":"b"},"object":{"key":"k"}}}]}`)
+	kinesisEvent := jsontext.Value(`{"Records":[{"eventSource":"aws:kinesis","kinesis":{"data":"dGVzdA=="}}]}`)
+	eventBridgeEvent := jsontext.Value(`{"version":"0","id":"abc","detail-type":"Scheduled Event","source":"aws.events","detail":{}}`)
+	eventBridgeS3Event := jsontext.Value(`{"version":"0","detail-type":"Object Created","source":"aws.s3","detail":{"bucket":{"name":"my-bucket"},"object":{"key":"my-key"}}}`)
+	eventBridgeS3Payload, _ := toS3("my-bucket", "my-key")
+	eventBridgeS3PutEvent := jsontext.Value(`{"version":"0","detail-type":"Object Created: Put","source":"aws.s3","detail":{"bucket":{"name":"b"},"object":{"key":"nested/path/log.gz"}}}`)
+	eventBridgeS3PutPayload, _ := toS3("b", "nested/path/log.gz")
+
 	tests := map[string]struct {
 		event   jsontext.Value
-		want    ContentType
+		want    Event
 		wantErr bool
 	}{
 		"cloudwatch logs": {
-			event: jsontext.Value(`{"awslogs":{"data":"dGVzdA=="}}`),
-			want:  ContentTypeCloudwatchLogs,
+			event: cloudwatchEvent,
+			want:  Event{ContentType: ContentTypeCloudwatchLogs, Payload: cloudwatchEvent},
 		},
 		"s3": {
-			event: jsontext.Value(`{"Records":[{"eventSource":"aws:s3","s3":{"bucket":{"name":"b"},"object":{"key":"k"}}}]}`),
-			want:  ContentTypeS3,
+			event: s3Event,
+			want:  Event{ContentType: ContentTypeS3, Payload: s3Event},
 		},
 		"kinesis": {
-			event: jsontext.Value(`{"Records":[{"eventSource":"aws:kinesis","kinesis":{"data":"dGVzdA=="}}]}`),
-			want:  ContentTypeKinesis,
+			event: kinesisEvent,
+			want:  Event{ContentType: ContentTypeKinesis, Payload: kinesisEvent},
 		},
 		"eventbridge generic": {
-			event: jsontext.Value(`{"version":"0","id":"abc","detail-type":"Scheduled Event","source":"aws.events","detail":{}}`),
-			want:  ContentTypeEventBridge,
+			event: eventBridgeEvent,
+			want:  Event{ContentType: ContentTypeEventBridge, Payload: eventBridgeEvent},
 		},
 		"eventbridge s3": {
-			event: jsontext.Value(`{"version":"0","detail-type":"Object Created","source":"aws.s3","detail":{"bucket":{"name":"my-bucket"},"object":{"key":"my-key"}}}`),
-			want:  ContentTypeS3,
+			event: eventBridgeS3Event,
+			want: Event{
+				ContentType: ContentTypeS3,
+				Payload:     eventBridgeS3Payload,
+			},
 		},
-		"eventbridge ec2": {
-			event: jsontext.Value(`{"version":"0","detail-type":"EC2 Instance State-change Notification","source":"aws.ec2","detail":{"instance-id":"i-123"}}`),
-			want:  ContentTypeEventBridge,
+		"eventbridge s3 via put": {
+			event: eventBridgeS3PutEvent,
+			want: Event{
+				ContentType: ContentTypeS3,
+				Payload:     eventBridgeS3PutPayload,
+			},
 		},
-		"eventbridge s3 without object created": {
-			event: jsontext.Value(`{"version":"0","detail-type":"Object Deleted","source":"aws.s3","detail":{}}`),
-			want:  ContentTypeEventBridge,
-		},
-		"sns with s3": {
-			event: jsontext.Value(`{"Records":[{"EventSource":"aws:sns","Sns":{"Type":"Notification","Message":"{\"Records\":[{\"eventSource\":\"aws:s3\",\"s3\":{\"bucket\":{\"name\":\"b\"},\"object\":{\"key\":\"k\"}}}]}"}}]}`),
-			want:  ContentTypeS3,
-		},
-		"sns standalone": {
+		"sns generic": {
 			event: jsontext.Value(`{"Records":[{"EventSource":"aws:sns","Sns":{"Type":"Notification","Message":"hello world","TopicArn":"arn:aws:sns:us-east-1:123456789012:my-topic"}}]}`),
-			want:  ContentTypeSNS,
+			want:  Event{ContentType: ContentTypeSNS, Payload: jsontext.Value(`hello world`)},
+		},
+		"sns generic with json": {
+			event: jsontext.Value(`{"Records":[{"EventSource":"aws:sns","Sns":{"Type":"Notification","Message":"{\"ddtags\":\"service:myapp\",\"msg\":\"hi\"}"}}]}`),
+			want:  Event{ContentType: ContentTypeSNS, Payload: jsontext.Value(`{"ddtags":"service:myapp","msg":"hi"}`)},
+		},
+		"sns s3": {
+			event: jsontext.Value(`{"Records":[{"EventSource":"aws:sns","Sns":{"Type":"Notification","Message":"{\"Records\":[{\"eventSource\":\"aws:s3\",\"s3\":{\"bucket\":{\"name\":\"b\"},\"object\":{\"key\":\"k\"}}}]}"}}]}`),
+			want:  Event{ContentType: ContentTypeS3, Payload: jsontext.Value(`{"Records":[{"eventSource":"aws:s3","s3":{"bucket":{"name":"b"},"object":{"key":"k"}}}]}`)},
 		},
 		"empty object": {
 			event:   jsontext.Value(`{}`),
@@ -83,8 +101,7 @@ func TestParse(t *testing.T) {
 			}
 
 			require.NoError(t, err)
-			assert.Equal(t, tc.want, got.ContentType)
-			assert.NotEmpty(t, got.Payload)
+			assert.Equal(t, tc.want, got)
 		})
 	}
 }
@@ -92,52 +109,74 @@ func TestParse(t *testing.T) {
 func TestSQS(t *testing.T) {
 	t.Parallel()
 
+	errExpected := errors.New("expected failure")
+
 	tests := map[string]struct {
-		event      jsontext.Value
-		want       []ContentType
-		wantFailed []int
-		wantErr    bool
+		event   jsontext.Value
+		want    []SQSEvent
+		wantErr bool
 	}{
 		"direct s3": {
 			event: jsontext.Value(`{"Records":[{"eventSource":"aws:sqs","body":"{\"Records\":[{\"eventSource\":\"aws:s3\",\"s3\":{\"bucket\":{\"name\":\"b\"},\"object\":{\"key\":\"k\"}}}]}"}]}`),
-			want:  []ContentType{ContentTypeS3},
+			want: []SQSEvent{
+				{ContentType: ContentTypeS3, Payload: jsontext.Value(`{"Records":[{"eventSource":"aws:s3","s3":{"bucket":{"name":"b"},"object":{"key":"k"}}}]}`)},
+			},
 		},
 		"sns s3": {
 			event: jsontext.Value(`{"Records":[{"eventSource":"aws:sqs","body":"{\"Type\":\"Notification\",\"Message\":\"{\\\"Records\\\":[{\\\"eventSource\\\":\\\"aws:s3\\\",\\\"s3\\\":{\\\"bucket\\\":{\\\"name\\\":\\\"b\\\"},\\\"object\\\":{\\\"key\\\":\\\"k\\\"}}}]}\"}"}]}`),
-			want:  []ContentType{ContentTypeS3},
+			want: []SQSEvent{
+				{ContentType: ContentTypeS3, Payload: jsontext.Value(`{"Records":[{"eventSource":"aws:s3","s3":{"bucket":{"name":"b"},"object":{"key":"k"}}}]}`)},
+			},
 		},
 		"multiple records": {
 			event: jsontext.Value(`{"Records":[` +
 				`{"eventSource":"aws:sqs","body":"{\"Records\":[{\"eventSource\":\"aws:s3\",\"s3\":{\"bucket\":{\"name\":\"b1\"},\"object\":{\"key\":\"k1\"}}}]}"},` +
 				`{"eventSource":"aws:sqs","body":"{\"Records\":[{\"eventSource\":\"aws:s3\",\"s3\":{\"bucket\":{\"name\":\"b2\"},\"object\":{\"key\":\"k2\"}}}]}"}` +
 				`]}`),
-			want: []ContentType{ContentTypeS3, ContentTypeS3},
+			want: []SQSEvent{
+				{ContentType: ContentTypeS3, Payload: jsontext.Value(`{"Records":[{"eventSource":"aws:s3","s3":{"bucket":{"name":"b1"},"object":{"key":"k1"}}}]}`)},
+				{ContentType: ContentTypeS3, Payload: jsontext.Value(`{"Records":[{"eventSource":"aws:s3","s3":{"bucket":{"name":"b2"},"object":{"key":"k2"}}}]}`)},
+			},
 		},
 		"sns standalone": {
 			event: jsontext.Value(`{"Records":[{"eventSource":"aws:sqs","body":"{\"Type\":\"Notification\",\"Message\":\"hello world\"}"}]}`),
-			want:  []ContentType{ContentTypeSNS},
+			want: []SQSEvent{
+				{ContentType: ContentTypeSNS, Payload: jsontext.Value(`hello world`)},
+			},
+		},
+		"sns standalone with ddtags-bearing json message": {
+			event: jsontext.Value(`{"Records":[{"eventSource":"aws:sqs","body":"{\"Type\":\"Notification\",\"Message\":\"{\\\"ddtags\\\":\\\"service:myapp\\\",\\\"msg\\\":\\\"hi\\\"}\"}"}]}`),
+			want: []SQSEvent{
+				{ContentType: ContentTypeSNS, Payload: jsontext.Value(`{"ddtags":"service:myapp","msg":"hi"}`)},
+			},
 		},
 		"subscription confirmation skipped": {
-			event:      jsontext.Value(`{"Records":[{"eventSource":"aws:sqs","body":"{\"Type\":\"SubscriptionConfirmation\",\"Message\":\"confirm\"}"}]}`),
-			want:       []ContentType{ContentTypeUnknown},
-			wantFailed: []int{0},
+			event: jsontext.Value(`{"Records":[{"eventSource":"aws:sqs","body":"{\"Type\":\"SubscriptionConfirmation\",\"Message\":\"confirm\"}"}]}`),
+			want: []SQSEvent{
+				{Err: errExpected},
+			},
 		},
 		"mixed valid and unrecognized": {
 			event: jsontext.Value(`{"Records":[` +
 				`{"eventSource":"aws:sqs","body":"{\"foo\":\"bar\"}"},` +
 				`{"eventSource":"aws:sqs","body":"{\"Records\":[{\"eventSource\":\"aws:s3\",\"s3\":{\"bucket\":{\"name\":\"b\"},\"object\":{\"key\":\"k\"}}}]}"}` +
 				`]}`),
-			want:       []ContentType{ContentTypeUnknown, ContentTypeS3},
-			wantFailed: []int{0},
+			want: []SQSEvent{
+				{Err: errExpected},
+				{ContentType: ContentTypeS3, Payload: jsontext.Value(`{"Records":[{"eventSource":"aws:s3","s3":{"bucket":{"name":"b"},"object":{"key":"k"}}}]}`)},
+			},
 		},
 		"extra fields after body": {
 			event: jsontext.Value(`{"Records":[{"eventSource":"aws:sqs","body":"{\"Records\":[{\"eventSource\":\"aws:s3\",\"s3\":{\"bucket\":{\"name\":\"b\"},\"object\":{\"key\":\"k\"}}}]}","messageId":"abc","receiptHandle":"xyz","attributes":{"ApproximateReceiveCount":"1"}}]}`),
-			want:  []ContentType{ContentTypeS3},
+			want: []SQSEvent{
+				{ContentType: ContentTypeS3, Payload: jsontext.Value(`{"Records":[{"eventSource":"aws:s3","s3":{"bucket":{"name":"b"},"object":{"key":"k"}}}]}`), MessageID: "abc"},
+			},
 		},
 		"malformed body json": {
-			event:      jsontext.Value(`{"Records":[{"eventSource":"aws:sqs","body":"not json"}]}`),
-			want:       []ContentType{ContentTypeUnknown},
-			wantFailed: []int{0},
+			event: jsontext.Value(`{"Records":[{"eventSource":"aws:sqs","body":"not json"}]}`),
+			want: []SQSEvent{
+				{Err: errExpected},
+			},
 		},
 		"unreadable batch": {
 			event:   jsontext.Value(`{"Records":[{"eventSource":"aws:sqs"`),
@@ -159,34 +198,72 @@ func TestSQS(t *testing.T) {
 			require.NoError(t, err)
 			require.Len(t, got, len(tc.want))
 
-			failed := make(map[int]bool, len(tc.wantFailed))
-			for _, i := range tc.wantFailed {
-				failed[i] = true
-			}
+			for i, want := range tc.want {
+				assert.Equal(t, want.MessageID, got[i].MessageID, "record %d message id", i)
 
-			for i, se := range got {
-				assert.Equal(t, tc.want[i], se.ContentType, "record %d content type", i)
-
-				if failed[i] {
-					assert.Error(t, se.Err, "record %d", i)
+				if want.Err != nil {
+					assert.Error(t, got[i].Err, "record %d", i)
 					continue
 				}
 
-				assert.NoError(t, se.Err, "record %d", i)
-				assert.NotEmpty(t, se.Payload, "record %d payload", i)
+				assert.NoError(t, got[i].Err, "record %d", i)
+				assert.Equal(t, want.Event, got[i].Event, "record %d", i)
 			}
 		})
 	}
 }
 
-func TestSQS_MessageID(t *testing.T) {
+func TestToS3(t *testing.T) {
 	t.Parallel()
 
-	event := jsontext.Value(`{"Records":[{"eventSource":"aws:sqs","body":"{\"Type\":\"Notification\",\"Message\":\"hello\"}","messageId":"abc","receiptHandle":"xyz"}]}`)
+	tests := map[string]struct {
+		bucket         string
+		key            string
+		wantEncodedKey string
+	}{
+		"plain key": {
+			bucket:         "my-bucket",
+			key:            "my-key",
+			wantEncodedKey: "my-key",
+		},
+		"key with slashes": {
+			bucket:         "b",
+			key:            "nested/path/log.gz",
+			wantEncodedKey: "nested%2Fpath%2Flog.gz",
+		},
+		"key with plus": {
+			bucket:         "b",
+			key:            "logs/a+b.log",
+			wantEncodedKey: "logs%2Fa%2Bb.log",
+		},
+		"key with percent": {
+			bucket:         "b",
+			key:            "logs/100%.log",
+			wantEncodedKey: "logs%2F100%25.log",
+		},
+		"key with space": {
+			bucket:         "b",
+			key:            "logs/my file.log",
+			wantEncodedKey: "logs%2Fmy+file.log",
+		},
+	}
 
-	got, err := SQS(event)
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
 
-	require.NoError(t, err)
-	require.Len(t, got, 1)
-	assert.Equal(t, "abc", got[0].MessageID)
+			payload, err := toS3(tc.bucket, tc.key)
+			require.NoError(t, err)
+
+			var s3Event events.S3Event
+			require.NoError(t, json.Unmarshal(payload, &s3Event))
+			require.Len(t, s3Event.Records, 1)
+
+			record := s3Event.Records[0]
+			assert.Equal(t, eventSourceS3, record.EventSource)
+			assert.Equal(t, tc.bucket, record.S3.Bucket.Name)
+			assert.Equal(t, tc.wantEncodedKey, record.S3.Object.Key)
+			assert.Equal(t, tc.key, record.S3.Object.URLDecodedKey)
+		})
+	}
 }

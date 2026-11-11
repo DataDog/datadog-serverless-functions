@@ -26,18 +26,18 @@ type s3EventBridgeDetail struct {
 }
 
 func eventBridge(event jsontext.Value) (Event, error) {
-	var eventBridgeEvent events.EventBridgeEvent
-	if err := json.Unmarshal(event, &eventBridgeEvent); err != nil {
+	var e events.EventBridgeEvent
+	if err := json.Unmarshal(event, &e); err != nil {
 		return Event{}, fmt.Errorf("unmarshal: %w", err)
 	}
 
-	if eventBridgeEvent.Source == "aws.s3" && strings.Contains(eventBridgeEvent.DetailType, "Object Created") {
-		var s3eb s3EventBridgeDetail
-		if err := json.Unmarshal(eventBridgeEvent.Detail, &s3eb); err != nil {
+	if e.Source == "aws.s3" && strings.Contains(e.DetailType, "Object Created") {
+		var d s3EventBridgeDetail
+		if err := json.Unmarshal(e.Detail, &d); err != nil {
 			return Event{}, fmt.Errorf("unmarshal: %w", err)
 		}
 
-		payload, err := mapS3EventBridge(s3eb)
+		payload, err := toS3(d.Bucket.Name, d.Object.Key)
 		if err != nil {
 			return Event{}, err
 		}
@@ -48,13 +48,13 @@ func eventBridge(event jsontext.Value) (Event, error) {
 	return Event{ContentType: ContentTypeEventBridge, Payload: event}, nil
 }
 
-func mapS3EventBridge(eb s3EventBridgeDetail) (jsontext.Value, error) {
+func toS3(bucket, key string) (jsontext.Value, error) {
 	s3Event := events.S3Event{
 		Records: []events.S3EventRecord{{
 			EventSource: eventSourceS3,
 			S3: events.S3Entity{
-				Bucket: events.S3Bucket{Name: eb.Bucket.Name},
-				Object: events.S3Object{Key: url.QueryEscape(eb.Object.Key)},
+				Bucket: events.S3Bucket{Name: bucket},
+				Object: events.S3Object{Key: url.QueryEscape(key)},
 			},
 		}},
 	}
