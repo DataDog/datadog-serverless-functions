@@ -12,6 +12,8 @@ import boto3
 import botocore.config
 import requests
 
+from delegated_auth import DelegatedApiKey, fetch_delegated_api_key
+
 logger = logging.getLogger()
 logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
 
@@ -35,9 +37,29 @@ def get_env_var(envvar, default, boolean=False):
 ##   * Datadog US Site: https://app.datadoghq.com/organization-settings/api-keys
 ##   * Datadog EU Site: https://app.datadoghq.eu/organization-settings/api-keys
 ##
-## Must be set if one of the following is not set: DD_API_KEY_SECRET_ARN, DD_API_KEY_SSM_NAME, DD_KMS_API_KEY
+## Must be set if one of the following is not set: DD_ORG_UUID, DD_API_KEY_SECRET_ARN, DD_API_KEY_SSM_NAME, DD_KMS_API_KEY
 #
 DD_API_KEY = "<YOUR_DATADOG_API_KEY>"
+
+## @param DD_ORG_UUID - String - optional - default: none
+## Datadog organization UUID. When set, the forwarder authenticates through
+## Workload Identity Federation: it exchanges its execution role's AWS
+## credentials for an API key, so no API key needs to be stored. Requires an
+## AWS intake mapping in Datadog that authorizes the forwarder's execution role.
+## If the exchange fails at startup, the forwarder falls back to the API key
+## sources below when one is configured.
+##
+## Supercedes: DD_API_KEY_SECRET_ARN, DD_API_KEY_SSM_NAME, DD_KMS_API_KEY, DD_API_KEY
+#
+DD_ORG_UUID = get_env_var("DD_ORG_UUID", default="").strip()
+
+## @param DD_DELEGATED_AUTH_REFRESH_INTERVAL_MINS - integer - optional - default: 60
+## How often the forwarder exchanges its credentials for a fresh API key when
+## DD_ORG_UUID is set.
+#
+DD_DELEGATED_AUTH_REFRESH_INTERVAL_MINS = int(
+    get_env_var("DD_DELEGATED_AUTH_REFRESH_INTERVAL_MINS", default="60")
+)
 
 ## @param DD_API_KEY_SECRET_ARN - String - optional - default: none
 ## ARN of Datadog API key stored in AWS Secrets Manager
@@ -183,8 +205,29 @@ def get_region_from_arn(arn):
 
 
 # DD API Key
+DELEGATED_API_KEY = None
+if DD_ORG_UUID:
+    DELEGATED_API_KEY = DelegatedApiKey(
+        fetch=lambda: fetch_delegated_api_key(
+            DD_API_URL,
+            DD_ORG_UUID,
+            os.environ.get("AWS_REGION", "us-east-1"),
+            verify=not DD_SKIP_SSL_VALIDATION,
+        ),
+        refresh_interval_seconds=DD_DELEGATED_AUTH_REFRESH_INTERVAL_MINS * 60,
+    )
+    try:
+        DD_API_KEY = DELEGATED_API_KEY.get()
+    except Exception as e:
+        logger.error(
+            f"Delegated auth failed, falling back to a configured API key if any: {e}"
+        )
+        DELEGATED_API_KEY = None
+
+if DELEGATED_API_KEY is not None:
+    logger.debug("Using the Datadog API key obtained through delegated auth")
 # Check if the DD_API_KEY_SECRET_ARN environment variable is set
-if "DD_API_KEY_SECRET_ARN" in os.environ:
+elif "DD_API_KEY_SECRET_ARN" in os.environ:
     SECRET_ARN = os.environ["DD_API_KEY_SECRET_ARN"]
     logger.debug(f"Fetching the Datadog API key from SecretsManager: {SECRET_ARN}")
 
@@ -261,9 +304,31 @@ DD_API_KEY = DD_API_KEY.strip()
 os.environ["DD_API_KEY"] = DD_API_KEY
 
 
+def get_api_key():
+    """
+    Return the API key to send with. A delegated key is re-minted once its
+    refresh interval has passed; any other key never changes.
+    """
+    global DD_API_KEY
+    if DELEGATED_API_KEY is not None:
+        DD_API_KEY = DELEGATED_API_KEY.get()
+    return DD_API_KEY
+
+
+def invalidate_api_key():
+    """Re-mint a delegated key on next use, e.g. after intake rejects it."""
+    if DELEGATED_API_KEY is not None:
+        DELEGATED_API_KEY.invalidate()
+
+
 def is_api_key_valid():
     # DD_API_KEY must be set
     if DD_API_KEY == "<YOUR_DATADOG_API_KEY>" or DD_API_KEY == "":
+        if DD_ORG_UUID:
+            raise Exception(
+                "Missing Datadog API key: delegated auth with DD_ORG_UUID failed "
+                "(see the error above) and no fallback API key is configured."
+            )
         raise Exception(
             "Missing Datadog API key. Set DD_API_KEY environment variable. "
             "See: https://docs.datadoghq.com/serverless/forwarder/"

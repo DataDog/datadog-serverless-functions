@@ -16,7 +16,6 @@ from logs.datadog_scrubber import DatadogScrubber
 from retry import create_storage
 from retry.enums import RetryPrefix
 from settings import (
-    DD_API_KEY,
     DD_FORWARD_LOG,
     DD_NO_SSL,
     DD_PORT,
@@ -27,6 +26,8 @@ from settings import (
     EXCLUDE_AT_MATCH,
     INCLUDE_AT_MATCH,
     SCRUBBING_RULE_CONFIGS,
+    get_api_key,
+    invalidate_api_key,
 )
 from telemetry import send_event_metric, send_log_metric
 from trace_forwarder.connection import TraceConnection
@@ -37,8 +38,9 @@ logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").uppe
 
 class Forwarder:
     def __init__(self, function_prefix):
+        self._trace_api_key = get_api_key()
         self.trace_connection = TraceConnection(
-            DD_TRACE_INTAKE_URL, DD_API_KEY, DD_SKIP_SSL_VALIDATION
+            DD_TRACE_INTAKE_URL, self._trace_api_key, DD_SKIP_SSL_VALIDATION
         )
         self.storage = create_storage(function_prefix)
         self._scrubber = DatadogScrubber(SCRUBBING_RULE_CONFIGS)
@@ -120,7 +122,7 @@ class Forwarder:
             DD_PORT,
             DD_NO_SSL,
             DD_SKIP_SSL_VALIDATION,
-            DD_API_KEY,
+            get_api_key(),
             self._scrubber,
             is_retry=bool(key),
         )
@@ -134,6 +136,11 @@ class Forwarder:
                     client.send(batch)
                 except Exception as e:
                     logger.error(f"Exception while forwarding log batch {batch}: {e}")
+                    status_code = getattr(
+                        getattr(e, "response", None), "status_code", None
+                    )
+                    if status_code in (401, 403):
+                        invalidate_api_key()
                     failed_logs.extend(batch)
                 else:
                     if logger.isEnabledFor(logging.DEBUG):
@@ -192,6 +199,13 @@ class Forwarder:
 
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug(f"Forwarding {len(traces)} traces")
+
+        api_key = get_api_key()
+        if api_key != self._trace_api_key:
+            self.trace_connection.configure(
+                DD_TRACE_INTAKE_URL, api_key, DD_SKIP_SSL_VALIDATION
+            )
+            self._trace_api_key = api_key
 
         try:
             serialized_trace_paylods = json.dumps(traces)
