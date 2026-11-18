@@ -438,6 +438,25 @@ We love pull requests. Here's a quick guide.
     ```
 1. Push to your fork and [submit a pull request][12].
 
+### Updating Forwarder dependencies
+
+The bundle installs the exact versions and SHA-256 hashes committed in
+`requirements.txt`, including transitive dependencies. It accepts wheels only,
+so installation cannot fetch additional, unlocked source-build dependencies.
+
+Edit `requirements.in`, then regenerate the lock from `aws/logs_monitoring` using
+uv 0.13.3 for the supported Python 3.14/ARM64 target:
+
+```bash
+uv pip compile requirements.in --python-version 3.14 --python-platform aarch64-manylinux_2_28 --only-binary=:all: --generate-hashes --output-file requirements.txt
+```
+
+Use `--upgrade-package <package>` to deliberately update an already locked package.
+Review the version and hash changes, run the unit and integration tests, and build
+the bundle before releasing. Do not remove hash checking or enable source builds
+to work around a missing wheel. `wrapt` uses the compatible 1.14.2 patch release
+because 1.14.0 has no wheel for this target.
+
 ## Advanced
 
 ### Shipping logs to multiple destinations
