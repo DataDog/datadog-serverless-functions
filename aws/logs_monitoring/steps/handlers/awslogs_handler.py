@@ -7,6 +7,7 @@ from io import BufferedReader, BytesIO
 
 from customized_log_group import (
     get_lambda_function_name_from_logstream_name,
+    get_lambda_function_version_from_logstream_name,
     is_lambda_customized_log_group,
 )
 from settings import DD_CUSTOM_TAGS, DD_HOST, DD_SOURCE
@@ -143,6 +144,12 @@ class AwsLogsHandler:
             )
             # Add the lowe_rcased arn as a log attribute
             aws_attributes.set_lambda_arn(lower_cased_lambda_arn)
+            # The version is case sensitive ($LATEST), so it is not lowercased
+            aws_attributes.set_lambda_version(
+                get_lambda_function_version_from_logstream_name(
+                    aws_attributes.get_log_stream()
+                )
+            )
             env_tag_exists = (
                 metadata[DD_CUSTOM_TAGS].startswith("env:")
                 or ",env:" in metadata[DD_CUSTOM_TAGS]
