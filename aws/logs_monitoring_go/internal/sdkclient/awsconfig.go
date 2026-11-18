@@ -7,7 +7,9 @@ package sdkclient
 
 import (
 	"context"
+	"crypto/fips140"
 	"fmt"
+	"log/slog"
 	"sync"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -15,9 +17,18 @@ import (
 )
 
 var AWSConfig = sync.OnceValues(func() (aws.Config, error) {
-	cfg, err := awsconfig.LoadDefaultConfig(context.TODO())
+	cfg, err := awsconfig.LoadDefaultConfig(context.TODO(), fipsLoadOption())
 	if err != nil {
 		return aws.Config{}, fmt.Errorf("load aws config: %w", err)
 	}
 	return cfg, nil
 })
+
+func fipsLoadOption() awsconfig.LoadOptionsFunc {
+	if !fips140.Enabled() {
+		return awsconfig.WithUseFIPSEndpoint(aws.FIPSEndpointStateUnset)
+	}
+
+	slog.Info("FIPS 140-3 mode active, enabling AWS SDK FIPS endpoints")
+	return awsconfig.WithUseFIPSEndpoint(aws.FIPSEndpointStateEnabled)
+}
