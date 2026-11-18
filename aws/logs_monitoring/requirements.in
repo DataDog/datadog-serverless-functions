@@ -1,0 +1,28 @@
+# Inputs for the hash-locked requirements.txt; see README.md before updating.
+attrs
+bytecode
+cattrs
+certifi
+charset-normalizer
+datadog-lambda==8.122.0
+datadog==0.52.0
+ddsketch==3.0.1
+ddtrace==4.16.1
+deprecated
+envier
+exceptiongroup
+idna==3.15
+importlib-metadata
+opentelemetry-api
+protobuf==6.33.5
+requests-futures
+requests==2.33.0
+setuptools==84.2.1
+six
+typing-extensions
+urllib3==2.8.0
+# 1.14.2 provides a pure-Python wheel for the Python 3.14/ARM64 bundle.
+wrapt==1.14.2
+xmltodict
+zipp
+ujson==5.13.0

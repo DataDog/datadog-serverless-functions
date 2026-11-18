@@ -7,7 +7,7 @@ WORKDIR /build
 
 COPY . .
 
-RUN pip install --no-cache-dir -r requirements.txt -t . -U 
+RUN pip install --no-cache-dir --require-hashes --only-binary=:all: -r requirements.txt -t .
 
 # Remove *.pyc files
 RUN find . -name \*.pyc -delete
