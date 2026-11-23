@@ -28,7 +28,6 @@ import (
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/pipeline"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/sdkclient/mocks"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/testutil"
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/version"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -139,7 +138,7 @@ func TestNewHandlerConfig(t *testing.T) {
 
 	forwarderTags := model.Tags{
 		model.ForwarderNameKey + model.KeyValueSeparator + "my-forwarder",
-		model.ForwarderVersionKey + model.KeyValueSeparator + version.Forwarder,
+		model.ForwarderVersionKey + model.KeyValueSeparator + Version,
 	}
 
 	tests := map[string]struct {
@@ -283,7 +282,7 @@ func newPipeline(t *testing.T, intakeURL string, client *http.Client) pipeline.P
 		APIKey:           testAPIKey,
 		IntakeURL:        intakeURL,
 		CompressionLevel: gzip.DefaultCompression,
-	}, client, nil)
+	}, Version, client, nil)
 
 	return pipeline.New(handler.Config{}, nil, nil, fwd, nil)
 }

@@ -38,6 +38,7 @@ func newPipeline(t *testing.T, intakeURL string, store storage.Storage) Pipeline
 
 	fwd := forwarder.New(
 		forwarder.Config{APIKey: "test-api-key", IntakeURL: intakeURL, CompressionLevel: gzip.NoCompression},
+		"test-version",
 		http.DefaultClient,
 		store,
 	)

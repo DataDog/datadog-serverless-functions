@@ -1,22 +1,34 @@
 BINARY_NAME := bootstrap
-LICENSE_FILES := LICENSE NOTICE LICENSE-3rdparty.csv LICENSES
-FORWARDER_VERSION := $(shell perl -ne 'print $$1 if /const\s+Forwarder\s*=\s*"([^"]+)"/' internal/version/version.go)
-ZIP_NAME := aws-dd-forwarder-$(FORWARDER_VERSION).zip
+VERSION_FILE := cmd/forwarder/main.go
+VERSION := $(shell perl -ne 'print $$1 if /var\s+Version\s*=\s*"([^"]+)"/' $(VERSION_FILE))
 
-# Go
+GOOS := linux
+GOARCH := arm64
+GOFIPS140 ?= off
+GO_BUILD_FLAGS ?= -tags lambda.norpc -ldflags="-s -X main.Version=$(VERSION)" -installsuffix nocgo
 
 .PHONY: build
 build:
-	GOOS=linux GOARCH=arm64 go build -tags lambda.norpc -ldflags="-s" -installsuffix nocgo -o $(BINARY_NAME) ./cmd/forwarder/
+	GOOS=$(GOOS) GOARCH=$(GOARCH) GOFIPS140=$(GOFIPS140) go build $(GO_BUILD_FLAGS) -o $(BINARY_NAME) ./cmd/forwarder/
+
+GO_TEST_FLAGS ?= -shuffle=on -race
+
+.PHONY: test
+test:
+	go test $(GO_TEST_FLAGS) ./...
+
+ZIP_PREFIX := aws-dd-forwarder
+ZIP_NAME := $(ZIP_PREFIX)-$(VERSION).zip
+LICENSE_FILES := LICENSE NOTICE LICENSE-3rdparty.csv LICENSES
 
 .PHONY: package
 package: build
 	rm -f $(ZIP_NAME)
 	zip -r $(ZIP_NAME) $(BINARY_NAME) $(LICENSE_FILES)
 
-.PHONY: test
-test:
-	go test -shuffle=on -race ./...
+.PHONY: clean
+clean:
+	rm -f $(BINARY_NAME) $(ZIP_NAME) $(ZIP_PREFIX)-*.zip $(ZIP_PREFIX)-*.sha256
 
 .PHONY: lint
 lint:
@@ -26,32 +38,3 @@ lint:
 audit:
 	go vet ./...
 	go tool govulncheck
-
-.PHONY: generate
-generate:
-	go generate ./...
-
-.PHONY: clean
-clean:
-	rm -f $(BINARY_NAME) $(ZIP_NAME) aws-dd-forwarder-*.zip
-
-# SAM
-
-# Used only by SAM
-.PHONY: build-ForwarderFunction
-build-ForwarderFunction:
-	GOOS=linux GOARCH=arm64 go build -tags lambda.norpc -ldflags="-s" -installsuffix nocgo -o $(ARTIFACTS_DIR)/bootstrap ./cmd/forwarder/
-
-.PHONY: sam-build
-sam-build:
-	sam build
-
-.PHONY: sam-deploy
-sam-deploy: sam-build
-	sam deploy
-
-EVENT ?= events/cloudwatch_logs.json
-
-.PHONY: sam-invoke
-sam-invoke: sam-build
-	sam local invoke ForwarderFunction -e $(EVENT)
