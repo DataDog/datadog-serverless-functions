@@ -67,6 +67,15 @@ Parameters:
     Type: String
     Default: ""
     Description: DO NOT CHANGE unless you know what you are doing. Only used when SourceZipBucket is empty. Override the location the forwarder's source code zip is copied from before being made available to the Lambda function.
+  Fips:
+    Type: String
+    Default: ""
+    AllowedValues:
+      - ""
+      - "true"
+      - "false"
+    Description: >-
+      Use the FIPS 140-3 validated build of the forwarder. By default, it is enabled in the AWS GovCloud partition and disabled in commercial. Commercial partition regions supported are us-east-1, us-east-2, us-west-1, and us-west-2. Cannot be set to false in GovCloud.
   DdTags:
     Type: String
     Default: ""
@@ -208,6 +217,7 @@ Parameters:
     Type: Number
     Default: 360
     MinValue: 2
+    MaxValue: 1080
     Description: Interval in minutes for scheduled forwarder invocation (via AWS EventBridge).
   DdSqsQueueUrl:
     Type: String
@@ -217,6 +227,11 @@ Parameters:
     Type: String
     Default: ""
     Description: The name of an existing s3 bucket to use. If not provided, a new bucket will be created.
+  FailedEventsRetentionInDays:
+    Type: Number
+    Default: 30
+    MinValue: 1
+    Description: Number of days to retain failed-event objects in the forwarder's S3 bucket before they expire. Only applies to the bucket created by this template.
   DdLogLevel:
     Type: String
     Default: "WARN"
@@ -240,6 +255,11 @@ Parameters:
     Description: List of KMS Key ARNs the Lambda forwarder function can use to decrypt, seperated by comma
 Conditions:
   IsAWSChina: !Equals [!Ref "AWS::Partition", aws-cn]
+  IsGovCloud: !Equals [!Ref "AWS::Partition", aws-us-gov]
+  SetFipsTrue: !Equals [!Ref Fips, "true"]
+  ShouldUseFips: !Or
+    - !Condition IsGovCloud
+    - !Condition SetFipsTrue
   CreateDdApiKeySecret: !And
     - !Equals [!Ref DdApiKeySecretArn, "arn:aws:secretsmanager:DEFAULT"]
     - !Equals [!Ref DdApiKeySsmParameterName, "/my/parameter/path"]
@@ -338,6 +358,20 @@ Rules:
           - !Not
             - !Equals [!Ref DdApiKeySsmParameterName, ""]
         AssertDescription: DdApiKey or DdApiKeySecretArn or DdApiKeySecretName must be set
+  FipsRequiresSupportedRegion:
+    RuleCondition: !And
+      - !Equals [!Ref Fips, "true"]
+      - !Not [!Equals [!Ref "AWS::Partition", aws-us-gov]]
+    Assertions:
+      - Assert: !Contains
+          - [us-east-1, us-east-2, us-west-1, us-west-2]
+          - !Ref "AWS::Region"
+        AssertDescription: Fips=true is only supported in us-east-1, us-east-2, us-west-1, and us-west-2 outside the AWS GovCloud partition.
+  GovCloudRequiresFips:
+    RuleCondition: !Equals [!Ref "AWS::Partition", aws-us-gov]
+    Assertions:
+      - Assert: !Not [!Equals [!Ref Fips, "false"]]
+        AssertDescription: FIPS is mandatory in the AWS GovCloud partition; do not set Fips to false.
 Resources:
   Forwarder:
     Type: AWS::Lambda::Function
@@ -364,9 +398,14 @@ Resources:
         S3Key: !If
           - SetSourceZipKey
           - !Ref SourceZipKey
-          - !Sub
-            - "aws-dd-forwarder-${DdForwarderVersion}.zip"
-            - {DdForwarderVersion: !FindInMap [Constants, DdForwarder, Version]}
+          - !If
+            - ShouldUseFips
+            - !Sub
+              - "aws-dd-forwarder-${DdForwarderVersion}-fips.zip"
+              - {DdForwarderVersion: !FindInMap [Constants, DdForwarder, Version]}
+            - !Sub
+              - "aws-dd-forwarder-${DdForwarderVersion}.zip"
+              - {DdForwarderVersion: !FindInMap [Constants, DdForwarder, Version]}
       MemorySize: !Ref MemorySize
       Runtime: provided.al2023
       Architectures:
@@ -730,6 +769,10 @@ Resources:
             AbortIncompleteMultipartUpload:
               DaysAfterInitiation: 7
             Status: Enabled
+          - Id: expire-failed-events
+            Prefix: "failed_events/"
+            ExpirationInDays: !Ref FailedEventsRetentionInDays
+            Status: Enabled
   ForwarderBucketPolicy:
     Type: "AWS::S3::BucketPolicy"
     Condition: CreateS3Bucket
@@ -1016,6 +1059,7 @@ Metadata:
           - SourceZipBucket
           - SourceZipKey
           - SourceZipUrl
+          - Fips
           - PermissionsBoundaryArn
           - DdHttpProxyURL
           - DdNoProxy
@@ -1026,6 +1070,7 @@ Metadata:
           - DdSqsQueueUrl
           - DdScheduleRetryFailedEvents
           - DdScheduleRetryInterval
+          - FailedEventsRetentionInDays
           - DdForwarderBucketsAccessLogsTarget
           - DdUseVPC
           - VPCSecurityGroupIds
