@@ -271,7 +271,11 @@ Conditions:
     - !Equals [!Ref SourceZipKey, ""]
   SetSourceZipBucket: !Not
     - !Equals [!Ref SourceZipBucket, ""]
-  UseZipCopier: !Condition IsAWSChina
+  UseZipCopier: !And
+    - !Not [!Condition SetSourceZipBucket]
+    - !Or
+      - !Condition IsAWSChina
+      - !Condition SetSourceZipUrl
   SetSourceZipUrl: !Not
     - !Equals [!Ref SourceZipUrl, ""]
   SetS3SourceZip: !Equals [!Select [0, !Split [/, !Ref SourceZipUrl]], "s3:"]
@@ -845,6 +849,17 @@ Resources:
         - CreateS3Bucket
         - !Ref ForwarderBucket
         - !Ref DdForwarderExistingBucketName
+      DestZipsKey: !If
+        - SetSourceZipKey
+        - !Ref SourceZipKey
+        - !If
+          - ShouldUseFips
+          - !Sub
+            - "aws-dd-forwarder-${DdForwarderVersion}-fips.zip"
+            - {DdForwarderVersion: !FindInMap [Constants, DdForwarder, Version]}
+          - !Sub
+            - "aws-dd-forwarder-${DdForwarderVersion}.zip"
+            - {DdForwarderVersion: !FindInMap [Constants, DdForwarder, Version]}
       SourceZipUrl: !If
         - SetSourceZipUrl
         - !Ref SourceZipUrl
@@ -869,13 +884,13 @@ Resources:
           import threading
           import boto3
           import urllib.request
-          import os
 
           def send_cfn_resp(event, context, response_status):
+              physical_id = event.get('PhysicalResourceId', context.log_stream_name)
               resp_body = json.dumps({
                   'Status': response_status,
                   'Reason': f'See reasons in CloudWatch Logs - group: {context.log_group_name}, stream:{context.log_stream_name}',
-                  'PhysicalResourceId': context.log_stream_name,
+                  'PhysicalResourceId': physical_id,
                   'StackId': event['StackId'],
                   'RequestId': event['RequestId'],
                   'LogicalResourceId': event['LogicalResourceId'],
@@ -884,24 +899,22 @@ Resources:
               req = urllib.request.Request(url=event['ResponseURL'], data=resp_body, method='PUT')
               with urllib.request.urlopen(req) as f:
                   logging.info(f'Sent response to CloudFormation: {f.status}, {f.reason}')
-          def delete_zips(bucket):
-              s3 = boto3.resource('s3')
-              bucket = s3.Bucket(bucket)
-              bucket.objects.all().delete()
-          def copy_zip(source_zip_url, dest_zips_bucket):
+          def delete_zips(bucket, key):
+              s3 = boto3.client('s3')
+              s3.delete_object(Bucket=bucket, Key=key)
+          def copy_zip(source_zip_url, dest_zips_bucket, dest_zips_key):
               s3 = boto3.client('s3')
               s3_prelude = "s3://"
-              filename = "aws-dd-forwarder-{}.zip".format(os.environ.get("DD_FORWARDER_VERSION"))
               if source_zip_url.startswith(s3_prelude):
                   parts = source_zip_url[len(s3_prelude):].split('/')
                   bucket = parts[0]
                   key = '/'.join(parts[1:])
                   response = s3.get_object(Bucket=bucket, Key=key)
                   data = response["Body"]
-                  s3.upload_fileobj(data, dest_zips_bucket, filename)
+                  s3.upload_fileobj(data, dest_zips_bucket, dest_zips_key)
               else:
                   with urllib.request.urlopen(source_zip_url) as data:
-                      s3.upload_fileobj(data, dest_zips_bucket, filename)
+                      s3.upload_fileobj(data, dest_zips_bucket, dest_zips_key)
           def timeout(event, context):
               logging.error('Execution is about to time out, sending failure response to CloudFormation')
               send_cfn_resp(event, context, 'FAILED')
@@ -915,10 +928,11 @@ Resources:
               try:
                   source_zip_url = event['ResourceProperties']['SourceZipUrl']
                   dest_zips_bucket = event['ResourceProperties']['DestZipsBucket']
+                  dest_zips_key = event['ResourceProperties']['DestZipsKey']
                   if event['RequestType'] == 'Delete':
-                      delete_zips(dest_zips_bucket)
+                      delete_zips(dest_zips_bucket, dest_zips_key)
                   else:
-                      copy_zip(source_zip_url, dest_zips_bucket)
+                      copy_zip(source_zip_url, dest_zips_bucket, dest_zips_key)
               except Exception as e:
                   logging.exception(f'Exception when copying zip from {source_zip_url} to {dest_zips_bucket}')
                   send_cfn_resp(event, context, 'FAILED')
@@ -926,9 +940,6 @@ Resources:
                   send_cfn_resp(event, context, 'SUCCESS')
               finally:
                   timer.cancel()
-      Environment:
-        Variables:
-          DD_FORWARDER_VERSION: !FindInMap [Constants, DdForwarder, Version]
       Role: !GetAtt "ForwarderZipCopierRole.Arn"
   ForwarderZipReady:
     Type: AWS::CloudFormation::WaitConditionHandle
@@ -968,14 +979,6 @@ Resources:
                     - CreateS3Bucket
                     - !Sub "${ForwarderBucket.Arn}/*"
                     - !Sub "arn:${AWS::Partition}:s3:::${DdForwarderExistingBucketName}/*"
-              - Effect: Allow
-                Action:
-                  - s3:ListBucket
-                Resource:
-                  - !If
-                    - CreateS3Bucket
-                    - !GetAtt "ForwarderBucket.Arn"
-                    - !Sub "arn:${AWS::Partition}:s3:::${DdForwarderExistingBucketName}"
               - !If
                 - SetS3SourceZip
                 - Effect: Allow
