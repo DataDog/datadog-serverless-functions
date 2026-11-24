@@ -18,7 +18,8 @@ test:
 	go test $(GO_TEST_FLAGS) ./...
 
 ZIP_PREFIX := aws-dd-forwarder
-ZIP_NAME := $(ZIP_PREFIX)-$(VERSION).zip
+FIPS_SUFFIX := $(if $(filter-out off,$(GOFIPS140)),-fips,)
+ZIP_NAME := $(ZIP_PREFIX)-$(VERSION)$(FIPS_SUFFIX).zip
 LICENSE_FILES := LICENSE NOTICE LICENSE-3rdparty.csv LICENSES
 
 .PHONY: package
@@ -28,7 +29,7 @@ package: build
 
 .PHONY: clean
 clean:
-	rm -f $(BINARY_NAME) $(ZIP_NAME) $(ZIP_PREFIX)-*.zip $(ZIP_PREFIX)-*.sha256
+	rm -f $(BINARY_NAME) $(ZIP_PREFIX)-*.zip $(ZIP_PREFIX)-*.sha256
 
 .PHONY: lint
 lint:
@@ -38,3 +39,11 @@ lint:
 audit:
 	go vet ./...
 	go tool govulncheck
+
+.PHONY: generate
+generate:
+	go generate ./...
+
+.PHONY: licenses
+licenses:
+	./scripts/update_licenses.sh
