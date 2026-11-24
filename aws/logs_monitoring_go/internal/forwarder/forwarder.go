@@ -23,7 +23,6 @@ import (
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/concurrent"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/httpclient"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/storage"
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/version"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -63,11 +62,11 @@ type Config struct {
 	StepFunctionsTraceEnabled bool
 }
 
-func New(cfg Config, client *http.Client, store storage.Storage) *Forwarder {
+func New(cfg Config, version string, client *http.Client, store storage.Storage) *Forwarder {
 	header := http.Header{
 		"DD-API-KEY":            []string{cfg.APIKey},
 		"DD-EVP-ORIGIN":         []string{"aws_forwarder"},
-		"DD-EVP-ORIGIN-VERSION": []string{version.Forwarder},
+		"DD-EVP-ORIGIN-VERSION": []string{version},
 		"Content-Type":          []string{"application/json"},
 	}
 

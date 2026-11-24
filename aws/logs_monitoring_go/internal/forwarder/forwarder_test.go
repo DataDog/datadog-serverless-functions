@@ -28,7 +28,6 @@ import (
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/storage"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/storage/mocks"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/testutil"
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/version"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -90,7 +89,7 @@ func TestForwarder_Start(t *testing.T) {
 				assert.Equal(t, "application/json", req.Header.Get("Content-Type"), "Content-Type")
 				assert.Equal(t, "gzip", req.Header.Get("Content-Encoding"), "Content-Encoding")
 				assert.Equal(t, "aws_forwarder", req.Header.Get("DD-EVP-ORIGIN"), "DD-EVP-ORIGIN")
-				assert.Equal(t, version.Forwarder, req.Header.Get("DD-EVP-ORIGIN-VERSION"), "DD-EVP-ORIGIN-VERSION")
+				assert.Equal(t, "test-version", req.Header.Get("DD-EVP-ORIGIN-VERSION"), "DD-EVP-ORIGIN-VERSION")
 				assert.Empty(t, req.Header.Get(ddRetryHeader), ddRetryHeader)
 				if tc.storageTag != "" {
 					assert.Equal(t, tc.storageTag, req.Header.Get("DD-STORAGE-TAG"), "DD-STORAGE-TAG")
@@ -110,7 +109,7 @@ func TestForwarder_Start(t *testing.T) {
 			t.Cleanup(server.Close)
 			client := server.Client()
 			client.Transport = httpclient.WithRetry(httpclient.DefaultMaxAttempts, client.Transport)
-			forwarder := New(Config{IntakeURL: server.URL, APIKey: "test-api-key", CompressionLevel: gzip.DefaultCompression}, client, nil)
+			forwarder := New(Config{IntakeURL: server.URL, APIKey: "test-api-key", CompressionLevel: gzip.DefaultCompression}, "test-version", client, nil)
 			ctx, cancel := context.WithCancel(t.Context())
 			t.Cleanup(cancel)
 
@@ -163,7 +162,7 @@ func TestForwarder_StepFunctionsTraceHeader(t *testing.T) {
 			forwarder := New(Config{
 				IntakeURL:                 server.URL,
 				StepFunctionsTraceEnabled: tc.enabled,
-			}, client, nil)
+			}, "test-version", client, nil)
 
 			ctx, cancel := context.WithCancel(t.Context())
 			t.Cleanup(cancel)
@@ -539,6 +538,7 @@ func newForwarder(t *testing.T, intakeURL string, store storage.Storage) *Forwar
 
 	return New(
 		Config{IntakeURL: intakeURL, APIKey: "test-api-key", CompressionLevel: gzip.NoCompression},
+		"test-version",
 		&http.Client{},
 		store,
 	)

@@ -27,7 +27,6 @@ import (
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/scrubber"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/sdkclient"
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/storage"
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/version"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -35,6 +34,8 @@ import (
 )
 
 const initTimeout = 8 * time.Second
+
+var Version = "6.0.0-dev"
 
 func main() {
 	initLogger(os.Stderr, os.Getenv(config.EnvLogLevel))
@@ -98,7 +99,7 @@ func main() {
 		IntakeURL:                 cfg.IntakeURL,
 		CompressionLevel:          cfg.CompressionLevel,
 		StepFunctionsTraceEnabled: cfg.StepFunctionsTraceEnabled,
-	}, client, store)
+	}, Version, client, store)
 
 	p := pipeline.New(
 		newHandlerConfig(&cfg, lambdacontext.FunctionName),
@@ -138,7 +139,7 @@ func newHandlerConfig(cfg *config.Config, functionName string) handler.Config {
 		tags.Add(model.SourceOverriddenKey, "true")
 	}
 	tags.Add(model.ForwarderNameKey, strings.ToLower(functionName))
-	tags.Add(model.ForwarderVersionKey, version.Forwarder)
+	tags.Add(model.ForwarderVersionKey, Version)
 
 	return handler.Config{
 		Template:            handler.NewTemplate(service, handler.CustomSource(cfg.Source), tags),

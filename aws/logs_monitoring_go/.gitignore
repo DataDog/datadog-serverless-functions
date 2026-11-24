@@ -1,2 +1,4 @@
 .aws-sam
 samconfig.toml
+aws-dd-forwarder-*
+bootstrap
