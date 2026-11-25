@@ -143,3 +143,61 @@ func TestFetchSecretParsesJSONSecret(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "abcdef1234567890abcdef1234567890", got)
 }
+
+func TestAPIKeyFromSecret(t *testing.T) {
+	t.Parallel()
+
+	const (
+		arn = "arn:aws:secretsmanager:us-east-1:012345678901:secret:dd"
+		key = "abcdef1234567890abcdef1234567890"
+	)
+
+	tests := map[string]struct {
+		secret  string
+		want    string
+		wantErr string
+	}{
+		"plain string":              {secret: key, want: key},
+		"plain string with symbols": {secret: "not-json-{at-all", want: "not-json-{at-all"},
+		"json dd_api_key":           {secret: `{"DD_API_KEY":"` + key + `"}`, want: key},
+		"json apikey":               {secret: `{"apiKey":"` + key + `"}`, want: key},
+		"dd_api_key wins": {
+			secret: `{"apiKey":"wrong-key-wrong-key-wrong-key-00","DD_API_KEY":"` + key + `"}`,
+			want:   key,
+		},
+		"json extra fields ignored": {
+			secret: `{"apiKey":"` + key + `","appKey":"other","rotation":7}`,
+			want:   key,
+		},
+		"json value trimmed": {secret: `{"apiKey":"  ` + key + `  "}`, want: key},
+		"json without known field": {
+			secret:  `{"username":"dd","password":"secret"}`,
+			wantErr: `has no DD_API_KEY or apiKey field`,
+		},
+		"json empty object": {secret: `{}`, wantErr: "has no DD_API_KEY or apiKey field"},
+		"json null":         {secret: `null`, wantErr: "has no DD_API_KEY or apiKey field"},
+		"json non string value": {
+			secret:  `{"apiKey":12345}`,
+			wantErr: `field "apiKey" is not a string`,
+		},
+		"json array is not an object":  {secret: `["a","b"]`, want: `["a","b"]`},
+		"json number is not an object": {secret: `1234`, want: "1234"},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := apiKeyFromSecret(arn, tc.secret)
+
+			if tc.wantErr != "" {
+				require.ErrorContains(t, err, tc.wantErr)
+				assert.Empty(t, got)
+				return
+			}
+
+			require.NoError(t, err)
+			assert.Equal(t, tc.want, got)
+		})
+	}
+}

@@ -16,6 +16,7 @@ import (
 	"sync"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/arn"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 )
 
@@ -39,23 +40,23 @@ func ResolveFromSecretsManager(ctx context.Context, arn string) (string, error) 
 	return FetchSecret(ctx, smClient, arn)
 }
 
-func FetchSecret(ctx context.Context, smClient SecretsManager, arn string) (string, error) {
+func FetchSecret(ctx context.Context, smClient SecretsManager, secretARN string) (string, error) {
 	result, err := smClient.GetSecretValue(ctx, &secretsmanager.GetSecretValueInput{
-		SecretId: aws.String(arn),
+		SecretId: aws.String(secretARN),
 	}, func(o *secretsmanager.Options) {
-		if region := regionFromARN(arn); region != "" {
-			o.Region = region
+		if parsed, err := arn.Parse(secretARN); err == nil && parsed.Region != "" {
+			o.Region = parsed.Region
 		}
 	})
 	if err != nil {
-		return "", fmt.Errorf("fetching secret %q: %w", arn, err)
+		return "", fmt.Errorf("fetching secret %q: %w", secretARN, err)
 	}
 
 	if result.SecretString == nil {
-		return "", fmt.Errorf("secret %q has no string value", arn)
+		return "", fmt.Errorf("secret %q has no string value", secretARN)
 	}
 
-	return apiKeyFromSecret(arn, strings.TrimSpace(*result.SecretString))
+	return apiKeyFromSecret(secretARN, strings.TrimSpace(*result.SecretString))
 }
 
 var secretAPIKeyFields = []string{"DD_API_KEY", "apiKey"}

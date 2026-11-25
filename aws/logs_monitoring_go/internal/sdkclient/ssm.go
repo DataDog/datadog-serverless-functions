@@ -14,6 +14,7 @@ import (
 	"sync"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/arn"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 )
 
@@ -42,8 +43,8 @@ func FetchSSMParameter(ctx context.Context, ssmClient SSM, name string) (string,
 		Name:           aws.String(name),
 		WithDecryption: aws.Bool(true),
 	}, func(o *ssm.Options) {
-		if region := regionFromARN(name); region != "" {
-			o.Region = region
+		if parsed, err := arn.Parse(name); err == nil && parsed.Region != "" {
+			o.Region = parsed.Region
 		}
 	})
 	if err != nil {
