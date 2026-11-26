@@ -9,21 +9,12 @@ package sdkclient
 
 import (
 	"context"
-	"encoding/base64"
-	"errors"
-	"fmt"
-	"strings"
 	"sync"
-	"unicode/utf8"
 
 	"github.com/aws/aws-sdk-go-v2/service/kms"
 )
 
-type KMS interface {
-	Decrypt(ctx context.Context, params *kms.DecryptInput, optFns ...func(*kms.Options)) (*kms.DecryptOutput, error)
-}
-
-var getKMS = sync.OnceValues(func() (KMS, error) {
+var GetKMS = sync.OnceValues(func() (KMS, error) {
 	cfg, err := AWSConfig()
 	if err != nil {
 		return nil, err
@@ -31,34 +22,6 @@ var getKMS = sync.OnceValues(func() (KMS, error) {
 	return kms.NewFromConfig(cfg), nil
 })
 
-func ResolveFromKMS(ctx context.Context, ciphertext string) (string, error) {
-	kmsClient, err := getKMS()
-	if err != nil {
-		return "", err
-	}
-	return DecryptKMSCiphertext(ctx, kmsClient, ciphertext)
-}
-
-func DecryptKMSCiphertext(ctx context.Context, kmsClient KMS, ciphertext string) (string, error) {
-	decoded, err := base64.StdEncoding.DecodeString(ciphertext)
-	if err != nil {
-		return "", fmt.Errorf("base64-decoding ciphertext: %w", err)
-	}
-
-	result, err := kmsClient.Decrypt(ctx, &kms.DecryptInput{
-		CiphertextBlob: decoded,
-	})
-	if err != nil {
-		return "", fmt.Errorf("decrypting KMS ciphertext: %w", err)
-	}
-
-	if result.Plaintext == nil {
-		return "", errors.New("KMS decryption returned no plaintext")
-	}
-
-	if !utf8.Valid(result.Plaintext) {
-		return base64.StdEncoding.EncodeToString(result.Plaintext), nil
-	}
-
-	return strings.TrimSpace(string(result.Plaintext)), nil
+type KMS interface {
+	Decrypt(ctx context.Context, params *kms.DecryptInput, optFns ...func(*kms.Options)) (*kms.DecryptOutput, error)
 }

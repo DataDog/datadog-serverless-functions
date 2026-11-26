@@ -7,8 +7,8 @@ package apikey
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"time"
 
@@ -16,13 +16,28 @@ import (
 )
 
 const (
-	apiKeyHeader      = "DD-API-KEY"
-	validationTimeout = 3 * time.Second
+	apiKeyValidationHeader = "DD-API-KEY"
+	validationTimeout      = 5 * time.Second
 )
 
-func Validate(ctx context.Context, client *http.Client, url, key string) error {
-	if !validFormat(key) {
-		return invalidAPIKeyError{"bad format"}
+type APIKeySource interface {
+	Get(context.Context) (APIKey, error)
+}
+
+type APIKey string
+
+func (k APIKey) String() string {
+	return "[REDACTED API KEY]"
+}
+
+func (k APIKey) valid() bool {
+	return len(k) == 32
+}
+
+// TODO: switch to https://docs.datadoghq.com/api/latest/key-management/validate-api-key once stable
+func (k APIKey) Validate(ctx context.Context, client *http.Client, url string) error {
+	if !k.valid() {
+		return errors.New("wrong API key format")
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, validationTimeout)
@@ -32,29 +47,17 @@ func Validate(ctx context.Context, client *http.Client, url, key string) error {
 	if err != nil {
 		return fmt.Errorf("new request: %w", err)
 	}
-
-	req.Header.Set(apiKeyHeader, key)
+	req.Header.Set(apiKeyValidationHeader, string(k))
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("client do: %w", err)
+		return fmt.Errorf("do request: %w", err)
 	}
 	defer httpclient.DrainClose(resp)
 
-	if resp.StatusCode == http.StatusForbidden {
-		return invalidAPIKeyError{"denied from validation endpoint"}
-	}
-
 	if resp.StatusCode != http.StatusOK {
-		if body, err := io.ReadAll(resp.Body); err == nil {
-			return fmt.Errorf("unexpected HTTP/%d response: %s", resp.StatusCode, body)
-		}
-		return fmt.Errorf("unexpected HTTP/%d response", resp.StatusCode)
+		return fmt.Errorf("http %d", resp.StatusCode)
 	}
 
 	return nil
-}
-
-func validFormat(key string) bool {
-	return len(key) == 32
 }

@@ -14,8 +14,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
-// See https://github.com/aws/aws-sdk-go-v2/issues/3416 for future configuration
-
 var GetS3 = sync.OnceValues(func() (S3, error) {
 	cfg, err := AWSConfig()
 	if err != nil {

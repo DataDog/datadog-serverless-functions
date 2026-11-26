@@ -50,13 +50,14 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), initTimeout)
 	defer cancel()
 
-	apiKey, err := apikey.Resolve(ctx, apikey.Source{
-		SecretARN: cfg.APIKeySecretARN,
-		SSMName:   cfg.APIKeySSMName,
-		KMSKey:    cfg.APIKeyKMSKey,
-	})
+	apiKeySource, err := newAPIKeySource(cfg)
 	if err != nil {
-		slog.Error("resolve API key", slog.Any("error", err))
+		slog.Error("new API key source", slog.Any("error", err))
+		os.Exit(1)
+	}
+	apiKey, err := apiKeySource.Get(ctx)
+	if err != nil {
+		slog.Error("get API key source", slog.Any("error", err))
 		os.Exit(1)
 	}
 
@@ -66,7 +67,7 @@ func main() {
 	}
 	client := httpclient.New(tlsOpts...)
 
-	if err = apikey.Validate(ctx, client, cfg.APIURL, apiKey); err != nil {
+	if err = apiKey.Validate(ctx, client, cfg.APIURL); err != nil {
 		if !cfg.StoreOnFail {
 			slog.Error("no failed event storage set, validate API key", slog.Any("error", err))
 			os.Exit(1)
@@ -95,7 +96,7 @@ func main() {
 	}
 
 	fwd := forwarder.New(forwarder.Config{
-		APIKey:                    apiKey,
+		APIKey:                    string(apiKey),
 		IntakeURL:                 cfg.IntakeURL,
 		CompressionLevel:          cfg.CompressionLevel,
 		StepFunctionsTraceEnabled: cfg.StepFunctionsTraceEnabled,
@@ -110,6 +111,34 @@ func main() {
 	)
 
 	lambda.Start(handleRequest(p, lambdaClient, cfg.AdditionalTargets))
+}
+
+func newAPIKeySource(cfg config.Config) (apikey.APIKeySource, error) {
+	switch {
+	case cfg.APIKeySecretARN != "":
+		client, err := sdkclient.GetSecretsManager()
+		if err != nil {
+			return nil, fmt.Errorf("secrets manager client: %w", err)
+		}
+		return &apikey.SecretsManagerAPIKeySource{Client: client, ARN: cfg.APIKeySecretARN}, nil
+
+	case cfg.APIKeySSMName != "":
+		client, err := sdkclient.GetSSM()
+		if err != nil {
+			return nil, fmt.Errorf("ssm client: %w", err)
+		}
+		return &apikey.SSMAPIKeySource{Client: client, Name: cfg.APIKeySSMName}, nil
+
+	case cfg.APIKeyKMSKey != "":
+		client, err := sdkclient.GetKMS()
+		if err != nil {
+			return nil, fmt.Errorf("kms client: %w", err)
+		}
+		return &apikey.KMSAPIKeySource{Client: client, Ciphertext: cfg.APIKeyKMSKey}, nil
+
+	default:
+		return nil, errors.New("no Datadog API key source configured")
+	}
 }
 
 func newStorage(cfg *config.Config, s3Client sdkclient.S3) (storage.Storage, error) {
