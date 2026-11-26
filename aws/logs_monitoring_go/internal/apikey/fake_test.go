@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"sync/atomic"
+	"time"
 )
 
 func fakeSuccess(context.Context) (APIKey, error) { return "", nil }
@@ -32,4 +33,25 @@ type fakeInvalidatableAPIKeySource struct {
 
 func (f *fakeInvalidatableAPIKeySource) Invalidate() {
 	f.invalidateCalls.Add(1)
+}
+
+func fakeBeforeAfterAPIKeySource(delay time.Duration, before, after APIKey) func(context.Context) (APIKey, error) {
+	now := time.Now()
+	return func(context.Context) (APIKey, error) {
+		if time.Now().Before(now.Add(delay)) {
+			return before, nil
+		}
+		return after, nil
+	}
+}
+
+func fakeSucceedsThenFailsAPIKeySource(key APIKey) func(context.Context) (APIKey, error) {
+	var called bool
+	return func(context.Context) (APIKey, error) {
+		if !called {
+			called = true
+			return key, nil
+		}
+		return "", errors.New("")
+	}
 }
