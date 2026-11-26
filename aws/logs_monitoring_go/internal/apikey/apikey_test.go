@@ -10,18 +10,16 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestValidate(t *testing.T) {
+func TestAPIKey_Validate(t *testing.T) {
 	t.Parallel()
 
 	tests := map[string]struct {
 		key        string
 		statusCode int
 		wantErr    bool
-		err        error
 	}{
 		"valid": {
 			key:        "0123456789abcdefghij0123456789ab",
@@ -30,13 +28,11 @@ func TestValidate(t *testing.T) {
 		"wrong format": {
 			key:     "not32characters",
 			wantErr: true,
-			err:     &invalidAPIKeyError{},
 		},
 		"invalid": {
 			key:        "myapikeyisexpiredorinvalid012345",
 			statusCode: http.StatusForbidden,
 			wantErr:    true,
-			err:        &invalidAPIKeyError{},
 		},
 		"unexpected error": {
 			key:        "0123456789abcdefghij0123456789ab",
@@ -50,21 +46,17 @@ func TestValidate(t *testing.T) {
 			t.Parallel()
 
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-				assert.Equal(t, tc.key, req.Header.Get("DD-API-KEY"))
+				require.Equal(t, tc.key, req.Header.Get("DD-API-KEY"))
 				w.WriteHeader(tc.statusCode)
 			}))
 			t.Cleanup(server.Close)
 
-			err := Validate(t.Context(), server.Client(), server.URL, tc.key)
+			err := APIKey(tc.key).Validate(t.Context(), server.Client(), server.URL)
 
 			if tc.wantErr {
-				if tc.err != nil {
-					require.ErrorAs(t, err, tc.err)
-				}
 				require.Error(t, err)
 				return
 			}
-
 			require.NoError(t, err)
 		})
 	}

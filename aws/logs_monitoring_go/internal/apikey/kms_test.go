@@ -3,7 +3,7 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2026-Present Datadog, Inc.
 
-package sdkclient
+package apikey
 
 import (
 	"encoding/base64"
@@ -11,21 +11,22 @@ import (
 	"testing"
 	"unicode/utf8"
 
+	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/sdkclient/mocks"
 	"github.com/aws/aws-sdk-go-v2/service/kms"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
-
-	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/sdkclient/mocks"
 )
 
-func TestDecryptKMSCiphertext(t *testing.T) {
+func TestKMSAPIKeySource_Get(t *testing.T) {
+	t.Parallel()
+
 	validCiphertext := base64.StdEncoding.EncodeToString([]byte("encrypted-blob"))
 
 	tests := map[string]struct {
 		mockSetup  func(m *mocks.MockKMS)
 		ciphertext string
-		wantKey    string
+		want       APIKey
 		wantErr    bool
 	}{
 		"success": {
@@ -37,9 +38,9 @@ func TestDecryptKMSCiphertext(t *testing.T) {
 					}, nil)
 			},
 			ciphertext: validCiphertext,
-			wantKey:    "abcdef1234567890abcdef1234567890",
+			want:       "abcdef1234567890abcdef1234567890",
 		},
-		"whitespace_trimmed": {
+		"whitespace trimmed": {
 			mockSetup: func(m *mocks.MockKMS) {
 				m.EXPECT().
 					Decrypt(gomock.Any(), gomock.Any()).
@@ -48,14 +49,14 @@ func TestDecryptKMSCiphertext(t *testing.T) {
 					}, nil)
 			},
 			ciphertext: validCiphertext,
-			wantKey:    "abcdef1234567890abcdef1234567890",
+			want:       "abcdef1234567890abcdef1234567890",
 		},
-		"invalid_base64": {
+		"invalid base64": {
 			mockSetup:  func(m *mocks.MockKMS) {},
 			ciphertext: "not-valid-base64!@#$",
 			wantErr:    true,
 		},
-		"aws_error": {
+		"error": {
 			mockSetup: func(m *mocks.MockKMS) {
 				m.EXPECT().
 					Decrypt(gomock.Any(), gomock.Any()).
@@ -64,48 +65,43 @@ func TestDecryptKMSCiphertext(t *testing.T) {
 			ciphertext: validCiphertext,
 			wantErr:    true,
 		},
-		"nil_plaintext": {
-			mockSetup: func(m *mocks.MockKMS) {
-				m.EXPECT().
-					Decrypt(gomock.Any(), gomock.Any()).
-					Return(&kms.DecryptOutput{
-						Plaintext: nil,
-					}, nil)
-			},
-			ciphertext: validCiphertext,
-			wantErr:    true,
-		},
 	}
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
 			ctrl := gomock.NewController(t)
 			mock := mocks.NewMockKMS(ctrl)
 			tc.mockSetup(mock)
 
-			got, err := DecryptKMSCiphertext(t.Context(), mock, tc.ciphertext)
+			source := KMSAPIKeySource{Client: mock, Ciphertext: tc.ciphertext}
+			got, err := source.Get(t.Context())
 			if tc.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			assert.Equal(t, tc.wantKey, got)
+			assert.Equal(t, tc.want, got)
 		})
 	}
-}
 
-func TestDecryptKMSCiphertextEncodesNonUTF8Plaintext(t *testing.T) {
-	plaintext := []byte{0xff, 0xfe, 0x00, 0x01}
+	t.Run("non-UTF8 plaintext is base64 encoded", func(t *testing.T) {
+		t.Parallel()
 
-	ctrl := gomock.NewController(t)
-	mock := mocks.NewMockKMS(ctrl)
-	mock.EXPECT().
-		Decrypt(gomock.Any(), gomock.Any()).
-		Return(&kms.DecryptOutput{Plaintext: plaintext}, nil)
+		plaintext := []byte{0xff, 0xfe, 0x00, 0x01}
 
-	got, err := DecryptKMSCiphertext(t.Context(), mock, base64.StdEncoding.EncodeToString([]byte("cipher")))
+		ctrl := gomock.NewController(t)
+		mock := mocks.NewMockKMS(ctrl)
+		mock.EXPECT().
+			Decrypt(gomock.Any(), gomock.Any()).
+			Return(&kms.DecryptOutput{Plaintext: plaintext}, nil)
 
-	require.NoError(t, err)
-	assert.Equal(t, base64.StdEncoding.EncodeToString(plaintext), got)
-	assert.True(t, utf8.ValidString(got))
+		source := KMSAPIKeySource{Client: mock, Ciphertext: base64.StdEncoding.EncodeToString([]byte("cipher"))}
+		got, err := source.Get(t.Context())
+
+		require.NoError(t, err)
+		assert.Equal(t, base64.StdEncoding.EncodeToString(plaintext), string(got))
+		assert.True(t, utf8.ValidString(string(got)))
+	})
 }

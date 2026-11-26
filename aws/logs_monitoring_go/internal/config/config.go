@@ -25,7 +25,6 @@ const (
 )
 
 const (
-	EnvAPIKey                   = "DD_API_KEY"
 	EnvSite                     = "DD_SITE"
 	EnvLogLevel                 = "DD_LOG_LEVEL"
 	EnvPort                     = "DD_PORT"

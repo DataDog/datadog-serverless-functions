@@ -9,19 +9,12 @@ package sdkclient
 
 import (
 	"context"
-	"fmt"
-	"strings"
 	"sync"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 )
 
-type SSM interface {
-	GetParameter(ctx context.Context, params *ssm.GetParameterInput, optFns ...func(*ssm.Options)) (*ssm.GetParameterOutput, error)
-}
-
-var getSSM = sync.OnceValues(func() (SSM, error) {
+var GetSSM = sync.OnceValues(func() (SSM, error) {
 	cfg, err := AWSConfig()
 	if err != nil {
 		return nil, err
@@ -29,34 +22,6 @@ var getSSM = sync.OnceValues(func() (SSM, error) {
 	return ssm.NewFromConfig(cfg), nil
 })
 
-func ResolveFromSSM(ctx context.Context, name string) (string, error) {
-	ssmClient, err := getSSM()
-	if err != nil {
-		return "", err
-	}
-	return FetchSSMParameter(ctx, ssmClient, name)
-}
-
-func FetchSSMParameter(ctx context.Context, ssmClient SSM, name string) (string, error) {
-	result, err := ssmClient.GetParameter(ctx, &ssm.GetParameterInput{
-		Name:           aws.String(name),
-		WithDecryption: aws.Bool(true),
-	}, func(o *ssm.Options) {
-		if region := regionFromARN(name); region != "" {
-			o.Region = region
-		}
-	})
-	if err != nil {
-		return "", fmt.Errorf("fetching parameter %q: %w", name, err)
-	}
-
-	if result.Parameter == nil {
-		return "", fmt.Errorf("parameter %q has no value", name)
-	}
-
-	if result.Parameter.Value == nil {
-		return "", fmt.Errorf("parameter %q has no string value", name)
-	}
-
-	return strings.TrimSpace(*result.Parameter.Value), nil
+type SSM interface {
+	GetParameter(ctx context.Context, params *ssm.GetParameterInput, optFns ...func(*ssm.Options)) (*ssm.GetParameterOutput, error)
 }
