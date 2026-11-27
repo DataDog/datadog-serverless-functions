@@ -66,6 +66,7 @@ func main() {
 		tlsOpts = append(tlsOpts, httpclient.WithCertificateSkip())
 	}
 	client := httpclient.New(tlsOpts...)
+	client.Transport = &apikey.AuthRoundTripper{Source: apiKeySource, Next: client.Transport}
 
 	if err = apiKey.Validate(ctx, client, cfg.APIURL); err != nil {
 		if !cfg.StoreOnFail {
@@ -96,7 +97,6 @@ func main() {
 	}
 
 	fwd := forwarder.New(forwarder.Config{
-		APIKey:                    string(apiKey),
 		IntakeURL:                 cfg.IntakeURL,
 		CompressionLevel:          cfg.CompressionLevel,
 		StepFunctionsTraceEnabled: cfg.StepFunctionsTraceEnabled,
@@ -114,31 +114,39 @@ func main() {
 }
 
 func newAPIKeySource(cfg config.Config) (apikey.APIKeySource, error) {
+	return newStaticAPIKeySource(cfg)
+}
+
+func newStaticAPIKeySource(cfg config.Config) (apikey.APIKeySource, error) {
+	var source apikey.APIKeySource
+
 	switch {
 	case cfg.APIKeySecretARN != "":
 		client, err := sdkclient.GetSecretsManager()
 		if err != nil {
 			return nil, fmt.Errorf("secrets manager client: %w", err)
 		}
-		return &apikey.SecretsManagerAPIKeySource{Client: client, ARN: cfg.APIKeySecretARN}, nil
+		source = &apikey.SecretsManagerAPIKeySource{Client: client, ARN: cfg.APIKeySecretARN}
 
 	case cfg.APIKeySSMName != "":
 		client, err := sdkclient.GetSSM()
 		if err != nil {
 			return nil, fmt.Errorf("ssm client: %w", err)
 		}
-		return &apikey.SSMAPIKeySource{Client: client, Name: cfg.APIKeySSMName}, nil
+		source = &apikey.SSMAPIKeySource{Client: client, Name: cfg.APIKeySSMName}
 
 	case cfg.APIKeyKMSKey != "":
 		client, err := sdkclient.GetKMS()
 		if err != nil {
 			return nil, fmt.Errorf("kms client: %w", err)
 		}
-		return &apikey.KMSAPIKeySource{Client: client, Ciphertext: cfg.APIKeyKMSKey}, nil
+		source = &apikey.KMSAPIKeySource{Client: client, Ciphertext: cfg.APIKeyKMSKey}
 
 	default:
-		return nil, errors.New("no Datadog API key source configured")
+		return nil, errors.New("no static API key source configured")
 	}
+
+	return &apikey.StaticAPIKeySource{Source: source}, nil
 }
 
 func newStorage(cfg *config.Config, s3Client sdkclient.S3) (storage.Storage, error) {

@@ -56,7 +56,6 @@ type Forwarder struct {
 }
 
 type Config struct {
-	APIKey                    string
 	IntakeURL                 string
 	CompressionLevel          int
 	StepFunctionsTraceEnabled bool
@@ -64,7 +63,6 @@ type Config struct {
 
 func New(cfg Config, version string, client *http.Client, store storage.Storage) *Forwarder {
 	header := http.Header{
-		"DD-API-KEY":            []string{cfg.APIKey},
 		"DD-EVP-ORIGIN":         []string{"aws_forwarder"},
 		"DD-EVP-ORIGIN-VERSION": []string{version},
 		"Content-Type":          []string{"application/json"},
