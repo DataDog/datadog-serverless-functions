@@ -45,10 +45,9 @@ func TestAPIKey_Validate(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			server := httptest.NewTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(tc.statusCode)
 			}))
-			t.Cleanup(server.Close)
 
 			err := APIKey(tc.key).Validate(t.Context(), server.Client(), server.URL)
 
