@@ -35,8 +35,6 @@ import (
 
 var update = flag.Bool("update", false, "update .golden files")
 
-const testAPIKey = "abcdefghijklmnopqrstuvwxyz012345"
-
 func load(t *testing.T, path string) jsontext.Value {
 	t.Helper()
 
@@ -279,7 +277,6 @@ func newPipeline(t *testing.T, intakeURL string, client *http.Client) pipeline.P
 	t.Helper()
 
 	fwd := forwarder.New(forwarder.Config{
-		APIKey:           testAPIKey,
 		IntakeURL:        intakeURL,
 		CompressionLevel: gzip.DefaultCompression,
 	}, Version, client, nil)

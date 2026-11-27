@@ -85,7 +85,6 @@ func TestForwarder_Start(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 				callCount.Add(1)
 
-				assert.Equal(t, "test-api-key", req.Header.Get("DD-API-KEY"), "DD-API-KEY")
 				assert.Equal(t, "application/json", req.Header.Get("Content-Type"), "Content-Type")
 				assert.Equal(t, "gzip", req.Header.Get("Content-Encoding"), "Content-Encoding")
 				assert.Equal(t, "aws_forwarder", req.Header.Get("DD-EVP-ORIGIN"), "DD-EVP-ORIGIN")
@@ -109,7 +108,7 @@ func TestForwarder_Start(t *testing.T) {
 			t.Cleanup(server.Close)
 			client := server.Client()
 			client.Transport = httpclient.WithRetry(httpclient.DefaultMaxAttempts, client.Transport)
-			forwarder := New(Config{IntakeURL: server.URL, APIKey: "test-api-key", CompressionLevel: gzip.DefaultCompression}, "test-version", client, nil)
+			forwarder := New(Config{IntakeURL: server.URL, CompressionLevel: gzip.DefaultCompression}, "test-version", client, nil)
 			ctx, cancel := context.WithCancel(t.Context())
 			t.Cleanup(cancel)
 
@@ -537,7 +536,7 @@ func newForwarder(t *testing.T, intakeURL string, store storage.Storage) *Forwar
 	t.Helper()
 
 	return New(
-		Config{IntakeURL: intakeURL, APIKey: "test-api-key", CompressionLevel: gzip.NoCompression},
+		Config{IntakeURL: intakeURL, CompressionLevel: gzip.NoCompression},
 		"test-version",
 		&http.Client{},
 		store,

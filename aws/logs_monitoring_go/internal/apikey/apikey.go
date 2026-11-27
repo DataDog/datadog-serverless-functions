@@ -15,10 +15,7 @@ import (
 	"github.com/DataDog/datadog-serverless-functions/aws/logs_monitoring_go/internal/httpclient"
 )
 
-const (
-	apiKeyValidationHeader = "DD-API-KEY"
-	validationTimeout      = 5 * time.Second
-)
+const validationTimeout = 5 * time.Second
 
 type APIKeySource interface {
 	Get(context.Context) (APIKey, error)
@@ -47,7 +44,6 @@ func (k APIKey) Validate(ctx context.Context, client *http.Client, url string) e
 	if err != nil {
 		return fmt.Errorf("new request: %w", err)
 	}
-	req.Header.Set(apiKeyValidationHeader, string(k))
 
 	resp, err := client.Do(req)
 	if err != nil {
