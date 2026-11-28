@@ -34,8 +34,9 @@ import (
 )
 
 const (
-	initTimeout  = 8 * time.Second
-	validatePath = "/api/v1/validate"
+	initTimeout       = 8 * time.Second
+	validatePath      = "/api/v1/validate"
+	delegatedAuthPath = "/api/v2/intake-key"
 )
 
 var Version = "6.0.0-dev"
@@ -147,7 +148,7 @@ func newEphemeralAPIKeySource(cfg config.Config) (apikey.APIKeySource, error) {
 		}
 		exchangeClient := httpclient.New(tlsOpts...)
 
-		source := apikey.NewWorkloadIdentityFederationAPIKeySource(awsCfg.Region, cfg.OrgUUID, "", exchangeClient, awsCfg.Credentials)
+		source := apikey.NewWorkloadIdentityFederationAPIKeySource(awsCfg.Region, cfg.OrgUUID, cfg.APIURL+delegatedAuthPath, exchangeClient, awsCfg.Credentials)
 		return apikey.NewEphemeralAPIKeySource(source, cfg.DelegatedAuthRefreshInterval), nil
 
 	default:

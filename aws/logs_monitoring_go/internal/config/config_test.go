@@ -144,9 +144,10 @@ func TestLoad(t *testing.T) {
 
 func defaultConfig() Config {
 	return Config{
-		APIURL:           DefaultProtocol + "://api." + DefaultSite,
-		IntakeURL:        DefaultProtocol + "://http-intake.logs." + DefaultSite + ":" + DefaultPort + "/api/v2/logs",
-		CompressionLevel: gzip.DefaultCompression,
+		APIURL:                       DefaultProtocol + "://api." + DefaultSite,
+		IntakeURL:                    DefaultProtocol + "://http-intake.logs." + DefaultSite + ":" + DefaultPort + "/api/v2/logs",
+		CompressionLevel:             gzip.DefaultCompression,
+		DelegatedAuthRefreshInterval: DefaultDelegatedAuthRefreshInterval,
 	}
 }
 
