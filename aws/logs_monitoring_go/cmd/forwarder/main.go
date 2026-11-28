@@ -33,7 +33,10 @@ import (
 	"github.com/aws/aws-lambda-go/lambdacontext"
 )
 
-const initTimeout = 8 * time.Second
+const (
+	initTimeout  = 8 * time.Second
+	validatePath = "/api/v1/validate"
+)
 
 var Version = "6.0.0-dev"
 
@@ -68,7 +71,7 @@ func main() {
 	client := httpclient.New(tlsOpts...)
 	client.Transport = &apikey.AuthRoundTripper{Source: apiKeySource, Next: client.Transport}
 
-	if err = apiKey.Validate(ctx, client, cfg.APIURL); err != nil {
+	if err = apiKey.Validate(ctx, client, cfg.APIURL+validatePath); err != nil {
 		if !cfg.StoreOnFail {
 			slog.Error("no failed event storage set, validate API key", slog.Any("error", err))
 			os.Exit(1)
