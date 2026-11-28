@@ -24,21 +24,21 @@ func TestLoad(t *testing.T) {
 		"eu site": {
 			env: map[string]string{EnvSite: "datadoghq.eu"},
 			want: func(c *Config) {
-				c.APIURL = "https://api.datadoghq.eu/api/v1/validate"
+				c.APIURL = "https://api.datadoghq.eu"
 				c.IntakeURL = "https://http-intake.logs.datadoghq.eu:443/api/v2/logs"
 			},
 		},
 		"gov": {
 			env: map[string]string{EnvSite: "ddog-gov.com"},
 			want: func(c *Config) {
-				c.APIURL = "https://api.ddog-gov.com/api/v1/validate"
+				c.APIURL = "https://api.ddog-gov.com"
 				c.IntakeURL = "https://http-intake.logs.ddog-gov.com:443/api/v2/logs"
 			},
 		},
 		"no ssl and custom port": {
 			env: map[string]string{EnvUseHTTP: "true", EnvPort: "8080"},
 			want: func(c *Config) {
-				c.APIURL = "http://api.datadoghq.com/api/v1/validate"
+				c.APIURL = "http://api.datadoghq.com"
 				c.IntakeURL = "http://http-intake.logs.datadoghq.com:8080/api/v2/logs"
 			},
 		},
@@ -144,7 +144,7 @@ func TestLoad(t *testing.T) {
 
 func defaultConfig() Config {
 	return Config{
-		APIURL:           DefaultProtocol + "://api." + DefaultSite + "/api/v1/validate",
+		APIURL:           DefaultProtocol + "://api." + DefaultSite,
 		IntakeURL:        DefaultProtocol + "://http-intake.logs." + DefaultSite + ":" + DefaultPort + "/api/v2/logs",
 		CompressionLevel: gzip.DefaultCompression,
 	}

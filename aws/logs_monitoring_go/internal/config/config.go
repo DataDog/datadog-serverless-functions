@@ -88,7 +88,7 @@ func Load() (Config, error) {
 		protocol = "http"
 	}
 	intakeURL := envOrDefault(EnvIntakeURL, protocol+"://http-intake.logs."+site+":"+port+"/api/v2/logs")
-	apiURL := envOrDefault(EnvAPIURL, protocol+"://api."+site+"/api/v1/validate")
+	apiURL := envOrDefault(EnvAPIURL, protocol+"://api."+site)
 
 	skipServerCertificate := envOrDefaultBool(EnvSkipServerCertificate, false)
 	compressionLevel := getCompressionLevel(os.Getenv(EnvCompressionLevel))
