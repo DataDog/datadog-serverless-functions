@@ -61,7 +61,7 @@ func main() {
 	}
 	apiKey, err := apiKeySource.Get(ctx)
 	if err != nil {
-		slog.Error("get API key source", slog.Any("error", err))
+		slog.Error("get API key", slog.Any("error", err))
 		os.Exit(1)
 	}
 
@@ -77,7 +77,7 @@ func main() {
 			slog.Error("no failed event storage set, validate API key", slog.Any("error", err))
 			os.Exit(1)
 		}
-		slog.Error("API key validation", slog.Any("error", err))
+		slog.Error("validate API key", slog.Any("error", err))
 	}
 
 	s3Client, err := sdkclient.GetS3()
