@@ -14,14 +14,16 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws/arn"
 )
 
 const (
-	DefaultSite     = "datadoghq.com"
-	DefaultPort     = "443"
-	DefaultProtocol = "https"
+	DefaultSite                         = "datadoghq.com"
+	DefaultPort                         = "443"
+	DefaultProtocol                     = "https"
+	DefaultDelegatedAuthRefreshInterval = 60 * time.Minute
 )
 
 const (
@@ -50,30 +52,34 @@ const (
 	EnvAPIKeySecretARN          = "DD_API_KEY_SECRET_ARN"
 	EnvAPIKeySSMName            = "DD_API_KEY_SSM_NAME"
 	EnvKMSAPIKey                = "DD_KMS_API_KEY"
+	EnvOrgUUID                  = "DD_ORG_UUID"
+	EnvDelegatedAuthRefreshMins = "DD_DELEGATED_AUTH_REFRESH_INTERVAL_MINS"
 )
 
 type Config struct {
-	APIKeySecretARN           string
-	APIKeySSMName             string
-	APIKeyKMSKey              string
-	APIURL                    string
-	IntakeURL                 string
-	CompressionLevel          int
-	SkipServerCertificate     bool
-	Source                    string
-	Tags                      string
-	S3MultilineLogRegex       *regexp.Regexp
-	FilterInclude             *regexp.Regexp
-	FilterExclude             *regexp.Regexp
-	ScrubbingRegex            *regexp.Regexp
-	ScrubbingReplacement      string
-	ScrubIP                   bool
-	ScrubEmail                bool
-	StoreOnFail               bool
-	S3BucketName              string
-	SQSQueueURL               string
-	AdditionalTargets         []string
-	StepFunctionsTraceEnabled bool
+	APIKeySecretARN              string
+	APIKeySSMName                string
+	APIKeyKMSKey                 string
+	APIURL                       string
+	IntakeURL                    string
+	CompressionLevel             int
+	SkipServerCertificate        bool
+	Source                       string
+	Tags                         string
+	S3MultilineLogRegex          *regexp.Regexp
+	FilterInclude                *regexp.Regexp
+	FilterExclude                *regexp.Regexp
+	ScrubbingRegex               *regexp.Regexp
+	ScrubbingReplacement         string
+	ScrubIP                      bool
+	ScrubEmail                   bool
+	StoreOnFail                  bool
+	S3BucketName                 string
+	SQSQueueURL                  string
+	AdditionalTargets            []string
+	StepFunctionsTraceEnabled    bool
+	OrgUUID                      string
+	DelegatedAuthRefreshInterval time.Duration
 }
 
 func Load() (Config, error) {
@@ -114,28 +120,33 @@ func Load() (Config, error) {
 		err = errors.Join(err, errors.New("failed event storage enabled, but no storage provided"))
 	}
 
+	orgUUID := strings.TrimSpace(os.Getenv(EnvOrgUUID))
+	delegatedAuthRefreshInterval := getDelegatedAuthRefreshInterval(os.Getenv(EnvDelegatedAuthRefreshMins))
+
 	return Config{
-		APIKeySecretARN:           os.Getenv(EnvAPIKeySecretARN),
-		APIKeySSMName:             os.Getenv(EnvAPIKeySSMName),
-		APIKeyKMSKey:              os.Getenv(EnvKMSAPIKey),
-		APIURL:                    apiURL,
-		IntakeURL:                 intakeURL,
-		CompressionLevel:          compressionLevel,
-		SkipServerCertificate:     skipServerCertificate,
-		Source:                    source,
-		Tags:                      os.Getenv(EnvTags),
-		S3MultilineLogRegex:       multilineRegex,
-		FilterInclude:             filterInclude,
-		FilterExclude:             filterExclude,
-		ScrubbingRegex:            scrubbingRegex,
-		ScrubbingReplacement:      scrubbingReplacement,
-		ScrubIP:                   scrubIP,
-		ScrubEmail:                scrubEmail,
-		StoreOnFail:               storeOnFail,
-		S3BucketName:              s3BucketName,
-		SQSQueueURL:               sqsQueueURL,
-		AdditionalTargets:         additionalTargets,
-		StepFunctionsTraceEnabled: stepFunctionsTraceEnabled,
+		APIKeySecretARN:              os.Getenv(EnvAPIKeySecretARN),
+		APIKeySSMName:                os.Getenv(EnvAPIKeySSMName),
+		APIKeyKMSKey:                 os.Getenv(EnvKMSAPIKey),
+		APIURL:                       apiURL,
+		IntakeURL:                    intakeURL,
+		CompressionLevel:             compressionLevel,
+		SkipServerCertificate:        skipServerCertificate,
+		Source:                       source,
+		Tags:                         os.Getenv(EnvTags),
+		S3MultilineLogRegex:          multilineRegex,
+		FilterInclude:                filterInclude,
+		FilterExclude:                filterExclude,
+		ScrubbingRegex:               scrubbingRegex,
+		ScrubbingReplacement:         scrubbingReplacement,
+		ScrubIP:                      scrubIP,
+		ScrubEmail:                   scrubEmail,
+		StoreOnFail:                  storeOnFail,
+		S3BucketName:                 s3BucketName,
+		SQSQueueURL:                  sqsQueueURL,
+		AdditionalTargets:            additionalTargets,
+		StepFunctionsTraceEnabled:    stepFunctionsTraceEnabled,
+		OrgUUID:                      orgUUID,
+		DelegatedAuthRefreshInterval: delegatedAuthRefreshInterval,
 	}, err
 }
 
@@ -192,6 +203,20 @@ func getCompressionLevel(level string) int {
 	return gzip.DefaultCompression
 }
 
+func getDelegatedAuthRefreshInterval(minutes string) time.Duration {
+	if minutes == "" {
+		return DefaultDelegatedAuthRefreshInterval
+	}
+
+	v, err := strconv.Atoi(minutes)
+	if err != nil || v <= 0 {
+		slog.Warn("invalid delegated auth refresh interval, using default", slog.String("minutes", minutes))
+		return DefaultDelegatedAuthRefreshInterval
+	}
+
+	return time.Duration(v) * time.Minute
+}
+
 func (c Config) LogValue() slog.Value {
 	return slog.GroupValue(
 		slog.Bool("api_key_configured", c.APIKeySecretARN != "" || c.APIKeySSMName != "" || c.APIKeyKMSKey != ""),
@@ -212,5 +237,7 @@ func (c Config) LogValue() slog.Value {
 		slog.Bool("scrub_custom", c.ScrubbingRegex != nil),
 		slog.Any("additional_targets", c.AdditionalTargets),
 		slog.Bool("step_functions_trace_enabled", c.StepFunctionsTraceEnabled),
+		slog.String("org_uuid", c.OrgUUID),
+		slog.Duration("delegated_auth_refresh_interval", c.DelegatedAuthRefreshInterval),
 	)
 }

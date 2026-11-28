@@ -34,8 +34,9 @@ import (
 )
 
 const (
-	initTimeout  = 8 * time.Second
-	validatePath = "/api/v1/validate"
+	initTimeout       = 8 * time.Second
+	validatePath      = "/api/v1/validate"
+	delegatedAuthPath = "/api/v2/intake-key"
 )
 
 var Version = "6.0.0-dev"
@@ -60,7 +61,7 @@ func main() {
 	}
 	apiKey, err := apiKeySource.Get(ctx)
 	if err != nil {
-		slog.Error("get API key source", slog.Any("error", err))
+		slog.Error("get API key", slog.Any("error", err))
 		os.Exit(1)
 	}
 
@@ -76,7 +77,7 @@ func main() {
 			slog.Error("no failed event storage set, validate API key", slog.Any("error", err))
 			os.Exit(1)
 		}
-		slog.Error("API key validation", slog.Any("error", err))
+		slog.Error("validate API key", slog.Any("error", err))
 	}
 
 	s3Client, err := sdkclient.GetS3()
@@ -117,7 +118,42 @@ func main() {
 }
 
 func newAPIKeySource(cfg config.Config) (apikey.APIKeySource, error) {
-	return newStaticAPIKeySource(cfg)
+	staticAPIKeySource, sAPIKeyErr := newStaticAPIKeySource(cfg)
+	ephemeralAPIKeySource, eAPIKeyErr := newEphemeralAPIKeySource(cfg)
+
+	if sAPIKeyErr == nil && eAPIKeyErr == nil {
+		return apikey.MultiAPIKeySource{Primary: ephemeralAPIKeySource, Secondary: staticAPIKeySource}, nil
+	}
+	if sAPIKeyErr == nil {
+		return staticAPIKeySource, nil
+	}
+	if eAPIKeyErr == nil {
+		return ephemeralAPIKeySource, nil
+	}
+
+	return nil, errors.Join(sAPIKeyErr, eAPIKeyErr)
+}
+
+func newEphemeralAPIKeySource(cfg config.Config) (apikey.APIKeySource, error) {
+	switch {
+	case cfg.OrgUUID != "":
+		awsCfg, err := sdkclient.AWSConfig()
+		if err != nil {
+			return nil, fmt.Errorf("aws config: %w", err)
+		}
+
+		var tlsOpts []httpclient.TLSOption
+		if cfg.SkipServerCertificate {
+			tlsOpts = append(tlsOpts, httpclient.WithCertificateSkip())
+		}
+		exchangeClient := httpclient.New(tlsOpts...)
+
+		source := apikey.NewWorkloadIdentityFederationAPIKeySource(awsCfg.Region, cfg.OrgUUID, cfg.APIURL+delegatedAuthPath, exchangeClient, awsCfg.Credentials)
+		return apikey.NewEphemeralAPIKeySource(source, cfg.DelegatedAuthRefreshInterval), nil
+
+	default:
+		return nil, errors.New("no ephemeral API key source configured")
+	}
 }
 
 func newStaticAPIKeySource(cfg config.Config) (apikey.APIKeySource, error) {
